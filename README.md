@@ -104,6 +104,7 @@ est en pages secondaires, pour qui veut vérifier ou reprendre l'évaluation :
 | [Formats et découplage](docs/FORMATS.md) | Changer d'affichage sans changer la collecte |
 | [Clés d'évaluation](docs/EVALUATION-KEYS.md) | Si l'on veut essayer les outils commerciaux |
 | [Détails techniques](docs/TECHNICAL.md) | Le programme de démonstration et les pièges rencontrés |
+| [Diffuser l'outil](docs/DISTRIBUTION.md) | Maven Central, dépôt interne, et la V2 qui en découlerait |
 
 **En une phrase** : aucun outil ne répond seul aux trois questions, mais **trois outils
 gratuits y suffisent**, et une licence commerciale n'apporterait que sur l'option de
