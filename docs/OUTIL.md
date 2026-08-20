@@ -33,11 +33,19 @@ déconnecté — on prépare le cache une fois, on le transporte s'il le faut.
 
 ### Avec un fichier de configuration
 
+Il n'y a rien à copier : **le fichier est généré s'il n'existe pas**, avec les valeurs par
+défaut, des commentaires et des exemples pour chaque clé.
+
 ```bash
-cp runtime-xray.conf.example mon-projet.conf
-# … éditer …
+./runtime-xray.sh --config mon-projet.conf
+# ✅ Fichier de configuration généré : mon-projet.conf
+#    Renseigner au minimum JAVA_CMD et CLASSES_DIR, puis relancer.
+
 ./runtime-xray.sh --config mon-projet.conf
 ```
+
+Sans aucun argument, l'outil cherche `runtime-xray.conf` dans le répertoire courant et le
+crée s'il manque — on peut donc démarrer en tapant simplement `./runtime-xray.sh`.
 
 ## Comment il s'accroche à l'application
 
@@ -66,6 +74,7 @@ Aucune modification du code analysé, aucun changement dans le build.
 | `SOURCE_DIRS` / `--sources` | — | Les sources, pour afficher le code annoté. Plusieurs racines : séparées par `:` |
 | `CLASS_FILTER` / `--filter` | — | Restreint les mesures de temps au code applicatif, ex. `com/exemple/*`. Déduit du paquet de `ROOT_METHOD` si absent |
 | `OUT_DIR` / `--out` | — | Répertoire de sortie (défaut `runtime-xray-out`) |
+| `RUN_NAME` / `--name` | — | Nom lisible de **cette** exécution. Les exécutions s'accumulent et la vue permet de passer de l'une à l'autre |
 | `ATTACH_AFTER` | — | Délai avant l'inspection des valeurs (défaut 8 s) |
 | `MAX_SECONDS` | — | Garde-fou si l'application ne se termine pas (défaut 600 s) |
 | `WATCH_COUNT` | — | Nombre d'appels dont on capture les valeurs (défaut 5) |
@@ -93,12 +102,54 @@ grand-chose de toute façon.
 
 ```
 runtime-xray-out/
-├── index.html              ← la vue intégrée : ouvrir le dossier suffit à la trouver
-├── run-context.json        ← quel programme, quels arguments, quand, sur quelle machine
-├── execution.log           ← la sortie de l'application
-├── jacoco/html/            ← le rapport de couverture détaillé
-├── async-profiler/         ← les mesures de temps brutes
-└── arthas/                 ← les valeurs capturées
+├── index.html                  ← la vue intégrée : ouvrir le dossier suffit à la trouver
+├── noms.json                   ← renommer une exécution après coup (facultatif)
+└── runs/
+    └── 20260820-221009-recette-v2/
+        ├── run-context.json    ← identifiant, nom, commande, heure, machine…
+        ├── execution.log       ← la sortie de l'application
+        ├── jacoco/html/        ← le rapport de couverture détaillé
+        ├── async-profiler/     ← les mesures de temps brutes
+        └── arthas/             ← les valeurs capturées
+```
+
+## Plusieurs exécutions dans un même rapport
+
+Chaque lancement crée une exécution dans `runs/`, et la vue affiche un **sélecteur** en
+haut : on passe de l'une à l'autre sans changer de page. Dans la liste des méthodes, un
+repère indique celles qui ont **aussi** tourné ailleurs (`+2`) et celles qui sont
+**propres à cette exécution** (`seule ici`) — c'est ce qui rend la comparaison lisible.
+
+**[→ Exemple à trois exécutions](https://beennnn.github.io/runtime-xray/multi/)**
+
+### Trois identités, et pourquoi
+
+| | Ce que c'est | Change ? |
+|---|---|---|
+| **UUID** | Généré au lancement, écrit dans `run-context.json` | **jamais** — c'est la clé stable |
+| **Nom d'origine** | Le `--name` donné au lancement | jamais — il permet de revenir en arrière |
+| **Nom d'affichage** | Ce que la vue montre | oui, via `noms.json` |
+
+Renommer après coup ne touche à aucune exécution : c'est un fichier à la racine du
+répertoire commun, qui associe un identifiant à un nom.
+
+```json
+{
+  "8BF7DA2E-1C5A-4435-A3E3-4FE50CD41A2F": "Recette — jeu de données réduit"
+}
+```
+
+Supprimer l'entrée rétablit le nom d'origine. Le script rappelle l'identifiant à la fin de
+chaque exécution, prêt à être collé.
+
+### Rassembler des exécutions venues d'ailleurs
+
+La vue accepte **n'importe quelle arborescence** : elle considère comme exécution tout
+répertoire contenant un `run-context.json`. Rassembler des répertoires de sortie produits
+sur des machines différentes dans un même dossier, puis :
+
+```bash
+python3 tools/summary/build-dashboard.py --gen dossier-commun --sources src/main/java
 ```
 
 ### Lire la vue

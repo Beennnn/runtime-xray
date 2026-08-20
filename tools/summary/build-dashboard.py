@@ -37,7 +37,7 @@ OUT = pathlib.Path(ARGS.out) if ARGS.out else GEN
 TRACED = ARGS.traced.replace(".", "/")
 
 # ---------------------------------------------------------------- couverture
-def load_coverage():
+def load_coverage(GEN):
     """-> (lignes par fichier source, méthodes par classe, arbre des packages)"""
     xml = GEN / "jacoco" / "html" / "jacoco.xml"
     if not xml.exists():
@@ -100,7 +100,7 @@ def load_coverage():
 # reste surestimé, puisqu'on mesure aussi le travail de l'instrumentation.
 ARTHAS_FRAME = re.compile(r"arthas|SpyAPI|taobao", re.I)
 
-def load_calltree(limit_depth=40):
+def load_calltree(GEN, limit_depth=40):
     path = GEN / "async-profiler" / "profil.collapsed"
     if not path.exists():
         return {"name": "(profil absent)", "total": 0, "children": []}, None
@@ -139,16 +139,16 @@ def load_calltree(limit_depth=40):
 # ------------------------------------------------------------------- arthas
 CALL_RE = re.compile(r"[+`]---\[([^\]]*)\]\s+([\w.$]+):(\w+)\(\)\s+#(\d+)")
 
-def first_existing(*names):
+def first_existing(GEN, *names):
     for n in names:
         p = GEN / "arthas" / n
         if p.exists():
             return p
     return None
 
-def load_trace():
+def load_trace(GEN):
     """Pour un appel : quelle ligne appelle quoi, et en combien de temps."""
-    path = first_existing("trace-calltree.txt", "trace-params.txt", "trace.txt")
+    path = first_existing(GEN, "trace-calltree.txt", "trace-params.txt", "trace.txt")
     if path is None:
         return {}
     text = re.sub(r"\x1b\[[0-9;]*m", "", path.read_text())
@@ -163,7 +163,7 @@ def load_trace():
              "pct": pct.group(1) + "%" if pct else ""})
     return per_line
 
-def load_values(limit_per_method=8):
+def load_values(GEN, limit_per_method=8):
     """Valeurs capturées, groupées PAR MÉTHODE.
 
     La sortie de l'observateur a cette forme, et l'indentation porte le sens :
@@ -182,7 +182,7 @@ def load_values(limit_per_method=8):
     retour est **hors** du bloc des paramètres (une capture ligne-à-ligne naïve l'ignore).
     On s'appuie donc sur l'indentation plutôt que sur un motif global.
     """
-    path = first_existing("watch-params.txt", "watch.txt")
+    path = first_existing(GEN, "watch-params.txt", "watch.txt")
     if path is None:
         return {}
     text = re.sub(r"\x1b\[[0-9;]*m", "", path.read_text())
@@ -239,7 +239,7 @@ def load_values(limit_per_method=8):
     return per_method
 
 # -------------------------------------------------------------------- rendu
-def load_context():
+def load_context(GEN):
     """Contexte de l'exécution, s'il a été enregistré. Sans lui, un rapport retrouvé plus
     tard ne dit pas de quoi il parle : quel programme, quels arguments, quand, où."""
     path = GEN / "run-context.json"
@@ -261,27 +261,83 @@ def load_sources():
             out[str(f.relative_to(root))] = f.read_text(errors="replace").splitlines()
     return out
 
-def main():
-    lines, methods, packages = load_coverage()
-    calltree, profile_note = load_calltree()
-    data = {
+# Renommage après coup : un simple fichier à la racine du répertoire commun, qui associe
+# l'identifiant permanent d'une exécution à un nom choisi plus tard. Le nom d'origine
+# reste dans run-context.json — supprimer l'entrée suffit à revenir en arrière.
+NAMES_FILE = "noms.json"
+
+def load_overrides():
+    path = GEN / NAMES_FILE
+    if not path.exists():
+        return {}
+    try:
+        return json.loads(path.read_text())
+    except Exception:
+        print(f"⚠️  {path} illisible — noms d'origine conservés", file=sys.stderr)
+        return {}
+
+def find_runs(root, depth=3):
+    """Toute exécution est un répertoire contenant run-context.json. On cherche en
+    profondeur limitée, ce qui permet de rassembler plusieurs répertoires de sortie
+    dans un répertoire commun et de les traiter ensemble."""
+    found = []
+    def walk(d, level):
+        if level > depth or not d.is_dir():
+            return
+        if (d / "run-context.json").exists() or (d / "jacoco" / "html" / "jacoco.xml").exists():
+            found.append(d); return
+        for sub in sorted(d.iterdir()):
+            if sub.is_dir() and not sub.name.startswith("."):
+                walk(sub, level + 1)
+    walk(root, 0)
+    return found
+
+def load_run(base, label, overrides):
+    """Charge une exécution. Les sources ne sont PAS chargées ici : elles sont communes
+    à toutes les exécutions d'un même projet, donc stockées une seule fois."""
+    lines, methods, packages = load_coverage(base)
+    calltree, note = load_calltree(base)
+    ctx = load_context(base)
+    try:
+        rel = str(base.resolve().relative_to(OUT.resolve())) + "/"
+    except ValueError:
+        rel = ""
+    uuid = (ctx or {}).get("uuid", "")
+    origine = (ctx or {}).get("nomOrigine") or (ctx or {}).get("nom") or label
+    return {
+        "uuid": uuid,
+        "nomOrigine": origine,
+        "renomme": bool(uuid and uuid in overrides),
+        "nom": overrides.get(uuid, origine),
+        "chemin": "" if rel == "./" else rel,
         "coverage": lines,
         "methods": methods,
         "packages": packages,
         "calltree": calltree,
-        "profileNote": profile_note,
-        "trace": {str(k): v for k, v in load_trace().items()},
-        "values": load_values(),
-        "sources": load_sources(),
-        "tracedClass": TRACED,
-        "context": load_context(),
+        "profileNote": note,
+        "trace": {str(k): v for k, v in load_trace(base).items()},
+        "values": load_values(base),
+        "context": ctx,
+        "tracedClass": (ctx or {}).get("methodeRacine", "").split("::")[0].replace(".", "/")
+                       or TRACED,
     }
+
+def main():
+    overrides = load_overrides()
+    bases = find_runs(GEN)
+    if not bases:
+        sys.exit(f"aucune exécution trouvée sous {GEN} "
+                 f"(un répertoire d'exécution contient run-context.json)")
+    bases.sort(key=lambda d: d.stat().st_mtime, reverse=True)
+    runs = [load_run(b, b.name, overrides) for b in bases]
+
+    data = {"runs": runs, "sources": load_sources()}
     OUT.mkdir(parents=True, exist_ok=True)
     template = (pathlib.Path(__file__).parent / "dashboard.html").read_text()
     page = template.replace("/*__DATA__*/", json.dumps(data, ensure_ascii=False))
     (OUT / "index.html").write_text(page)
     size = (OUT / "index.html").stat().st_size / 1024
-    print(f"→ {OUT / 'index.html'} ({size:.0f} Ko)")
+    print(f"→ {OUT / 'index.html'} ({size:.0f} Ko, {len(runs)} exécution(s))")
 
 if __name__ == "__main__":
     main()

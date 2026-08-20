@@ -1,0 +1,25 @@
+GROUP,PACKAGE,CLASS,INSTRUCTION_MISSED,INSTRUCTION_COVERED,BRANCH_MISSED,BRANCH_COVERED,LINE_MISSED,LINE_COVERED,COMPLEXITY_MISSED,COMPLEXITY_COVERED,METHOD_MISSED,METHOD_COVERED
+Runtime X-Ray,lab.sample,Metrics,0,78,0,0,0,14,0,2,0,2
+Runtime X-Ray,lab.sample,Main,5,134,2,8,2,22,3,5,1,2
+Runtime X-Ray,lab.sample,RoutePlanner,6,87,1,9,1,16,1,6,0,2
+Runtime X-Ray,lab.sample,Scenarios,0,176,0,4,0,16,0,4,0,2
+Runtime X-Ray,lab.sample.terrain,Elevation,0,31,0,0,0,4,0,1,0,1
+Runtime X-Ray,lab.sample.terrain,Terrain,5,58,3,8,2,13,3,7,0,3
+Runtime X-Ray,lab.sample.speed,Speeds,5,29,2,3,2,8,2,4,0,2
+Runtime X-Ray,lab.sample.speed,BikeSpeed,2,10,1,1,0,2,1,2,0,2
+Runtime X-Ray,lab.sample.speed,CarSpeed,9,10,3,1,1,3,2,2,0,2
+Runtime X-Ray,lab.sample.speed,PlaneSpeed,12,0,2,0,2,0,3,0,2,0
+Runtime X-Ray,lab.sample.speed,TrainSpeed,2,10,1,1,0,2,1,2,0,2
+Runtime X-Ray,lab.sample.speed,WalkSpeed,2,3,0,0,1,1,1,1,1,1
+Runtime X-Ray,lab.sample.weather,WeatherPenalty,3,18,3,4,2,3,3,3,0,2
+Runtime X-Ray,lab.sample.weather,LuggagePenalty,2,4,1,1,0,1,1,1,0,1
+Runtime X-Ray,lab.sample.model,TimeOfDay,0,21,0,0,0,1,0,1,0,1
+Runtime X-Ray,lab.sample.model,Mode,0,33,0,0,0,1,0,1,0,1
+Runtime X-Ray,lab.sample.model,Trip,21,21,2,0,5,1,2,1,1,1
+Runtime X-Ray,lab.sample.model,Leg,0,12,0,0,0,1,0,1,0,1
+Runtime X-Ray,lab.sample.model,Weather,0,21,0,0,0,1,0,1,0,1
+Runtime X-Ray,lab.sample.transfer,Timetable,3,28,0,0,2,5,0,3,0,3
+Runtime X-Ray,lab.sample.transfer,Connections,1,45,1,3,0,6,1,3,0,2
+Runtime X-Ray,lab.sample.traffic,RushHourDelay,16,0,4,0,3,0,3,0,1,0
+Runtime X-Ray,lab.sample.traffic,Traffic,22,8,3,3,5,1,3,2,1,1
+Runtime X-Ray,lab.sample.comfort,Breaks,0,17,0,2,0,4,0,3,0,2

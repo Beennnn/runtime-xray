@@ -1,0 +1,25 @@
+[INFO] JAVA_HOME: /Users/benoitbesson/.sdkman/candidates/java/25.0.2-tem
+[INFO] arthas-boot version: 4.3.4
+[INFO] arthas home: /Users/benoitbesson/.runtime-xray/arthas-4.3.4
+[INFO] Try to attach process 99514
+Picked up JAVA_TOOL_OPTIONS: 
+[INFO] Attach process 99514 success.
+[INFO] arthas-client connect 127.0.0.1 3658
+[1;31m  ,---.  [1;33m,------. [1;36m,--------.[1;35m,--.  ,--.[1;32m  ,---.  [1;34m ,---.  [0m                         
+[1;31m /  O  \ [1;33m|  .--. '[1;36m'--.  .--'[1;35m|  '--'  |[1;32m /  O  \ [1;34m'   .-' [0m                         
+[1;31m|  .-.  |[1;33m|  '--'.'[1;36m   |  |   [1;35m|  .--.  |[1;32m|  .-.  |[1;34m`.  `-. [0m                         
+[1;31m|  | |  |[1;33m|  |\  \ [1;36m   |  |   [1;35m|  |  |  |[1;32m|  | |  |[1;34m.-'    |[0m                         
+[1;31m`--' `--'[1;33m`--' '--'[1;36m   `--'   [1;35m`--'  `--'[1;32m`--' `--'[1;34m`-----' [0m                         
+
+wiki         https://arthas.aliyun.com/doc                                      
+tutorials    https://arthas.aliyun.com/doc/arthas-tutorials.html                
+version      4.3.4                                                              
+main_class   sample-app/target/sample-app.jar                                   
+pid          99514                                                              
+start_time   2026-08-20 22:10:51.929                                            
+current_time 2026-08-20 22:10:58.773                                            
+
+[arthas@99514]$ watch lab.sample.RoutePlanner * '{params, returnObj}' -n 10 -x 2  | plaintext
+Press Q or Ctrl+C to abort.
+Affect(class count: 1 , method count: 4) cost in 94 ms, listenerId: 1
+session (6cf8d4bc-10e9-44a9-8fc6-e92b766757d2) is closed because server is going to shutdown.

@@ -36,6 +36,9 @@
      alors qu'ils n'étaient qu'informatifs. Leur explication vit dans la légende, en bas. */
   .applogo{display:flex;align-items:center}
   .stat{color:var(--muted);font-size:12.5px} .stat b{color:var(--text)}
+  #runsel{font:inherit;font-size:12.5px;padding:3px 8px;border-radius:6px;
+          border:1px solid var(--border);background:var(--bg);color:var(--text);max-width:280px}
+  #runsel[hidden]{display:none}
   .spacer{margin-left:auto}
   .cleanbtn{display:inline-flex;align-items:center;gap:7px;font:inherit;font-size:12.5px;
             font-weight:600;padding:5px 12px;border-radius:20px;cursor:pointer;
@@ -83,6 +86,10 @@
   .node.jdk{color:var(--muted)}
   .tagval{font-size:10px;border:1px solid var(--violet);color:var(--violet);
           border-radius:10px;padding:0 5px;vertical-align:1px}
+  .tagrun{font-size:10px;border:1px solid var(--accent);color:var(--accent);
+          border-radius:10px;padding:0 5px;vertical-align:1px}
+  .tagonly{font-size:10px;border:1px solid var(--partbar);color:var(--partbar);
+           border-radius:10px;padding:0 5px;vertical-align:1px}
   .node.sel .tagval{border-color:#fff;color:#fff}
   .grouphead{padding:6px 8px 2px;color:var(--muted);font-size:11px;letter-spacing:.6px;text-transform:uppercase}
   #detail{display:flex;flex-direction:column;min-height:0}
@@ -194,6 +201,7 @@
     </svg>
   </span>
   <h1><a href="#" id="home" title="Revenir à la vue d'ensemble">Runtime X-Ray</a></h1>
+  <select id="runsel" title="Choisir l'exécution à regarder"></select>
   <div class="stat" id="stats"></div>
   <span class="spacer"></span>
   <span class="links" id="links"></span>
@@ -225,30 +233,61 @@
 </main>
 <script>
 const D = /*__DATA__*/;
+// Plusieurs exécutions peuvent cohabiter dans le même rapport. R désigne celle qu'on
+// regarde ; tout le reste de la page lit R, jamais D directement (sauf les sources,
+// communes à toutes les exécutions).
+let runIndex = 0;
+let R = D.runs[0];
 const esc = s => String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
 const dot = s => s.replace(/\//g,".");
 let clean = true, mode = "exec", scopeFrame = null, selected = null, filter = "", ctxIndex = 0;
 
 /* ---------------------------------------------------------------- agrégats */
-const AGG = (() => {
+function ranIn(run, frame){
+  const cls = frame.slice(0, frame.lastIndexOf("."));
+  const name = frame.slice(frame.lastIndexOf(".") + 1);
+  const info = run.methods[cls];
+  return !!(info && info.methods.some(m => m.name === name && m.covered));
+}
+function computeAgg(){
   let cov=0, miss=0; const dead=[];
-  for (const classes of Object.values(D.packages))
+  for (const classes of Object.values(R.packages))
     for (const c of classes){ cov+=c.covered; miss+=c.missed; if(!c.covered) dead.push(c.simple); }
   const weights = {};
-  (function walk(n){ for(const k of n.children){ weights[k.name]=(weights[k.name]||0)+k.total; walk(k);} })(D.calltree);
+  (function walk(n){ for(const k of n.children){ weights[k.name]=(weights[k.name]||0)+k.total; walk(k);} })(R.calltree);
   let methods=0;
-  for (const info of Object.values(D.methods)) methods += info.methods.filter(m=>m.covered).length;
+  for (const info of Object.values(R.methods)) methods += info.methods.filter(m=>m.covered).length;
   return {cov, miss, dead, weights, methods,
-          pct: cov+miss ? 100*cov/(cov+miss) : 0, samples: D.calltree.total};
+          pct: cov+miss ? 100*cov/(cov+miss) : 0, samples: R.calltree.total};
+}
+let AGG = computeAgg();
+
+(function initRuns(){
+  const sel = document.getElementById("runsel");
+  if (D.runs.length < 2){ sel.hidden = true; return; }
+  sel.innerHTML = D.runs.map((r,i) =>
+    '<option value="'+i+'">'+r.nom.replace(/</g,"&lt;")+'</option>').join("");
+  sel.onchange = () => {
+    runIndex = +sel.value; R = D.runs[runIndex]; AGG = computeAgg();
+    scopeFrame = null; selected = null; ctxIndex = 0;
+    refreshHeader(); refreshLinks(); renderExec(); drawHome();
+  };
 })();
 
+function refreshHeader(){
 document.getElementById("stats").innerHTML =
   "<b>"+AGG.pct.toFixed(1)+" %</b> du code exécuté · <b>"+AGG.methods+"</b> méthodes ayant tourné"+
   (AGG.dead.length ? " · <b>"+AGG.dead.length+"</b> classe(s) morte(s)" : "");
-document.getElementById("links").innerHTML =
-  '<a href="jacoco/html/index.html">couverture détaillée</a>' +
-  '<a href="jacoco-focused/html/index.html">couverture ciblée</a>' +
-  '<a href="async-profiler/flamegraph.html">flame graph</a>';
+}
+refreshHeader();
+function refreshLinks(){
+  const b = R.chemin || "";
+  document.getElementById("links").innerHTML =
+    '<a href="'+b+'jacoco/html/index.html">couverture détaillée</a>' +
+    '<a href="'+b+'jacoco-focused/html/index.html">couverture ciblée</a>' +
+    '<a href="'+b+'async-profiler/flamegraph.html">flame graph</a>';
+}
+refreshLinks();
 document.getElementById("legend").innerHTML =
   '<span class="sw" style="background:var(--fullbar)"></span>exécuté' +
   '<span class="sw" style="background:var(--partbar)"></span>partiellement' +
@@ -264,7 +303,7 @@ function frameInfo(frame){
   const i = frame.lastIndexOf(".");
   if (i < 0) return null;
   const cls = frame.slice(0,i), name = frame.slice(i+1);
-  const info = D.methods[cls];
+  const info = R.methods[cls];
   if (!info) return null;
   const decl = info.methods.find(m => m.name === name);
   return {frame, cls, name, line: decl ? decl.line : 0,
@@ -280,13 +319,13 @@ function framesUnder(target){
       if (now) acc[kid.name] = (acc[kid.name]||0) + kid.total;
       walk(kid, now);
     }
-  })(D.calltree, false);
+  })(R.calltree, false);
   return acc;
 }
 function executedMethods(){
   const scoped = scopeFrame ? framesUnder(scopeFrame) : null;
   const out = [];
-  for (const [cls, info] of Object.entries(D.methods))
+  for (const [cls, info] of Object.entries(R.methods))
     for (const m of info.methods){
       if (!m.covered) continue;
       const frame = cls + "." + m.name;
@@ -328,10 +367,20 @@ function renderExec(){
     const el = document.createElement("div");
     el.className = "node";
     const share = 100*r.samples/total;
-    const carriesValues = !!(D.values[r.frame] || []).length;
+    const carriesValues = !!(R.values[r.frame] || []).length;
+    // Repère « mélangé » : dans quelles AUTRES exécutions cette méthode a-t-elle tourné ?
+    const alsoIn = D.runs.length > 1
+      ? D.runs.map((run, i) => i !== runIndex && ranIn(run, r.frame) ? i : -1).filter(i => i >= 0)
+      : [];
     el.innerHTML = '<span class="pct">'+(share >= 0.05 ? share.toFixed(1)+"%" : "·")+
                    '</span>'+esc(r.cls.split("/").pop()+"."+r.name)+
-                   (carriesValues ? ' <span class="tagval">valeurs</span>' : '');
+                   (carriesValues ? ' <span class="tagval">valeurs</span>' : '') +
+                   (D.runs.length > 1
+                     ? (alsoIn.length
+                          ? ' <span class="tagrun" title="aussi exécutée dans : '+
+                            alsoIn.map(i => esc(D.runs[i].nom)).join(", ")+'">+'+alsoIn.length+'</span>'
+                          : ' <span class="tagonly" title="propre à cette exécution">seule ici</span>')
+                     : '');
     el.title = dot(r.frame);
     el.onclick = () => select(r, el);
     box.appendChild(el);
@@ -341,7 +390,7 @@ function renderExec(){
 function renderTree(){
   mode = "tree"; tab("tab-tree"); renderScope();
   const box = document.getElementById("list"); box.innerHTML = "";
-  const total = D.calltree.total || 1;
+  const total = R.calltree.total || 1;
   (function level(container, node, depth){
     for (const kid of node.children){
       if (filter && !dot(kid.name).toLowerCase().includes(filter) && !hasMatch(kid)) continue;
@@ -366,7 +415,7 @@ function renderTree(){
         if (info){ selectFrame(kid.name, el); }
       };
     }
-  })(box, D.calltree, 0);
+  })(box, R.calltree, 0);
   function hasMatch(node){
     return node.children.some(k => dot(k.name).toLowerCase().includes(filter) || hasMatch(k));
   }
@@ -375,8 +424,8 @@ function renderTree(){
 function renderClasses(){
   mode = "cls"; tab("tab-cls"); renderScope();
   const box = document.getElementById("list"); box.innerHTML = "";
-  for (const pkg of Object.keys(D.packages).sort()){
-    let classes = D.packages[pkg];
+  for (const pkg of Object.keys(R.packages).sort()){
+    let classes = R.packages[pkg];
     if (clean) classes = classes.filter(c => c.covered > 0);
     if (filter) classes = classes.filter(c => (pkg+"."+c.simple).toLowerCase().includes(filter));
     if (!classes.length) continue;
@@ -389,7 +438,7 @@ function renderClasses(){
       const pct = c.covered+c.missed ? Math.round(100*c.covered/(c.covered+c.missed)) : 0;
       el.innerHTML = '<span class="pct">'+pct+'%</span>'+esc(c.simple);
       el.onclick = () => select({frame:c.name, cls:c.name, name:null, line:0, source:c.source,
-                                 methods:(D.methods[c.name]||{}).methods||[]}, el);
+                                 methods:(R.methods[c.name]||{}).methods||[]}, el);
       box.appendChild(el);
     }
   }
@@ -407,7 +456,7 @@ function pathsTo(frame, max = 4){
       if (kid.name === frame) found.push({path: next, total: kid.total});
       else walk(kid, next);
     }
-  })(D.calltree, []);
+  })(R.calltree, []);
   found.sort((a,b) => b.total - a.total);
   const sum = found.reduce((a,f) => a + f.total, 0) || 1;
   return {chemins: found.slice(0, max), total: sum, nb: found.length};
@@ -457,9 +506,9 @@ function select(info, el){
 function draw(){
   const code = document.getElementById("code");
   if (!selected){ drawHome(); return; }
-  const info = selected, src = D.sources[info.source], cov = D.coverage[info.source] || {};
-  const myCalls = D.values[info.frame] || [];
-  const traced = info.cls === D.tracedClass;
+  const info = selected, src = D.sources[info.source], cov = R.coverage[info.source] || {};
+  const myCalls = R.values[info.frame] || [];
+  const traced = info.cls === R.tracedClass;
   const samples = AGG.weights[info.frame] || 0;
 
   document.getElementById("crumb").innerHTML =
@@ -467,7 +516,7 @@ function draw(){
     '<span>'+esc(dot(info.cls).split(".").slice(0,-1).join("."))+' ›</span> <b>'+
     esc(info.cls.split("/").pop())+'.java</b>'+
     (info.name ? ' <span>›</span> <b>'+esc(info.name)+'()</b>' : '') +
-    (samples ? ' <span class="pill">'+(100*samples/(D.calltree.total||1)).toFixed(1)+' % du temps</span>' : '') +
+    (samples ? ' <span class="pill">'+(100*samples/(R.calltree.total||1)).toFixed(1)+' % du temps</span>' : '') +
     (myCalls.length ? ' <span class="pill" id="pillValues" style="color:var(--violet);border-color:var(--violet);cursor:pointer">'
         + myCalls.length + ' appel(s) capturé(s) — voir les valeurs</span>' : '') +
     (mode==="exec" && info.name ? ' <span class="pill" style="cursor:pointer" id="scopeBtn">ne montrer que ce qui tourne sous cette méthode</span>' : '');
@@ -496,8 +545,8 @@ function draw(){
     let ann = "";
     if (info.line && nr === info.line && myCalls.length)
       ann = '<a href="#" id="lineValues" class="values">▾ valeurs des paramètres ('+myCalls.length+')</a>';
-    else if (traced && D.trace[nr])
-      { const all = D.trace[nr];
+    else if (traced && R.trace[nr])
+      { const all = R.trace[nr];
         ann = "appelle " + all.slice(0,2).map(a =>
           '<a href="#" data-f="'+esc(a.frame||"")+'">'+esc(a.callee)+'</a> <span class="dur">'+esc(a.cost)+'</span>').join(" · ")
           + (all.length > 2 ? ' <span style="opacity:.7">+'+(all.length-2)+'</span>' : ''); }
@@ -547,10 +596,10 @@ function declarationOf(info){
 }
 function drawValues(info){
   const box = document.getElementById("values");
-  const calls = D.values[info.frame] || [];
+  const calls = R.values[info.frame] || [];
   if (!calls.length){
     // Rien pour CETTE méthode : dire lesquelles en ont, plutôt que de laisser un vide.
-    const others = Object.keys(D.values);
+    const others = Object.keys(R.values);
     box.innerHTML = others.length
       ? '<h3>Valeurs des paramètres</h3><div class="call" style="border:0;color:var(--muted)">'+
         'Aucune valeur capturée pour <code>'+esc(info.name||info.cls.split("/").pop())+'</code>. '+
@@ -584,9 +633,9 @@ function drawValues(info){
       '</span><span class="t" title="durée de cet appel">'+esc(v.cost)+'</span></div>').join("");
 }
 function valuesHelp(){
-  const t = dot(D.tracedClass || "");
+  const t = dot(R.tracedClass || "");
   const name = t.split(".").pop();
-  const methods = Object.keys(D.values || {});
+  const methods = Object.keys(R.values || {});
   const has = methods.length;
   if (!has)
     return '<h2>Les valeurs des paramètres</h2><p>Aucune valeur n\'a été capturée pour ce ' +
@@ -596,7 +645,7 @@ function valuesHelp(){
     'désignée au lancement — ici <code>' + esc(t) + '</code>. C\'est volontaire : capturer ' +
     'les valeurs de toutes les méthodes produirait un volume ingérable.</p>' +
     '<p><b>Les méthodes observées</b> — chacune a ses propres valeurs : ' +
-    methods.map(f => '<code>'+esc(f.split("/").pop())+'</code> ('+D.values[f].length+' appels)').join(" · ") +
+    methods.map(f => '<code>'+esc(f.split("/").pop())+'</code> ('+R.values[f].length+' appels)').join(" · ") +
     '.</p>' +
     '<p><b>Pour les voir</b> : ouvrir la méthode depuis la liste de gauche — elle porte une ' +
     'pastille <span class="tagval">valeurs</span> — puis regarder le <b>bandeau en bas</b>. ' +
@@ -609,13 +658,13 @@ function linksBlock(){
     '<a class="lk" href="'+href+'" target="_blank" rel="noopener">' +
     '<span class="lkt">'+titre+'</span><span class="lkd">'+quoi+'</span></a>';
   return '<h2>Pour aller plus loin</h2><div class="links2">' +
-    l("jacoco/html/index.html", "Couverture détaillée",
+    l((R.chemin||"")+"jacoco/html/index.html", "Couverture détaillée",
       "Le rapport complet, fichier par fichier, avec le code annoté ligne à ligne.") +
-    l("jacoco-focused/html/index.html", "Couverture ciblée",
+    l((R.chemin||"")+"jacoco-focused/html/index.html", "Couverture ciblée",
       "Le même, restreint aux classes qui ont réellement tourné.") +
-    l("async-profiler/flamegraph.html", "Flame graph",
+    l((R.chemin||"")+"async-profiler/flamegraph.html", "Flame graph",
       "Où le temps est passé, vu comme un paysage : la largeur d\'une barre est sa durée.") +
-    l("async-profiler/tree.html", "Arbre d\'appel complet",
+    l((R.chemin||"")+"async-profiler/tree.html", "Arbre d\'appel complet",
       "La hiérarchie des appels, dépliable et cherchable, telle que produite par l\'outil de mesure.") +
     l(repo, "Le dépôt du projet ↗",
       "Le code, les scripts de collecte, et comment lancer cet outil sur un autre projet.") +
@@ -626,9 +675,9 @@ function linksBlock(){
     '</div>';
 }
 function reserveBlock(){
-  if (!D.profileNote) return "";
+  if (!R.profileNote) return "";
   return '<div class="reserve"><b>Une réserve sur les pourcentages de temps.</b> ' +
-    esc(D.profileNote) + ' <br><br>' +
+    esc(R.profileNote) + ' <br><br>' +
     'Tout a été collecté en <b>un seul lancement</b> : c\'est le mode par défaut, parce ' +
     'qu\'il donne les trois informations recherchées d\'un coup et que le temps d\'exécution ' +
     'n\'est pas un critère du projet. <b>Si les temps devaient compter</b>, il suffit de ' +
@@ -637,7 +686,7 @@ function reserveBlock(){
     'd\'une exécution supplémentaire.</div>';
 }
 function contextBlock(){
-  const c = D.context;
+  const c = R.context;
   if (!c) return "";
   const row = (k, v) => v ? '<tr><td class="ck">'+esc(k)+'</td><td class="cv">'+v+'</td></tr>' : "";
   const t = c.outils || {};
@@ -668,7 +717,7 @@ function drawHome(){
      '<div class="card c1"><div class="k">'+AGG.pct.toFixed(1)+' %</div><div class="l">du code exécuté</div></div>'+
      '<div class="card c2"><div class="k">'+AGG.methods+'</div><div class="l">méthodes ayant tourné</div></div>'+
      '<div class="card c3"><div class="k">'+AGG.samples.toLocaleString("fr")+'</div><div class="l">mesures de temps prises</div></div>'+
-     '<div class="card c4"><div class="k">'+Object.values(D.values).reduce((a,v)=>a+v.length,0)+'</div><div class="l">appels avec leurs valeurs</div></div>'+
+     '<div class="card c4"><div class="k">'+Object.values(R.values).reduce((a,v)=>a+v.length,0)+'</div><div class="l">appels avec leurs valeurs</div></div>'+
    '</div>'+
    '<div class="bar"><span style="width:'+AGG.pct.toFixed(1)+'%"></span></div>'+
    '<h2>Comment s\'en servir</h2>'+
@@ -716,7 +765,7 @@ function drawHome(){
   if (g) g.onclick = e => {
     e.preventDefault();
     const n = [...document.querySelectorAll("#list .node")]
-      .find(x => (x.title||"").startsWith(dot(D.tracedClass)));
+      .find(x => (x.title||"").startsWith(dot(R.tracedClass)));
     if (n) n.click();
   };
 }

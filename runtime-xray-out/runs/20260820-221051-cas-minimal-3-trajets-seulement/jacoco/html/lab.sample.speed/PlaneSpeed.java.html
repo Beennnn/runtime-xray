@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="fr"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PlaneSpeed.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Runtime X-Ray</a> &gt; <a href="index.source.html" class="el_package">lab.sample.speed</a> &gt; <span class="el_source">PlaneSpeed.java</span></div><h1>PlaneSpeed.java</h1><pre class="source lang-java linenums">package lab.sample.speed;
+
+import lab.sample.model.Leg;
+
+/** En avion. &lt;b&gt;Jamais instanciée par les scénarios&lt;/b&gt; : cette classe entière doit
+ *  apparaître à 0 % dans un rapport de couverture. C'est le test le plus visuel du
+ *  critère « sait-on par où le code n'est PAS passé ? » — un profiler par
+ *  échantillonnage, lui, ne dira jamais rien de ce code. */
+<span class="nc" id="L9">public final class PlaneSpeed implements SpeedModel {</span>
+
+    @Override
+    public double kmPerHour(Leg leg) {
+<span class="nc bnc" id="L13" title="All 2 branches missed.">        return leg.distanceKm() &gt; 1000 ? 850 : 600;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>
