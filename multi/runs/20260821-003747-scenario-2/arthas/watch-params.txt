@@ -1,0 +1,129 @@
+[INFO] JAVA_HOME: /Users/benoitbesson/.sdkman/candidates/java/25.0.2-tem
+[INFO] arthas-boot version: 4.3.4
+[INFO] arthas home: /Users/benoitbesson/.runtime-xray/arthas-4.3.4
+[INFO] Try to attach process 96061
+Picked up JAVA_TOOL_OPTIONS: 
+[INFO] Attach process 96061 success.
+[INFO] arthas-client connect 127.0.0.1 3658
+[1;31m  ,---.  [1;33m,------. [1;36m,--------.[1;35m,--.  ,--.[1;32m  ,---.  [1;34m ,---.  [0m                         
+[1;31m /  O  \ [1;33m|  .--. '[1;36m'--.  .--'[1;35m|  '--'  |[1;32m /  O  \ [1;34m'   .-' [0m                         
+[1;31m|  .-.  |[1;33m|  '--'.'[1;36m   |  |   [1;35m|  .--.  |[1;32m|  .-.  |[1;34m`.  `-. [0m                         
+[1;31m|  | |  |[1;33m|  |\  \ [1;36m   |  |   [1;35m|  |  |  |[1;32m|  | |  |[1;34m.-'    |[0m                         
+[1;31m`--' `--'[1;33m`--' '--'[1;36m   `--'   [1;35m`--'  `--'[1;32m`--' `--'[1;34m`-----' [0m                         
+
+wiki         https://arthas.aliyun.com/doc                                      
+tutorials    https://arthas.aliyun.com/doc/arthas-tutorials.html                
+version      4.3.4                                                              
+main_class   /Users/benoitbesson/dev/pro/runtime-xray/sample-app/target/sample- 
+             app.jar                                                            
+pid          96061                                                              
+start_time   2026-08-21 00:37:47.853                                            
+current_time 2026-08-21 00:37:58.631                                            
+
+[arthas@96061]$ watch lab.sample.terrain.Terrain * '{params, returnObj}' -n 10 - x 2 | plaintext
+Press Q or Ctrl+C to abort.
+Affect(class count: 1 , method count: 5) cost in 125 ms, listenerId: 1
+method=lab.sample.terrain.Terrain.$jacocoInit location=AtExit
+ts=2026-08-21 00:38:00.048; [cost=3.452209ms] result=@ArrayList[
+    @Object[][
+        @Lookup[lab.sample.terrain.Terrain],
+        @String[$jacocoData],
+        @Class[class java.lang.Object],
+    ],
+    @boolean[][
+        @Boolean[false],
+        @Boolean[true],
+        @Boolean[true],
+        @Boolean[true],
+        @Boolean[true],
+        @Boolean[true],
+        @Boolean[true],
+        @Boolean[true],
+        @Boolean[true],
+        @Boolean[false],
+        @Boolean[true],
+        @Boolean[true],
+        @Boolean[true],
+        @Boolean[false],
+        @Boolean[false],
+        @Boolean[true],
+        @Boolean[true],
+    ],
+]
+method=lab.sample.terrain.Terrain.applies location=AtExit
+ts=2026-08-21 00:38:00.053; [cost=75.276709ms] result=@ArrayList[
+    @Object[][
+        @Mode[BIKE],
+    ],
+    @Boolean[true],
+]
+method=lab.sample.terrain.Terrain.penaltyFor location=AtExit
+ts=2026-08-21 00:38:00.053; [cost=0.010708ms] result=@ArrayList[
+    @Object[][
+        @Double[-4.800000000000001],
+        @Mode[BIKE],
+    ],
+    @Double[0.8704],
+]
+method=lab.sample.terrain.Terrain.penaltyFor location=AtExit
+ts=2026-08-21 00:38:00.054; [cost=0.027958ms] result=@ArrayList[
+    @Object[][
+        @Double[3.6480000000000006],
+        @Mode[BIKE],
+    ],
+    @Double[1.3283200000000002],
+]
+method=lab.sample.terrain.Terrain.penaltyFor location=AtExit
+ts=2026-08-21 00:38:00.059; [cost=0.009625ms] result=@ArrayList[
+    @Object[][
+        @Double[0.768],
+        @Mode[BIKE],
+    ],
+    @Double[1.06912],
+]
+method=lab.sample.terrain.Terrain.penaltyFor location=AtExit
+ts=2026-08-21 00:38:00.059; [cost=0.009834ms] result=@ArrayList[
+    @Object[][
+        @Double[-2.688],
+        @Mode[BIKE],
+    ],
+    @Double[0.927424],
+]
+method=lab.sample.terrain.Terrain.penaltyFor location=AtExit
+ts=2026-08-21 00:38:00.060; [cost=0.00975ms] result=@ArrayList[
+    @Object[][
+        @Double[-4.608],
+        @Mode[BIKE],
+    ],
+    @Double[0.875584],
+]
+method=lab.sample.terrain.Terrain.penaltyFor location=AtExit
+ts=2026-08-21 00:38:00.062; [cost=0.037834ms] result=@ArrayList[
+    @Object[][
+        @Double[4.032],
+        @Mode[BIKE],
+    ],
+    @Double[1.36288],
+]
+method=lab.sample.terrain.Terrain.penaltyFor location=AtExit
+ts=2026-08-21 00:38:00.062; [cost=0.009958ms] result=@ArrayList[
+    @Object[][
+        @Double[1.4720000000000002],
+        @Mode[BIKE],
+    ],
+    @Double[1.13248],
+]
+method=lab.sample.terrain.Terrain.penaltyFor location=AtExit
+ts=2026-08-21 00:38:00.063; [cost=0.021584ms] result=@ArrayList[
+    @Object[][
+        @Double[-2.112],
+        @Mode[BIKE],
+    ],
+    @Double[0.942976],
+]
+Command execution times exceed limit: 10, so command will exit. You can set it with -n option.
+[arthas@96061]$ stop | plaintext
+Resetting all enhanced classes ...
+Affect(class count: 1 , method count: 0) cost in 19 ms, listenerId: 0
+Arthas Server is going to shutdown...
+[arthas@96061]$ 
