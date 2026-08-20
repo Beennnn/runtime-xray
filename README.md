@@ -19,11 +19,14 @@ réelles, navigables dans le navigateur, sans rien installer.
 
 ## Ce qu'on veut obtenir
 
-| Donnée recherchée | À quoi ça sert |
-|---|---|
-| **Les lignes de code exécutées** | Savoir ce qui a réellement tourné — et surtout ce qui n'a **jamais** tourné |
-| **L'arbre d'appel** | Comprendre qui appelle quoi, et dans quel ordre |
-| **Les valeurs passées en paramètres** | Savoir **pourquoi** telle branche a été prise plutôt qu'une autre |
+| Priorité | Donnée recherchée | À quoi ça sert |
+|---|---|---|
+| **1** | **Les lignes de code exécutées** | Savoir ce qui a réellement tourné — et surtout ce qui n'a **jamais** tourné |
+| **1** | **L'arbre d'appel** | Comprendre qui appelle quoi, et dans quel ordre |
+| **2 — option** | Les valeurs passées en paramètres | Savoir **pourquoi** telle branche a été prise plutôt qu'une autre |
+
+> Les deux premières sont l'objectif. La troisième est un **plus** : souhaitable, mais elle
+> ne doit pas peser dans le choix si elle impose un compromis sur les deux autres.
 
 Et, transversalement : pouvoir **naviguer dans le code** depuis le rapport — pour un
 développeur dans son IDE, pour un non-technicien dans une page web qu'on lui envoie.
@@ -42,7 +45,8 @@ développeur dans son IDE, pour un non-technicien dans une page web qu'on lui en
 
 1. **Facilité de mise en œuvre** — lancer l'outil sans configuration lourde.
 2. **Lisibilité des rapports** — exploitables par des utilisateurs non techniques.
-3. **Couverture fonctionnelle** — lignes, arbre d'appel, valeurs des paramètres.
+3. **Couverture fonctionnelle** — lignes et arbre d'appel en priorité ; les valeurs des
+   paramètres en **option**.
 4. **Intégration IDE** — IntelliJ, ou une page web de code annoté navigable hors IDE.
 5. **Coût** — gratuit vs commercial, et si le payant se justifie.
 
@@ -78,9 +82,9 @@ connexion. Pour Arthas, le lanceur télécharge normalement ses modules chez Ali
 contournement (paquet complet depuis Maven Central + `--arthas-home`) a été **testé avec
 tout le trafic HTTP coupé**, et il fonctionne.
 
-> **Les trois besoins du brief sont couverts par cette seule colonne** — JaCoCo pour les
-> lignes, async-profiler pour l'arbre d'appel, Arthas pour les valeurs des paramètres.
-> Vérifié sur l'application-cible, sous Java 21, pour 0 €.
+> **Les deux objectifs prioritaires sont couverts par cette seule colonne** — JaCoCo pour
+> les lignes, async-profiler pour l'arbre d'appel. **Et l'option aussi** : Arthas donne les
+> valeurs des paramètres. Vérifié sur l'application-cible, sous Java 21, pour 0 €.
 
 ### Avec licence — commercial
 
@@ -99,10 +103,11 @@ auto-hébergé** (le cloud est le défaut). Démarches et stockage des clés :
 
 Légende — ✅ testé ici · 🚧 bloqué techniquement · ⛔ bloqué par licence ou contrainte · 📄 sur documentation.
 
-> **Le constat qui structure la décision** : aucun outil ne fait tout seul les trois
-> colonnes, mais **trois outils gratuits y suffisent**. Ce que l'argent achèterait n'est
-> donc pas une capacité manquante — c'est de réunir le tout dans une interface unique, et
-> d'**agréger l'arbre d'appel par valeur de paramètre**, ce qu'Arthas ne sait pas faire.
+> **Le constat qui structure la décision** : les deux objectifs prioritaires sont couverts
+> par **deux outils gratuits**, JaCoCo et async-profiler, et l'option l'est par un
+> troisième. Ce que l'argent achèterait ne porte donc que sur l'option — réunir le tout
+> dans une interface unique, et **agréger l'arbre d'appel par valeur de paramètre**, ce
+> qu'Arthas ne sait pas faire. C'est-à-dire payer pour la seconde priorité.
 
 ## À quoi ressemblent les rapports
 

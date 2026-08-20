@@ -31,9 +31,11 @@ L'ordre n'est pas décoratif : il tranche les cas où deux outils sont bons diff
 2. **Lisibilité des rapports** — se mesure en répondant : *un non-développeur peut-il
    l'ouvrir seul et y comprendre quelque chose ?* Un fichier HTML autonome bat une
    application de bureau à installer.
-3. **Couverture fonctionnelle** — les trois données du brief, notées séparément : lignes
-   exécutées, arbre d'appel, valeurs des paramètres. Pas de moyenne : un outil qui fait
-   deux tiers du travail ne vaut pas 66 %, il vaut « il en faut un second ».
+3. **Couverture fonctionnelle** — les données du brief, notées séparément et **hiérarchisées** :
+   lignes exécutées et arbre d'appel sont l'objectif ; les valeurs des paramètres sont une
+   **option de seconde priorité**. Pas de moyenne : un outil qui fait deux tiers du travail
+   ne vaut pas 66 %, il vaut « il en faut un second ». Et un outil qui excellerait sur
+   l'option en étant faible sur les deux premières ne serait pas retenu.
 4. **Intégration IDE** — IntelliJ en priorité, ou l'équivalent web : une page de code
    annoté où l'on navigue hors IDE.
 5. **Coût** — départage seulement à capacités comparables, et intègre le coût caché

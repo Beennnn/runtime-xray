@@ -13,6 +13,33 @@ forge, ou pour une forge interne (GitLab auto-hébergé propose les mêmes méca
 En environnement coupé, il ne reste que le **fichier transporté** — et c'est précisément
 ce que produit le canal n° 3. C'est aussi ce qui a été retenu comme canal principal.
 
+## Le problème : GitHub affiche le HTML comme du code source
+
+Cliquer sur un `.html` dans l'interface GitHub montre ses balises, pas la page. C'est
+volontaire (afficher du HTML arbitraire depuis un dépôt serait une faille), et ça ne se
+contourne pas par un réglage. Quatre réponses, de la meilleure à la plus bancale :
+
+| Réponse | Ce que ça donne | Statut |
+|---|---|---|
+| **Un résumé en Markdown** — [`reports-demo/RAPPORT.md`](../reports-demo/RAPPORT.md) | GitHub le rend **nativement**, y compris sur un dépôt privé, sans Pages, sans service tiers. Tableaux de couverture, méthodes les plus coûteuses, valeurs capturées | ✅ en place |
+| **GitHub Pages** | Le vrai rapport, rendu, à une URL | ✅ en place |
+| **Le zip d'une release** | Le rapport complet, hors ligne | ✅ en place |
+| `htmlpreview.github.io` | Un proxy qui rend le HTML brut d'un dépôt | ⚠️ service tiers, en ligne, casse souvent sur les ressources liées — **non retenu** |
+
+**Le Markdown est la seule réponse qui marche à l'intérieur de GitHub**, sans dépendre de
+Pages ni d'un tiers. Il est généré par
+[`tools/summary/build-markdown.py`](../tools/summary/build-markdown.py) à partir des
+sorties *machine* des outils — le CSV de JaCoCo, les piles repliées d'async-profiler, la
+capture d'Arthas. Rien n'y est saisi à la main.
+
+Sa limite est réelle : c'est un **résumé**. On y voit les chiffres et le classement, pas le
+code colorié ligne à ligne. Pour ça, il faut Pages ou le zip.
+
+> À noter : **le SVG, lui, s'affiche nativement dans GitHub** — d'où les schémas de ce
+> dépôt. Un flame graph exporté en SVG plutôt qu'en HTML se verrait donc directement dans
+> la forge. async-profiler produit du HTML ; la conversion depuis le format `collapsed`
+> vers un SVG est possible avec l'outillage FlameGraph historique. Piste non explorée ici.
+
 ## 1. Les fichiers versionnés dans le dépôt — ✅ testé
 
 Les rapports sont commis dans [`reports-demo/generated/`](../reports-demo/).

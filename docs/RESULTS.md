@@ -92,19 +92,24 @@ le lanceur ne contacte plus jamais l'éditeur.
 
 → [Fiche Arthas](tools/arthas.md)
 
-## Le socle gratuit couvre les trois besoins
+## Le socle gratuit couvre les deux priorités — et l'option
 
-| Besoin | Outil | Statut |
-|---|---|---|
-| Lignes exécutées | JaCoCo | ✅ vérifié |
-| Arbre d'appel cumulé, visuel | async-profiler | ✅ vérifié |
-| Arbre d'appel d'un appel + **valeurs des paramètres** | Arthas | ✅ vérifié |
+| Priorité | Besoin | Outil | Statut |
+|---|---|---|---|
+| **1** | Lignes exécutées | JaCoCo | ✅ vérifié |
+| **1** | Arbre d'appel cumulé, visuel | async-profiler | ✅ vérifié |
+| **2 — option** | Arbre d'appel d'un appel + valeurs des paramètres | Arthas | ✅ vérifié |
+
+**Les deux objectifs prioritaires sont atteints avec deux outils seulement.** Arthas vient
+en supplément, sur la seconde priorité — ce qui veut dire que même s'il posait problème
+(installation, lisibilité de sa sortie), **l'essentiel resterait acquis**.
 
 **Coût : 0 €. Connexion nécessaire : aucune.**
 
-Ce que ça change pour la décision : la question de la licence commerciale ne porte plus sur
-une **capacité manquante**, mais sur le **confort** — réunir tout cela dans une interface
-unique plutôt que dans trois outils et une console.
+Ce que ça change pour la décision : la licence commerciale ne comblerait aucune capacité
+manquante, et ce qu'elle apporterait ne concerne que la **seconde priorité** — réunir
+l'arbre d'appel et les valeurs dans une interface unique, et agréger par valeur de
+paramètre. **Payer pour l'option, alors que l'objectif est déjà atteint.**
 
 ## Analyse de synthèse — ce qui est facile, ce qui l'est moins
 
