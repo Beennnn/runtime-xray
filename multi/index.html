@@ -68,6 +68,14 @@
   /* Séparateurs déplaçables : glisser pour redimensionner, double-cliquer pour replier
      entièrement le panneau voisin — utile quand on veut le code plein écran. */
   .split{background:var(--border);cursor:col-resize;position:relative}
+  /* Un bouton visible sur chaque séparateur : le double-clic seul est une astuce qu'on
+     ne découvre jamais. */
+  .splitbtn{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+            width:16px;height:34px;border-radius:8px;border:1px solid var(--border);
+            background:var(--panel);color:var(--muted);font-size:11px;line-height:1;
+            cursor:pointer;padding:0;z-index:3;display:flex;align-items:center;justify-content:center}
+  .splitbtn:hover{border-color:var(--accent);color:var(--accent);background:var(--bg)}
+  .splitbtn.h{width:34px;height:16px}
   .split:hover,.split.dragging{background:var(--accent)}
   .split::after{content:"";position:absolute;inset:0 -4px}
   .split.h{cursor:row-resize;height:6px}
@@ -251,12 +259,16 @@
     <div id="scope"></div>
     <div class="list" id="list"></div>
   </div>
-  <div class="split" id="vsplit" title="Glisser pour redimensionner · double-clic pour replier"></div>
+  <div class="split" id="vsplit" title="Glisser pour redimensionner">
+    <button class="splitbtn" id="vtoggle" title="Replier / déplier le panneau de gauche">‹</button>
+  </div>
   <div id="detail">
     <div class="crumb" id="crumb"></div>
     <div id="context"></div>
     <div id="code"></div>
-    <div class="split h" id="hsplit" title="Glisser pour redimensionner · double-clic pour replier"></div>
+    <div class="split h" id="hsplit" title="Glisser pour redimensionner">
+      <button class="splitbtn h" id="htoggle" title="Replier / déplier le panneau des valeurs">⌄</button>
+    </div>
     <div id="values"></div>
     <div class="legend" id="legend"></div>
   </div>
@@ -1027,14 +1039,22 @@ document.getElementById("search").oninput = e => {
     root.style.setProperty("--valh", h + "px");
     if (h > 30) valPrev = h;
   });
-  vs.ondblclick = () => {
+  const toggleNav = () => {
     const cur = parseInt(getComputedStyle(root).getPropertyValue("--navw")) || 330;
-    root.style.setProperty("--navw", cur > 40 ? "0px" : navPrev + "px");
+    const open = cur <= 40;
+    root.style.setProperty("--navw", open ? navPrev + "px" : "0px");
+    document.getElementById("vtoggle").textContent = open ? "‹" : "›";
   };
-  hs.ondblclick = () => {
+  const toggleValues = () => {
     const cur = parseInt(getComputedStyle(root).getPropertyValue("--valh")) || 190;
-    root.style.setProperty("--valh", cur > 30 ? "0px" : valPrev + "px");
+    const open = cur <= 30;
+    root.style.setProperty("--valh", open ? valPrev + "px" : "0px");
+    document.getElementById("htoggle").textContent = open ? "⌄" : "⌃";
   };
+  vs.ondblclick = toggleNav;
+  hs.ondblclick = toggleValues;
+  document.getElementById("vtoggle").onclick = e => { e.stopPropagation(); toggleNav(); };
+  document.getElementById("htoggle").onclick = e => { e.stopPropagation(); toggleValues(); };
 })();
 
 renderExec();
