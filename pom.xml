@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>lab.tools</groupId>
+  <artifactId>tool-comparison-lab</artifactId>
+  <version>1.0.0</version>
+  <packaging>pom</packaging>
+
+  <name>Tool Comparison Lab</name>
+  <description>
+    Cadre générique pour comparer des outils via des modules Java "dummy"
+    produisant chacun un rapport de démonstration.
+  </description>
+
+  <properties>
+    <maven.compiler.source>17</maven.compiler.source>
+    <maven.compiler.target>17</maven.compiler.target>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+  </properties>
+
+  <modules>
+    <module>tools/example-tool</module>
+    <!-- Ajouter ici chaque nouveau module d'outil, ex: <module>tools/mon-outil</module> -->
+  </modules>
+
+</project>
