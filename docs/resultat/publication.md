@@ -21,14 +21,14 @@ contourne pas par un réglage. Quatre réponses, de la meilleure à la plus banc
 
 | Réponse | Ce que ça donne | Statut |
 |---|---|---|
-| **Un résumé en Markdown** — [`reports-demo/RAPPORT.md`](../../reports-demo/RAPPORT.md) | GitHub le rend **nativement**, y compris sur un dépôt privé, sans Pages, sans service tiers. Tableaux de couverture, méthodes les plus coûteuses, valeurs capturées | ✅ en place |
+| **Un résumé en Markdown** — [`runtime-xray-out/rapport.md`](../../runtime-xray-out/rapport.md) | GitHub le rend **nativement**, y compris sur un dépôt privé, sans Pages, sans service tiers. Tableaux de couverture, méthodes les plus coûteuses, valeurs capturées | ✅ en place |
 | **GitHub Pages** | Le vrai rapport, rendu, à une URL | ✅ en place |
 | **Le zip d'une release** | Le rapport complet, hors ligne | ✅ en place |
 | `htmlpreview.github.io` | Un proxy qui rend le HTML brut d'un dépôt | ⚠️ service tiers, en ligne, casse souvent sur les ressources liées — **non retenu** |
 
 **Le Markdown est la seule réponse qui marche à l'intérieur de GitHub**, sans dépendre de
 Pages ni d'un tiers. Il est généré par
-[`tools/summary/build-markdown.py`](../../tools/summary/build-markdown.py) à partir des
+l'orchestrateur, dans le même passage que la page HTML et à partir des
 sorties *machine* des outils — le CSV de JaCoCo, les piles repliées d'async-profiler, la
 capture d'Arthas. Rien n'y est saisi à la main.
 

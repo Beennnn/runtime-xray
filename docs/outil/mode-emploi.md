@@ -41,21 +41,36 @@ comprennent mieux avec leur raison d'être :
 | `--classes` | où trouver le bytecode analysé | sans lui, pas de couverture — voir juste en dessous, ce n'est pas forcément `target/classes` |
 | `--sources` | les racines des sources | pour afficher le code annoté ligne à ligne plutôt que des noms de méthodes |
 
-### `--classes` : le jar applicatif convient, dépendances comprises
+### `--classes` : normalement inutile
 
-C'est le paramètre qui prête le plus à confusion, parce que son nom suggère un répertoire.
-Il accepte en réalité **un répertoire, un jar, ou une liste des deux** séparée par `:` —
-et il descend dans les jar imbriqués.
+Le bytecode à analyser est déterminé automatiquement. Trois sources sont consultées dans
+l'ordre, et **chacune est vérifiée avant d'être retenue** — un chemin deviné mais faux
+serait pire que pas de devinette, puisque l'erreur ne se verrait qu'au rapport :
+
+| Source | Ce qu'elle donne | Cas couverts |
+|---|---|---|
+| Les **arguments réels de la JVM observée**, lus sur le système | le `-jar` lancé, ou les **répertoires** du `-cp` | `java -jar`, `java -cp`, et tout script ou lanceur qui finit par appeler `java` |
+| La **commande configurée**, si la précédente est illisible | idem | JVM trop brève pour être observée |
+| La **convention du projet**, si le répertoire existe | `target/classes`, `build/classes/java/main`, `out/production/classes`, `bin` | `mvn exec:java`, `./gradlew run` — où le classpath applicatif n'apparaît sur aucune ligne de commande |
+
+Les trois cas ont été vérifiés de bout en bout sur le programme de démonstration, sans
+jamais passer `--classes`.
+
+**Les jar de dépendances sont volontairement écartés.** Un classpath réel en compte des
+dizaines ; les analyser tous produirait un rapport où le code du projet pèse un pour cent
+du total, et où « qu'est-ce qui a tourné ? » n'a plus de réponse lisible. Le code que l'on
+possède est un répertoire de classes, ou le jar que l'on a soi-même lancé.
+
+**Quand le préciser quand même** — c'est le seul cas où il reste utile :
 
 ```bash
---classes target/classes                      # le cas simple
---classes target/mon-appli.jar                # le jar livré : même résultat
---classes target/mon-appli-boot.jar           # un jar « gras » Spring Boot : BOOT-INF/classes
-                                              # ET les dépendances de BOOT-INF/lib sont vues
---classes target/classes:libs/noyau-1.4.jar   # le projet + une dépendance interne à analyser
+--classes target/classes:libs/noyau-1.4.jar   # analyser une dépendance interne EN PLUS
+--classes target/mon-appli-boot.jar           # un jar « gras » : BOOT-INF/classes et les
+                                              # jar de BOOT-INF/lib sont parcourus
+--classes modules/facturation/target/classes  # restreindre à un module précis
 ```
 
-Le dernier cas est le plus intéressant en reprise de code : la bibliothèque maison livrée
+Le premier cas est le plus intéressant en reprise de code : la bibliothèque maison livrée
 compilée est justement celle dont personne n'a le modèle mental, et rien n'oblige à en avoir
 les sources pour voir qu'elle a tourné.
 
@@ -129,7 +144,7 @@ Aucune modification du code analysé, aucun changement dans le build.
 | Paramètre | Obligatoire | À quoi il sert |
 |---|:--:|---|
 | `JAVA_CMD` / `--java` | ✅ | La commande qui lance l'application, exécutée telle quelle |
-| `CLASSES_DIR` / `--classes` | souvent déduit | Le bytecode analysé : un répertoire, un jar, ou une liste séparée par `:`. **Déduit tout seul** quand `JAVA_CMD` est un `java -jar …` — le jar *est* le bytecode |
+| `CLASSES_DIR` / `--classes` | non | Le bytecode analysé. **Déterminé tout seul** dans les cas usuels — voir ci-dessous. On ne l'écrit que pour analyser autre chose |
 | `ROOT_METHOD` / `--root` | — | `paquet.Classe::methode` : la fonction racine, la seule dont les valeurs de paramètres seront capturées |
 | `SOURCE_DIRS` / `--sources` | — | Les sources, pour afficher le code annoté. Plusieurs racines : séparées par `:` |
 | `HIDDEN_PACKAGES` / `--hide` | — | Paquets à taire comme le JDK, ex. `org.slf4j`. Leur temps revient à l'appelant |

@@ -69,6 +69,24 @@ un bénéfice nul tant que la diffusion reste interne.
   XML de couverture, repli des frames, liens non cassés dans la page produite. Un script
   shell ne se teste pas comme ça.
 
+## Ce qu'il resterait concrètement à faire
+
+L'obstacle n'est plus la nature de l'artefact, il est administratif — et un point est
+souvent découvert trop tard :
+
+| Point | État actuel | Ce qu'il faudrait |
+|---|---|---|
+| Nature de l'artefact | ✅ un jar exécutable de ~100 Ko, sans dépendance | — |
+| `groupId` | ⛔ `lab.tools` : **on ne peut pas prouver qu'on le possède** | `io.github.beennnn`, validé en prouvant le compte GitHub — c'est le chemin le plus court |
+| Signature | ⛔ absente | Clé GPG publiée sur un serveur de clés, signature à la publication |
+| Artefacts joints | ⛔ absents | Les jars `sources` et `javadoc`, exigés par la validation |
+| Métadonnées du POM | à compléter | `description`, `url`, `licenses`, `developers`, `scm` sont obligatoires |
+| Versions | ✅ `1.0.0` | Immuables : rien ne se corrige après coup, seulement une version de plus |
+
+Aucun de ces points n'est difficile ; ensemble ils font une demi-journée la première fois,
+puis un job de publication automatisé. Le vrai coût est ailleurs : une version publiée ne
+se retire pas.
+
 ## Recommandation
 
 1. **Maintenant** : rien à faire. La release GitHub suffit, et un dépôt interne suffit pour

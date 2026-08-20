@@ -124,31 +124,6 @@ public final class Config {
         return dot < 0 ? "" : cls.substring(0, dot).replace('.', '/') + "/*";
     }
 
-    /**
-     * Devine où sont les classes quand on ne l'a pas dit.
-     *
-     * <p>Dans le cas de loin le plus courant — {@code java -jar target/appli.jar} — le
-     * bytecode analysé est <b>dans ce jar</b>. Le réclamer une seconde fois, sous un autre
-     * nom, c'est faire remplir un formulaire dont on connaît déjà la réponse.
-     *
-     * <p>L'inférence ne s'applique que si le jar existe réellement : deviner un chemin faux
-     * serait pire que de ne pas deviner, parce que l'erreur ne se verrait qu'au rapport.
-     * On ne devine rien pour {@code mvn exec:java} ou un script maison — là, seul
-     * l'utilisateur sait.
-     *
-     * @return le chemin deviné, ou {@code null} s'il n'y a rien de sûr à proposer
-     */
-    public String inferredClasses() {
-        String[] tokens = javaCommand.trim().split("\\s+");
-        for (int i = 0; i < tokens.length - 1; i++) {
-            if (tokens[i].equals("-jar")) {
-                String jar = tokens[i + 1].replaceAll("^[\"']|[\"']$", "");
-                return Files.isRegularFile(Path.of(jar)) ? jar : null;
-            }
-        }
-        return null;
-    }
-
     /** Les entrées de {@link #classesDir}, répertoires ou jar, dans l'ordre donné. */
     public List<Path> classesPaths() {
         List<Path> paths = new ArrayList<>();
@@ -203,19 +178,19 @@ public final class Config {
             #JAVA_CMD="./gradlew run --args='--profil recette'"
             #JAVA_CMD="./scripts/demarrer-en-recette.sh"
 
-            # ── Les classes compilées ─────────────────────────────────────── souvent déduit
-            # C'est là que se trouve le bytecode analysé, sans quoi il n'y a pas de couverture.
+            # ── Les classes compilées ──────────────────────────────────────────── facultatif
+            # Normalement INUTILE : le bytecode analysé est lu sur les arguments réels de la
+            # JVM observée, et à défaut déduit de la disposition du projet (target/classes,
+            # build/classes/java/main…). Les jar de dépendances sont écartés à dessein.
             #
-            # Inutile de la renseigner si JAVA_CMD est un « java -jar … » : le jar EST le
-            # bytecode, et l'outil le déduit tout seul. Ne l'écrire que pour analyser autre
-            # chose — un répertoire de classes, ou le jar d'une dépendance en plus.
+            # Ne l'écrire que pour analyser AUTRE CHOSE : une dépendance interne livrée
+            # compilée, un jar « gras », ou un module précis.
             # Répertoires ET archives jar sont acceptés, séparés par ':'. Ajouter le jar
             # d'une dépendance interne la fait entrer dans l'analyse au même titre que le
             # code du projet — c'est souvent elle que l'on cherche à comprendre.
-            CLASSES_DIR="target/classes"
-            #CLASSES_DIR="build/classes/java/main"                    # Gradle
             #CLASSES_DIR="target/classes:libs/module-commun-3.2.jar"  # + une dépendance
-            #CLASSES_DIR="target/classes:~/.m2/repository/com/exemple/noyau/1.4/noyau-1.4.jar"
+            #CLASSES_DIR="target/mon-appli-boot.jar"                   # un jar « gras »
+            #CLASSES_DIR="modules/facturation/target/classes"          # un module précis
 
             # ── Les paquets à ne pas voir ───────────────────────────────────── facultatif
             # Le JDK est toujours masqué : personne n'ouvre java.util.ArrayList pour

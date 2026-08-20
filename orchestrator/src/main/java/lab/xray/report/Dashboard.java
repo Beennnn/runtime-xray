@@ -62,6 +62,10 @@ public final class Dashboard {
         String page = template.replace("/*__DATA__*/", Json.write(data));
         Path out = commonDir.resolve("index.html");
         Files.writeString(out, page, StandardCharsets.UTF_8);
+
+        // Le même contenu en Markdown, sans surcoût de collecte : c'est le seul format
+        // qu'une forge affiche comme une page et non comme du code source.
+        Markdown.write(commonDir, runs);
         return out;
     }
 

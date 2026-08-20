@@ -99,9 +99,11 @@
   .tabs button{flex:1;padding:8px 4px;background:none;border:0;border-bottom:2px solid transparent;
                color:var(--muted);font:inherit;font-size:12px;cursor:pointer}
   .tabs button.on{color:var(--text);border-bottom-color:var(--accent);font-weight:600}
-  .listbar{display:flex;gap:6px;margin:8px}
-  #search{flex:1;padding:5px 9px;border:1px solid var(--border);border-radius:6px;
-          background:var(--bg);color:var(--text);font:inherit;font-size:12.5px;min-width:0}
+  /* La barre passe à la ligne plutôt que d'écraser le champ : avec cinq boutons, un
+     min-width:0 réduisait « Chercher… » à « Che », qui ne veut plus rien dire. */
+  .listbar{display:flex;gap:6px;margin:8px;flex-wrap:wrap}
+  #search{flex:1 1 100%;padding:5px 9px;border:1px solid var(--border);border-radius:6px;
+          background:var(--bg);color:var(--text);font:inherit;font-size:12.5px;min-width:96px}
   .unitbtn{font:inherit;font-size:11.5px;font-weight:700;width:38px;border-radius:6px;
            border:1px solid var(--border);background:var(--bg);color:var(--muted);cursor:pointer}
   .unitbtn.wide{width:auto;padding:0 9px}
@@ -399,7 +401,7 @@
       Pour ne plus voir une classe ou un paquet, cliquer <b>filtrer</b> au bout de sa ligne.
     </div>
     <div class="listbar">
-      <input id="search" placeholder="Chercher une classe, une méthode…" autocomplete="off">
+      <input id="search" placeholder="Chercher…" title="Filtrer la liste par nom de classe ou de méthode" autocomplete="off">
       <button id="unitbtn" class="unitbtn" title="Basculer entre part du temps et temps estimé">%</button>
       <button id="pkgbtn" class="unitbtn" title="Afficher ou masquer les noms de paquet">pkg</button>
       <button id="valbtn" class="unitbtn wide" aria-pressed="true"

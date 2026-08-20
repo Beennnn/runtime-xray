@@ -28,7 +28,11 @@ class ConfigTest {
 
         Config c = Config.load(file);
         assertFalse(c.javaCommand.isBlank(), "JAVA_CMD doit être renseigné dans le gabarit");
-        assertFalse(c.classesDir.isBlank(), "CLASSES_DIR doit être renseigné dans le gabarit");
+        // CLASSES_DIR ne doit PAS être actif : le bytecode est déterminé automatiquement, et
+        // un chemin pré-rempli au hasard ferait échouer la première exécution en donnant
+        // l'impression que l'outil réclame un réglage dont il n'a pas besoin.
+        assertTrue(c.classesDir.isBlank(),
+                "CLASSES_DIR doit rester commenté : il est facultatif");
         assertEquals(8, c.attachAfterSeconds);
         assertEquals(600, c.maxSeconds);
         assertEquals(10, c.watchCount);
@@ -44,7 +48,9 @@ class ConfigTest {
         // Ce sont ces exemples qui évitent d'avoir à lire la documentation.
         assertTrue(text.contains("#JAVA_CMD=\"mvn"), "un exemple Maven est attendu");
         assertTrue(text.contains("#JAVA_CMD=\"./gradlew"), "un exemple Gradle est attendu");
-        assertTrue(text.contains("#CLASSES_DIR=\"build/classes"), "un exemple Gradle est attendu");
+        // Facultatif, donc présenté par ses cas d'usage réels plutôt que par un défaut.
+        assertTrue(text.contains("#CLASSES_DIR="), "les cas où le préciser sont attendus");
+        assertTrue(text.contains("facultatif"), "CLASSES_DIR doit être annoncé facultatif");
         assertTrue(text.contains("#RUN_NAME="), "un exemple de nom d'exécution est attendu");
         assertTrue(text.contains("MAVEN_REPO"), "le miroir interne doit être documenté");
         Files.deleteIfExists(file);

@@ -4,6 +4,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
@@ -15,7 +16,6 @@ import java.util.zip.ZipOutputStream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -142,29 +142,64 @@ class ClassSourcesTest {
     }
 
     @Test
-    @DisplayName("Le jar d'un « java -jar » est déduit tout seul")
-    void infersClassesFromJarLaunch(@TempDir Path dir) throws IOException {
+    @DisplayName("Le jar lancé est retenu, lu sur les arguments réels de la JVM")
+    void discoversTheLaunchedJar(@TempDir Path dir) throws IOException {
         Path jar = jarWith(dir, "appli.jar", "com/exemple/Main.class");
-        Config c = new Config();
-        c.javaCommand = "java -Xmx2g -jar " + jar + " --profil recette";
-        assertEquals(jar.toString(), c.inferredClasses(),
-                "le jar lancé EST le bytecode : le redemander serait un formulaire inutile");
+        List<Path> found = ClassSources.discover(
+                List.of("-Xmx2g", "-jar", jar.toString(), "--profil", "recette"), "", dir);
+        assertEquals(List.of(jar), found);
     }
 
     @Test
-    @DisplayName("Rien n'est deviné quand la devinette serait fausse")
-    void refusesToGuessWhenUnsure(@TempDir Path dir) {
-        Config absent = new Config();
-        absent.javaCommand = "java -jar " + dir.resolve("jamais-construit.jar");
-        assertNull(absent.inferredClasses(), "un chemin faux ne se verrait qu'au rapport");
+    @DisplayName("D'un classpath, seuls les RÉPERTOIRES sont retenus")
+    void keepsOnlyDirectoriesFromClasspath(@TempDir Path dir) throws IOException {
+        // Un classpath réel compte des dizaines de jar de dépendances. Les analyser tous
+        // ferait un rapport où le code du projet pèse un pour cent du total.
+        Path classes = dirWith(dir, "classes", "app/Calcul.class");
+        Path autre = dirWith(dir, "generated", "app/Genere.class");
+        Path dep = jarWith(dir, "commons.jar", "org/apache/Truc.class");
+        String cp = String.join(File.pathSeparator,
+                classes.toString(), dep.toString(), autre.toString());
+        assertEquals(List.of(classes, autre),
+                ClassSources.discover(List.of("-cp", cp, "com.exemple.Main"), "", dir));
+    }
 
-        Config maven = new Config();
-        maven.javaCommand = "mvn -q exec:java -Dexec.mainClass=com.exemple.Main";
-        assertNull(maven.inferredClasses(), "là, seul l'utilisateur sait");
+    @Test
+    @DisplayName("Le -jar l'emporte sur le classpath : c'est lui qui porte le code")
+    void jarWinsOverClasspath(@TempDir Path dir) throws IOException {
+        Path jar = jarWith(dir, "appli.jar", "com/exemple/Main.class");
+        Path classes = dirWith(dir, "classes", "app/Autre.class");
+        List<Path> found = ClassSources.discover(
+                List.of("-cp", classes.toString(), "-jar", jar.toString()), "", dir);
+        assertEquals(List.of(jar), found);
+    }
 
-        Config script = new Config();
-        script.javaCommand = "./demarrer-en-recette.sh";
-        assertNull(script.inferredClasses());
+    @Test
+    @DisplayName("Sans arguments lisibles, la commande configurée sert de secours")
+    void fallsBackToTheConfiguredCommand(@TempDir Path dir) throws IOException {
+        Path jar = jarWith(dir, "appli.jar", "com/exemple/Main.class");
+        assertEquals(List.of(jar),
+                ClassSources.discover(List.of(), "java -jar " + jar, dir));
+    }
+
+    @Test
+    @DisplayName("Sans rien d'autre, la convention du projet est essayée — et vérifiée")
+    void fallsBackToProjectConventions(@TempDir Path dir) throws IOException {
+        // Cas de `mvn exec:java` : l'application tourne dans la JVM de Maven et son
+        // classpath n'apparaît sur aucune ligne de commande. La convention est alors le
+        // seul recours — mais on ne la retient que si le répertoire existe vraiment.
+        assertEquals(List.of(), ClassSources.discover(List.of(), "mvn exec:java", dir),
+                "aucun répertoire conventionnel : on ne devine pas");
+
+        Path target = dirWith(dir, "target/classes", "app/Calcul.class");
+        assertEquals(List.of(target), ClassSources.discover(List.of(), "mvn exec:java", dir));
+    }
+
+    @Test
+    @DisplayName("Un jar annoncé mais absent n'est pas retenu")
+    void refusesPathsThatDoNotExist(@TempDir Path dir) {
+        assertEquals(List.of(), ClassSources.discover(
+                List.of("-jar", dir.resolve("jamais-construit.jar").toString()), "", dir));
     }
 
     @Test

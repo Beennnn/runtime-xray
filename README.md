@@ -1,147 +1,174 @@
-<p align="center">
-  <img src="docs/assets/banner.svg" alt="Runtime X-Ray — voir ce qu'une exécution Java a réellement fait" width="100%">
-</p>
-
 # Runtime X-Ray
 
-Voir ce qu'une exécution Java a réellement fait : par où le code est passé, quel appel en a
-déclenché un autre, et avec quelles valeurs. Le tout dans une seule page, produite par une
-seule commande, sans licence et sans connexion pendant l'exécution.
+Étude comparative d'outils d'analyse dynamique pour Java, et l'outil qui en découle.
 
-[▶ Voir un exemple](https://beennnn.github.io/runtime-xray/multi/) ·
-[Le lancer sur votre projet](docs/outil/mode-emploi.md) ·
-[Télécharger un rapport type](https://github.com/Beennnn/runtime-xray/releases/latest)
+## Objet
 
----
+Disposer, à l'exécution d'une fonction Java, de trois informations :
 
-## Ce que ça donne
+1. les **lignes exécutées** ;
+2. l'**arbre des appels** ;
+3. en option de seconde priorité, les **valeurs passées en paramètres**.
 
-![La vue intégrée](docs/assets/shots/vue-methode-2.png)
+Finalité : disposer d'une base factuelle pour analyser, restructurer et redéfinir un code
+existant — plutôt que de s'en remettre à la lecture seule.
 
-À gauche, tout le code qui a tourné, du plus coûteux au moins coûteux. Un clic ouvre la
-méthode : lignes exécutées en vert, jamais atteintes en rouge, et à droite de chaque ligne
-les appels qui en partent avec leur durée. En bas, les valeurs reçues à chaque appel et ce
-qui a été renvoyé.
+## Contraintes
 
-| | |
+| Contrainte | Conséquence sur la sélection |
 |---|---|
-| Par où le code est passé | Ligne à ligne, y compris ce qui n'a jamais tourné |
-| L'arbre d'appel | Qui appelle qui, avec la part de temps de chaque branche |
-| Les valeurs des paramètres | Ce que la méthode a réellement reçu, appel par appel |
-| Le contexte d'appel | Par quels chemins une méthode a été atteinte, et dans quelle proportion |
+| Exécution hors ligne | Écarte les services hébergés. Le téléchargement préalable des composants reste possible |
+| Java 21 et Java 25 | Les deux plateformes sont évaluées ; l'écart mesuré est reporté dans les [résultats](docs/resultat/resultats.md#gains-dun-portage-vers-java-25) |
+| IntelliJ comme environnement cible | Sans en dépendre : l'édition payante n'est pas supposée disponible |
+| Deux publics | Un développeur dans son environnement, et un lecteur non technicien devant un document transmis |
+| Diagnostic ponctuel | Aucun serveur à déployer ni à maintenir |
 
-Deux portes d'entrée — le **code** rangé par paquet, et les **exécutions** vues comme un
-arbre d'appel — mènent au même endroit. Le mode *resserré*, actif par défaut, n'affiche que
-la méthode choisie, sans ses lignes mortes : on regarde une méthode à la fois.
+Le temps de calcul et la mémoire sont relevés à titre indicatif mais **ne font pas partie
+des critères de sélection**. L'optimisation des performances est un sujet distinct, qui
+suppose que le code soit d'abord compris.
 
-## Le lancer sur votre projet
+## Démarche
 
-Aucune contrainte sur la façon de lancer Java — les agents sont injectés par
-`JAVA_TOOL_OPTIONS`, que toute JVM lit au démarrage.
+![La démarche](docs/assets/approach.svg)
+
+Dix-huit outils ont été recensés, puis évalués sur cinq critères ordonnés : facilité de
+mise en œuvre, lisibilité du rapport pour un lecteur non technicien, couverture
+fonctionnelle, intégration à l'IDE, coût. Chaque affirmation du comparatif porte un statut
+indiquant si elle a été **vérifiée par exécution** ou reprise de la documentation de
+l'éditeur.
+
+Le protocole et les critères sont décrits dans [la méthode](docs/etude/methode.md).
+
+## Résultat
+
+Aucun des outils examinés ne répond seul aux trois questions. Une combinaison de trois
+outils libres y parvient, dans les limites énoncées ci-dessous :
+
+| Outil | Licence | Ce qu'il apporte |
+|---|---|---|
+| JaCoCo | EPL 2.0 | Les lignes exécutées, de façon exhaustive |
+| async-profiler | Apache 2.0 | Les mesures de temps et l'arbre agrégé des appels |
+| Arthas | Apache 2.0 | Les valeurs des paramètres, et le chemin suivi par un appel donné |
+
+Leurs sorties sont assemblées en une page unique par un orchestrateur écrit pour cette
+étude. Le détail du montage et ses réserves sont dans [la solution
+retenue](docs/resultat/solution.md).
+
+![La vue produite : l'arbre d'appel à gauche, le code annoté au centre, les appels comparés en bas](docs/assets/shots/vue-arbre-appel.png)
+
+La page réunit deux entrées vers le même code : le code rangé par paquet, et les exécutions
+présentées comme un arbre d'appel — c'est cette seconde entrée qui est ouverte ci-dessus.
+
+Les lignes exécutées apparaissent en vert, celles jamais atteintes en rouge. À droite de
+chaque ligne, les appels qui en partent, avec le nombre de passages et l'étendue des durées
+observées : `×10` sur une ligne dans une boucle se déplie en un nœud par itération. En bas,
+les appels observés sont mis **en regard**, une colonne par champ, les colonnes qui varient
+signalées — c'est là que se lit ce qui a fait diverger deux exécutions de la même méthode.
+
+Un exemple produit par cette combinaison est
+[consultable en ligne](https://beennnn.github.io/runtime-xray/multi/).
+
+## Portée et limites de l'étude
+
+Ces résultats valent dans le cadre décrit, et pas au-delà. En particulier :
+
+- **Les outils commerciaux n'ont pas été exécutés.** JProfiler, YourKit et les autres sont
+  évalués sur leur documentation et leurs captures publiques. Les démarches pour obtenir
+  des clés d'évaluation sont décrites dans [les clés
+  d'évaluation](docs/etude/cles-evaluation.md), mais elles n'ont pas été entreprises. Ce
+  qu'on en attendrait est énoncé, pas constaté.
+- **Un seul programme de démonstration** a servi de support, sur une seule machine
+  (macOS, Apple Silicon). Le comportement sur un code industriel — plusieurs milliers de
+  classes, plusieurs fils d'exécution, un serveur d'application — n'a pas été observé.
+- **La capture des valeurs perturbe la mesure du temps.** Elle est menée dans la même
+  exécution, ce qui surestime le coût de la méthode observée. La réserve est affichée dans
+  le rapport et chiffrée ; elle est acceptée parce que le temps n'est pas un critère.
+- **Les valeurs ne sont capturées que sur une méthode**, désignée au lancement. Observer
+  toutes les méthodes produirait un volume ingérable.
+- **L'écart entre Java 21 et Java 25** a été mesuré sur ce seul programme et n'a pas montré
+  de gain pour la combinaison retenue. Cela ne préjuge pas d'autres cas.
+
+## L'outil
+
+L'orchestrateur est un jar sans dépendance hors du JDK. Il exécute la commande fournie
+telle quelle et injecte les observateurs par `JAVA_TOOL_OPTIONS`, que toute JVM lit à son
+démarrage ; ni le code analysé ni le build ne sont modifiés.
 
 ```bash
 java -jar runtime-xray.jar \
   --java "java -jar target/mon-appli.jar" \
   --root "com.exemple.Calculateur::calculer" \
-  --classes target/mon-appli.jar \
   --sources src/main/java
 ```
 
-`--classes` est souvent inutile : quand la commande est un `java -jar …`, le jar *est* le
-bytecode et l'outil le déduit. On ne l'écrit que pour analyser autre chose — un répertoire
-de classes, ou le jar d'une dépendance en plus. Un jar « gras » dont les dépendances sont
-elles-mêmes des jar est analysé jusqu'au bout.
+Le rapport est écrit dans `runtime-xray-out/index.html`.
 
-```bash
-open runtime-xray-out/index.html
-```
+Le bytecode à analyser n'est pas demandé : il est lu sur les arguments réels de la JVM
+observée, ce qui vaut aussi pour un lanceur qui masque la commande. Quand ces arguments ne
+portent pas le classpath applicatif — c'est le cas de `mvn exec:java`, où l'application
+tourne dans la JVM de Maven — la disposition du projet prend le relais, si elle existe
+vraiment. `--classes` reste disponible pour analyser autre chose : une dépendance interne
+livrée compilée, un jar « gras », ou un module précis.
 
-Fonctionne aussi avec `mvn exec:java`, `./gradlew run` ou un script maison. Le code analysé
-n'est pas modifié, le build non plus.
+Les composants d'analyse sont récupérés une fois depuis un dépôt Maven — celui de l'éditeur
+ou un miroir interne — puis mis en cache dans `~/.runtime-xray`. Les exécutions suivantes
+n'accèdent plus au réseau.
 
-[→ Mode d'emploi complet](docs/outil/mode-emploi.md) : paramètres, fichier de
-configuration, choix de la méthode racine, publication du résultat.
+Chaque rapport enregistre son propre contexte : commande lancée, méthode racine, filtres,
+heure de début et de fin, durée, machine, système, version de Java.
 
-## Ce que ça coûte
+[Mode d'emploi complet](docs/outil/mode-emploi.md) — paramètres, fichier de configuration,
+choix de la méthode racine, publication du résultat.
 
-| | |
+## Documents
+
+Trois dossiers, selon la question traitée.
+
+**`docs/etude/` — la recherche**
+
+| Page | Contenu |
 |---|---|
-| Licence | aucune — trois outils libres : JaCoCo, async-profiler, Arthas |
-| Connexion pendant l'exécution | aucune |
-| Connexion pour installer | une fois, depuis Internet ou un miroir Maven interne |
-| Java | 21 et 25 vérifiés — le résultat est identique |
-
-Le rapport enregistre son propre contexte : programme lancé et ses arguments, heure de
-début et de fin, durée, machine, système, version de Java. Un rapport retrouvé dans six
-mois dit de quoi il parle.
-
-## Le besoin, et les contraintes
-
-Mettre en place des outils d'analyse dynamique pour un code Java permettant, à l'exécution
-d'une fonction, de récupérer les **lignes exécutées** et l'**arbre d'appel** — et, en
-option de seconde priorité, les valeurs passées en paramètres. But final : analyser,
-restructurer et redéfinir le code à partir de ces données.
-
-| Contrainte | Conséquence |
-|---|---|
-| 🔌 Exécution hors ligne | Élimine tout SaaS. Le téléchargement préalable, lui, est libre |
-| ☕ Java 21, Java 25 à évaluer | Les deux sont vérifiés ; l'écart est [mesuré](docs/resultat/resultats.md#gains-dun-portage-vers-java-25) |
-| 🧭 IntelliJ comme IDE cible | Sans en dépendre : tout le monde n'a pas l'édition payante |
-| 👥 Deux publics | Un développeur dans son IDE, un non-technicien devant une page qu'on lui envoie |
-| 🎯 Diagnostic ponctuel | Pas de serveur à déployer ni à maintenir |
-
-**Hors critères** : le temps de calcul et la mémoire sont mesurés à titre indicatif.
-L'optimisation des performances est un sujet distinct, à traiter plus tard — une fois le
-code compris, puis reconçu avec ses propres contraintes.
-
-## Comment on en est arrivé là
-
-Dix-huit outils ont été recensés et comparés avant d'aboutir à cette combinaison. Le détail
-est en pages secondaires, pour qui veut vérifier ou reprendre l'évaluation :
-
-Les documents sont rangés en trois dossiers, selon la question à laquelle ils répondent —
-**comment on a cherché**, **ce qu'on a trouvé**, **comment on s'en sert** :
-
-**`docs/etude/` — comment on a cherché**
-
-| Page | Ce qu'on y trouve |
-|---|---|
-| [Méthode](docs/etude/methode.md) | Les critères, leur ordre, et le protocole de vérification |
+| [Méthode](docs/etude/methode.md) | Critères, ordre de priorité, protocole de vérification |
 | [Comparatif](docs/etude/comparatif.md) | Les 18 outils, avec le statut de vérification de chaque affirmation |
-| [Fiches par outil](docs/etude/fiches) | Une page par outil : philosophie, capacités, licence, limites |
+| [Fiches par outil](docs/etude/fiches) | Une page par outil : capacités, licence, limites |
 | [Outils écartés](docs/etude/outils-ecartes.md) | Les rejets, motivés et datés |
-| [Clés d'évaluation](docs/etude/cles-evaluation.md) | Si l'on veut essayer les outils commerciaux |
+| [Clés d'évaluation](docs/etude/cles-evaluation.md) | Démarches pour essayer les outils commerciaux |
 
-**`docs/resultat/` — ce qu'on a trouvé**
+**`docs/resultat/` — les conclusions**
 
-| Page | Ce qu'on y trouve |
+| Page | Contenu |
 |---|---|
-| **[La solution retenue](docs/resultat/solution.md)** | Le montage, le protocole, et ses réserves assumées |
-| [Résultats et arbitrages](docs/resultat/resultats.md) | Ce qui a été décidé, ce qui reste ouvert |
+| [Solution retenue](docs/resultat/solution.md) | Le montage, le protocole, et ses réserves |
+| [Résultats et arbitrages](docs/resultat/resultats.md) | Ce qui est décidé, ce qui reste ouvert |
 | [Formats et découplage](docs/resultat/formats.md) | Changer d'affichage sans changer la collecte |
-| [Publier le rapport](docs/resultat/publication.md) | Où déposer une page HTML pour qu'elle se lise |
+| [Publication du rapport](docs/resultat/publication.md) | Où déposer une page HTML pour qu'elle soit lisible |
 
-**`docs/outil/` — comment s'en servir**
+**`docs/outil/` — l'usage**
 
-| Page | Ce qu'on y trouve |
+| Page | Contenu |
 |---|---|
-| **[Mode d'emploi](docs/outil/mode-emploi.md)** | Paramètres, configuration, choix de la méthode racine |
-| [Détails techniques](docs/outil/technique.md) | Le programme de démonstration et les pièges rencontrés |
-| [Diffuser l'outil](docs/outil/distribution.md) | Maven Central, dépôt interne, et ce que la réécriture a apporté |
+| [Mode d'emploi](docs/outil/mode-emploi.md) | Paramètres, configuration, méthode racine |
+| [Détails techniques](docs/outil/technique.md) | Programme de démonstration et difficultés rencontrées |
+| [Diffusion](docs/outil/distribution.md) | Dépôt interne, Maven Central, et ce qu'a apporté la réécriture |
 
-**En une phrase** : aucun outil ne répond seul aux trois questions, mais **trois outils
-gratuits y suffisent**, et une licence commerciale n'apporterait que sur l'option de
-seconde priorité.
+## Organisation du dépôt
 
-## Ce dépôt
+| Répertoire | Contenu |
+|---|---|
+| `orchestrator/` | L'outil : un module Maven sans dépendance d'exécution |
+| `sample-app/` | Le programme de démonstration : un calcul de temps de trajet dont le graphe d'appel dépend du contexte, avec du code volontairement jamais exécuté |
+| `tools/` | Le protocole manuel de l'étude : l'invocation native de chaque outil, conservée pour que les affirmations du comparatif restent vérifiables |
+| `docs/` | L'étude |
+| `site/` | La page d'accueil publiée |
 
-`sample-app/` est un programme de démonstration — un calculateur de temps de trajet dont le
-graphe d'appel dépend du contexte, avec du code volontairement jamais exécuté. Pour
-reproduire la démonstration :
+Pour reproduire la démonstration :
 
 ```bash
-./tools/run-all.sh
-open reports-demo/generated/index.html
+mvn -q clean package
+java -jar orchestrator/target/runtime-xray.jar \
+  --java "java -jar sample-app/target/sample-app.jar" \
+  --root "lab.sample.RoutePlanner::travelTimeMinutes" \
+  --sources sample-app/src/main/java
 ```
 
 ## Licence

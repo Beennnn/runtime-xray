@@ -7,6 +7,7 @@ import java.nio.file.Path;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
@@ -41,6 +42,9 @@ public final class RunSession {
         this.runDir = runDir;
     }
 
+    /** Les arguments réels de la JVM observée, relevés pendant qu'elle tournait. */
+    public final List<String> jvmArguments = new ArrayList<>();
+
     public void execute() throws IOException, InterruptedException {
         Files.createDirectories(runDir.resolve("jacoco"));
         Files.createDirectories(runDir.resolve("async-profiler"));
@@ -60,6 +64,9 @@ public final class RunSession {
         Process process = pb.start();
 
         try {
+            // Relevé pendant que la JVM vit : après, ses arguments ne sont plus lisibles.
+            // C'est ce qui permet de ne pas réclamer --classes — voir ClassSources.
+            observeJvmArguments(process);
             if (config.captureValues && !config.rootMethod.isBlank()) {
                 inspectValues(process);
             }
@@ -77,6 +84,28 @@ public final class RunSession {
         Thread.sleep(1500);
         endedAt = HUMAN.format(LocalDateTime.now());
         durationSeconds = Duration.between(start, LocalDateTime.now()).toSeconds();
+    }
+
+    /**
+     * Note d'où la JVM observée charge son code, tant qu'elle est en vie.
+     *
+     * <p>On interroge le système plutôt que la commande écrite : un script de démarrage, un
+     * wrapper Gradle ou un lanceur maison cachent la vraie ligne de commande, alors que le
+     * processus, lui, la porte. La lecture est bornée dans le temps — une application qui
+     * n'a pas démarré en quelques secondes ne démarrera pas mieux si l'on attend, et
+     * l'absence de relevé n'est pas une panne : elle renvoie simplement au réglage explicite.
+     */
+    private void observeJvmArguments(Process process) throws InterruptedException {
+        for (int i = 0; i < 20 && jvmArguments.isEmpty(); i++) {
+            Optional<ProcessHandle> jvm = findJvm(process);
+            if (jvm.isPresent()) {
+                jvm.get().info().arguments()
+                        .ifPresent(a -> jvmArguments.addAll(List.of(a)));
+                if (!jvmArguments.isEmpty()) return;
+            }
+            if (!process.isAlive()) return;
+            Thread.sleep(250);
+        }
     }
 
     /** Les options JVM à ajouter à une ligne de commande. Publiques : l'outil doit pouvoir

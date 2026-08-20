@@ -115,17 +115,8 @@ public final class Main {
         require(!config.javaCommand.isBlank() || reportOnly, "--java est obligatoire");
         // Les classes servent à MESURER. Réassembler une vue depuis des mesures existantes
         // n'en a aucun besoin.
-        if (config.classesDir.isBlank() && !reportOnly) {
-            String devine = config.inferredClasses();
-            if (devine != null) {
-                config.classesDir = devine;
-                System.out.println("▶ Classes analysées : " + devine
-                        + " (déduit de la commande — préciser --classes pour en analyser d'autres)");
-            }
-        }
-        require(!config.classesDir.isBlank() || reportOnly,
-                "impossible de deviner où sont les classes : préciser --classes "
-                + "(un répertoire, le jar de l'application, ou une liste séparée par ':')");
+        // --classes n'est plus exigé ici : le bytecode se déduit de la JVM observée, une
+        // fois qu'elle a tourné. Voir ClassSources pour l'ordre des sources consultées.
         for (Path entry : config.classesPaths()) {
             require(Files.isDirectory(entry) || Files.isRegularFile(entry),
                     "classes introuvables : " + entry + " (ni répertoire, ni jar)");
@@ -162,6 +153,8 @@ public final class Main {
         RunSession session = new RunSession(config, tools, runDir);
         session.execute();
 
+        resolveClasses(config, session);
+
         System.out.println("▶ Rendu de la couverture");
         renderCoverage(config, tools, runDir);
 
@@ -174,6 +167,30 @@ public final class Main {
         System.out.println("   Pour renommer cette exécution plus tard, ajouter dans "
                 + outDir.resolve("noms.json") + " :");
         System.out.println("     { \"" + uuid + "\": \"un nom plus parlant\" }");
+    }
+
+    /**
+     * Détermine le bytecode à analyser, en interrogeant l'exécution plutôt que l'opérateur.
+     *
+     * <p>Un chemin explicite l'emporte toujours : il exprime une intention que rien ne doit
+     * écraser — analyser une dépendance en plus, ou restreindre à un module.
+     */
+    private static void resolveClasses(Config config, RunSession session) {
+        if (!config.classesDir.isBlank()) {
+            return;
+        }
+        List<Path> found = ClassSources.discover(session.jvmArguments, config.javaCommand,
+                Path.of("").toAbsolutePath());
+        if (found.isEmpty()) {
+            System.out.println("   ⚠️ impossible de déterminer où sont les classes — "
+                    + "la couverture sera vide. Préciser --classes (un répertoire, un jar, "
+                    + "ou une liste séparée par ':')");
+            return;
+        }
+        config.classesDir = found.stream().map(Path::toString)
+                .collect(java.util.stream.Collectors.joining(":"));
+        System.out.println("▶ Classes analysées : " + config.classesDir
+                + "  (déduit de l'exécution — --classes pour en ajouter ou en changer)");
     }
 
     /**

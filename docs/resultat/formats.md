@@ -21,7 +21,7 @@ collectée une fois, affichée plusieurs fois.**
 |---|---|---|
 | **`jacoco.exec`** (binaire) | l'agent JaCoCo | la CLI JaCoCo, IntelliJ *(import à confirmer)* |
 | **XML JaCoCo** | le rendu JaCoCo | **SonarQube**, Jenkins, la plupart des outils de qualité |
-| **CSV** | le rendu JaCoCo | n'importe quel script — c'est la source du [résumé Markdown](../../reports-demo/RAPPORT.md) |
+| **CSV** | le rendu JaCoCo | n'importe quel script — c'est la source du [résumé Markdown](../../runtime-xray-out/rapport.md) |
 | **Cobertura XML** | conversion depuis le XML JaCoCo | **GitLab**, nativement, dans la diff d'une merge request |
 | **LCOV** | monde JS surtout | VS Code (extensions de couverture), Codecov |
 | **`.ic` IntelliJ** | IDEA | IDEA seul — format fermé, à éviter comme pivot |
@@ -60,7 +60,7 @@ lab/sample/Main.main;lab/sample/RoutePlanner.travelTimeMinutes;lab/sample/terrai
 ```
 
 Trivial à produire, trivial à relire — c'est d'ailleurs à partir de lui qu'est calculé le
-classement des méthodes du [résumé Markdown](../../reports-demo/RAPPORT.md). Il est lu par
+classement des méthodes du [résumé Markdown](../../runtime-xray-out/rapport.md). Il est lu par
 **speedscope** (visualiseur web statique, donc auto-hébergeable hors ligne), par le
 `flamegraph.pl` historique, et par les backends de profilage continu. *(Ces trois
 lectures reposent sur la documentation : non testées ici.)*

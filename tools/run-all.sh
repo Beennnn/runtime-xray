@@ -82,15 +82,15 @@ rm -rf "$GEN/jacoco/html"; cp -R sample-app/target/site/jacoco "$GEN/jacoco/html
 "$REPO_ROOT/tools/jacoco/collect-focused.sh" > /dev/null
 
 echo "▶ Contrôle d'intégrité : la couverture a-t-elle survécu à la retransformation d'Arthas ?"
-python3 - "$GEN/jacoco/html/jacoco.csv" <<'PY'
-import csv, sys
-r = next((r for r in csv.DictReader(open(sys.argv[1])) if r["CLASS"] == "RoutePlanner"), None)
-if not r:
-    sys.exit("   ÉCHEC : RoutePlanner absent du rapport")
-n = int(r["INSTRUCTION_COVERED"])
-print(f"   RoutePlanner : {n} instructions couvertes — {'OK' if n else 'CORROMPU'}")
-PY
+# Le CSV de JaCoCo suffit à répondre, et awk évite d'exiger un interpréteur de plus sur la
+# machine analysée — c'est le sens de la réécriture de l'orchestrateur en Java.
+awk -F, 'NR==1{for(i=1;i<=NF;i++){if($i=="CLASS")c=i; if($i=="INSTRUCTION_COVERED")n=i}}
+         $c=="RoutePlanner"{found=1;
+           printf "   RoutePlanner : %d instructions couvertes — %s\n", $n, ($n>0?"OK":"CORROMPU")}
+         END{if(!found){print "   ÉCHEC : RoutePlanner absent du rapport"; exit 1}}' \
+    "$GEN/jacoco/html/jacoco.csv"
 
 echo "▶ Assemblage"
-python3 "$REPO_ROOT/tools/summary/build-dashboard.py"
-python3 "$REPO_ROOT/tools/summary/build-markdown.py"
+# La page agrégée et son équivalent Markdown sont produits par l'orchestrateur, pas ici :
+# ce script montre l'invocation NATIVE de chaque outil, ce qui est son seul objet.
+echo "   → java -jar orchestrator/target/runtime-xray.jar --report-only --out <dossier>"
