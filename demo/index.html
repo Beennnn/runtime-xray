@@ -160,6 +160,10 @@
   td.ann a{color:var(--accent);text-decoration:none;border-bottom:1px dotted var(--accent)}
   td.ann .dur{opacity:.6}
   td.ann a.values{color:var(--violet);border-bottom-color:var(--violet);font-weight:600}
+  /* Discret par défaut : le code doit rester du code, pas une page de liens. */
+  a.callink{color:inherit;text-decoration:none;border-bottom:1px dotted var(--accent);
+            cursor:pointer}
+  a.callink:hover{color:var(--accent);background:var(--accent-soft);border-radius:3px}
   .fold{color:var(--muted);font-style:italic;padding:2px 12px;font-size:11.5px;
         background:var(--panel);border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
   #values{background:var(--panel);padding:10px 16px;overflow:auto;
@@ -371,7 +375,7 @@ let AGG = computeAgg();
 })();
 
 function switchRun(i, redraw){
-  runIndex = i; R = D.runs[i]; AGG = computeAgg();
+  runIndex = i; R = D.runs[i]; AGG = computeAgg(); methodIndex = null;
   scopeFrame = null; ctxIndex = 0;
   const sel = document.getElementById("runsel");
   if (sel && !sel.hidden) sel.value = String(i);
@@ -664,6 +668,51 @@ function renderContexts(info){
   });
 }
 
+/* -------------------------------------------- appels cliquables dans le code
+   Rendre navigable le code lui-même : sur une ligne qui appelle une méthode de
+   l'application, le nom de cette méthode devient un lien. C'est le geste naturel —
+   on lit le code, on suit l'appel — et il évite de passer par la liste de gauche.
+
+   L'ambiguïté (deux classes ayant une méthode du même nom) est levée d'abord par les
+   appels RÉELLEMENT observés sur cette ligne ; à défaut, on ne lie que les noms qui
+   n'existent qu'à un seul endroit. Mieux vaut pas de lien qu'un lien qui ment. */
+let methodIndex = null;
+
+function buildMethodIndex(){
+  const index = new Map();
+  for (const [cls, info] of Object.entries(R.methods)){
+    for (const m of info.methods){
+      if (!m.covered) continue;                 // ne pas proposer du code jamais exécuté
+      if (!index.has(m.name)) index.set(m.name, []);
+      index.get(m.name).push(cls + "." + m.name);
+    }
+  }
+  return index;
+}
+
+const RESERVED = new Set(["if","for","while","switch","catch","return","new","super","this","synchronized"]);
+
+function linkifyCalls(escapedLine, lineNumber){
+  if (!methodIndex) methodIndex = buildMethodIndex();
+  // Ce que la trace a vu partir de cette ligne : l'information la plus sûre.
+  const observed = new Map();
+  for (const call of (R.trace[lineNumber] || [])){
+    if (call.frame) observed.set(call.frame.slice(call.frame.lastIndexOf(".") + 1), call.frame);
+  }
+  return escapedLine.replace(/\b([A-Za-z_$][\w$]*)(\s*\()/g, (whole, name, tail) => {
+    if (RESERVED.has(name)) return whole;
+    let frame = observed.get(name);
+    if (!frame){
+      const candidates = methodIndex.get(name);
+      if (!candidates || candidates.length !== 1) return whole;
+      frame = candidates[0];
+    }
+    if (selected && frame === selected.frame) return whole;   // ne pas se lier à soi-même
+    return '<a class="callink" href="#" data-f="' + frame + '" title="' +
+           dot(frame) + '">' + name + '</a>' + tail;
+  });
+}
+
 /* ------------------------------------------------------------ vue de code */
 function selectFrame(frame, el){
   const info = frameInfo(frame);
@@ -727,7 +776,7 @@ function draw(){
           '<a href="#" data-f="'+esc(a.frame||"")+'">'+esc(a.callee)+'</a> <span class="dur">'+esc(a.cost)+'</span>').join(" · ")
           + (all.length > 2 ? ' <span style="opacity:.7">+'+(all.length-2)+'</span>' : ''); }
     html += '<tr class="'+cls+'" id="L'+nr+'"><td class="n">'+nr+'</td><td class="c">'+
-            esc(text)+'</td><td class="ann">'+ann+'</td></tr>';
+            linkifyCalls(esc(text), nr)+'</td><td class="ann">'+ann+'</td></tr>';
   });
   if (fold) html += '<tr><td colspan="3" class="fold">… '+fold+' ligne(s) jamais exécutée(s)</td></tr>';
   if (narrow && to < src.length)
@@ -737,6 +786,11 @@ function draw(){
   const anchor = document.getElementById("L"+(info.line||1));
   if (anchor) code.scrollTop += anchor.getBoundingClientRect().top
                               - code.getBoundingClientRect().top - code.clientHeight/3;
+  code.querySelectorAll("td.c a.callink").forEach(a => a.onclick = e => {
+    e.preventDefault();
+    const t = frameInfo(a.dataset.f);
+    if (t) { ctxIndex = 0; select(t, null); }
+  });
   code.querySelectorAll("td.ann a").forEach(a => a.onclick = e => {
     e.preventDefault();
     const f = a.dataset.f;
@@ -1014,8 +1068,9 @@ function helpContent(){
         '<span style="background:var(--full);padding:1px 5px;border-radius:3px">exécutée</span> · ' +
         '<span style="background:var(--part);padding:1px 5px;border-radius:3px">partiellement</span> · ' +
         '<span style="background:var(--miss);padding:1px 5px;border-radius:3px">jamais exécutée</span>. ' +
-        'À droite de chaque ligne, les appels qui en partent et leur durée — cliquables pour ' +
-        'sauter à la méthode appelée.</li>' +
+        'À droite de chaque ligne, les appels qui en partent et leur durée. <b>Dans le code, ' +
+        'les noms de méthodes de l\'application sont cliquables</b> : un clic entre dans ' +
+        'l\'appel. Un nom n\'est lié que si sa destination est certaine.</li>' +
       '<li><b>Le bandeau du bas montre les valeurs de la méthode sélectionnée.</b> Chaque méthode ' +
         'a les siennes ; changer de méthode change le contexte, et donc les valeurs.</li>' +
       '<li><b>Resserré sur la méthode</b> (bouton en haut à droite, actif par défaut) : le centre ' +
