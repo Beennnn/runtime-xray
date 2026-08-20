@@ -1,9 +1,9 @@
 [INFO] JAVA_HOME: /opt/homebrew/Cellar/openjdk@21/21.0.12.1/libexec/openjdk.jdk/Contents/Home
 [INFO] arthas-boot version: 4.3.4
 [INFO] arthas home: /Users/benoitbesson/.arthas/lib/4.3.4/arthas
-[INFO] Try to attach process 59301
+[INFO] Try to attach process 36990
 Picked up JAVA_TOOL_OPTIONS: 
-[INFO] Attach process 59301 success.
+[INFO] Attach process 36990 success.
 [INFO] arthas-client connect 127.0.0.1 3658
   ,---.  ,------. ,--------.,--.  ,--.  ,---.   ,---.                           
  /  O  \ |  .--. ''--.  .--'|  '--'  | /  O  \ '   .-'                          
@@ -15,46 +15,46 @@ wiki         https://arthas.aliyun.com/doc
 tutorials    https://arthas.aliyun.com/doc/arthas-tutorials.html                
 version      4.3.4                                                              
 main_class   sample-app/target/sample-app.jar                                   
-pid          59301                                                              
-start_time   2026-08-20 20:10:49.653                                            
-current_time 2026-08-20 20:10:58.439                                            
+pid          36990                                                              
+start_time   2026-08-20 20:48:17.021                                            
+current_time 2026-08-20 20:48:32.871                                            
 
-[arthas@59301]$ trace lab.sample.RoutePlanner travelTimeMinutes -n 2 | plaintext 
+[arthas@36990]$ trace lab.sample.RoutePlanner travelTimeMinutes -n 2 | plaintext 
 Press Q or Ctrl+C to abort.
-Affect(class count: 1 , method count: 1) cost in 104 ms, listenerId: 1
-`---ts=2026-08-20 20:10:59.049;thread_name=main;id=1;is_daemon=false;priority=5;TCCL=jdk.internal.loader.ClassLoaders$AppClassLoader@2c854dc5
-    `---[0.416459ms] lab.sample.RoutePlanner:travelTimeMinutes()
-        +---[4,08% 0.017ms ] lab.sample.model.Trip:mode() #43
-        +---[2,57% 0.010709ms ] lab.sample.speed.Speeds:forMode() #43
-        +---[5,35% min=0.008417ms,max=0.013875ms,total=0.022292ms,count=2] lab.sample.model.Trip:legs() #49
-        +---[1,68% 0.007ms ] lab.sample.model.Trip:legs() #50
-        +---[2,09% 0.008708ms ] lab.sample.model.Trip:mode() #50
-        +---[13,35% 0.055583ms ] lab.sample.RoutePlanner:legMinutes() #50
-        +---[2,05% 0.008542ms ] lab.sample.model.Trip:mode() #53
-        +---[1,99% 0.008291ms ] lab.sample.model.Trip:timeOfDay() #53
-        +---[2,60% 0.010834ms ] lab.sample.traffic.Traffic:applies() #53
-        +---[2,00% 0.008333ms ] lab.sample.model.Trip:mode() #57
-        +---[3,06% 0.01275ms ] lab.sample.weather.WeatherPenalty:applies() #57
-        +---[1,86% 0.00775ms ] lab.sample.model.Trip:mode() #62
-        `---[2,06% 0.008583ms ] lab.sample.comfort.Breaks:totalMinutes() #67
+Affect(class count: 1 , method count: 1) cost in 146 ms, listenerId: 1
+`---ts=2026-08-20 20:48:33.739;thread_name=main;id=1;is_daemon=false;priority=5;TCCL=jdk.internal.loader.ClassLoaders$AppClassLoader@76ed5528
+    `---[0.24625ms] lab.sample.RoutePlanner:travelTimeMinutes()
+        +---[4,30% 0.010583ms ] lab.sample.model.Trip:mode() #43
+        +---[3,16% 0.007791ms ] lab.sample.speed.Speeds:forMode() #43
+        +---[2,91% min=0.002667ms,max=0.0045ms,total=0.007167ms,count=2] lab.sample.model.Trip:legs() #49
+        +---[1,15% 0.002834ms ] lab.sample.model.Trip:legs() #50
+        +---[2,86% 0.007042ms ] lab.sample.model.Trip:mode() #50
+        +---[3,18% 0.007834ms ] lab.sample.RoutePlanner:legMinutes() #50
+        +---[1,47% 0.003625ms ] lab.sample.model.Trip:mode() #53
+        +---[1,52% 0.00375ms ] lab.sample.model.Trip:timeOfDay() #53
+        +---[1,93% 0.00475ms ] lab.sample.traffic.Traffic:applies() #53
+        +---[1,32% 0.00325ms ] lab.sample.model.Trip:mode() #57
+        +---[1,90% 0.004667ms ] lab.sample.weather.WeatherPenalty:applies() #57
+        +---[1,47% 0.003625ms ] lab.sample.model.Trip:mode() #62
+        `---[1,84% 0.004542ms ] lab.sample.comfort.Breaks:totalMinutes() #67
 
-`---ts=2026-08-20 20:10:59.054;thread_name=main;id=1;is_daemon=false;priority=5;TCCL=jdk.internal.loader.ClassLoaders$AppClassLoader@2c854dc5
-    `---[0.367208ms] lab.sample.RoutePlanner:travelTimeMinutes()
-        +---[2,02% 0.007416ms ] lab.sample.model.Trip:mode() #43
-        +---[1,76% 0.006459ms ] lab.sample.speed.Speeds:forMode() #43
-        +---[3,09% min=0.003291ms,max=0.004667ms,total=0.011333ms,count=3] lab.sample.model.Trip:legs() #49
-        +---[2,04% min=0.003375ms,max=0.004125ms,total=0.0075ms,count=2] lab.sample.model.Trip:legs() #50
-        +---[2,19% min=0.003583ms,max=0.004458ms,total=0.008041ms,count=2] lab.sample.model.Trip:mode() #50
-        +---[2,69% min=0.004042ms,max=0.005834ms,total=0.009876ms,count=2] lab.sample.RoutePlanner:legMinutes() #50
-        +---[0,94% 0.003459ms ] lab.sample.model.Trip:mode() #53
-        +---[1,24% 0.004542ms ] lab.sample.model.Trip:timeOfDay() #53
-        +---[1,24% 0.004542ms ] lab.sample.traffic.Traffic:applies() #53
-        +---[1,11% 0.004083ms ] lab.sample.model.Trip:mode() #57
-        +---[2,26% 0.008291ms ] lab.sample.weather.WeatherPenalty:applies() #57
-        +---[1,43% 0.00525ms ] lab.sample.model.Trip:mode() #62
-        +---[1,37% 0.005042ms ] lab.sample.model.Trip:legs() #63
-        +---[8,87% 0.032583ms ] lab.sample.transfer.Connections:waitMinutes() #63
-        `---[1,11% 0.004084ms ] lab.sample.comfort.Breaks:totalMinutes() #67
+`---ts=2026-08-20 20:48:33.742;thread_name=main;id=1;is_daemon=false;priority=5;TCCL=jdk.internal.loader.ClassLoaders$AppClassLoader@76ed5528
+    `---[0.1895ms] lab.sample.RoutePlanner:travelTimeMinutes()
+        +---[2,48% 0.004709ms ] lab.sample.model.Trip:mode() #43
+        +---[1,78% 0.003375ms ] lab.sample.speed.Speeds:forMode() #43
+        +---[4,24% min=0.002625ms,max=0.002791ms,total=0.008041ms,count=3] lab.sample.model.Trip:legs() #49
+        +---[2,75% min=0.002541ms,max=0.002667ms,total=0.005208ms,count=2] lab.sample.model.Trip:legs() #50
+        +---[2,86% min=0.002667ms,max=0.00275ms,total=0.005417ms,count=2] lab.sample.model.Trip:mode() #50
+        +---[3,69% min=0.002833ms,max=0.004167ms,total=0.007ms,count=2] lab.sample.RoutePlanner:legMinutes() #50
+        +---[1,41% 0.002666ms ] lab.sample.model.Trip:mode() #53
+        +---[1,67% 0.003167ms ] lab.sample.model.Trip:timeOfDay() #53
+        +---[1,58% 0.003ms ] lab.sample.traffic.Traffic:applies() #53
+        +---[1,47% 0.002791ms ] lab.sample.model.Trip:mode() #57
+        +---[4,82% 0.009125ms ] lab.sample.weather.WeatherPenalty:applies() #57
+        +---[1,93% 0.003666ms ] lab.sample.model.Trip:mode() #62
+        +---[1,80% 0.003417ms ] lab.sample.model.Trip:legs() #63
+        +---[3,72% 0.007042ms ] lab.sample.transfer.Connections:waitMinutes() #63
+        `---[1,54% 0.002916ms ] lab.sample.comfort.Breaks:totalMinutes() #67
 
 Command execution times exceed limit: 2, so command will exit. You can set it with -n option.
-[arthas@59301]$ 
+[arthas@36990]$ 
