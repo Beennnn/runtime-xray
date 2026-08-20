@@ -51,9 +51,15 @@
   .cleanbtn .dot{width:9px;height:9px;border-radius:50%;background:var(--missbar);opacity:.55}
   .cleanbtn[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
   .cleanbtn[aria-pressed="true"] .dot{background:#fff;opacity:1}
-  .links{font-size:12px;color:var(--muted)} .links a{margin-left:12px}
-  .links .by{font-size:9.5px;color:var(--muted);border:1px solid var(--border);
-             border-radius:8px;padding:0 4px;margin-left:3px}
+  /* Les liens sont groupés PAR OUTIL : « couverture détaillée » et « couverture ciblée »
+     viennent du même outil et le répéter sur chacun était du bruit. La marque porte le nom
+     une fois, les liens suivent. */
+  .links{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+  .toolgrp{display:inline-flex;align-items:center;gap:6px}
+  .toolgrp .mark{display:inline-flex;align-items:center;gap:4px;font-size:9.5px;font-weight:700;
+                 letter-spacing:.3px;color:var(--muted);text-transform:uppercase}
+  .links a{margin:0}
+  .toolgrp .sep{color:var(--border)}
   .helpbtn{font:inherit;font-size:12px;font-weight:600;padding:4px 11px;border-radius:15px;
            cursor:pointer;border:1px solid var(--border);background:var(--bg);color:var(--muted)}
   .helpbtn:hover{border-color:var(--accent);color:var(--accent)}
@@ -125,6 +131,41 @@
   .tagval{font-size:10px;border:1px solid var(--violet);color:var(--violet);
           border-radius:10px;padding:0 5px;vertical-align:1px}
   .node.pkgnode{color:var(--muted)}
+  /* Le ⊘ n'apparaît qu'au survol : présent en permanence sur des centaines de lignes,
+     il ferait un mur de symboles et détournerait de la lecture. */
+  .node .mask{float:right;margin-left:8px;opacity:0;color:var(--muted);font-size:12px;
+              padding:0 3px;border-radius:4px}
+  .node:hover .mask{opacity:.55}
+  .node .mask:hover{opacity:1;color:#fff;background:var(--missbar)}
+  .node.sel .mask{color:#e8f0fb}
+  #maskpop{position:fixed;z-index:60;background:var(--bg);border:1px solid var(--border);
+           border-radius:9px;box-shadow:0 10px 30px rgba(0,0,0,.18);padding:8px;min-width:230px}
+  #maskpop h4{margin:0 0 6px;font-size:11px;text-transform:uppercase;letter-spacing:.5px;
+              color:var(--muted)}
+  #maskpop button{display:block;width:100%;text-align:left;font:inherit;font-size:12.5px;
+                  background:none;border:0;border-radius:6px;padding:5px 7px;cursor:pointer;
+                  color:var(--text)}
+  #maskpop button:hover{background:var(--accent-soft);color:var(--accent)}
+  #maskpop button .q{color:var(--muted);font-size:11px;margin-left:6px}
+  /* Le bandeau se distingue par un liseré, pas par une couleur en dur : une teinte fixe
+     devient illisible dès que le lecteur est en thème sombre. */
+  .maskbar{padding:7px 9px;border-bottom:1px solid var(--border);background:var(--panel);
+           border-left:3px solid var(--missbar);font-size:12px;color:var(--text)}
+  .maskbar > b{display:block;font-size:9.5px;letter-spacing:.7px;text-transform:uppercase;
+               color:var(--muted);margin-bottom:2px}
+  .maskbar[hidden]{display:none}
+  .maskbar .chip{display:inline-flex;align-items:center;gap:5px;background:var(--bg);
+                 border:1px solid var(--border);border-radius:12px;padding:1px 4px 1px 8px;
+                 margin:3px 4px 0 0;font-size:11.5px}
+  .maskbar .chip button{font:inherit;border:0;background:none;cursor:pointer;color:var(--muted);
+                        padding:0 3px;border-radius:8px}
+  .maskbar .chip button:hover{color:#fff;background:var(--missbar)}
+  .maskbar .acts{margin-top:6px;display:flex;gap:8px}
+  .maskbar .acts button{font:inherit;font-size:11.5px;border:1px solid var(--border);
+                        background:var(--bg);color:var(--accent);border-radius:12px;
+                        padding:2px 9px;cursor:pointer}
+  .maskbar .acts button:hover{border-color:var(--accent)}
+  .maskbar code{font-size:11px;word-break:break-all}
   /* Quand on affiche tout le code, la couleur dit en un coup d'œil ce qui a servi. */
   .node.live .lbl{color:var(--fullbar)}
   .node.partial .lbl{color:var(--partbar)}
@@ -153,6 +194,10 @@
   .crumb{padding:9px 16px;font-size:13px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
   .viewbar{padding:0 16px 9px;border-bottom:1px solid var(--border);display:flex;gap:8px}
   .crumb b{font-weight:650} .crumb span{color:var(--muted)}
+  .crumb a.pkgseg{color:var(--muted);text-decoration:none;border-radius:4px;padding:0 2px}
+  .crumb a.pkgseg:hover{color:#fff;background:var(--missbar)}
+  .crumb a.pkgseg:hover::after{content:" ⊘"}
+  .crumb .pkgdot{color:var(--muted)}
   .pill{font-size:11px;border:1px solid var(--border);border-radius:20px;padding:1px 8px;color:var(--muted)}
   #context{display:none;padding:7px 16px;border-bottom:1px solid var(--border);background:var(--panel2)}
   .ctxlabel{display:block;color:var(--muted);font-size:11px;margin-bottom:4px}
@@ -172,6 +217,13 @@
   table.src{border-collapse:collapse;width:100%;
             font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12.5px}
   table.src td{padding:0 6px;vertical-align:top;white-space:pre}
+  #code a.iters{color:var(--accent);font-weight:700;text-decoration:none;border-bottom:1px dotted}
+  #code a.iters:hover{background:var(--accent-soft)}
+  tr.itersrow td{background:var(--accent-soft);padding:6px 10px}
+  .iters-detail{font-size:11.5px;color:var(--muted);white-space:normal;line-height:1.9}
+  .iter{display:inline-block;background:var(--bg);border:1px solid var(--border);
+        border-radius:10px;padding:1px 8px;margin:0 4px 0 0;font-size:11px}
+  .iter b{color:var(--accent);margin-right:5px}
   td.n{text-align:right;color:var(--muted);user-select:none;width:1%;
        border-right:1px solid var(--border);font-variant-numeric:tabular-nums}
   /* Un liseré en marge en plus du fond : sur un fond sombre, la teinte seule se remarque
@@ -253,6 +305,16 @@
   a.lk:hover{border-color:var(--accent);background:var(--accent-soft)}
   .lkt{display:block;color:var(--accent);font-weight:600;font-size:13.5px;margin-bottom:2px}
   .lkd{display:block;color:var(--muted);font-size:12px;line-height:1.45}
+  .rawh{display:flex;align-items:center;gap:7px;font-size:13px;margin:16px 0 0;
+        color:var(--text);font-weight:650}
+  .rawnote{color:var(--muted);font-size:12.5px;margin:6px 0 0;max-width:70ch}
+  ul.tools li{display:flex;align-items:baseline;gap:7px}
+  ul.tools li svg{flex:none;position:relative;top:2px}
+  table.hh{border-collapse:collapse;margin:10px 0;font-size:12.5px;width:100%}
+  table.hh th,table.hh td{border:1px solid var(--border);padding:6px 9px;
+                          text-align:left;vertical-align:top}
+  table.hh th{background:var(--accent-soft);color:var(--accent);font-size:11.5px}
+  table.hh td:first-child{color:var(--muted);font-size:11.5px;white-space:nowrap;width:1%}
   .home ol{color:var(--muted);padding-left:20px} .home ol li{margin:6px 0}
   svg.plan{width:100%;height:auto;max-width:820px;display:block;margin:6px 0 18px;
            border:1px solid var(--border);border-radius:9px;background:var(--bg)}
@@ -308,21 +370,23 @@
 </div></div>
 <main>
   <div id="nav">
-    <div class="runpick" id="runpick" hidden>
-      <span class="runlabel">exécutions affichées</span>
-      <div id="runboxes"></div>
-    </div>
     <div class="tabs">
       <button id="tab-tree" class="on" title="Ce que les exécutions ont fait : l'arbre d'appel, avec les exécutions pour racines">Exécutions</button>
       <button id="tab-cls" title="Le code, par paquet et par classe, filtré sur ce qui a tourné">Code</button>
+    </div>
+    <div class="maskbar" id="maskbar" hidden></div>
+    <div class="runpick" id="runpick" hidden>
+      <span class="runlabel">exécutions affichées</span>
+      <div id="runboxes"></div>
     </div>
     <div class="listbar">
       <input id="search" placeholder="Filtrer…" autocomplete="off">
       <button id="unitbtn" class="unitbtn" title="Basculer entre part du temps et temps estimé">%</button>
       <button id="pkgbtn" class="unitbtn" title="Afficher ou masquer les noms de paquet">pkg</button>
-      <button id="sortbtn" class="unitbtn" title="Trier par nom ou par temps passé">A→Z</button>
       <button id="scopebtn" class="unitbtn wide" aria-pressed="true"
               title="N'afficher que le code exécuté, ou tout le code du projet">exécuté</button>
+      <button id="expandbtn" class="unitbtn wide"
+              title="Tout déplier, ou tout replier">tout déplier</button>
     </div>
     <div id="scope"></div>
     <div class="list" id="list"></div>
@@ -365,15 +429,70 @@ let callIndex = null;
 // coche celles qu'on veut voir. La vue de code, elle, reste rattachée à UNE exécution —
 // couverture et valeurs n'ont de sens que dans celle où l'appel a eu lieu.
 let shownRuns = new Set(D.runs.map((_, i) => i));
+
+/* ---------------------------------------------------------- masquage par apprentissage
+ * On n'écrit pas d'avance la liste des paquets qu'on ne veut pas voir : on la découvre en
+ * lisant l'arbre, où ils se signalent tout seuls. D'où ce mécanisme — cliquer sur ⊘ à côté
+ * d'une méthode, choisir jusqu'où remonter (la classe, son paquet, le paquet parent…), et
+ * elle disparaît. La liste s'accumule, se relit, et se recopie dans le fichier de
+ * configuration pour que les exécutions suivantes partent déjà propres.
+ *
+ * Le masquage est purement visuel : le nœud n'est pas rendu, donc son poids reste compté
+ * dans son parent — exactement le repli appliqué au JDK côté outil. Rien n'est perdu. */
+const MASK_KEY = "runtime-xray.masques";
+let masked = [];
+try { masked = JSON.parse(localStorage.getItem(MASK_KEY) || "[]"); } catch(e){ masked = []; }
+
+/** Les paquets déjà masqués À LA COLLECTE, venus de la configuration : ils ne sont plus
+ *  dans les données, on les montre pour que la liste affichée dise toute la vérité. */
+const maskedAtSource = (D.runs.find(r => r.paquetsMasques) || {}).paquetsMasques || "";
+
+function isMasked(frame){
+  if (!masked.length || !frame) return false;
+  const n = frame.replace(/\./g, "/");
+  return masked.some(p => n === p || n.startsWith(p + "/") || n.startsWith(p + "."));
+}
+
+/** Les niveaux de masquage possibles pour une méthode, du plus large au plus étroit. */
+function maskLevels(frame){
+  const cls = frame.includes(".") ? frame.slice(0, frame.lastIndexOf(".")) : frame;
+  const parts = cls.split("/");
+  const out = [];
+  for (let i = 1; i < parts.length; i++){
+    out.push({ path: parts.slice(0, i).join("/"),
+               label: parts.slice(0, i).join("."),
+               quoi: "tout ce paquet" });
+  }
+  out.push({ path: cls, label: parts.join("."), quoi: "cette classe seule" });
+  return out;
+}
+
+function saveMasks(){
+  localStorage.setItem(MASK_KEY, JSON.stringify(masked));
+  renderMaskBar();
+  mode === "cls" ? renderClasses() : renderTree();
+  reselect();
+}
+
+function addMask(path){
+  if (!masked.includes(path)){
+    // Une règle plus large rend les plus étroites inutiles : on les retire pour que la
+    // ligne de configuration produite reste lisible.
+    masked = masked.filter(m => !(m === path || m.startsWith(path + "/")));
+    masked.push(path);
+    masked.sort();
+  }
+  saveMasks();
+}
 // Deux façons de lire le temps : la part du total, ou une durée estimée. La seconde parle
 // davantage à qui cherche « combien de temps », la première à qui compare deux méthodes.
 let unit = "pct";
 // Les noms de paquet complets rendent l'arbre illisible sur un projet à l'arborescence
 // profonde ; on peut les replier d'un bouton.
 let showPackages = true;
-// Par défaut, l'ordre alphabétique : on cherche une méthode qu'on connaît. Le classement
-// par temps répond à une autre question, et reste accessible d'un bouton.
-let sortBy = "nom";
+// La vue Code est alphabétique par construction — paquets, classes et méthodes triés par
+// nom : on y cherche quelque chose qu'on connaît. Le classement par temps, lui, est la
+// question de la vue Exécutions.
 // Dans la vue par structure : ne montrer que ce qui a tourné, ou tout le code du projet.
 // Quand on montre tout, il faut distinguer d'un coup d'œil ce qui a servi de ce qui dort.
 let executedOnly = true;
@@ -431,7 +550,10 @@ let AGG = computeAgg();
     const i = +cb.dataset.run;
     cb.checked ? shownRuns.add(i) : shownRuns.delete(i);
     if (!shownRuns.size){ shownRuns.add(i); cb.checked = true; return; }  // jamais rien à voir
+    const open = captureExpanded();
     mode === "cls" ? renderClasses() : renderTree();
+    restoreExpanded(open);
+    reselect();
   });
 })();
 
@@ -455,23 +577,59 @@ function refreshHeader(){
   // que ce qui sert à naviguer.
 }
 refreshHeader();
+/**
+ * Marques des trois outils.
+ *
+ * <p>Ce sont des <b>marques stylisées</b>, pas les logos officiels : la page doit
+ * fonctionner sans réseau, donc tout est en ligne, et embarquer le logo d'un tiers dans un
+ * dépôt public engage sa licence. Chaque marque reprend le signe visuel propre à l'outil —
+ * les barres de couverture, la flamme, la loupe — et le nom est écrit à côté, ce qui lève
+ * toute ambiguïté sans rien emprunter.
+ */
+const TOOLMARK = {
+  jacoco:
+    '<svg viewBox="0 0 16 12" width="15" height="11" aria-hidden="true">' +
+    '<rect x="0" y="1" width="4.6" height="10" rx="1" fill="#38a169"/>' +
+    '<rect x="5.7" y="1" width="4.6" height="10" rx="1" fill="#d69e2e"/>' +
+    '<rect x="11.4" y="1" width="4.6" height="10" rx="1" fill="#c53030"/></svg>',
+  async:
+    '<svg viewBox="0 0 12 14" width="12" height="14" aria-hidden="true">' +
+    '<path d="M6 0C6 3 2.2 4.2 2.2 8a3.8 3.8 0 0 0 7.6 0C9.8 5.6 7.6 5 7.6 3 6.9 3.9 6 4.6 6 0Z"' +
+    ' fill="#dd6b20"/><path d="M6 7c0 1.6-1.2 1.9-1.2 3.2a1.4 1.4 0 0 0 2.8 0C7.6 9 6.6 8.6 6 7Z"' +
+    ' fill="#f6e05e"/></svg>',
+  arthas:
+    '<svg viewBox="0 0 14 14" width="13" height="13" aria-hidden="true" fill="none"' +
+    ' stroke="#6b46c1" stroke-width="1.8"><circle cx="5.8" cy="5.8" r="4.2"/>' +
+    '<path d="M9 9l4 4" stroke-linecap="round"/></svg>',
+};
+
 function refreshLinks(){
   // On n'affiche un lien que si le fichier a réellement été produit : un lien mort est
   // pire que pas de lien. Le générateur nous dit ce qui existe.
   const b = R.chemin || "", a = R.rapports || {};
-  // On nomme l'outil qui produit chaque rapport : ici, contrairement à la surface
-  // d'analyse, l'information est utile — elle dit à quoi s'attendre en cliquant.
-  const l = (ok, href, txt, outil) => ok
-    ? '<a href="'+b+href+'" title="Rapport produit par '+outil+'">'+txt+
-      ' <span class="by">'+outil+'</span></a>' : "";
+  // Un groupe par outil, la marque écrite une seule fois : « couverture détaillée » et
+  // « couverture ciblée » sortent toutes deux de JaCoCo, le répéter n'apprenait rien.
+  const grp = (mark, nom, liens) => {
+    const ok = liens.filter(x => x[0]);
+    if (!ok.length) return "";
+    return '<span class="toolgrp"><span class="mark" title="Rapports produits par '+nom+'">' +
+      TOOLMARK[mark] + nom + '</span>' +
+      ok.map(x => '<a href="'+b+x[1]+'" target="_blank" rel="noopener">'+x[2]+'</a>')
+        .join('<span class="sep">·</span>') + '</span>';
+  };
   document.getElementById("links").innerHTML =
-    l(a.couverture, "jacoco/html/index.html", "couverture détaillée", "JaCoCo") +
-    l(a.ciblee, "jacoco-focused/html/index.html", "couverture ciblée", "JaCoCo") +
-    l(a.flamegraph, "async-profiler/flamegraph.html", "flame graph", "async-profiler") +
-    l(a.arbre, "async-profiler/tree.html", "arbre d'appel", "async-profiler") +
-    l(Object.keys(R.values||{}).length, "arthas/watch-params.txt", "valeurs brutes", "Arthas");
+    grp("jacoco", "JaCoCo", [
+      [a.couverture, "jacoco/html/index.html", "couverture détaillée"],
+      [a.ciblee, "jacoco-focused/html/index.html", "couverture ciblée"]]) +
+    grp("async", "async-profiler", [
+      [a.flamegraph, "async-profiler/flamegraph.html", "profil brut"],
+      [a.flamegraphInverse, "async-profiler/flamegraph-inverse.html", "profil inversé"]]) +
+    grp("arthas", "Arthas", [
+      [a.valeurs, "arthas/watch-params.txt", "valeurs"],
+      [a.traceBrute, "arthas/trace-calltree.txt", "trace"]]);
 }
 refreshLinks();
+renderMaskBar();
 document.getElementById("legend").innerHTML =
   '<span class="sw" style="background:var(--full);border-color:var(--fullbar)"></span>exécutée' +
   '<span class="sw" style="background:var(--part);border-color:var(--partbar)"></span>partiellement' +
@@ -530,10 +688,10 @@ function executedMethods(){
       }
     }
   }
-  const rows = [...merged.values()];
-  return sortBy === "temps"
-      ? rows.sort((a, b) => b.samples - a.samples || a.frame.localeCompare(b.frame))
-      : rows.sort((a, b) => dot(a.frame).localeCompare(dot(b.frame)));
+  // Seul usage restant : les méthodes les plus coûteuses de la vue d'ensemble. Le tri par
+  // temps est donc le bon, et le seul.
+  return [...merged.values()]
+      .sort((a, b) => b.samples - a.samples || a.frame.localeCompare(b.frame));
 }
 
 /* ------------------------------------------------------------------ listes */
@@ -550,19 +708,126 @@ function renderScope(){
   const b = document.getElementById("unscope");
   if (b) b.onclick = () => { scopeFrame = null; mode === "cls" ? renderClasses() : renderTree(); };
 }
+/**
+ * Certaines actions changent la liste des nœuds — cocher une exécution, basculer
+ * exécuté/tout — et imposent de reconstruire. Refermer l'arbre à cette occasion fait
+ * perdre le fil de ce qu'on regardait : on note ce qui était ouvert, et on le rouvre.
+ */
+function captureExpanded(){
+  const open = new Set();
+  document.querySelectorAll("#list .node").forEach(n => {
+    const tw = n.querySelector(".tw");
+    if (tw && tw.textContent === "▾"){
+      const key = n.dataset.frame || n.dataset.path;
+      if (key) open.add(key);
+    }
+  });
+  return open;
+}
+
+function restoreExpanded(open){
+  if (!open || !open.size) return;
+  for (let pass = 0; pass < 30; pass++){
+    const toOpen = [...document.querySelectorAll("#list .node")].filter(n => {
+      const tw = n.querySelector(".tw");
+      const key = n.dataset.frame || n.dataset.path;
+      return tw && tw.textContent === "▸" && key && open.has(key) && !n.classList.contains("runroot");
+    });
+    if (!toOpen.length) return;
+    toOpen.forEach(n => n.click());
+  }
+}
+
+function resetExpandButton(){
+  const b = document.getElementById("expandbtn");
+  if (b){ b.dataset.state = ""; b.textContent = "tout déplier"; }
+}
 function toggleRunPicker(show){
   const p = document.getElementById("runpick");
   if (p) p.hidden = !show || D.runs.length < 2;
+}
+
+/** Un réglage qui n'agit pas sur la vue courante n'a pas à y figurer : il laisse croire
+ *  qu'il ne marche pas. */
+function showOptionsFor(view){
+  const only = {
+    scopebtn: "cls",    // exécuté / tout : propre à la vue par structure
+    pkgbtn: "tree",     // en vue Code, la hiérarchie porte déjà le paquet — rien à masquer
+  };
+  for (const [id, where] of Object.entries(only)){
+    const b = document.getElementById(id);
+    if (b) b.style.display = (where === view) ? "" : "none";
+  }
 }
 function tab(id){ document.querySelectorAll(".tabs button").forEach(b=>b.classList.remove("on"));
                   document.getElementById(id).classList.add("on"); }
 
 
+/** Le choix du niveau : c'est lui qui fait l'apprentissage. Masquer une méthode isolée ne
+ *  sert presque jamais — ce qu'on veut, c'est la bibliothèque entière, ou juste la classe
+ *  bavarde. On propose donc chaque remontée possible, du paquet racine à la classe. */
+function openMaskPicker(frame, anchor){
+  closeMaskPicker();
+  const pop = document.createElement("div");
+  pop.id = "maskpop";
+  pop.innerHTML = '<h4>Ne plus afficher…</h4>' +
+    maskLevels(frame).map(l =>
+      '<button data-p="' + esc(l.path) + '">' + esc(l.label) +
+      '<span class="q">' + l.quoi + '</span></button>').join("");
+  document.body.appendChild(pop);
+  const r = anchor.getBoundingClientRect();
+  pop.style.left = Math.min(r.left, window.innerWidth - pop.offsetWidth - 12) + "px";
+  pop.style.top = Math.min(r.bottom + 4, window.innerHeight - pop.offsetHeight - 12) + "px";
+  pop.querySelectorAll("button").forEach(b => b.onclick = e => {
+    e.stopPropagation();
+    addMask(b.dataset.p);
+    closeMaskPicker();
+  });
+  setTimeout(() => document.addEventListener("click", closeMaskPicker, { once: true }), 0);
+}
+function closeMaskPicker(){
+  const old = document.getElementById("maskpop");
+  if (old) old.remove();
+}
+
+/** La liste de ce qui est masqué, et surtout la ligne à recopier dans la configuration :
+ *  sans elle, l'apprentissage resterait dans ce navigateur et serait à refaire. */
+function renderMaskBar(){
+  const bar = document.getElementById("maskbar");
+  if (!masked.length && !maskedAtSource){ bar.hidden = true; bar.innerHTML = ""; return; }
+  bar.hidden = false;
+  const source = maskedAtSource
+    ? '<div style="color:var(--muted);font-size:11.5px">Déjà masqué à la mesure : <code>' +
+      esc(maskedAtSource) + '</code></div>'
+    : "";
+  if (!masked.length){ bar.innerHTML = source; return; }
+  bar.innerHTML =
+    '<b>Masqué dans cette vue</b>' +
+    masked.map(m => '<span class="chip">' + esc(m.replace(/\//g, ".")) +
+                    '<button data-p="' + esc(m) + '" title="Réafficher">✕</button></span>').join("") +
+    '<div class="acts">' +
+      '<button id="maskcopy" title="Coller dans le fichier de configuration : les prochaines ' +
+      'exécutions ne mesureront même plus ce code">Copier pour la configuration</button>' +
+      '<button id="maskclear">Tout réafficher</button>' +
+    '</div>' + source;
+  bar.querySelectorAll(".chip button").forEach(b => b.onclick = () => {
+    masked = masked.filter(m => m !== b.dataset.p);
+    saveMasks();
+  });
+  document.getElementById("maskcopy").onclick = e => {
+    const line = 'HIDDEN_PACKAGES="' + masked.map(m => m.replace(/\//g, ".")).join(", ") + '"';
+    navigator.clipboard.writeText(line).then(
+      () => { e.target.textContent = "copié ✓"; setTimeout(renderMaskBar, 1600); },
+      () => { e.target.textContent = line; });
+  };
+  document.getElementById("maskclear").onclick = () => { masked = []; saveMasks(); };
+}
+
 function renderTree(){
   mode = "tree"; tab("tab-tree"); renderScope();
-  // L'arbre affiche TOUTES les exécutions comme racines : un sélecteur au-dessus ferait
-  // doublon. Il reste utile aux deux autres onglets, qui n'en montrent qu'une à la fois.
+  // L'arbre montre TOUTES les exécutions comme racines : les cocher n'aurait pas de sens.
   toggleRunPicker(false);
+  showOptionsFor("tree"); resetExpandButton();
   const box = document.getElementById("list"); box.innerHTML = "";
 
   // Les exécutions sont les RACINES de l'arbre : une exécution est le contexte d'appel le
@@ -591,8 +856,34 @@ function renderTree(){
     };
   });
 
-  function level(container, node, depth, total, idx){
+  /**
+   * Les enfants à afficher réellement.
+   *
+   * <p>Le critère est simple et c'est le bon : <b>a-t-on son code source ?</b> Un arbre
+   * d'appel sert à ouvrir des méthodes et à les lire. Une frame qu'on ne peut pas ouvrir —
+   * un rouage de la machine virtuelle, un appel natif, une bibliothèque livrée sans ses
+   * sources — n'apporte rien à cet usage : on ne pourra ni la comprendre, ni la corriger.
+   *
+   * <p>Elle est donc repliée sur son appelant, et on <b>remonte à sa place ses descendants
+   * lisibles</b> : sans ça, du code applicatif appelé à travers un rouage de la VM (un
+   * lambda, une réflexion, un thread) disparaîtrait de l'arbre avec lui. Le temps, lui,
+   * reste compté chez l'appelant — rien n'est perdu.
+   *
+   * <p>Ces classes ne disparaissent pas de l'analyse pour autant : l'onglet <b>Code</b> les
+   * liste avec leur couverture, car là c'est un inventaire, pas une lecture.
+   */
+  function visibleChildren(node){
+    const out = [];
     for (const kid of node.children){
+      if (isMasked(kid.name)) continue;
+      if (hasSource(kid.name)) out.push(kid);
+      else out.push(...visibleChildren(kid));
+    }
+    return out.sort((a, b) => b.total - a.total);
+  }
+
+  function level(container, node, depth, total, idx){
+    for (const kid of visibleChildren(node)){
       if (filter && !dot(kid.name).toLowerCase().includes(filter) && !hasMatch(kid)) continue;
       const known = !!frameInfo(kid.name);
       const el = document.createElement("div");
@@ -600,9 +891,15 @@ function renderTree(){
       el.style.paddingLeft = (6 + depth * 11) + "px";
       const hasCalls = frameInfo(kid.name) && (R.values[kid.name] || []).length;
       el.dataset.frame = kid.name;
-      el.innerHTML = '<span class="tw">' + ((kid.children.length || hasCalls) ? "▸" : "") + '</span>' +
+      el.dataset.samples = kid.total;
+      el.dataset.total = total;
+      const kidsShown = visibleChildren(kid);
+      el.innerHTML = '<span class="tw">' + ((kidsShown.length || hasCalls) ? "▸" : "") + '</span>' +
                      '<span class="pct">' + formatWeight(kid.total, total) + '</span>' +
                      '<span class="lbl">' + esc(frameLabel(kid.name)) + '</span>' +
+                     // Pas de ⊘ ici : dans l'arbre d'appel on suit une exécution, on ne
+                     // range pas du code. Le geste vit dans la vue Code et dans le chemin
+                     // affiché au-dessus du source, là où on a le paquet sous les yeux.
                      ((known && (R.values[kid.name] || []).length)
                         ? ' <span class="tagval">' + R.values[kid.name].length + ' appels</span>' : '');
       container.appendChild(el);
@@ -618,7 +915,7 @@ function renderTree(){
       let built = false;
       el.onclick = e => {
         e.stopPropagation();
-        if (kid.children.length || observedCalls.length){
+        if (kidsShown.length || observedCalls.length){
           const open = holder.style.display === "none";
           if (open && !built){
             observedCalls.forEach((call, k) => {
@@ -649,7 +946,7 @@ function renderTree(){
     }
   }
   function hasMatch(node){
-    return node.children.some(k => dot(k.name).toLowerCase().includes(filter) || hasMatch(k));
+    return visibleChildren(node).some(k => dot(k.name).toLowerCase().includes(filter) || hasMatch(k));
   }
 }
 
@@ -662,6 +959,7 @@ function renderTree(){
  */
 function renderClasses(){
   mode = "cls"; tab("tab-cls"); renderScope(); toggleRunPicker(true);
+  showOptionsFor("cls"); resetExpandButton();
   const box = document.getElementById("list"); box.innerHTML = "";
 
   // Union des exécutions cochées : une classe compte si elle a tourné dans l'une d'elles.
@@ -670,6 +968,7 @@ function renderClasses(){
     const run = D.runs[i];
     for (const [pkg, list] of Object.entries(run.packages)){
       for (const c of list){
+        if (isMasked(c.name)) continue;
         if (executedOnly && !c.covered) continue;
         const seen = classes.get(c.name);
         if (!seen) classes.set(c.name, {...c, pkg, runs: [i]});
@@ -706,17 +1005,22 @@ function renderClasses(){
       const merged = compact(child, seg);
       const el = document.createElement("div");
       el.className = "node pkgnode";
+      const dotted = (prefix ? prefix + "." : "") + merged.prefix;
+      el.dataset.path = "pkg:" + dotted;
       el.style.paddingLeft = (6 + depth*11) + "px";
       const count = countClasses(merged.node);
       el.innerHTML = '<span class="tw">▸</span><span class="lbl">' + esc(merged.prefix.toLowerCase()) +
                      '</span> <span class="pct2">' + count +
-                     (count > 1 ? " classes" : " classe") + '</span>';
+                     (count > 1 ? " classes" : " classe") + '</span>' +
+                     '<span class="mask" title="Ne plus voir ce paquet">⊘</span>';
       container.appendChild(el);
       const holder = document.createElement("div");
       holder.style.display = "none";
       container.appendChild(holder);
       let built = false;
-      el.onclick = () => {
+      el.onclick = e => {
+        // Sur un paquet, pas de choix de niveau à proposer : le nœud EST le niveau.
+        if (e.target.classList.contains("mask")){ addMask(dotted.replace(/\./g, "/")); return; }
         const open = holder.style.display === "none";
         if (open && !built){ level(holder, merged.node, merged.prefix, depth+1); built = true; }
         holder.style.display = open ? "block" : "none";
@@ -728,18 +1032,21 @@ function renderClasses(){
       el.className = "node";
       el.style.paddingLeft = (6 + depth*11) + "px";
       const pct = c.covered + c.missed ? Math.round(100*c.covered/(c.covered+c.missed)) : 0;
+      el.dataset.path = "cls:" + c.name;
       if (!c.covered) el.classList.add("dead");
       else if (pct < 100) el.classList.add("partial");
       else el.classList.add("live");
       el.innerHTML = '<span class="tw">▸</span><span class="pct">' + pct + '%</span>' +
                      '<span class="lbl">' + esc(c.simple) + '</span>' +
-                     (!c.covered ? ' <span class="tagdead">jamais exécutée</span>' : '');
+                     (!c.covered ? ' <span class="tagdead">jamais exécutée</span>' : '') +
+                     '<span class="mask" title="Ne plus voir cette classe, ou son paquet">⊘</span>';
       container.appendChild(el);
       const holder = document.createElement("div");
       holder.style.display = "none";
       container.appendChild(holder);
       let built = false;
-      el.onclick = () => {
+      el.onclick = e => {
+        if (e.target.classList.contains("mask")){ openMaskPicker(c.name, e.target); return; }
         const open = holder.style.display === "none";
         if (open && !built){ methodsOf(holder, c, depth+1); built = true; }
         holder.style.display = open ? "block" : "none";
@@ -773,6 +1080,8 @@ function methodsOf(container, c, depth){
     el.style.paddingLeft = (6 + depth*11 + 12) + "px";
     el.dataset.frame = frame;
     const weight = AGG.weights[frame] || 0;
+    el.dataset.samples = weight;
+    el.dataset.total = R.calltree.total;
     el.innerHTML = '<span class="pct">' + formatWeight(weight, R.calltree.total) + '</span>' +
                    '<span class="lbl">' + esc(m.name) + '</span>' +
                    ((R.values[frame] || []).length
@@ -900,6 +1209,40 @@ function durationRange(a){
   return a.minMs === a.maxMs ? f(a.minMs) + "ms" : f(a.minMs) + "–" + f(a.maxMs) + "ms";
 }
 
+/**
+ * Déplie les passages d'une boucle sous la ligne qui la porte.
+ *
+ * <p>L'agrégat « ×8 entre 0,01 et 0,30 ms » dit qu'il y a de la dispersion sans dire d'où
+ * elle vient. Le détail, lui, la montre : c'est presque toujours le premier tour qui coûte
+ * — cache froid, chargement paresseux, compilation à la volée — et les suivants sont
+ * plats. Cette différence change le diagnostic, donc elle mérite un nœud par passage.
+ */
+function wireIterations(){
+  document.querySelectorAll("#code a.iters").forEach(a => {
+    a.onclick = e => {
+      e.preventDefault(); e.stopPropagation();
+      const row = a.closest("tr");
+      const next = row.nextElementSibling;
+      if (next && next.classList.contains("itersrow")){ next.remove(); return; }
+      const call = (R.trace[a.dataset.l] || [])[+a.dataset.i];
+      if (!call) return;
+      const p = call.passages || [];
+      const tr = document.createElement("tr");
+      tr.className = "itersrow";
+      const body = p.length
+        ? p.map((ms, k) => '<span class="iter"><b>' + (k + 1) + '</b>' +
+            (ms < 1 ? ms.toFixed(3) : ms.toFixed(2)) + ' ms</span>').join("")
+        : '<span class="iter">durées non relevées</span>';
+      const reste = call.n > p.length
+        ? '<span class="iter" style="opacity:.7">+' + (call.n - p.length) +
+          ' passages non détaillés</span>' : "";
+      tr.innerHTML = '<td class="n"></td><td colspan="2" class="iters-detail">' +
+        '<b>' + esc(call.callee) + '</b> — un nœud par passage : ' + body + reste + '</td>';
+      row.after(tr);
+    };
+  });
+}
+
 function linkifyCalls(escapedLine, lineNumber){
   if (!methodIndex) methodIndex = buildMethodIndex();
   // Ce que la trace a vu partir de cette ligne : l'information la plus sûre.
@@ -935,6 +1278,30 @@ function select(info, el, call){
   callIndex = (call === undefined) ? null : call;
   draw();
 }
+/**
+ * Le paquet du fichier ouvert, découpé niveau par niveau, chacun masquable.
+ *
+ * <p>C'est le geste le plus direct : on est en train de lire du code qui ne nous concerne
+ * pas, et le chemin de ce code est déjà écrit au-dessus. Cliquer un niveau dit « plus
+ * jamais celui-là » sans changer de vue ni chercher où le dire.
+ */
+/** Vrai si la frame désigne du code dont on peut afficher le source. */
+function hasSource(frame){
+  const info = frameInfo(frame);
+  return !!(info && D.sources[info.source]);
+}
+
+function crumbPackage(cls){
+  const parts = dot(cls).split(".").slice(0, -1);
+  if (!parts.length) return '<span>(paquet par défaut) ›</span>';
+  return parts.map((seg, i) => {
+    const path = parts.slice(0, i + 1).join("/");
+    return '<a href="#" class="pkgseg" data-p="' + esc(path) + '" title="Ne plus afficher ' +
+           esc(parts.slice(0, i + 1).join(".")) + ' — ni ce qu\'il contient">' +
+           esc(seg) + '</a>';
+  }).join('<span class="pkgdot">.</span>') + ' <span>›</span>';
+}
+
 function draw(){
   const code = document.getElementById("code");
   if (!selected){ drawHome(); return; }
@@ -947,7 +1314,7 @@ function draw(){
     '<a class="back" id="backHome" title="Revenir à la vue d\'ensemble">← Vue d\'ensemble</a> <span>›</span> ' +
     (D.runs.length > 1 ? '<span class="pill" title="Exécution dont proviennent la couverture et les valeurs affichées">'
         + esc(R.nom) + '</span> <span>›</span> ' : '') +
-    '<span>'+esc(dot(info.cls).split(".").slice(0,-1).join("."))+' ›</span> <b>'+
+    crumbPackage(info.cls) + ' <b>'+
     esc(info.cls.split("/").pop())+'.java</b>'+
     (info.name ? ' <span>›</span> <b>'+esc(info.name)+'()</b>' : '') +
     (samples ? ' <span class="pill" title="Temps passé dans cette méthode">'+
@@ -956,6 +1323,11 @@ function draw(){
         + myCalls.length + ' appel(s) capturé(s) — voir les valeurs</span>' : '') +
     (mode==="exec" && info.name ? ' <span class="pill" style="cursor:pointer" id="scopeBtn">ne montrer que ce qui tourne sous cette méthode</span>' : '') +
     jacocoLink(info);
+
+  document.querySelectorAll("#crumb a.pkgseg").forEach(a => a.onclick = e => {
+    e.preventDefault();
+    addMask(a.dataset.p);
+  });
 
   if (!src){ code.innerHTML = '<p style="padding:18px;color:var(--muted)">Source indisponible.</p>';
              document.getElementById("values").innerHTML=""; return; }
@@ -983,9 +1355,16 @@ function draw(){
       ann = '<a href="#" id="lineValues" class="values">▾ valeurs des paramètres ('+myCalls.length+')</a>';
     else if (traced && R.trace[nr])
       { const all = R.trace[nr];
-        ann = "appelle " + all.slice(0,2).map(a =>
+        ann = "appelle " + all.slice(0,2).map((a, ai) =>
           '<a href="#" data-f="'+esc(a.frame||"")+'">'+esc(a.callee)+'</a>' +
-          (a.n > 1 ? ' <span class="dur">×'+a.n+'</span>' : '') +
+          // Une ligne dans une boucle est appelée N fois : le ×N est cliquable et déplie
+          // un nœud par passage. L'étendue min–max dit qu'il y a de la dispersion ;
+          // seul le détail dit LAQUELLE, et c'est presque toujours la première itération
+          // qui explique tout.
+          (a.n > 1
+            ? ' <a href="#" class="iters" data-l="'+nr+'" data-i="'+ai+'" ' +
+              'title="Voir chaque passage de la boucle, un par un">×'+a.n+'</a>'
+            : '') +
           ' <span class="dur">'+esc(durationRange(a))+'</span>').join(" · ")
           + (all.length > 2 ? ' <span style="opacity:.7">+'+(all.length-2)+'</span>' : ''); }
     html += '<tr class="'+cls+'" id="L'+nr+'"><td class="n">'+nr+'</td><td class="c">'+
@@ -995,6 +1374,7 @@ function draw(){
   if (narrow && to < src.length)
     html += '<tr><td colspan="3" class="fold">… '+(src.length-to)+' ligne(s) en dessous, hors de cette méthode</td></tr>';
   code.innerHTML = html+"</table>";
+  wireIterations();
 
   const anchor = document.getElementById("L"+(info.line||1));
   if (anchor) code.scrollTop += anchor.getBoundingClientRect().top
@@ -1004,7 +1384,8 @@ function draw(){
     const t = frameInfo(a.dataset.f);
     if (t) { ctxIndex = 0; select(t, null); }
   });
-  code.querySelectorAll("td.ann a").forEach(a => a.onclick = e => {
+  // Les liens d'itération ont déjà leur gestionnaire ; les recâbler ici les rendrait inertes.
+  code.querySelectorAll("td.ann a:not(.iters)").forEach(a => a.onclick = e => {
     e.preventDefault();
     const f = a.dataset.f;
     if (f && frameInfo(f)) select(frameInfo(f), null);
@@ -1242,28 +1623,71 @@ function valuesHelp(){
     'On peut aussi cliquer le marqueur violet posé sur sa ligne de déclaration.</p>' +
     '<p><a href="#" id="gotoValues">→ Ouvrir ' + esc(name) + ' et voir ses valeurs</a></p>';
 }
+/**
+ * Tout ce que les outils ont écrit, avant traitement.
+ *
+ * <p>Cette page est une <b>synthèse</b> : elle replie des frames, agrège des appels, masque
+ * des paquets. Chacun de ces choix peut se révéler faux sur un cas qu'on n'avait pas prévu,
+ * et la page elle-même peut cesser de s'ouvrir. Les sorties d'origine restent donc
+ * atteignables en un clic — c'est ce qui sépare un rapport vérifiable d'un rapport à
+ * croire sur parole.
+ */
+function rawBlock(){
+  const b = R.chemin || "", a = R.rapports || {};
+  const f = (ok, href, titre, quoi) => ok
+    ? '<a class="lk" href="'+b+href+'" target="_blank" rel="noopener">' +
+      '<span class="lkt">'+titre+'</span><span class="lkd">'+quoi+'</span></a>' : "";
+  const group = (mark, nom, items) => {
+    const body = items.join("");
+    return body ? '<h3 class="rawh">'+TOOLMARK[mark]+' '+nom+'</h3><div class="links2">'+body+'</div>' : "";
+  };
+  return '<h2>Les sorties brutes des outils</h2>' +
+    '<p class="rawnote">Ce qui suit n\'est pas produit par cette page : ce sont les fichiers ' +
+    'que chaque outil a écrits, tels quels. À consulter quand la synthèse surprend — ou ' +
+    'si elle ne s\'ouvre plus.</p>' +
+    group("jacoco", "JaCoCo", [
+      f(a.couverture, "jacoco/html/index.html", "Couverture détaillée",
+        "Le rapport complet, fichier par fichier, avec le code annoté ligne à ligne."),
+      f(a.ciblee, "jacoco-focused/html/index.html", "Couverture ciblée",
+        "Le même, restreint aux classes qui ont réellement tourné."),
+      f(a.jacocoXml, "jacoco/html/jacoco.xml", "Données XML",
+        "La source que cette page lit. Exploitable par un autre outil, ou à la main."),
+      f(a.jacocoCsv, "jacoco/html/jacoco.csv", "Données CSV",
+        "Le même contenu, une ligne par classe — pour un tableur.")]) +
+    group("async", "async-profiler", [
+      f(a.flamegraph, "async-profiler/flamegraph.html", "Profil brut",
+        "Le rendu de l\'outil lui-même, sans aucun de nos replis ni agrégations."),
+      f(a.flamegraphInverse, "async-profiler/flamegraph-inverse.html", "Profil inversé",
+        "Le même retourné : part d\'une méthode coûteuse et remonte vers ses appelants."),
+      f(a.collapsed, "async-profiler/profil.collapsed", "Piles repliées",
+        "La mesure elle-même : une pile d\'appels par ligne, suivie de son nombre de relevés.")]) +
+    group("arthas", "Arthas", [
+      f(a.valeurs, "arthas/watch-params.txt", "Valeurs capturées",
+        "Les paramètres et retours relevés, dans la forme où l\'outil les a imprimés."),
+      f(a.traceBrute, "arthas/trace-calltree.txt", "Trace d\'invocation",
+        "Les arbres d\'appel réels, un par invocation, avec les numéros de ligne.")]) +
+    (a.journal || a.contexte
+      ? '<h3 class="rawh">Cette exécution</h3><div class="links2">' +
+        f(a.journal, "execution.log", "Journal de l\'exécution",
+          "Ce que l\'application a écrit sur sa sortie, et ce que l\'outil a fait autour.") +
+        f(a.contexte, "run-context.json", "Contexte",
+          "Commande lancée, méthode racine, filtres, machine, version de Java, durée.") +
+        '</div>'
+      : "");
+}
+
 function linksBlock(){
   const repo = "https://github.com/Beennnn/runtime-xray";
   const l = (href, titre, quoi) =>
     '<a class="lk" href="'+href+'" target="_blank" rel="noopener">' +
     '<span class="lkt">'+titre+'</span><span class="lkd">'+quoi+'</span></a>';
-  const b = R.chemin || "", a = R.rapports || {};
-  const opt = (ok, href, titre, quoi) => ok ? l(b + href, titre, quoi) : "";
-  return '<h2>Pour aller plus loin</h2><div class="links2">' +
-    opt(a.couverture, "jacoco/html/index.html", "Couverture détaillée",
-      "Le rapport complet, fichier par fichier, avec le code annoté ligne à ligne.") +
-    opt(a.ciblee, "jacoco-focused/html/index.html", "Couverture ciblée",
-      "Le même, restreint aux classes qui ont réellement tourné.") +
-    opt(a.flamegraph, "async-profiler/flamegraph.html", "Flame graph",
-      "Où le temps est passé, vu comme un paysage : la largeur d\'une barre est sa durée.") +
-    opt(a.arbre, "async-profiler/tree.html", "Arbre d\'appel complet",
-      "La hiérarchie des appels, dépliable et cherchable, telle que produite par l\'outil de mesure.") +
-    l(repo, "Le dépôt du projet ↗",
+  return rawBlock() + '<h2>Pour aller plus loin</h2><div class="links2">' +
+    l(repo, "Le dépôt du projet \u2197",
       "Le code, les scripts de collecte, et comment lancer cet outil sur un autre projet.") +
-    l(repo + "/blob/main/docs/OUTIL.md", "Mode d\'emploi de l\'outil ↗",
-      "Le lancer sur votre propre application : paramètres, configuration, publication du résultat.") +
-    l(repo + "/blob/main/docs/RESULTS.md", "Pourquoi ces outils ↗",
-      "Ce qui a été comparé, ce qui a été écarté, et ce qui reste à trancher.") +
+    l(repo + "/blob/main/docs/outil/mode-emploi.md", "Mode d\'emploi de l\'outil \u2197",
+      "Le lancer sur votre propre application : param\u00e8tres, configuration, publication du r\u00e9sultat.") +
+    l(repo + "/blob/main/docs/resultat/resultats.md", "Pourquoi ces outils \u2197",
+      "Ce qui a \u00e9t\u00e9 compar\u00e9, ce qui a \u00e9t\u00e9 \u00e9cart\u00e9, et ce qui reste \u00e0 trancher.") +
     '</div>';
 }
 function reserveBlock(){
@@ -1463,12 +1887,36 @@ function helpContent(){
     '<h2>Comment ce rapport est produit</h2>' +
     '<p>Trois outils libres et gratuits ont observé la même exécution :</p>' +
     '<ul class="tools">' +
-      '<li><b>JaCoCo</b> — les lignes exécutées, et la liste exhaustive du code qui a tourné.</li>' +
-      '<li><b>async-profiler</b> — les mesures de temps et l\'arbre d\'appel.</li>' +
-      '<li><b>Arthas</b> — les valeurs des paramètres et les annotations d\'appel sur les lignes.</li>' +
+      '<li>' + TOOLMARK.jacoco + '<b>JaCoCo</b> — les lignes exécutées, et la liste exhaustive ' +
+        'du code qui a tourné.</li>' +
+      '<li>' + TOOLMARK.async + '<b>async-profiler</b> — les mesures de temps et l\'arbre ' +
+        'agrégé des appels.</li>' +
+      '<li>' + TOOLMARK.arthas + '<b>Arthas</b> — les valeurs des paramètres, et le chemin ' +
+        'réellement suivi par un appel précis.</li>' +
     '</ul>' +
     '<p>Aucun ne fait les trois : c\'est leur combinaison qui répond. Tous fonctionnent sans ' +
     'connexion Internet et sans licence.</p>' +
+    // Les deux arbres portaient presque le même nom et se confondaient. Ils répondent
+    // pourtant à deux questions différentes, et on se sert des DEUX.
+    '<h2>Deux arbres, deux questions — on utilise les deux</h2>' +
+    '<table class="hh"><tr><th></th><th>L\'arbre agrégé</th><th>Le chemin d\'un appel</th></tr>' +
+    '<tr><td>Où</td><td>Onglet <b>Exécutions</b>, à gauche</td>' +
+      '<td>Annotations « appelle … » dans le code, à droite</td></tr>' +
+    '<tr><td>Produit par</td><td>' + TOOLMARK.async + ' async-profiler</td>' +
+      '<td>' + TOOLMARK.arthas + ' Arthas</td></tr>' +
+    '<tr><td>Répond à</td><td>« Où passe le temps, tous appels confondus ? »</td>' +
+      '<td>« Qu\'a fait <i>cet</i> appel-là, dans l\'ordre ? »</td></tr>' +
+    '<tr><td>Comment</td><td>Par sondage : la JVM est photographiée mille fois par seconde, ' +
+      'et les photos sont additionnées. Rien n\'est ralenti, mais un appel bref peut ' +
+      'échapper à toutes les photos.</td>' +
+      '<td>Par instrumentation : chaque entrée et sortie est notée. Rien n\'échappe, mais ' +
+      'seules quelques invocations sont suivies, et elles sont ralenties.</td></tr>' +
+    '<tr><td>Ne peut pas</td><td>Distinguer deux appels de la même méthode : c\'est une ' +
+      'somme.</td><td>Dire ce que fait l\'application <i>en général</i> : c\'est un exemple.</td></tr>' +
+    '</table>' +
+    '<p>D\'où la répartition : on cherche <b>où regarder</b> dans l\'arbre agrégé, puis on ' +
+    'ouvre la méthode et on lit <b>ce qui s\'y est passé</b> dans le chemin d\'un appel. ' +
+    'Une ligne dans une boucle porte un <b>×N</b> cliquable : il déplie un nœud par passage.</p>' +
     linksBlock() +
     '</div>';
 }
@@ -1491,6 +1939,58 @@ document.getElementById("pkgbtn").onclick = e => {
     if (label) label.textContent = frameLabel(el.dataset.frame);
   });
 };
+/**
+ * Déplie l'arbre entier, avec un garde-fou : sur une vraie application, tout ouvrir peut
+ * représenter des dizaines de milliers de nœuds et figer la page. On s'arrête à un budget
+ * et on le dit, plutôt que de laisser croire que tout est affiché.
+ */
+const EXPAND_BUDGET = 1500;
+
+function expandAll(){
+  let count = 0, passes = 0;
+  while (passes++ < 40){
+    const closed = [...document.querySelectorAll("#list .node")].filter(n => {
+      const tw = n.querySelector(".tw");
+      if (!tw || tw.textContent !== "▸") return false;
+      // Ouvrir la racine d'une AUTRE exécution la sélectionne et reconstruit l'arbre :
+      // le dépliage en masse se battrait contre lui-même. On reste dans l'exécution
+      // regardée ; les autres s'ouvrent d'un clic délibéré.
+      return !n.classList.contains("runroot");
+    });
+    if (!closed.length) break;
+    for (const n of closed){
+      if (count >= EXPAND_BUDGET) break;
+      n.click();
+      count = document.querySelectorAll("#list .node").length;
+    }
+    if (count >= EXPAND_BUDGET) break;
+  }
+  return count;
+}
+
+function collapseAll(){
+  mode === "cls" ? renderClasses() : renderTree();
+  reselect();
+}
+
+document.getElementById("expandbtn").onclick = e => {
+  const b = e.currentTarget;
+  const expanded = b.dataset.state === "open";
+  if (expanded){
+    collapseAll();
+    b.dataset.state = "";
+    b.textContent = "tout déplier";
+    return;
+  }
+  const n = expandAll();
+  b.dataset.state = "open";
+  b.textContent = "tout replier";
+  const head = document.querySelector("#list .grouphead");
+  if (n >= EXPAND_BUDGET && head){
+    head.textContent = "affichage arrêté à " + n + " lignes — replier, puis ouvrir la branche voulue";
+  }
+};
+
 document.getElementById("scopebtn").onclick = e => {
   executedOnly = !executedOnly;
   const b = e.currentTarget;
@@ -1499,15 +1999,12 @@ document.getElementById("scopebtn").onclick = e => {
   b.title = executedOnly
       ? "Seul le code exécuté est listé — cliquer pour voir tout le code"
       : "Tout le code est listé, le non exécuté en rouge — cliquer pour n'afficher que l'exécuté";
-  if (mode === "cls"){ renderClasses(); reselect(); }
-};
-document.getElementById("sortbtn").onclick = e => {
-  sortBy = sortBy === "nom" ? "temps" : "nom";
-  e.currentTarget.textContent = sortBy === "nom" ? "A→Z" : "⏱";
-  e.currentTarget.title = sortBy === "nom"
-      ? "Trié par nom — cliquer pour trier par temps passé"
-      : "Trié par temps passé — cliquer pour trier par nom";
-  if (mode === "cls"){ renderClasses(); reselect(); }
+  if (mode === "cls"){
+    const open = captureExpanded();
+    renderClasses();
+    restoreExpanded(open);
+    reselect();
+  }
 };
 document.getElementById("unitbtn").onclick = e => {
   unit = unit === "pct" ? "ms" : "pct";
@@ -1515,8 +2012,11 @@ document.getElementById("unitbtn").onclick = e => {
   e.currentTarget.title = unit === "pct"
     ? "Part du temps total — cliquer pour voir un temps estimé"
     : "Temps estimé (un relevé ≈ 1 ms de temps processeur) — cliquer pour voir la part";
-  mode === "cls" ? renderClasses() : renderTree();
-  reselect();
+  // Reformater sur place : reconstruire refermerait l'arbre qu'on vient d'ouvrir.
+  document.querySelectorAll("#list .node[data-samples]").forEach(el => {
+    const pct = el.querySelector(".pct");
+    if (pct) pct.textContent = formatWeight(+el.dataset.samples, +el.dataset.total);
+  });
   if (selected) draw();
 };
 document.getElementById("helpbtn").onclick = openHelp;

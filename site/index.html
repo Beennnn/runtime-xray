@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Runtime X-Ray — analyse dynamique de code Java</title>
+<style>
+  :root{
+    --bg:#ffffff; --panel:#f6f8fa; --border:#d0d7de; --text:#1f2328; --muted:#59636e;
+    --accent:#0969da; --accent-soft:#ddf4ff; --green:#1a7f37; --amber:#9a6700; --violet:#8250df;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#0d1117; --panel:#151b23; --border:#30363d; --text:#e6edf3; --muted:#9198a1;
+      --accent:#4493f8; --accent-soft:#121d2f; --green:#3fb950; --amber:#d29922; --violet:#ab7df8;
+    }
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);
+       font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+  .wrap{max-width:960px;margin:0 auto;padding:44px 20px 80px}
+  header.top{display:flex;align-items:center;gap:14px;margin-bottom:6px}
+  h1{font-size:31px;margin:0;letter-spacing:-.5px}
+  .lead{color:var(--muted);font-size:17px;margin:0 0 6px}
+  .meta{color:var(--muted);font-size:13.5px;margin:0 0 30px}
+  code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.88em;
+       background:var(--panel);border:1px solid var(--border);border-radius:5px;padding:1px 5px}
+  h2{font-size:15px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);
+     margin:38px 0 6px;font-weight:600}
+  h2 + p.hint{color:var(--muted);font-size:14px;margin:0 0 14px}
+  .grid{display:grid;grid-template-columns:1fr;gap:13px}
+  @media(min-width:720px){.grid.two{grid-template-columns:1fr 1fr}}
+  a.card{display:block;text-decoration:none;color:inherit;background:var(--panel);
+         border:1px solid var(--border);border-radius:10px;padding:17px 19px;transition:.15s}
+  a.card:hover{border-color:var(--accent);background:var(--accent-soft)}
+  a.card .t{font-weight:650;font-size:17px;margin-bottom:5px;display:flex;
+            align-items:baseline;gap:9px;flex-wrap:wrap}
+  a.card .d{color:var(--muted);font-size:14px;line-height:1.5}
+
+  /* Une seule porte d'entrée, franche : la démo. Deux cartes concurrentes obligeaient à
+     choisir avant de savoir ce qu'on regarde. */
+  a.demo{display:flex;gap:18px;align-items:flex-start;text-decoration:none;color:inherit;
+         background:var(--accent-soft);border:1px solid var(--accent);border-radius:12px;
+         padding:20px 22px;transition:.15s}
+  a.demo:hover{background:var(--accent);border-color:var(--accent)}
+  a.demo:hover .demot,a.demo:hover .demod,a.demo:hover .play{color:#fff}
+  a.demo .play{font-size:20px;color:var(--accent);line-height:1.4;flex:0 0 auto}
+  a.demo .demotext{display:block}
+  a.demo .demot{display:block;font-size:20px;font-weight:700;color:var(--accent);margin-bottom:4px}
+  a.demo .demod{display:block;color:var(--muted);font-size:14.5px;line-height:1.55}
+
+  .badge{display:inline-flex;vertical-align:-5px}
+  .badge svg{display:block}
+  .tag{font-size:11px;font-weight:700;letter-spacing:.5px;padding:2px 8px;border-radius:20px}
+  .tag.reco{color:#fff;background:var(--accent)}
+  .tag.jacoco{color:var(--green);border:1px solid var(--green)}
+  .tag.async{color:var(--amber);border:1px solid var(--amber)}
+  .tag.arthas{color:var(--violet);border:1px solid var(--violet)}
+  .tag.jdk{color:var(--accent);border:1px solid var(--accent)}
+  .steps{display:grid;grid-template-columns:1fr;gap:10px;margin:0 0 8px;padding:0;list-style:none}
+  @media(min-width:720px){.steps{grid-template-columns:repeat(3,1fr)}}
+  .steps li{background:var(--panel);border:1px solid var(--border);border-radius:10px;
+            padding:14px 16px;font-size:14px;color:var(--muted)}
+  .steps b{color:var(--text);display:block;margin-bottom:3px;font-size:14.5px}
+  .steps .n{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;
+            border-radius:50%;background:var(--accent);color:#fff;font-size:11.5px;font-weight:700;
+            margin-right:7px;vertical-align:1px}
+  .note{background:var(--panel);border:1px solid var(--border);border-left:3px solid var(--accent);
+        border-radius:7px;padding:14px 18px;color:var(--muted);font-size:14px;margin:16px 0 0}
+  .note b{color:var(--text)}
+  footer{margin-top:52px;padding-top:20px;border-top:1px solid var(--border);
+         color:var(--muted);font-size:13.5px}
+  footer a{color:var(--accent)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <svg viewBox="0 0 32 32" width="38" height="38" aria-hidden="true">
+      <rect width="32" height="32" rx="8" fill="#0d1117"/>
+      <rect width="32" height="32" rx="8" fill="#38bdf8" fill-opacity=".10"/>
+      <rect x="8" y="9" width="13" height="2.6" rx="1.3" fill="#3fb950"/>
+      <rect x="8" y="14" width="9" height="2.6" rx="1.3" fill="#3fb950"/>
+      <rect x="8" y="19" width="6" height="2.6" rx="1.3" fill="#f85149"/>
+      <rect x="5" y="15.6" width="22" height="1.2" rx=".6" fill="#7dd3fc" fill-opacity=".85"/>
+      <g fill="none" stroke="#7dd3fc" stroke-width="1.8" stroke-linecap="round">
+        <path d="M6 10.5V7.5a1.5 1.5 0 0 1 1.5-1.5h3"/><path d="M21.5 6h3A1.5 1.5 0 0 1 26 7.5v3"/>
+        <path d="M26 21.5v3a1.5 1.5 0 0 1-1.5 1.5h-3"/><path d="M10.5 26h-3A1.5 1.5 0 0 1 6 24.5v-3"/>
+      </g>
+    </svg>
+    <h1>Runtime X-Ray</h1>
+  </header>
+  <p class="lead">Voir ce qu'une exécution Java a réellement fait.</p>
+
+  <ul class="steps">
+    <li><b><span class="n">1</span>Il s'intègre à une exécution</b>
+        On lui donne la commande, il la lance telle quelle&nbsp;:
+        <code>--java "java -jar mon-appli.jar"</code>. Rien à changer dans le code ni dans le
+        build&nbsp;— les observateurs entrent par <code>JAVA_TOOL_OPTIONS</code>, que toute JVM
+        lit à son démarrage. Sur une JVM qu'on ne lance pas soi-même (service, conteneur),
+        <code>--print-options</code> rend la ligne à coller.</li>
+    <li><b><span class="n">2</span>Trois outils observent</b>
+        JaCoCo relève les lignes exécutées, async-profiler mesure le temps, Arthas capte les
+        valeurs reçues. Chacun produit son rapport, dans son format.</li>
+    <li><b><span class="n">3</span>Leurs sorties sont réunies</b>
+        Les trois rapports sont agrégés dans <b>une seule vue</b> : une page à lire plutôt que
+        trois formats à rapprocher soi-même.</li>
+  </ul>
+
+  <p class="meta">Ce qui suit vient d'exécutions réelles&nbsp;: un calculateur de temps de trajet
+    (27 classes, 9 paquets, plus une dépendance analysée depuis son jar), sous Java 25.
+    Toutes les pages ci-dessous sont des sorties d'outils, pas des captures d'écran.</p>
+
+  <a class="demo" href="multi/index.html">
+    <span class="play" aria-hidden="true">▶</span>
+    <span class="demotext">
+      <span class="demot">Voir la démo</span>
+      <span class="demod">Trois exécutions réelles du même programme, dans un seul rapport.
+        À gauche, tout le code qui a tourné, du plus coûteux au moins coûteux. Un clic ouvre la
+        méthode : lignes exécutées en vert, jamais atteintes en rouge, les appels qui partent de
+        chaque ligne avec leur durée, et en bas les valeurs reçues — appel par appel. Un sélecteur
+        passe d'une exécution à l'autre.</span>
+    </span>
+  </a>
+
+  <h2>Les sorties brutes de chaque outil</h2>
+  <p class="hint">Ce que la vue agrège, dans le format natif de chaque outil.
+    <span class="badge" title="Produit par JaCoCo" role="img" aria-label="JaCoCo"><svg viewBox="0 0 32 32" width="22" height="22"><rect width="32" height="32" rx="8" fill="#1a7f37" fill-opacity=".14" stroke="#1a7f37" stroke-opacity=".5"/><rect x="8" y="9" width="16" height="3" rx="1.5" fill="#3fb950"/><rect x="8" y="14.5" width="11" height="3" rx="1.5" fill="#3fb950"/><rect x="8" y="20" width="7" height="3" rx="1.5" fill="#f85149"/></svg></span> JaCoCo &nbsp;·&nbsp; <span class="badge" title="Produit par async-profiler" role="img" aria-label="async-profiler"><svg viewBox="0 0 32 32" width="22" height="22"><rect width="32" height="32" rx="8" fill="#d29922" fill-opacity=".14" stroke="#d29922" stroke-opacity=".5"/><rect x="6" y="20" width="20" height="4" rx="1.5" fill="#e3a72c"/><rect x="9" y="14.5" width="14" height="4" rx="1.5" fill="#f0b849"/><rect x="12" y="9" width="8" height="4" rx="1.5" fill="#f8d477"/></svg></span> async-profiler &nbsp;·&nbsp;
+    <span class="badge" title="Produit par Arthas" role="img" aria-label="Arthas"><svg viewBox="0 0 32 32" width="22" height="22"><rect width="32" height="32" rx="8" fill="#8250df" fill-opacity=".14" stroke="#8250df" stroke-opacity=".5"/><circle cx="14.5" cy="14" r="6" fill="none" stroke="#ab7df8" stroke-width="2.4"/><path d="M19 18.5L24 23.5" stroke="#ab7df8" stroke-width="2.6" stroke-linecap="round"/><circle cx="14.5" cy="14" r="2" fill="#ab7df8"/></svg></span> Arthas</p>
+  <div class="grid two">
+    <a class="card" href="demo/jacoco-focused/html/index.html">
+      <div class="t">Couverture, vue nettoyée <span class="badge" title="Produit par JaCoCo" role="img" aria-label="JaCoCo"><svg viewBox="0 0 32 32" width="22" height="22"><rect width="32" height="32" rx="8" fill="#1a7f37" fill-opacity=".14" stroke="#1a7f37" stroke-opacity=".5"/><rect x="8" y="9" width="16" height="3" rx="1.5" fill="#3fb950"/><rect x="8" y="14.5" width="11" height="3" rx="1.5" fill="#3fb950"/><rect x="8" y="20" width="7" height="3" rx="1.5" fill="#f85149"/></svg></span></div>
+      <div class="d">Le même rapport que ci-contre, restreint aux classes réellement exécutées :
+        le code jamais atteint est retiré, on ne navigue que dans ce qui a servi.</div>
+    </a>
+    <a class="card" href="demo/jacoco/html/index.html">
+      <div class="t">Couverture complète <span class="badge" title="Produit par JaCoCo" role="img" aria-label="JaCoCo"><svg viewBox="0 0 32 32" width="22" height="22"><rect width="32" height="32" rx="8" fill="#1a7f37" fill-opacity=".14" stroke="#1a7f37" stroke-opacity=".5"/><rect x="8" y="9" width="16" height="3" rx="1.5" fill="#3fb950"/><rect x="8" y="14.5" width="11" height="3" rx="1.5" fill="#3fb950"/><rect x="8" y="20" width="7" height="3" rx="1.5" fill="#f85149"/></svg></span></div>
+      <div class="d">Tout le code, exécuté ou non. Source annotée ligne à ligne : vert exécuté,
+        rouge jamais atteint, jaune branche partiellement couverte.</div>
+    </a>
+    <a class="card" href="demo/async-profiler/tree.html">
+      <div class="t">Arbre d'appel <span class="badge" title="Produit par async-profiler" role="img" aria-label="async-profiler"><svg viewBox="0 0 32 32" width="22" height="22"><rect width="32" height="32" rx="8" fill="#d29922" fill-opacity=".14" stroke="#d29922" stroke-opacity=".5"/><rect x="6" y="20" width="20" height="4" rx="1.5" fill="#e3a72c"/><rect x="9" y="14.5" width="14" height="4" rx="1.5" fill="#f0b849"/><rect x="12" y="9" width="8" height="4" rx="1.5" fill="#f8d477"/></svg></span></div>
+      <div class="d">Qui appelle qui, dépliable et cherchable, avec la part de temps de chaque
+        branche. Le bouton « Expand All » ouvre tout d'un coup.</div>
+    </a>
+    <a class="card" href="demo/async-profiler/flamegraph.html">
+      <div class="t">Flame graph <span class="badge" title="Produit par async-profiler" role="img" aria-label="async-profiler"><svg viewBox="0 0 32 32" width="22" height="22"><rect width="32" height="32" rx="8" fill="#d29922" fill-opacity=".14" stroke="#d29922" stroke-opacity=".5"/><rect x="6" y="20" width="20" height="4" rx="1.5" fill="#e3a72c"/><rect x="9" y="14.5" width="14" height="4" rx="1.5" fill="#f0b849"/><rect x="12" y="9" width="8" height="4" rx="1.5" fill="#f8d477"/></svg></span></div>
+      <div class="d">La largeur d'une barre est le temps passé dessous. Cliquer zoome sur une
+        branche, taper cherche une méthode.</div>
+    </a>
+    <a class="card" href="demo/arthas/watch-params.txt">
+      <div class="t">Valeurs des paramètres <span class="badge" title="Produit par Arthas" role="img" aria-label="Arthas"><svg viewBox="0 0 32 32" width="22" height="22"><rect width="32" height="32" rx="8" fill="#8250df" fill-opacity=".14" stroke="#8250df" stroke-opacity=".5"/><circle cx="14.5" cy="14" r="6" fill="none" stroke="#ab7df8" stroke-width="2.4"/><path d="M19 18.5L24 23.5" stroke="#ab7df8" stroke-width="2.6" stroke-linecap="round"/><circle cx="14.5" cy="14" r="2" fill="#ab7df8"/></svg></span></div>
+      <div class="d">Les valeurs réellement reçues, appel par appel : <code>@Mode[CAR]</code>
+        <code>@Weather[SUNNY]</code>, et ce que la méthode a renvoyé. C'est précisément ce que ni
+        la couverture ni le profil ne savent donner.
+        <br><span style="opacity:.8">La dernière ligne du fichier — <i>« Command execution times
+        exceed limit »</i> — n'est pas une erreur : elle indique que le nombre d'appels demandé
+        a été atteint et que la collecte s'arrête.</span></div>
+    </a>
+    <a class="card" href="demo/arthas/trace-calltree.txt">
+      <div class="t">L'arbre d'UN appel <span class="badge" title="Produit par Arthas" role="img" aria-label="Arthas"><svg viewBox="0 0 32 32" width="22" height="22"><rect width="32" height="32" rx="8" fill="#8250df" fill-opacity=".14" stroke="#8250df" stroke-opacity=".5"/><circle cx="14.5" cy="14" r="6" fill="none" stroke="#ab7df8" stroke-width="2.4"/><path d="M19 18.5L24 23.5" stroke="#ab7df8" stroke-width="2.6" stroke-linecap="round"/><circle cx="14.5" cy="14" r="2" fill="#ab7df8"/></svg></span></div>
+      <div class="d">Le chemin réellement emprunté par une seule invocation, avec les numéros de
+        ligne — de quoi retourner droit dans le source. Là où le profil, lui, agrège.
+        <br><span style="opacity:.8">Même remarque sur la dernière ligne : c'est la fin normale
+        de la collecte, pas un échec.</span></div>
+    </a>
+  </div>
+
+  <div class="note">
+    <b>Aucun de ces trois outils ne répond seul.</b> La couverture ignore le temps et les valeurs ;
+    le profil échantillonne, donc il ne prouve jamais qu'un code n'a <i>pas</i> tourné ; l'inspection
+    des valeurs ne regarde qu'une méthode désignée. C'est leur combinaison qui répond — et c'est
+    ce que la vue agrégée assemble.
+  </div>
+
+  <h2>Le lancer sur votre projet</h2>
+  <div class="grid">
+    <a class="card" href="https://github.com/Beennnn/runtime-xray/blob/main/docs/outil/mode-emploi.md">
+      <div class="t">Mode d'emploi ↗</div>
+      <div class="d">Un seul fichier, lancé par le <code>java</code> déjà présent : aucune
+        contrainte sur la façon de démarrer l'application, aucune licence, et aucune connexion
+        pendant l'exécution. Paramètres, fichier de configuration, publication du résultat.</div>
+    </a>
+    <a class="card" href="https://github.com/Beennnn/runtime-xray">
+      <div class="t">Le dépôt ↗</div>
+      <div class="d">Le code de l'outil, l'application de démonstration, et l'évaluation des
+        dix-huit outils comparés avant d'aboutir à cette combinaison.</div>
+    </a>
+  </div>
+
+  <footer>
+    Produit par JaCoCo, async-profiler et Arthas — libres, gratuits, et fonctionnant sans
+    connexion.<br>
+    En marge : <a href="https://github.com/Beennnn/runtime-xray/blob/main/docs/resultat/resultats.md#gains-dun-portage-vers-java-25">Java 21 contre Java 25</a>,
+    mesuré sur le même programme — spectaculaire, mais sans effet sur la solution retenue.<br>
+    <a href="https://github.com/Beennnn/runtime-xray">github.com/Beennnn/runtime-xray</a>
+  </footer>
+</div>
+</body>
+</html>

@@ -177,6 +177,41 @@ class InspectionTest {
     }
 
     @Test
+    @DisplayName("Chaque passage d'une boucle est conservé, dans son ordre")
+    void keepsEachIterationInOrder(@TempDir Path dir) throws IOException {
+        // L'agrégat dirait « 3 fois, de 0,010 à 0,300 ms » et cacherait que c'est la
+        // PREMIÈRE itération qui a tout coûté — souvent l'information qu'on cherchait.
+        String trace = """
+                    +---[1,0% 0.300ms ] a.b.C:calculer() #12
+                    +---[1,0% 0.012ms ] a.b.C:calculer() #12
+                    +---[1,0% 0.010ms ] a.b.C:calculer() #12
+                """;
+        Inspection in = Inspection.read(dir.resolve("absent.txt"), write(dir, "t.txt", trace), 8);
+        @SuppressWarnings("unchecked")
+        Map<String, Object> call = (Map<String, Object>) ((List<Object>) in.trace.get("12")).get(0);
+        @SuppressWarnings("unchecked")
+        List<Object> passages = (List<Object>) call.get("passages");
+        assertEquals(List.of(0.300, 0.012, 0.010), passages,
+                "l'ordre des itérations doit être celui de l'exécution");
+        assertEquals(3, call.get("n"), "l'agrégat reste disponible à côté");
+    }
+
+    @Test
+    @DisplayName("Une boucle très longue est bornée plutôt que de faire enfler la page")
+    void boundsVeryLongLoops(@TempDir Path dir) throws IOException {
+        StringBuilder trace = new StringBuilder();
+        for (int i = 0; i < 500; i++) {
+            trace.append("    +---[1,0% 0.010ms ] a.b.C:calculer() #12\n");
+        }
+        Inspection in = Inspection.read(dir.resolve("a.txt"), write(dir, "t.txt", trace.toString()), 8);
+        @SuppressWarnings("unchecked")
+        Map<String, Object> call = (Map<String, Object>) ((List<Object>) in.trace.get("12")).get(0);
+        assertEquals(500, call.get("n"), "le compte total reste exact");
+        assertTrue(((List<?>) call.get("passages")).size() <= 60,
+                "mais la liste détaillée est bornée");
+    }
+
+    @Test
     @DisplayName("Deux appelés différents sur la même ligne restent distincts")
     void keepsDistinctCalleesOnOneLine(@TempDir Path dir) throws IOException {
         String trace = """

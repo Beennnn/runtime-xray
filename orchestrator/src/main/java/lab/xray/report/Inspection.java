@@ -167,7 +167,17 @@ public final class Inspection {
      * c'est justement ce qui permet d'annoter davantage de lignes. En revanche, la même
      * ligne revient alors plusieurs fois — on <b>agrège</b> par appelé plutôt que d'empiler
      * des doublons, en conservant le nombre d'observations et l'étendue des durées.
+     *
+     * <p>L'agrégat ne suffit pourtant pas quand la ligne est <b>dans une boucle</b> : dire
+     * « appelé 8 fois entre 0,01 et 0,03 ms » cache que la première itération a coûté dix
+     * fois les suivantes, ce qui est souvent toute l'information (chargement paresseux,
+     * cache froid, compilation à la volée). Chaque passage est donc conservé <b>dans son
+     * ordre</b>, en plus de l'agrégat, pour que la vue puisse en faire une entrée par
+     * itération.
      */
+    /** Au-delà, la liste des itérations cesse d'informer et commence à peser. */
+    private static final int MAX_PASSAGES = 60;
+
     private void readTrace(Path file) throws IOException {
         Map<String, Map<String, Map<String, Object>>> byLine = new LinkedHashMap<>();
         for (String line : clean(file)) {
@@ -188,6 +198,7 @@ public final class Inspection {
                 fresh.put("callee", cls.substring(cls.lastIndexOf('.') + 1) + "." + method + "()");
                 fresh.put("frame", frame);
                 fresh.put("n", 0);
+                fresh.put("passages", new ArrayList<Object>());
                 return fresh;
             });
             call.put("n", ((Number) call.get("n")).intValue() + 1);
@@ -199,6 +210,14 @@ public final class Inspection {
                 double max = call.containsKey("maxMs") ? (Double) call.get("maxMs") : ms;
                 call.put("minMs", Math.min(min, ms));
                 call.put("maxMs", Math.max(max, ms));
+                @SuppressWarnings("unchecked")
+                List<Object> passages = (List<Object>) call.get("passages");
+                // Borné : une boucle de plusieurs milliers de tours produirait une page
+                // illisible et un fichier de données démesuré. Les premiers passages sont
+                // ceux qui portent l'information — c'est là que se voit le coût de départ.
+                if (passages.size() < MAX_PASSAGES) {
+                    passages.add(ms);
+                }
             }
         }
         for (Map.Entry<String, Map<String, Map<String, Object>>> e : byLine.entrySet()) {

@@ -119,6 +119,62 @@ class CallTreeTest {
     }
 
     @Test
+    @DisplayName("Un paquet masqué est replié comme le JDK : son temps revient à l'appelant")
+    void foldsHiddenPackages(@TempDir Path dir) throws IOException {
+        CallTree t = CallTree.parse(write(dir, """
+                app/Main.main;app/Service.traiter;org/slf4j/Logger.debug 30
+                app/Main.main;app/Service.traiter 10
+                """), PackageFilter.of("org.slf4j"));
+        assertEquals(40L, t.root.get("total"), "masquer ne doit pas perdre de temps mesuré");
+        Map<String, Object> service = child(child(t.root, "app/Main.main"), "app/Service.traiter");
+        assertEquals(40L, service.get("total"), "le temps du paquet masqué revient à l'appelant");
+        assertTrue(((List<?>) service.get("children")).isEmpty());
+    }
+
+    @Test
+    @DisplayName("Les symboles natifs de la VM sont repliés : personne ne peut les ouvrir")
+    void foldsNativeSymbols(@TempDir Path dir) throws IOException {
+        CallTree t = CallTree.parse(write(dir, """
+                app/Main.main;Java_java_lang_ClassLoader_defineClass1 3
+                app/Main.main;MHN_resolve_Mem 2
+                app/Main.main;eventHandlerClassFileLoadHook 4
+                app/Main.main;Runtime1::counter_overflow 5
+                app/Main.main;[unknown_Java] 6
+                """));
+        Map<String, Object> main = child(t.root, "app/Main.main");
+        assertEquals(20L, main.get("total"), "aucun temps perdu");
+        assertTrue(((List<?>) main.get("children")).isEmpty(),
+                "aucun symbole natif ne doit apparaître : " + main.get("children"));
+    }
+
+    @Test
+    @DisplayName("L'agent de couverture est un instrument, pas du code applicatif")
+    void foldsCoverageAgent(@TempDir Path dir) throws IOException {
+        CallTree t = CallTree.parse(write(dir,
+                "app/Main.main;org/jacoco/agent/rt/internal_0e205/Offline.getProbes 8\n"));
+        Map<String, Object> main = child(t.root, "app/Main.main");
+        assertTrue(((List<?>) main.get("children")).isEmpty());
+        assertEquals(8L, main.get("total"));
+    }
+
+    @Test
+    @DisplayName("Une classe du paquet par défaut reste visible malgré tout")
+    void keepsDefaultPackageClasses(@TempDir Path dir) throws IOException {
+        // Le repli des symboles natifs s'appuie sur l'absence de '/' ET de '.'. Une classe
+        // sans paquet garde son point — elle ne doit pas être emportée.
+        CallTree t = CallTree.parse(write(dir, "Main.main;Calcul.faire 4\n"));
+        assertNotNull(child(child(t.root, "Main.main"), "Calcul.faire"));
+    }
+
+    @Test
+    @DisplayName("Sans consigne de masquage, la bibliothèque reste visible")
+    void keepsLibraryFramesWhenNotHidden(@TempDir Path dir) throws IOException {
+        CallTree t = CallTree.parse(write(dir, "app/Main.main;org/slf4j/Logger.debug 5\n"));
+        assertNotNull(child(child(t.root, "app/Main.main"), "org/slf4j/Logger.debug"),
+                "rien hors du JDK ne doit disparaître sans qu'on l'ait demandé");
+    }
+
+    @Test
     @DisplayName("Un fichier absent donne un arbre vide, pas une erreur")
     void missingFileGivesEmptyTree(@TempDir Path dir) throws IOException {
         CallTree t = CallTree.parse(dir.resolve("inexistant.collapsed"));

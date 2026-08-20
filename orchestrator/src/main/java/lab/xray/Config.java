@@ -1,10 +1,14 @@
 package lab.xray;
 
+import lab.xray.report.PackageFilter;
+
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -22,7 +26,24 @@ public final class Config {
 
     public String javaCommand = "";
     public String rootMethod = "";
+    /**
+     * Où trouver le bytecode analysé : répertoires de classes <b>et/ou</b> archives jar,
+     * séparés par {@code :} ou {@code ,}.
+     *
+     * <p>Les jar comptent autant que les répertoires : le code que l'on cherche à
+     * comprendre est souvent une dépendance interne livrée sous cette forme — un module
+     * commun, une bibliothèque maison — et c'est justement celui dont personne n'a le
+     * modèle mental. L'outil de couverture sait lire les deux ; il n'y avait aucune raison
+     * de n'en accepter qu'un.
+     */
     public String classesDir = "";
+    /**
+     * Paquets à taire, au même titre que le JDK — {@code org.slf4j, io.netty}…
+     *
+     * <p>Voir {@link PackageFilter} pour ce que « taire » veut dire exactement (le temps
+     * est reporté sur l'appelant, il n'est pas perdu).
+     */
+    public String hiddenPackages = "";
     public String sourceDirs = "";
     public String classFilter = "";
     public String outDir = "runtime-xray-out";
@@ -72,6 +93,7 @@ public final class Config {
             case "JAVA_CMD" -> javaCommand = value;
             case "ROOT_METHOD" -> rootMethod = value;
             case "CLASSES_DIR" -> classesDir = value;
+            case "HIDDEN_PACKAGES" -> hiddenPackages = value;
             case "SOURCE_DIRS" -> sourceDirs = value;
             case "CLASS_FILTER" -> classFilter = value;
             case "OUT_DIR" -> outDir = value;
@@ -102,6 +124,19 @@ public final class Config {
         return dot < 0 ? "" : cls.substring(0, dot).replace('.', '/') + "/*";
     }
 
+    /** Les entrées de {@link #classesDir}, répertoires ou jar, dans l'ordre donné. */
+    public List<Path> classesPaths() {
+        List<Path> paths = new ArrayList<>();
+        for (String part : classesDir.split("[:,]")) {
+            if (!part.isBlank()) paths.add(Path.of(part.trim()));
+        }
+        return paths;
+    }
+
+    public PackageFilter hidden() {
+        return PackageFilter.of(hiddenPackages);
+    }
+
     public String rootClass() {
         return rootMethod.isBlank() ? "" : rootMethod.split("::")[0];
     }
@@ -112,6 +147,7 @@ public final class Config {
         m.put("methodeRacine", rootMethod.isBlank() ? null : rootMethod);
         m.put("filtreClasses", effectiveFilter().isBlank() ? null : effectiveFilter());
         m.put("repertoireClasses", classesDir);
+        m.put("paquetsMasques", hiddenPackages.isBlank() ? null : hiddenPackages);
         m.put("repertoiresSources", sourceDirs.isBlank() ? null : sourceDirs);
         m.put("valeursInspectees", captureValues && !rootMethod.isBlank());
         return m;
@@ -144,8 +180,27 @@ public final class Config {
 
             # ── Les classes compilées ───────────────────────────────────────── OBLIGATOIRE
             # Sans elles, pas de couverture : c'est là que se trouve le bytecode analysé.
+            # Répertoires ET archives jar sont acceptés, séparés par ':'. Ajouter le jar
+            # d'une dépendance interne la fait entrer dans l'analyse au même titre que le
+            # code du projet — c'est souvent elle que l'on cherche à comprendre.
             CLASSES_DIR="target/classes"
-            #CLASSES_DIR="build/classes/java/main"          # Gradle
+            #CLASSES_DIR="build/classes/java/main"                    # Gradle
+            #CLASSES_DIR="target/classes:libs/module-commun-3.2.jar"  # + une dépendance
+            #CLASSES_DIR="target/classes:~/.m2/repository/com/exemple/noyau/1.4/noyau-1.4.jar"
+
+            # ── Les paquets à ne pas voir ───────────────────────────────────── facultatif
+            # Le JDK est toujours masqué : personne n'ouvre java.util.ArrayList pour
+            # comprendre son application. La même chose vaut pour des bibliothèques qui n'en
+            # font pas partie mais que l'on considère comme de l'infrastructure — un
+            # journal, un client HTTP, un cadriciel d'injection.
+            #
+            # Où passe cette frontière dépend de ce que l'équipe possède et de ce qu'elle
+            # subit : c'est un choix, pas une règle, d'où ce réglage.
+            #
+            # Le temps des paquets masqués n'est pas perdu : il est attribué à la méthode
+            # applicative qui les a appelés, exactement comme pour le JDK.
+            #HIDDEN_PACKAGES="org.slf4j, ch.qos.logback"
+            #HIDDEN_PACKAGES="org.slf4j, io.netty, org.springframework, com.fasterxml"
 
             # ── La méthode racine ───────────────────────────────────────────── recommandé
             # La fonction dont on veut voir les valeurs des paramètres et l'arbre d'un appel.

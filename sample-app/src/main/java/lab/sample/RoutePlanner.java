@@ -11,6 +11,8 @@ import lab.sample.traffic.Traffic;
 import lab.sample.transfer.Connections;
 import lab.sample.weather.LuggagePenalty;
 import lab.sample.weather.WeatherPenalty;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * <b>La fonction sous analyse.</b> « Combien de temps pour aller de A à B ? »
@@ -30,8 +32,15 @@ import lab.sample.weather.WeatherPenalty;
  * </ul>
  * Deux trajets différents produisent donc deux arbres d'appel différents, à partir du
  * même appel de la même méthode. C'est précisément ce qu'on demande aux outils de montrer.
+ *
+ * <p>Le journal est là pour une raison qui n'est pas fonctionnelle : {@code org.slf4j}
+ * n'est pas dans le JDK, donc rien ne le replie automatiquement, et il apparaît dans
+ * l'arbre d'appel au milieu du calcul d'itinéraire. C'est le cas type de la bibliothèque
+ * que l'on veut masquer par configuration — voir {@code HIDDEN_PACKAGES}.
  */
 public final class RoutePlanner {
+
+    private static final Logger log = LoggerFactory.getLogger(RoutePlanner.class);
 
     private RoutePlanner() {}
 
@@ -40,6 +49,9 @@ public final class RoutePlanner {
      * @return la durée totale estimée, en minutes
      */
     public static double travelTimeMinutes(Trip trip) {
+        // Appel volontairement laissé dans la boucle chaude : c'est ce qui rend slf4j
+        // visible dans le profil, donc masquable, donc démontrable.
+        log.debug("évaluation du trajet {}", trip.id());
         SpeedModel speed = Speeds.forMode(trip.mode());
 
         double minutes = 0;

@@ -28,8 +28,8 @@ public final class CallTree {
      * restent comptés, mais attribués à la méthode applicative qui les a déclenchés, ce qui
      * restitue la forme de l'arbre.
      */
-    private static final Pattern INSTRUMENTATION = Pattern.compile("arthas|SpyAPI|taobao",
-            Pattern.CASE_INSENSITIVE);
+    private static final Pattern INSTRUMENTATION = Pattern.compile(
+            "arthas|SpyAPI|taobao|jacoco", Pattern.CASE_INSENSITIVE);
 
     /**
      * Frames du JDK et de la machine virtuelle. On les replie aussi : personne n'ouvre
@@ -38,16 +38,29 @@ public final class CallTree {
      * les a appelées, ce qui est justement l'information utile.
      */
     private static final Pattern PLATFORM = Pattern.compile(
-            "^(java|javax|jdk|sun|com/sun|kotlin|scala)/"       // bibliothèque standard
-            + "|^[A-Za-z_]+::"                                  // frames natives de la VM
-            + "|^(stub:|itable|vtable|call_stub)"               // trampolines
-            + "|^(C1|C2|Interpreter|Compile|CompileBroker)");
+            "^(java|javax|jdk|sun|com/sun|kotlin|scala)/"        // bibliothèque standard
+            + "|^[A-Za-z_][A-Za-z0-9_]*::"                       // frames natives de la VM
+            + "|^(stub:|itable|vtable|call_stub)"                // trampolines
+            + "|^(C1|C2|Interpreter|Compile|CompileBroker)"
+            // Une méthode Java s'écrit toujours « paquet/Classe.methode » ou au minimum
+            // « Classe.methode » : elle contient donc un '/' ou un '.'. Tout ce qui n'en a
+            // aucun est un symbole natif de la machine virtuelle — Java_java_lang_…,
+            // MHN_resolve_Mem, eventHandlerClassFileLoadHook, [unknown_Java] — c'est-à-dire
+            // du code qu'aucun lecteur ne peut ouvrir ni corriger.
+            + "|^[^/.]*$");
     private static final int MAX_DEPTH = 40;
 
     public Map<String, Object> root;
     public String note;
 
     public static CallTree parse(Path collapsed) throws IOException {
+        return parse(collapsed, PackageFilter.NONE);
+    }
+
+    /**
+     * @param hidden paquets à replier au même titre que le JDK — voir {@link PackageFilter}
+     */
+    public static CallTree parse(Path collapsed, PackageFilter hidden) throws IOException {
         CallTree t = new CallTree();
         Node root = new Node("tout");
         long folded = 0;
@@ -68,7 +81,7 @@ public final class CallTree {
                 for (String f : frames) {
                     if (INSTRUMENTATION.matcher(f).find()) {
                         foldedInstrumentation = true;
-                    } else if (!PLATFORM.matcher(f).find()) {
+                    } else if (!PLATFORM.matcher(f).find() && !hidden.hidden(f)) {
                         kept.add(f);
                     }
                 }

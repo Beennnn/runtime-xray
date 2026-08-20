@@ -29,6 +29,17 @@ public final class Dashboard {
 
     public static Path build(Path commonDir, List<Path> sourceRoots, int valuesPerMethod)
             throws Exception {
+        return build(commonDir, sourceRoots, valuesPerMethod, PackageFilter.NONE);
+    }
+
+    /**
+     * @param hidden paquets masqués par la configuration courante. Une exécution qui a
+     *               enregistré sa propre liste garde la sienne : c'est celle sous laquelle
+     *               elle a été analysée, et la vue doit dire ce qui a été fait, pas ce
+     *               qu'on ferait aujourd'hui.
+     */
+    public static Path build(Path commonDir, List<Path> sourceRoots, int valuesPerMethod,
+                             PackageFilter hidden) throws Exception {
         Map<String, Object> overrides = readOverrides(commonDir);
         List<Path> bases = findRuns(commonDir, 0, 3);
         if (bases.isEmpty()) {
@@ -40,7 +51,7 @@ public final class Dashboard {
 
         List<Object> runs = new ArrayList<>();
         for (Path base : bases) {
-            runs.add(readRun(base, commonDir, overrides, valuesPerMethod));
+            runs.add(readRun(base, commonDir, overrides, valuesPerMethod, hidden));
         }
 
         Map<String, Object> data = new LinkedHashMap<>();
@@ -55,16 +66,22 @@ public final class Dashboard {
     }
 
     private static Map<String, Object> readRun(Path base, Path commonDir,
-                                               Map<String, Object> overrides, int valuesPerMethod)
+                                               Map<String, Object> overrides, int valuesPerMethod,
+                                               PackageFilter fallback)
             throws Exception {
-        Coverage coverage = Coverage.parse(base.resolve("jacoco/html/jacoco.xml"));
-        CallTree tree = CallTree.parse(base.resolve("async-profiler/profil.collapsed"));
+        Map<String, Object> context = readContext(base);
+        Object recorded = context.get("paquetsMasques");
+        PackageFilter hidden = recorded == null
+                ? fallback
+                : PackageFilter.of(String.valueOf(recorded));
+
+        Coverage coverage = Coverage.parse(base.resolve("jacoco/html/jacoco.xml"), hidden);
+        CallTree tree = CallTree.parse(base.resolve("async-profiler/profil.collapsed"), hidden);
         Inspection inspection = Inspection.read(
                 base.resolve("arthas/watch-params.txt"),
                 base.resolve("arthas/trace-calltree.txt"),
                 valuesPerMethod);
 
-        Map<String, Object> context = readContext(base);
         String uuid = String.valueOf(context.getOrDefault("uuid", ""));
         String origin = String.valueOf(context.getOrDefault("nomOrigine",
                 base.getFileName().toString()));
@@ -77,6 +94,9 @@ public final class Dashboard {
         run.put("nom", renamed != null ? renamed : origin);
         run.put("chemin", relative(commonDir, base));
         run.put("rapports", reportsPresent(base));
+        // La vue doit pouvoir dire ce qui a été écarté AVANT la mesure : ce code-là n'est
+        // pas « absent », il a été tu, et taire la différence serait mentir par omission.
+        run.put("paquetsMasques", recorded);
         run.put("coverage", coverage.lines);
         run.put("methods", coverage.methods);
         run.put("packages", coverage.packages);
@@ -108,12 +128,28 @@ public final class Dashboard {
         return "";
     }
 
+    /**
+     * Ce que chaque outil a réellement écrit sur le disque, y compris les fichiers bruts.
+     *
+     * <p>Tout est recensé, pas seulement les pages présentables : cette page est une
+     * synthèse, et une synthèse peut se tromper ou ne plus s'ouvrir. Les sorties d'origine
+     * doivent rester atteignables en un clic — c'est ce qui distingue un rapport
+     * vérifiable d'un rapport à croire sur parole.
+     */
     private static Map<String, Object> reportsPresent(Path base) {
         Map<String, Object> m = new LinkedHashMap<>();
         m.put("couverture", Files.isRegularFile(base.resolve("jacoco/html/index.html")));
         m.put("ciblee", Files.isRegularFile(base.resolve("jacoco-focused/html/index.html")));
+        m.put("jacocoXml", Files.isRegularFile(base.resolve("jacoco/html/jacoco.xml")));
+        m.put("jacocoCsv", Files.isRegularFile(base.resolve("jacoco/html/jacoco.csv")));
         m.put("flamegraph", Files.isRegularFile(base.resolve("async-profiler/flamegraph.html")));
-        m.put("arbre", Files.isRegularFile(base.resolve("async-profiler/tree.html")));
+        m.put("flamegraphInverse",
+                Files.isRegularFile(base.resolve("async-profiler/flamegraph-inverse.html")));
+        m.put("collapsed", Files.isRegularFile(base.resolve("async-profiler/profil.collapsed")));
+        m.put("valeurs", Files.isRegularFile(base.resolve("arthas/watch-params.txt")));
+        m.put("traceBrute", Files.isRegularFile(base.resolve("arthas/trace-calltree.txt")));
+        m.put("journal", Files.isRegularFile(base.resolve("execution.log")));
+        m.put("contexte", Files.isRegularFile(base.resolve("run-context.json")));
         return m;
     }
 

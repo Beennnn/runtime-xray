@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="fr"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RoutePlanner.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Runtime X-Ray</a> &gt; <a href="index.source.html" class="el_package">lab.sample</a> &gt; <span class="el_source">RoutePlanner.java</span></div><h1>RoutePlanner.java</h1><pre class="source lang-java linenums">package lab.sample;
+
+import lab.sample.comfort.Breaks;
+import lab.sample.model.Leg;
+import lab.sample.model.Mode;
+import lab.sample.model.Trip;
+import lab.sample.speed.SpeedModel;
+import lab.sample.speed.Speeds;
+import lab.sample.terrain.Terrain;
+import lab.sample.traffic.Traffic;
+import lab.sample.transfer.Connections;
+import lab.sample.weather.LuggagePenalty;
+import lab.sample.weather.WeatherPenalty;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+/**
+ * &lt;b&gt;La fonction sous analyse.&lt;/b&gt; « Combien de temps pour aller de A à B ? »
+ *
+ * &lt;p&gt;C'est le point d'entrée que chaque outil doit savoir cibler : à l'exécution de
+ * cette fonction, donne-moi les lignes exécutées, l'arbre d'appel et les valeurs des
+ * paramètres.
+ *
+ * &lt;p&gt;Elle appelle quatre familles de calcul &lt;b&gt;selon le contexte&lt;/b&gt;, jamais toutes en
+ * même temps :
+ * &lt;ul&gt;
+ *   &lt;li&gt;la vitesse du mode choisi — toujours, mais via une implémentation différente ;&lt;/li&gt;
+ *   &lt;li&gt;les bouchons — voiture à l'heure de pointe uniquement ;&lt;/li&gt;
+ *   &lt;li&gt;la météo et les bagages — vélo et marche uniquement ;&lt;/li&gt;
+ *   &lt;li&gt;les correspondances — train uniquement ;&lt;/li&gt;
+ *   &lt;li&gt;les pauses — au-delà d'une durée &lt;em&gt;calculée&lt;/em&gt;, quel que soit le mode.&lt;/li&gt;
+ * &lt;/ul&gt;
+ * Deux trajets différents produisent donc deux arbres d'appel différents, à partir du
+ * même appel de la même méthode. C'est précisément ce qu'on demande aux outils de montrer.
+ *
+ * &lt;p&gt;Le journal est là pour une raison qui n'est pas fonctionnelle : {@code org.slf4j}
+ * n'est pas dans le JDK, donc rien ne le replie automatiquement, et il apparaît dans
+ * l'arbre d'appel au milieu du calcul d'itinéraire. C'est le cas type de la bibliothèque
+ * que l'on veut masquer par configuration — voir {@code HIDDEN_PACKAGES}.
+ */
+public final class RoutePlanner {
+
+<span class="fc" id="L43">    private static final Logger log = LoggerFactory.getLogger(RoutePlanner.class);</span>
+
+    private RoutePlanner() {}
+
+    /**
+     * @param trip le trajet à évaluer
+     * @return la durée totale estimée, en minutes
+     */
+    public static double travelTimeMinutes(Trip trip) {
+        // Appel volontairement laissé dans la boucle chaude : c'est ce qui rend slf4j
+        // visible dans le profil, donc masquable, donc démontrable.
+<span class="fc" id="L54">        log.debug(&quot;évaluation du trajet {}&quot;, trip.id());</span>
+<span class="fc" id="L55">        SpeedModel speed = Speeds.forMode(trip.mode());</span>
+
+<span class="fc" id="L57">        double minutes = 0;</span>
+        // Boucle indexée volontairement : la boucle for-each sur une List immuable
+        // allouait un itérateur par étape, qui représentait à lui seul la moitié des
+        // échantillons. Constaté au profiler, corrigé, re-mesuré.
+<span class="fc bfc" id="L61" title="All 2 branches covered.">        for (int i = 0; i &lt; trip.legs().size(); i++) {</span>
+<span class="fc" id="L62">            minutes += legMinutes(trip.legs().get(i), speed, trip.mode());</span>
+        }
+
+<span class="fc bfc" id="L65" title="All 2 branches covered.">        if (Traffic.applies(trip.mode(), trip.timeOfDay())) {</span>
+<span class="fc" id="L66">            minutes += Traffic.delayMinutes(trip.legs());</span>
+        }
+
+<span class="fc bfc" id="L69" title="All 2 branches covered.">        if (WeatherPenalty.applies(trip.mode())) {</span>
+<span class="fc" id="L70">            minutes *= WeatherPenalty.slowdownFactor(trip.weather());</span>
+<span class="fc" id="L71">            minutes *= LuggagePenalty.slowdownFactor(trip.withLuggage());</span>
+        }
+
+<span class="fc bfc" id="L74" title="All 2 branches covered.">        if (trip.mode() == Mode.TRAIN) {</span>
+<span class="fc" id="L75">            minutes += Connections.waitMinutes(trip.legs(), 0);</span>
+        }
+
+        // Décidé sur la durée obtenue, pas sur un argument reçu : voir Breaks.
+<span class="fc" id="L79">        minutes += Breaks.totalMinutes(minutes);</span>
+
+<span class="fc" id="L81">        return minutes;</span>
+    }
+
+    private static double legMinutes(Leg leg, SpeedModel speed, Mode mode) {
+<span class="fc" id="L85">        double minutes = leg.distanceKm() / speed.kmPerHour(leg) * 60.0;</span>
+<span class="fc bfc" id="L86" title="All 2 branches covered.">        if (Terrain.applies(mode)) {</span>
+<span class="fc" id="L87">            minutes *= Terrain.slowdownFactor(leg, mode);</span>
+        }
+<span class="fc" id="L89">        return minutes;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

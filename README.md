@@ -9,7 +9,7 @@ en a déclenché un autre, et avec quelles valeurs. Le tout dans **une page**, p
 une seule commande, sans licence et sans connexion pendant l'exécution.
 
 **[▶ Voir un exemple](https://beennnn.github.io/runtime-xray/vue-integree/)** ·
-**[Le lancer sur votre projet](docs/OUTIL.md)** ·
+**[Le lancer sur votre projet](docs/outil/mode-emploi.md)** ·
 [Télécharger un rapport type](https://github.com/Beennnn/runtime-xray/releases/latest)
 
 ---
@@ -40,12 +40,15 @@ Aucune contrainte sur la façon de lancer Java — les agents sont injectés par
 `JAVA_TOOL_OPTIONS`, que toute JVM lit au démarrage.
 
 ```bash
-./runtime-xray.sh \
+java -jar runtime-xray.jar \
   --java "java -jar target/mon-appli.jar" \
   --root "com.exemple.Calculateur::calculer" \
-  --classes target/classes \
+  --classes target/mon-appli.jar \
   --sources src/main/java
 ```
+
+`--classes` accepte un répertoire **ou le jar livré**, y compris un jar « gras » dont les
+dépendances sont elles-mêmes des jar : elles sont analysées avec le reste.
 
 ```bash
 open runtime-xray-out/index.html
@@ -54,7 +57,7 @@ open runtime-xray-out/index.html
 Fonctionne aussi avec `mvn exec:java`, `./gradlew run` ou un script maison. Le code analysé
 n'est pas modifié, le build non plus.
 
-**[→ Mode d'emploi complet](docs/OUTIL.md)** : paramètres, fichier de configuration, choix
+**[→ Mode d'emploi complet](docs/outil/mode-emploi.md)** : paramètres, fichier de configuration, choix
 de la méthode racine, publication du résultat (GitLab, Confluence, un lien depuis GitHub).
 
 ## Ce que ça coûte
@@ -80,7 +83,7 @@ restructurer et redéfinir le code à partir de ces données.
 | Contrainte | Conséquence |
 |---|---|
 | 🔌 **Exécution hors ligne** | Élimine tout SaaS. Le téléchargement préalable, lui, est libre |
-| ☕ **Java 21, Java 25 à évaluer** | Les deux sont vérifiés ; l'écart est [mesuré](docs/RESULTS.md#gains-dun-portage-vers-java-25) |
+| ☕ **Java 21, Java 25 à évaluer** | Les deux sont vérifiés ; l'écart est [mesuré](docs/resultat/resultats.md#gains-dun-portage-vers-java-25) |
 | 🧭 **IntelliJ comme IDE cible** | Sans en dépendre : tout le monde n'a pas l'édition payante |
 | 👥 **Deux publics** | Un développeur dans son IDE, un non-technicien devant une page qu'on lui envoie |
 | 🎯 **Diagnostic ponctuel** | Pas de serveur à déployer ni à maintenir |
@@ -94,17 +97,35 @@ code compris, puis reconçu avec ses propres contraintes.
 Dix-huit outils ont été recensés et comparés avant d'aboutir à cette combinaison. Le détail
 est en pages secondaires, pour qui veut vérifier ou reprendre l'évaluation :
 
+Les documents sont rangés en trois dossiers, selon la question à laquelle ils répondent —
+**comment on a cherché**, **ce qu'on a trouvé**, **comment on s'en sert** :
+
+**`docs/etude/` — comment on a cherché**
+
 | Page | Ce qu'on y trouve |
 |---|---|
-| **[La solution retenue](docs/SOLUTION.md)** | Le montage, le protocole, et ses réserves assumées |
-| [Résultats et arbitrages](docs/RESULTS.md) | Ce qui a été décidé, ce qui reste ouvert |
-| [Tableau comparatif](docs/COMPARISON.md) | Les 18 outils, avec le statut de vérification de chaque affirmation |
-| [Fiches par outil](docs/tools/) | Une page par outil : philosophie, capacités, licence, limites |
-| [Outils écartés](docs/ECARTES.md) | Les rejets, motivés et datés |
-| [Formats et découplage](docs/FORMATS.md) | Changer d'affichage sans changer la collecte |
-| [Clés d'évaluation](docs/EVALUATION-KEYS.md) | Si l'on veut essayer les outils commerciaux |
-| [Détails techniques](docs/TECHNICAL.md) | Le programme de démonstration et les pièges rencontrés |
-| [Diffuser l'outil](docs/DISTRIBUTION.md) | Maven Central, dépôt interne, et la V2 qui en découlerait |
+| [Méthode](docs/etude/methode.md) | Les critères, leur ordre, et le protocole de vérification |
+| [Comparatif](docs/etude/comparatif.md) | Les 18 outils, avec le statut de vérification de chaque affirmation |
+| [Fiches par outil](docs/etude/fiches) | Une page par outil : philosophie, capacités, licence, limites |
+| [Outils écartés](docs/etude/outils-ecartes.md) | Les rejets, motivés et datés |
+| [Clés d'évaluation](docs/etude/cles-evaluation.md) | Si l'on veut essayer les outils commerciaux |
+
+**`docs/resultat/` — ce qu'on a trouvé**
+
+| Page | Ce qu'on y trouve |
+|---|---|
+| **[La solution retenue](docs/resultat/solution.md)** | Le montage, le protocole, et ses réserves assumées |
+| [Résultats et arbitrages](docs/resultat/resultats.md) | Ce qui a été décidé, ce qui reste ouvert |
+| [Formats et découplage](docs/resultat/formats.md) | Changer d'affichage sans changer la collecte |
+| [Publier le rapport](docs/resultat/publication.md) | Où déposer une page HTML pour qu'elle se lise |
+
+**`docs/outil/` — comment s'en servir**
+
+| Page | Ce qu'on y trouve |
+|---|---|
+| **[Mode d'emploi](docs/outil/mode-emploi.md)** | Paramètres, configuration, choix de la méthode racine |
+| [Détails techniques](docs/outil/technique.md) | Le programme de démonstration et les pièges rencontrés |
+| [Diffuser l'outil](docs/outil/distribution.md) | Maven Central, dépôt interne, et ce que la réécriture a apporté |
 
 **En une phrase** : aucun outil ne répond seul aux trois questions, mais **trois outils
 gratuits y suffisent**, et une licence commerciale n'apporterait que sur l'option de

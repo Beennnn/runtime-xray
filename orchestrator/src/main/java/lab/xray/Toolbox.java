@@ -52,6 +52,20 @@ public final class Toolbox {
     }
 
     /**
+     * Le convertisseur officiel d'async-profiler : il transforme les piles repliées en la
+     * page que l'outil produit lui-même.
+     *
+     * <p>Pourquoi la produire alors que cette page a déjà son propre arbre : parce que ce
+     * n'est pas la même chose. La nôtre est une <b>synthèse</b>, avec ses choix (repli du
+     * JDK, repli des paquets masqués, agrégation). Celle-ci est la sortie <b>brute</b> de
+     * l'outil, sans aucun de nos traitements — c'est elle qui fait foi si la synthèse se
+     * trompe, et c'est elle qui reste lisible si la synthèse ne s'ouvre plus.
+     */
+    public Path asyncProfilerConverter() throws IOException, InterruptedException {
+        return artifact("tools.profiler", "jfr-converter", ASYNC_VERSION, null, "jar");
+    }
+
+    /**
      * La bibliothèque native d'async-profiler, extraite du jar publié sur Maven Central.
      * Le jar embarque les binaires de plusieurs plateformes ; on ne sort que la bonne.
      */

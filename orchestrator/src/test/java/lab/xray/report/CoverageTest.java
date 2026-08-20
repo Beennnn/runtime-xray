@@ -129,6 +129,31 @@ class CoverageTest {
     }
 
     @Test
+    @DisplayName("Un paquet masqué ne figure ni dans les paquets, ni dans les classes")
+    void hidesConfiguredPackages(@TempDir Path dir) throws Exception {
+        Path f = dir.resolve("j.xml");
+        Files.writeString(f, """
+                <report name="t">
+                  <package name="app/moteur">
+                    <class name="app/moteur/Calcul" sourcefilename="Calcul.java">
+                      <counter type="INSTRUCTION" missed="0" covered="9"/>
+                    </class>
+                  </package>
+                  <package name="org/slf4j/helpers">
+                    <class name="org/slf4j/helpers/Util" sourcefilename="Util.java">
+                      <counter type="INSTRUCTION" missed="0" covered="40"/>
+                    </class>
+                  </package>
+                </report>
+                """, StandardCharsets.UTF_8);
+        Coverage c = Coverage.parse(f, PackageFilter.of("org.slf4j"));
+        assertTrue(c.packages.containsKey("app/moteur"), "le code métier reste");
+        assertNull(c.packages.get("org/slf4j/helpers"), "le paquet masqué disparaît");
+        assertNull(c.methods.get("org/slf4j/helpers/Util"),
+                "et ses classes aussi, sinon le rapport ciblé les recopierait");
+    }
+
+    @Test
     @DisplayName("Une méthode sans numéro de ligne est ignorée plutôt que d'être placée au hasard")
     void skipsMethodsWithoutLine(@TempDir Path dir) throws Exception {
         Path f = dir.resolve("j.xml");

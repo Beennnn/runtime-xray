@@ -308,21 +308,22 @@
 </div></div>
 <main>
   <div id="nav">
-    <div class="runpick" id="runpick" hidden>
-      <span class="runlabel">exécutions affichées</span>
-      <div id="runboxes"></div>
-    </div>
     <div class="tabs">
       <button id="tab-tree" class="on" title="Ce que les exécutions ont fait : l'arbre d'appel, avec les exécutions pour racines">Exécutions</button>
       <button id="tab-cls" title="Le code, par paquet et par classe, filtré sur ce qui a tourné">Code</button>
+    </div>
+    <div class="runpick" id="runpick" hidden>
+      <span class="runlabel">exécutions affichées</span>
+      <div id="runboxes"></div>
     </div>
     <div class="listbar">
       <input id="search" placeholder="Filtrer…" autocomplete="off">
       <button id="unitbtn" class="unitbtn" title="Basculer entre part du temps et temps estimé">%</button>
       <button id="pkgbtn" class="unitbtn" title="Afficher ou masquer les noms de paquet">pkg</button>
-      <button id="sortbtn" class="unitbtn" title="Trier par nom ou par temps passé">A→Z</button>
       <button id="scopebtn" class="unitbtn wide" aria-pressed="true"
               title="N'afficher que le code exécuté, ou tout le code du projet">exécuté</button>
+      <button id="expandbtn" class="unitbtn wide"
+              title="Tout déplier, ou tout replier">tout déplier</button>
     </div>
     <div id="scope"></div>
     <div class="list" id="list"></div>
@@ -371,9 +372,9 @@ let unit = "pct";
 // Les noms de paquet complets rendent l'arbre illisible sur un projet à l'arborescence
 // profonde ; on peut les replier d'un bouton.
 let showPackages = true;
-// Par défaut, l'ordre alphabétique : on cherche une méthode qu'on connaît. Le classement
-// par temps répond à une autre question, et reste accessible d'un bouton.
-let sortBy = "nom";
+// La vue Code est alphabétique par construction — paquets, classes et méthodes triés par
+// nom : on y cherche quelque chose qu'on connaît. Le classement par temps, lui, est la
+// question de la vue Exécutions.
 // Dans la vue par structure : ne montrer que ce qui a tourné, ou tout le code du projet.
 // Quand on montre tout, il faut distinguer d'un coup d'œil ce qui a servi de ce qui dort.
 let executedOnly = true;
@@ -431,7 +432,10 @@ let AGG = computeAgg();
     const i = +cb.dataset.run;
     cb.checked ? shownRuns.add(i) : shownRuns.delete(i);
     if (!shownRuns.size){ shownRuns.add(i); cb.checked = true; return; }  // jamais rien à voir
+    const open = captureExpanded();
     mode === "cls" ? renderClasses() : renderTree();
+    restoreExpanded(open);
+    reselect();
   });
 })();
 
@@ -530,10 +534,10 @@ function executedMethods(){
       }
     }
   }
-  const rows = [...merged.values()];
-  return sortBy === "temps"
-      ? rows.sort((a, b) => b.samples - a.samples || a.frame.localeCompare(b.frame))
-      : rows.sort((a, b) => dot(a.frame).localeCompare(dot(b.frame)));
+  // Seul usage restant : les méthodes les plus coûteuses de la vue d'ensemble. Le tri par
+  // temps est donc le bon, et le seul.
+  return [...merged.values()]
+      .sort((a, b) => b.samples - a.samples || a.frame.localeCompare(b.frame));
 }
 
 /* ------------------------------------------------------------------ listes */
@@ -550,9 +554,56 @@ function renderScope(){
   const b = document.getElementById("unscope");
   if (b) b.onclick = () => { scopeFrame = null; mode === "cls" ? renderClasses() : renderTree(); };
 }
+/**
+ * Certaines actions changent la liste des nœuds — cocher une exécution, basculer
+ * exécuté/tout — et imposent de reconstruire. Refermer l'arbre à cette occasion fait
+ * perdre le fil de ce qu'on regardait : on note ce qui était ouvert, et on le rouvre.
+ */
+function captureExpanded(){
+  const open = new Set();
+  document.querySelectorAll("#list .node").forEach(n => {
+    const tw = n.querySelector(".tw");
+    if (tw && tw.textContent === "▾"){
+      const key = n.dataset.frame || n.dataset.path;
+      if (key) open.add(key);
+    }
+  });
+  return open;
+}
+
+function restoreExpanded(open){
+  if (!open || !open.size) return;
+  for (let pass = 0; pass < 30; pass++){
+    const toOpen = [...document.querySelectorAll("#list .node")].filter(n => {
+      const tw = n.querySelector(".tw");
+      const key = n.dataset.frame || n.dataset.path;
+      return tw && tw.textContent === "▸" && key && open.has(key) && !n.classList.contains("runroot");
+    });
+    if (!toOpen.length) return;
+    toOpen.forEach(n => n.click());
+  }
+}
+
+function resetExpandButton(){
+  const b = document.getElementById("expandbtn");
+  if (b){ b.dataset.state = ""; b.textContent = "tout déplier"; }
+}
 function toggleRunPicker(show){
   const p = document.getElementById("runpick");
   if (p) p.hidden = !show || D.runs.length < 2;
+}
+
+/** Un réglage qui n'agit pas sur la vue courante n'a pas à y figurer : il laisse croire
+ *  qu'il ne marche pas. */
+function showOptionsFor(view){
+  const only = {
+    scopebtn: "cls",    // exécuté / tout : propre à la vue par structure
+    pkgbtn: "tree",     // en vue Code, la hiérarchie porte déjà le paquet — rien à masquer
+  };
+  for (const [id, where] of Object.entries(only)){
+    const b = document.getElementById(id);
+    if (b) b.style.display = (where === view) ? "" : "none";
+  }
 }
 function tab(id){ document.querySelectorAll(".tabs button").forEach(b=>b.classList.remove("on"));
                   document.getElementById(id).classList.add("on"); }
@@ -560,9 +611,9 @@ function tab(id){ document.querySelectorAll(".tabs button").forEach(b=>b.classLi
 
 function renderTree(){
   mode = "tree"; tab("tab-tree"); renderScope();
-  // L'arbre affiche TOUTES les exécutions comme racines : un sélecteur au-dessus ferait
-  // doublon. Il reste utile aux deux autres onglets, qui n'en montrent qu'une à la fois.
+  // L'arbre montre TOUTES les exécutions comme racines : les cocher n'aurait pas de sens.
   toggleRunPicker(false);
+  showOptionsFor("tree"); resetExpandButton();
   const box = document.getElementById("list"); box.innerHTML = "";
 
   // Les exécutions sont les RACINES de l'arbre : une exécution est le contexte d'appel le
@@ -600,6 +651,8 @@ function renderTree(){
       el.style.paddingLeft = (6 + depth * 11) + "px";
       const hasCalls = frameInfo(kid.name) && (R.values[kid.name] || []).length;
       el.dataset.frame = kid.name;
+      el.dataset.samples = kid.total;
+      el.dataset.total = total;
       el.innerHTML = '<span class="tw">' + ((kid.children.length || hasCalls) ? "▸" : "") + '</span>' +
                      '<span class="pct">' + formatWeight(kid.total, total) + '</span>' +
                      '<span class="lbl">' + esc(frameLabel(kid.name)) + '</span>' +
@@ -662,6 +715,7 @@ function renderTree(){
  */
 function renderClasses(){
   mode = "cls"; tab("tab-cls"); renderScope(); toggleRunPicker(true);
+  showOptionsFor("cls"); resetExpandButton();
   const box = document.getElementById("list"); box.innerHTML = "";
 
   // Union des exécutions cochées : une classe compte si elle a tourné dans l'une d'elles.
@@ -706,6 +760,7 @@ function renderClasses(){
       const merged = compact(child, seg);
       const el = document.createElement("div");
       el.className = "node pkgnode";
+      el.dataset.path = "pkg:" + (prefix ? prefix + "." : "") + merged.prefix;
       el.style.paddingLeft = (6 + depth*11) + "px";
       const count = countClasses(merged.node);
       el.innerHTML = '<span class="tw">▸</span><span class="lbl">' + esc(merged.prefix.toLowerCase()) +
@@ -728,6 +783,7 @@ function renderClasses(){
       el.className = "node";
       el.style.paddingLeft = (6 + depth*11) + "px";
       const pct = c.covered + c.missed ? Math.round(100*c.covered/(c.covered+c.missed)) : 0;
+      el.dataset.path = "cls:" + c.name;
       if (!c.covered) el.classList.add("dead");
       else if (pct < 100) el.classList.add("partial");
       else el.classList.add("live");
@@ -773,6 +829,8 @@ function methodsOf(container, c, depth){
     el.style.paddingLeft = (6 + depth*11 + 12) + "px";
     el.dataset.frame = frame;
     const weight = AGG.weights[frame] || 0;
+    el.dataset.samples = weight;
+    el.dataset.total = R.calltree.total;
     el.innerHTML = '<span class="pct">' + formatWeight(weight, R.calltree.total) + '</span>' +
                    '<span class="lbl">' + esc(m.name) + '</span>' +
                    ((R.values[frame] || []).length
@@ -1491,6 +1549,58 @@ document.getElementById("pkgbtn").onclick = e => {
     if (label) label.textContent = frameLabel(el.dataset.frame);
   });
 };
+/**
+ * Déplie l'arbre entier, avec un garde-fou : sur une vraie application, tout ouvrir peut
+ * représenter des dizaines de milliers de nœuds et figer la page. On s'arrête à un budget
+ * et on le dit, plutôt que de laisser croire que tout est affiché.
+ */
+const EXPAND_BUDGET = 1500;
+
+function expandAll(){
+  let count = 0, passes = 0;
+  while (passes++ < 40){
+    const closed = [...document.querySelectorAll("#list .node")].filter(n => {
+      const tw = n.querySelector(".tw");
+      if (!tw || tw.textContent !== "▸") return false;
+      // Ouvrir la racine d'une AUTRE exécution la sélectionne et reconstruit l'arbre :
+      // le dépliage en masse se battrait contre lui-même. On reste dans l'exécution
+      // regardée ; les autres s'ouvrent d'un clic délibéré.
+      return !n.classList.contains("runroot");
+    });
+    if (!closed.length) break;
+    for (const n of closed){
+      if (count >= EXPAND_BUDGET) break;
+      n.click();
+      count = document.querySelectorAll("#list .node").length;
+    }
+    if (count >= EXPAND_BUDGET) break;
+  }
+  return count;
+}
+
+function collapseAll(){
+  mode === "cls" ? renderClasses() : renderTree();
+  reselect();
+}
+
+document.getElementById("expandbtn").onclick = e => {
+  const b = e.currentTarget;
+  const expanded = b.dataset.state === "open";
+  if (expanded){
+    collapseAll();
+    b.dataset.state = "";
+    b.textContent = "tout déplier";
+    return;
+  }
+  const n = expandAll();
+  b.dataset.state = "open";
+  b.textContent = "tout replier";
+  const head = document.querySelector("#list .grouphead");
+  if (n >= EXPAND_BUDGET && head){
+    head.textContent = "affichage arrêté à " + n + " lignes — replier, puis ouvrir la branche voulue";
+  }
+};
+
 document.getElementById("scopebtn").onclick = e => {
   executedOnly = !executedOnly;
   const b = e.currentTarget;
@@ -1499,15 +1609,12 @@ document.getElementById("scopebtn").onclick = e => {
   b.title = executedOnly
       ? "Seul le code exécuté est listé — cliquer pour voir tout le code"
       : "Tout le code est listé, le non exécuté en rouge — cliquer pour n'afficher que l'exécuté";
-  if (mode === "cls"){ renderClasses(); reselect(); }
-};
-document.getElementById("sortbtn").onclick = e => {
-  sortBy = sortBy === "nom" ? "temps" : "nom";
-  e.currentTarget.textContent = sortBy === "nom" ? "A→Z" : "⏱";
-  e.currentTarget.title = sortBy === "nom"
-      ? "Trié par nom — cliquer pour trier par temps passé"
-      : "Trié par temps passé — cliquer pour trier par nom";
-  if (mode === "cls"){ renderClasses(); reselect(); }
+  if (mode === "cls"){
+    const open = captureExpanded();
+    renderClasses();
+    restoreExpanded(open);
+    reselect();
+  }
 };
 document.getElementById("unitbtn").onclick = e => {
   unit = unit === "pct" ? "ms" : "pct";
@@ -1515,8 +1622,11 @@ document.getElementById("unitbtn").onclick = e => {
   e.currentTarget.title = unit === "pct"
     ? "Part du temps total — cliquer pour voir un temps estimé"
     : "Temps estimé (un relevé ≈ 1 ms de temps processeur) — cliquer pour voir la part";
-  mode === "cls" ? renderClasses() : renderTree();
-  reselect();
+  // Reformater sur place : reconstruire refermerait l'arbre qu'on vient d'ouvrir.
+  document.querySelectorAll("#list .node[data-samples]").forEach(el => {
+    const pct = el.querySelector(".pct");
+    if (pct) pct.textContent = formatWeight(+el.dataset.samples, +el.dataset.total);
+  });
   if (selected) draw();
 };
 document.getElementById("helpbtn").onclick = openHelp;

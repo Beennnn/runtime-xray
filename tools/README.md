@@ -34,10 +34,10 @@ outils s'attachent à une JVM, ils ne se déclarent pas en dépendance.
      tous, sinon la comparaison ne vaut rien ;
    - écrire dans `reports-demo/generated/<outil>/`.
 2. Écrire la fiche `docs/tools/<outil>.md` en suivant la trame des autres.
-3. Compléter les tableaux de [`docs/COMPARISON.md`](../docs/COMPARISON.md) **avec le statut
+3. Compléter les tableaux de [`docs/COMPARISON.md`](../docs/etude/comparatif.md) **avec le statut
    de vérification** — ✅ testé ici seulement si le script a réellement tourné.
 4. Si l'outil demande une licence : ne rien mettre dans le dépôt, lire la clé depuis
-   l'environnement — voir [EVALUATION-KEYS.md](../docs/EVALUATION-KEYS.md).
+   l'environnement — voir [EVALUATION-KEYS.md](../docs/etude/cles-evaluation.md).
 
 ## Ce qui n'est pas versionné
 

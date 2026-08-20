@@ -29,6 +29,15 @@ public final class Coverage {
     public final Map<String, Object> packages = new LinkedHashMap<>();
 
     public static Coverage parse(Path xml) throws Exception {
+        return parse(xml, PackageFilter.NONE);
+    }
+
+    /**
+     * @param hidden paquets à ne pas lister — voir {@link PackageFilter}. Le filtrage a lieu
+     *               ici, à la lecture, et non à l'affichage : une classe masquée ne doit
+     *               peser ni sur les totaux, ni sur les listes, ni sur le rapport ciblé.
+     */
+    public static Coverage parse(Path xml, PackageFilter hidden) throws Exception {
         Coverage c = new Coverage();
         DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
         // Le rapport déclare une DTD externe : la charger ferait sortir sur le réseau, et
@@ -42,6 +51,7 @@ public final class Coverage {
         for (int i = 0; i < pkgs.getLength(); i++) {
             Element pkg = (Element) pkgs.item(i);
             String pkgName = pkg.getAttribute("name");
+            if (hidden.hidden(pkgName + "/")) continue;
             List<Object> classes = new ArrayList<>();
 
             for (Element cls : children(pkg, "class")) {
