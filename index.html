@@ -144,12 +144,17 @@
       <div class="t">Valeurs des paramètres <span class="badge" title="Produit par Arthas" role="img" aria-label="Arthas"><svg viewBox="0 0 32 32" width="22" height="22"><rect width="32" height="32" rx="8" fill="#8250df" fill-opacity=".14" stroke="#8250df" stroke-opacity=".5"/><circle cx="14.5" cy="14" r="6" fill="none" stroke="#ab7df8" stroke-width="2.4"/><path d="M19 18.5L24 23.5" stroke="#ab7df8" stroke-width="2.6" stroke-linecap="round"/><circle cx="14.5" cy="14" r="2" fill="#ab7df8"/></svg></span></div>
       <div class="d">Les valeurs réellement reçues, appel par appel : <code>@Mode[CAR]</code>
         <code>@Weather[SUNNY]</code>, et ce que la méthode a renvoyé. C'est précisément ce que ni
-        la couverture ni le profil ne savent donner.</div>
+        la couverture ni le profil ne savent donner.
+        <br><span style="opacity:.8">La dernière ligne du fichier — <i>« Command execution times
+        exceed limit »</i> — n'est pas une erreur : elle indique que le nombre d'appels demandé
+        a été atteint et que la collecte s'arrête.</span></div>
     </a>
     <a class="card" href="demo/arthas/trace-calltree.txt">
       <div class="t">L'arbre d'UN appel <span class="badge" title="Produit par Arthas" role="img" aria-label="Arthas"><svg viewBox="0 0 32 32" width="22" height="22"><rect width="32" height="32" rx="8" fill="#8250df" fill-opacity=".14" stroke="#8250df" stroke-opacity=".5"/><circle cx="14.5" cy="14" r="6" fill="none" stroke="#ab7df8" stroke-width="2.4"/><path d="M19 18.5L24 23.5" stroke="#ab7df8" stroke-width="2.6" stroke-linecap="round"/><circle cx="14.5" cy="14" r="2" fill="#ab7df8"/></svg></span></div>
       <div class="d">Le chemin réellement emprunté par une seule invocation, avec les numéros de
-        ligne — de quoi retourner droit dans le source. Là où le profil, lui, agrège.</div>
+        ligne — de quoi retourner droit dans le source. Là où le profil, lui, agrège.
+        <br><span style="opacity:.8">Même remarque sur la dernière ligne : c'est la fin normale
+        de la collecte, pas un échec.</span></div>
     </a>
   </div>
 
