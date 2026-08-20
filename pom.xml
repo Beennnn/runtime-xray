@@ -67,6 +67,11 @@
     <javadoc.plugin.version>3.12.0</javadoc.plugin.version>
     <gpg.plugin.version>3.2.8</gpg.plugin.version>
     <central.plugin.version>0.11.0</central.plugin.version>
+
+    <!-- La clé de signature. Une seule clé sur le poste rend ce réglage inutile, mais le
+         nommer évite qu'une seconde clé, ajoutée un jour pour autre chose, soit choisie
+         sans qu'on s'en aperçoive. -->
+    <gpg.keyname>8D181AA1F3545E3C43804355D7D3E62B52C66FCA</gpg.keyname>
   </properties>
 
   <modules>
@@ -146,12 +151,18 @@
                 <phase>verify</phase>
                 <goals><goal>sign</goal></goals>
                 <configuration>
-                  <!-- Sans cela, gpg demande la phrase de passe sur un terminal absent
-                       en intégration continue, et le build reste bloqué sans message. -->
-                  <gpgArguments>
-                    <arg>--pinentry-mode</arg>
-                    <arg>loopback</arg>
-                  </gpgArguments>
+                  <!--
+                    Ni phrase de passe, ni mode « loopback » forcé : sur un poste, c'est
+                    l'agent GPG qui la demande, et elle ne transite alors ni par Maven ni
+                    par une variable. Forcer le loopback revient à couper l'agent et à
+                    exiger que la phrase soit fournie autrement, c'est-à-dire à la faire
+                    entrer là où elle n'a pas besoin d'aller.
+
+                    En intégration continue, où aucun agent ne peut afficher de fenêtre,
+                    le plugin lit MAVEN_GPG_PASSPHRASE dans l'environnement
+                    (paramètre passphraseEnvName). C'est le chemin prévu pour ça.
+                  -->
+                  <keyname>${gpg.keyname}</keyname>
                 </configuration>
               </execution>
             </executions>

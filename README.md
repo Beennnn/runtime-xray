@@ -92,6 +92,46 @@ Ces résultats valent dans le cadre décrit, et pas au-delà. En particulier :
 - L'écart entre Java 21 et Java 25 a été mesuré sur ce seul programme et n'a pas montré
   de gain pour la combinaison retenue. Cela ne préjuge pas d'autres cas.
 
+## Se procurer l'outil
+
+> ⏳ **Pas encore publié.** L'artefact est prêt, signé et vérifié, mais la publication
+> attend la validation de l'espace de noms `io.github.beennnn` sur le Central Portal.
+> En attendant, la compilation depuis les sources (plus bas) est la seule voie. Les
+> commandes ci-dessous seront exactes le jour où la publication aboutira.
+
+L'outil se distribue comme un jar sur Maven Central, sous
+`io.github.beennnn:runtime-xray-cli`. Ce n'est pas une bibliothèque qu'on met en
+`<dependency>` : c'est un exécutable, et Maven Central sert ici de **canal de
+distribution** — souvent le seul ouvert derrière un pare-feu d'entreprise.
+
+```bash
+# Le jar seul, sans Maven
+curl -O https://repo1.maven.org/maven2/io/github/beennnn/runtime-xray-cli/1.0.0/runtime-xray-cli-1.0.0.jar
+java -jar runtime-xray-cli-1.0.0.jar --java "java -jar target/mon-appli.jar"
+```
+
+```bash
+# Ou par Maven, y compris depuis un miroir interne
+mvn dependency:copy -Dartifact=io.github.beennnn:runtime-xray-cli:1.0.0 -DoutputDirectory=.
+```
+
+### Vérifier la signature
+
+Chaque artefact est signé. C'est ce qui permet de s'assurer que le jar téléchargé est bien
+celui qui a été publié — la vérification vaut surtout pour un binaire qu'on s'apprête à
+faire tourner à côté de son application.
+
+```bash
+curl -O https://repo1.maven.org/maven2/io/github/beennnn/runtime-xray-cli/1.0.0/runtime-xray-cli-1.0.0.jar.asc
+gpg --keyserver keys.openpgp.org --recv-keys 8D181AA1F3545E3C43804355D7D3E62B52C66FCA
+gpg --verify runtime-xray-cli-1.0.0.jar.asc runtime-xray-cli-1.0.0.jar
+```
+
+La réponse attendue contient `Good signature` (ou `Bonne signature`). Un avertissement sur
+la confiance accordée à la clé est normal : il dit que vous n'avez pas certifié cette clé
+comme étant celle de son propriétaire, ce qui est une question distincte de l'intégrité du
+fichier.
+
 ## L'outil
 
 L'orchestrateur est un jar sans dépendance hors du JDK. Il exécute la commande fournie

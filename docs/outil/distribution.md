@@ -82,9 +82,11 @@ souvent découvert trop tard :
 | Artefacts joints | ✅ | `sources` et `javadoc` produits par le profil `release`, avec `doclint` désactivé — la documentation est rédigée pour des lecteurs, pas pour un vérificateur HTML |
 | Plugin de publication | ✅ | `central-publishing-maven-plugin`, `autoPublish=false` : le dépôt est déposé mais **pas rendu définitif** sans relecture |
 | Module de démonstration exclu | ✅ | `maven.deploy.skip` **et** `skipPublishing` sur `sample-app` — voir l'avertissement ci-dessous |
-| Signature GPG | ⛔ | La clé est **la vôtre** : à générer, à publier sur un serveur de clés |
+| Signature GPG | ✅ | RSA 4096, `8D181AA1F3545E3C43804355D7D3E62B52C66FCA`, publiée sur `keys.openpgp.org` **et** `keyserver.ubuntu.com` — c'est ce dernier que Sonatype interroge |
+| Signatures vérifiées | ✅ | Les quatre `.asc` du paquet passent `gpg --verify` |
+| Configuration Maven | ✅ | `~/.m2/settings.xml`, jeton lu dans l'environnement et non écrit dans le fichier |
 | Espace de noms validé | ⛔ | À faire une fois sur le Central Portal, en prouvant le compte GitHub |
-| Identifiants | ⛔ | Le jeton du Portal, dans `~/.m2/settings.xml` sous `<id>central</id>` |
+| Jeton du Portal | ⛔ | À générer, puis `export CENTRAL_USERNAME` / `CENTRAL_PASSWORD` |
 
 ### ⚠️ `maven.deploy.skip` ne suffit pas à exclure un module
 
@@ -104,28 +106,36 @@ Sans identifiants, l'envoi ne peut pas aboutir — mais le paquet, lui, est déj
 inspectable. C'est le seul moment où l'on peut encore corriger : un artefact publié sur
 Central ne se retire pas.
 
-### Les trois gestes qui restent
+### La clé de signature
 
-Ils demandent votre compte et votre clé, donc ils ne peuvent pas être faits à votre place.
+Faite : RSA 4096, sans expiration, publiée sur les deux serveurs de clés. Central refuse un
+artefact dont la clé n'est pas publiée — une signature invérifiable ne prouve rien.
+
+Deux réglages accompagnent la clé, et le second n'est pas anecdotique :
+
+```
+# ~/.gnupg/gpg-agent.conf
+pinentry-program /opt/homebrew/bin/pinentry-mac
+default-cache-ttl 1800
+```
+
+Sans `pinentry-mac`, gpg tente de demander la phrase de passe sur un terminal ; toute
+signature lancée depuis un script, un outil ou une tâche planifiée échoue alors sur
+`Inappropriate ioctl for device`. Avec lui, la demande apparaît dans une fenêtre, et la
+phrase de passe ne transite ni par Maven ni par une variable d'environnement.
+
+### Ce qui reste
+
+Deux gestes, et ils exigent votre compte.
 
 1. **Valider l'espace de noms** sur [central.sonatype.com](https://central.sonatype.com) :
-   créer un compte, déclarer `io.github.beennnn`, prouver le compte GitHub par le dépôt
-   temporaire que le Portal demande. Une seule fois, définitivement.
-2. **Une clé de signature** :
+   se connecter (« Continue with GitHub » est le chemin le plus court, puisque c'est ce
+   compte qui prouve `io.github.beennnn`), déclarer l'espace de noms, créer le dépôt
+   temporaire que le Portal demande comme preuve. Une seule fois, définitivement.
+2. **Le jeton**, généré depuis *Account → Generate User Token*, puis dans le shell — jamais
+   dans un fichier :
    ```bash
-   gpg --gen-key
-   gpg --list-keys --keyid-format short          # relever l'identifiant
-   gpg --keyserver keyserver.ubuntu.com --send-keys <ID>
-   ```
-   Central refuse un artefact dont la clé n'est pas publiée : la signature doit être
-   vérifiable par un tiers, sinon elle ne prouve rien.
-3. **Les identifiants**, dans `~/.m2/settings.xml` — le jeton se génère depuis le Portal :
-   ```xml
-   <server>
-     <id>central</id>
-     <username>…</username>
-     <password>…</password>
-   </server>
+   export CENTRAL_USERNAME='...' CENTRAL_PASSWORD='...'
    ```
 
 Ensuite :
