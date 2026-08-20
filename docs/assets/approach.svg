@@ -1,0 +1,124 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 640" width="1200" height="640" role="img" aria-label="La démarche Runtime X-Ray : cadrer, implémenter, exécuter, observer, trancher — et les trois livrables">
+  <defs>
+    <linearGradient id="bg2" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0d1117"/>
+      <stop offset="100%" stop-color="#0b1220"/>
+    </linearGradient>
+    <pattern id="grid2" width="32" height="32" patternUnits="userSpaceOnUse">
+      <path d="M32 0H0V32" fill="none" stroke="#ffffff" stroke-opacity="0.03" stroke-width="1"/>
+    </pattern>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M0 0L10 5L0 10z" fill="#64748b"/>
+    </marker>
+    <marker id="arrowLoop" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M0 0L10 5L0 10z" fill="#a78bfa"/>
+    </marker>
+  </defs>
+
+  <rect width="1200" height="640" rx="16" fill="url(#bg2)"/>
+  <rect width="1200" height="640" rx="16" fill="url(#grid2)"/>
+
+  <g font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">
+    <text x="48" y="58" fill="#e6edf3" font-size="24" font-weight="700">La démarche</text>
+    <text x="48" y="84" fill="#8b949e" font-size="15">Une boucle courte : on n'ajoute un outil que pour le faire tourner pour de vrai.</text>
+
+    <!-- ============ STEP CARDS ============ -->
+    <!-- 1 -->
+    <g>
+      <rect x="48" y="120" width="190" height="212" rx="14" fill="#38bdf8" fill-opacity="0.06" stroke="#38bdf8" stroke-opacity="0.30"/>
+      <circle cx="76" cy="152" r="15" fill="#38bdf8" fill-opacity="0.16" stroke="#38bdf8" stroke-opacity="0.55"/>
+      <text x="76" y="157" fill="#7dd3fc" font-size="14" font-weight="700" text-anchor="middle">1</text>
+      <text x="102" y="157" fill="#e6edf3" font-size="17" font-weight="600">Cadrer</text>
+      <text x="70" y="196" fill="#9aa7b8" font-size="13.5">Fixer les critères</text>
+      <text x="70" y="216" fill="#9aa7b8" font-size="13.5">avant de regarder</text>
+      <text x="70" y="236" fill="#9aa7b8" font-size="13.5">le moindre outil :</text>
+      <text x="70" y="256" fill="#9aa7b8" font-size="13.5">features, contraintes,</text>
+      <text x="70" y="276" fill="#9aa7b8" font-size="13.5">coûts.</text>
+      <text x="70" y="310" fill="#7dd3fc" font-size="12" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">METHODOLOGY.md</text>
+    </g>
+    <!-- 2 -->
+    <g>
+      <rect x="276" y="120" width="190" height="212" rx="14" fill="#60a5fa" fill-opacity="0.06" stroke="#60a5fa" stroke-opacity="0.30"/>
+      <circle cx="304" cy="152" r="15" fill="#60a5fa" fill-opacity="0.16" stroke="#60a5fa" stroke-opacity="0.55"/>
+      <text x="304" y="157" fill="#93c5fd" font-size="14" font-weight="700" text-anchor="middle">2</text>
+      <text x="330" y="157" fill="#e6edf3" font-size="17" font-weight="600">Implémenter</text>
+      <text x="298" y="196" fill="#9aa7b8" font-size="13.5">Un module Java</text>
+      <text x="298" y="216" fill="#9aa7b8" font-size="13.5">minimal par outil —</text>
+      <text x="298" y="236" fill="#9aa7b8" font-size="13.5">juste assez de code</text>
+      <text x="298" y="256" fill="#9aa7b8" font-size="13.5">pour l'exercer</text>
+      <text x="298" y="276" fill="#9aa7b8" font-size="13.5">réellement.</text>
+      <text x="298" y="310" fill="#93c5fd" font-size="12" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">tools/&lt;outil&gt;/</text>
+    </g>
+    <!-- 3 -->
+    <g>
+      <rect x="505" y="120" width="190" height="212" rx="14" fill="#818cf8" fill-opacity="0.06" stroke="#818cf8" stroke-opacity="0.30"/>
+      <circle cx="533" cy="152" r="15" fill="#818cf8" fill-opacity="0.16" stroke="#818cf8" stroke-opacity="0.55"/>
+      <text x="533" y="157" fill="#a5b4fc" font-size="14" font-weight="700" text-anchor="middle">3</text>
+      <text x="559" y="157" fill="#e6edf3" font-size="17" font-weight="600">Exécuter</text>
+      <text x="527" y="196" fill="#9aa7b8" font-size="13.5">Une seule commande</text>
+      <text x="527" y="216" fill="#9aa7b8" font-size="13.5">rejoue tous les</text>
+      <text x="527" y="236" fill="#9aa7b8" font-size="13.5">modules et produit</text>
+      <text x="527" y="256" fill="#9aa7b8" font-size="13.5">de vraies sorties,</text>
+      <text x="527" y="276" fill="#9aa7b8" font-size="13.5">pas des captures.</text>
+      <text x="527" y="310" fill="#a5b4fc" font-size="12" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">generate-all-reports</text>
+    </g>
+    <!-- 4 -->
+    <g>
+      <rect x="733" y="120" width="190" height="212" rx="14" fill="#a78bfa" fill-opacity="0.06" stroke="#a78bfa" stroke-opacity="0.30"/>
+      <circle cx="761" cy="152" r="15" fill="#a78bfa" fill-opacity="0.16" stroke="#a78bfa" stroke-opacity="0.55"/>
+      <text x="761" y="157" fill="#c4b5fd" font-size="14" font-weight="700" text-anchor="middle">4</text>
+      <text x="787" y="157" fill="#e6edf3" font-size="17" font-weight="600">Observer</text>
+      <text x="755" y="196" fill="#9aa7b8" font-size="13.5">Lire les rapports</text>
+      <text x="755" y="216" fill="#9aa7b8" font-size="13.5">côte à côte avec la</text>
+      <text x="755" y="236" fill="#9aa7b8" font-size="13.5">même grille : lisible ?</text>
+      <text x="755" y="256" fill="#9aa7b8" font-size="13.5">interactif ? diffusable</text>
+      <text x="755" y="276" fill="#9aa7b8" font-size="13.5">hors du poste ?</text>
+      <text x="755" y="310" fill="#c4b5fd" font-size="12" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">reports-demo/</text>
+    </g>
+    <!-- 5 -->
+    <g>
+      <rect x="962" y="120" width="190" height="212" rx="14" fill="#c084fc" fill-opacity="0.06" stroke="#c084fc" stroke-opacity="0.30"/>
+      <circle cx="990" cy="152" r="15" fill="#c084fc" fill-opacity="0.16" stroke="#c084fc" stroke-opacity="0.55"/>
+      <text x="990" y="157" fill="#d8b4fe" font-size="14" font-weight="700" text-anchor="middle">5</text>
+      <text x="1016" y="157" fill="#e6edf3" font-size="17" font-weight="600">Trancher</text>
+      <text x="984" y="196" fill="#9aa7b8" font-size="13.5">Une ligne par outil</text>
+      <text x="984" y="216" fill="#9aa7b8" font-size="13.5">dans le tableau, et</text>
+      <text x="984" y="236" fill="#9aa7b8" font-size="13.5">la décision se lit</text>
+      <text x="984" y="256" fill="#9aa7b8" font-size="13.5">d'elle-même — avec</text>
+      <text x="984" y="276" fill="#9aa7b8" font-size="13.5">ses raisons.</text>
+      <text x="984" y="310" fill="#d8b4fe" font-size="12" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">COMPARISON.md</text>
+    </g>
+
+    <!-- arrows between steps -->
+    <g stroke="#64748b" stroke-width="2" fill="none" marker-end="url(#arrow)">
+      <path d="M246 226h22"/>
+      <path d="M474 226h23"/>
+      <path d="M703 226h22"/>
+      <path d="M931 226h23"/>
+    </g>
+
+    <!-- feedback loop 5 -> 2 -->
+    <path d="M1057 340C1057 398 800 400 430 400L382 400A11 11 0 0 1 371 389L371 346" fill="none" stroke="#a78bfa" stroke-opacity="0.55" stroke-width="2" stroke-dasharray="6 6" stroke-linecap="round" marker-end="url(#arrowLoop)"/>
+    <text x="714" y="428" fill="#a78bfa" font-size="13" text-anchor="middle">un outil de plus = un module de plus — la boucle se rejoue à l'identique</text>
+
+    <!-- ============ DELIVERABLES ============ -->
+    <line x1="48" y1="462" x2="1152" y2="462" stroke="#ffffff" stroke-opacity="0.08" stroke-width="1"/>
+    <text x="48" y="496" fill="#5eead4" font-size="12.5" font-weight="600" letter-spacing="2.4">CE QUE ÇA PRODUIT</text>
+
+    <g>
+      <rect x="48" y="514" width="352" height="86" rx="12" fill="#5eead4" fill-opacity="0.05" stroke="#5eead4" stroke-opacity="0.25"/>
+      <text x="72" y="548" fill="#e6edf3" font-size="15.5" font-weight="600">Un tableau comparatif</text>
+      <text x="72" y="574" fill="#8b949e" font-size="13">features · contraintes techniques · coûts</text>
+    </g>
+    <g>
+      <rect x="424" y="514" width="352" height="86" rx="12" fill="#5eead4" fill-opacity="0.05" stroke="#5eead4" stroke-opacity="0.25"/>
+      <text x="448" y="548" fill="#e6edf3" font-size="15.5" font-weight="600">Du code qui tourne</text>
+      <text x="448" y="574" fill="#8b949e" font-size="13">un module Maven par outil, exécutable</text>
+    </g>
+    <g>
+      <rect x="800" y="514" width="352" height="86" rx="12" fill="#5eead4" fill-opacity="0.05" stroke="#5eead4" stroke-opacity="0.25"/>
+      <text x="824" y="548" fill="#e6edf3" font-size="15.5" font-weight="600">Les rapports générés</text>
+      <text x="824" y="574" fill="#8b949e" font-size="13">les vraies sorties, avec leur grille de lecture</text>
+    </g>
+  </g>
+</svg>

@@ -1,0 +1,84 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 320" width="1280" height="320" role="img" aria-label="Runtime X-Ray — comparer des outils objectivement : tableau, code, rapports">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0d1117"/>
+      <stop offset="55%" stop-color="#111827"/>
+      <stop offset="100%" stop-color="#0b1220"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.82" cy="0.5" r="0.55">
+      <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.20"/>
+      <stop offset="100%" stop-color="#38bdf8" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="scan" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#38bdf8" stop-opacity="0"/>
+      <stop offset="50%" stop-color="#7dd3fc" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="#38bdf8" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="rule" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#38bdf8"/>
+      <stop offset="100%" stop-color="#a78bfa"/>
+    </linearGradient>
+    <pattern id="grid" width="32" height="32" patternUnits="userSpaceOnUse">
+      <path d="M32 0H0V32" fill="none" stroke="#ffffff" stroke-opacity="0.035" stroke-width="1"/>
+    </pattern>
+  </defs>
+
+  <rect width="1280" height="320" rx="16" fill="url(#bg)"/>
+  <rect width="1280" height="320" rx="16" fill="url(#grid)"/>
+  <rect width="1280" height="320" rx="16" fill="url(#glow)"/>
+
+  <!-- accent rule -->
+  <rect x="80" y="64" width="56" height="3" rx="1.5" fill="url(#rule)"/>
+
+  <g font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">
+    <text x="80" y="100" fill="#7dd3fc" font-size="13" font-weight="600" letter-spacing="3.2">MAVEN · JAVA 17 · MULTI-MODULE</text>
+    <text x="80" y="168" fill="#e6edf3" font-size="60" font-weight="700" letter-spacing="-1">Runtime X-Ray</text>
+    <text x="80" y="208" fill="#9aa7b8" font-size="21">Comparer des outils objectivement — tableau, code, rapports.</text>
+  </g>
+
+  <!-- path chips -->
+  <g font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13">
+    <g>
+      <rect x="80" y="238" width="158" height="30" rx="8" fill="#38bdf8" fill-opacity="0.10" stroke="#38bdf8" stroke-opacity="0.35"/>
+      <text x="96" y="258" fill="#7dd3fc">docs/COMPARISON.md</text>
+    </g>
+    <g>
+      <rect x="250" y="238" width="72" height="30" rx="8" fill="#a78bfa" fill-opacity="0.10" stroke="#a78bfa" stroke-opacity="0.35"/>
+      <text x="266" y="258" fill="#c4b5fd">tools/</text>
+    </g>
+    <g>
+      <rect x="334" y="238" width="128" height="30" rx="8" fill="#5eead4" fill-opacity="0.10" stroke="#5eead4" stroke-opacity="0.35"/>
+      <text x="350" y="258" fill="#5eead4">reports-demo/</text>
+    </g>
+  </g>
+
+  <!-- x-ray motif: a report seen through a scanner viewfinder -->
+  <g transform="translate(960 74)">
+    <rect x="0" y="0" width="180" height="172" rx="18" fill="#38bdf8" fill-opacity="0.05" stroke="#38bdf8" stroke-opacity="0.28"/>
+
+    <!-- inner "report" skeleton -->
+    <g stroke-linecap="round">
+      <rect x="28" y="30" width="76" height="7" rx="3.5" fill="#c4b5fd" fill-opacity="0.85"/>
+      <rect x="28" y="48" width="48" height="6" rx="3" fill="#8b949e" fill-opacity="0.7"/>
+      <!-- bars -->
+      <rect x="28" y="112" width="14" height="30" rx="3" fill="#38bdf8" fill-opacity="0.85"/>
+      <rect x="48" y="96" width="14" height="46" rx="3" fill="#7dd3fc" fill-opacity="0.85"/>
+      <rect x="68" y="122" width="14" height="20" rx="3" fill="#a78bfa" fill-opacity="0.85"/>
+      <rect x="88" y="104" width="14" height="38" rx="3" fill="#5eead4" fill-opacity="0.85"/>
+      <!-- gauge -->
+      <circle cx="134" cy="88" r="24" fill="none" stroke="#ffffff" stroke-opacity="0.14" stroke-width="7"/>
+      <path d="M134 64 A24 24 0 0 1 155 100" fill="none" stroke="#5eead4" stroke-width="7" stroke-linecap="round"/>
+    </g>
+
+    <!-- scan line -->
+    <rect x="8" y="85" width="164" height="2" fill="url(#scan)"/>
+
+    <!-- viewfinder brackets -->
+    <g fill="none" stroke="#7dd3fc" stroke-width="2.5" stroke-linecap="round">
+      <path d="M-10 26V4a10 10 0 0 1 10-10h22"/>
+      <path d="M158-6h22a10 10 0 0 1 10 10v22"/>
+      <path d="M190 146v22a10 10 0 0 1-10 10h-22"/>
+      <path d="M32 178H10a10 10 0 0 1-10-10v-22"/>
+    </g>
+  </g>
+</svg>

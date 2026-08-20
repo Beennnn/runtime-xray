@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/assets/banner.svg" alt="Runtime X-Ray — comparer des outils objectivement : tableau, code, rapports" width="100%">
+</p>
+
 # Runtime X-Ray
 
 Un cadre **générique et réutilisable** pour comparer objectivement plusieurs outils
@@ -13,6 +17,17 @@ Un cadre **générique et réutilisable** pour comparer objectivement plusieurs 
 Ce dépôt ne présuppose **aucun outil en particulier**. Il fournit la structure,
 les conventions et un module d'exemple ; à toi d'ajouter un module par outil que tu
 souhaites évaluer.
+
+## La démarche
+
+<p align="center">
+  <img src="docs/assets/approach.svg" alt="Les cinq étapes : cadrer, implémenter, exécuter, observer, trancher — et les trois livrables" width="100%">
+</p>
+
+Le principe tient en une phrase : **on ne compare que ce qu'on a fait tourner.** Chaque
+outil candidat obtient son propre module Maven, produit un vrai rapport, et n'entre dans
+le tableau comparatif qu'après. Ajouter un outil ne change pas la démarche — c'est un
+module de plus, et la boucle se rejoue à l'identique.
 
 ## Structure
 
