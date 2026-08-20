@@ -126,8 +126,8 @@ public final class RunSession {
         Files.writeString(watch, "watch " + rootClass + " * '{params, returnObj}' -n "
                 + config.watchCount + " -x 2\nstop\n", StandardCharsets.UTF_8);
         Path trace = runDir.resolve("arthas/trace.cmd");
-        Files.writeString(trace, "trace " + config.rootMethod.replace("::", " ") + " -n 2\n",
-                StandardCharsets.UTF_8);
+        Files.writeString(trace, "trace " + config.rootMethod.replace("::", " ")
+                + " -n " + config.traceCount + "\n", StandardCharsets.UTF_8);
 
         runAttached(pid, watch, runDir.resolve("arthas/watch-params.txt"), 20);
         runAttached(pid, trace, runDir.resolve("arthas/trace-calltree.txt"), 20);

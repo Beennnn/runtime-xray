@@ -101,6 +101,15 @@ def load_coverage(GEN):
 # reste surestimé, puisqu'on mesure aussi le travail de l'instrumentation.
 ARTHAS_FRAME = re.compile(r"arthas|SpyAPI|taobao", re.I)
 
+# Frames du JDK et de la machine virtuelle : personne n'ouvre java.util.ArrayList.iterator
+# pour comprendre son application. On les replie sur l'appelant applicatif, ce qui conserve
+# le temps mesuré tout en gardant l'arbre lisible.
+PLATFORM_FRAME = re.compile(
+    r"^(java|javax|jdk|sun|com/sun|kotlin|scala)/"
+    r"|^[A-Za-z_]+::"
+    r"|^(stub:|itable|vtable|call_stub)"
+    r"|^(C1|C2|Interpreter|Compile|CompileBroker)")
+
 def load_calltree(GEN, limit_depth=40):
     path = GEN / "async-profiler" / "profil.collapsed"
     if not path.exists():
@@ -113,8 +122,13 @@ def load_calltree(GEN, limit_depth=40):
             continue
         n = int(count)
         frames = stack.split(";")
-        kept = [f for f in frames if not ARTHAS_FRAME.search(f)]
-        if len(kept) != len(frames):
+        kept, folded_here = [], False
+        for f in frames:
+            if ARTHAS_FRAME.search(f):
+                folded_here = True
+            elif not PLATFORM_FRAME.search(f):
+                kept.append(f)
+        if folded_here:
             folded += n
         root["total"] += n
         node = root
@@ -153,16 +167,21 @@ def load_trace(GEN):
     if path is None:
         return {}
     text = re.sub(r"\x1b\[[0-9;]*m", "", path.read_text())
+    # Plusieurs invocations sont tracées et empruntent des branches différentes : la même
+    # ligne revient donc plusieurs fois. On agrège par appelé, en gardant le nombre
+    # d'observations et l'étendue des durées.
     per_line = {}
     for meta, cls, method, nr in CALL_RE.findall(text):
+        frame = cls.replace(".", "/") + "." + method
+        entry = per_line.setdefault(int(nr), {}).setdefault(frame, {
+            "callee": f"{cls.split('.')[-1]}.{method}()", "frame": frame, "n": 0})
+        entry["n"] += 1
         m = re.search(r"([\d.]+)ms", meta.replace(",", "."))
-        cost = f"{m.group(1)}ms" if m else ""
-        pct = re.match(r"\s*([\d.,]+)%", meta)
-        per_line.setdefault(int(nr), []).append(
-            {"callee": f"{cls.split('.')[-1]}.{method}()", "cost": cost,
-             "frame": cls.replace(".", "/") + "." + method,
-             "pct": pct.group(1) + "%" if pct else ""})
-    return per_line
+        if m:
+            ms = float(m.group(1))
+            entry["minMs"] = min(entry.get("minMs", ms), ms)
+            entry["maxMs"] = max(entry.get("maxMs", ms), ms)
+    return {nr: list(calls.values()) for nr, calls in per_line.items()}
 
 def load_values(GEN, limit_per_method=8):
     """Valeurs capturées, groupées PAR MÉTHODE.

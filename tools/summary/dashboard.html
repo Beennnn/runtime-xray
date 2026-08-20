@@ -36,12 +36,13 @@
      alors qu'ils n'étaient qu'informatifs. Leur explication vit dans la légende, en bas. */
   .applogo{display:flex;align-items:center}
   .stat{color:var(--muted);font-size:12.5px} .stat b{color:var(--text)}
-  .runpick{display:flex;align-items:center;gap:7px;padding:6px 8px;
-           border-bottom:1px solid var(--border);background:var(--accent-soft)}
+  .runpick{padding:7px 9px;border-bottom:1px solid var(--border);background:var(--accent-soft)}
   .runpick[hidden]{display:none}
   .runlabel{font-size:9.5px;letter-spacing:.7px;text-transform:uppercase;color:var(--accent);font-weight:700}
-  #runsel{flex:1;min-width:0;font:inherit;font-size:12.5px;font-weight:600;padding:3px 8px;
-          border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text)}
+  .runlabel{display:block;margin-bottom:4px}
+  #runboxes label{display:flex;align-items:center;gap:6px;font-size:12.5px;padding:2px 0;
+                  cursor:pointer;color:var(--text)}
+  #runboxes .cnt{color:var(--muted);font-size:11px;margin-left:auto}
   .spacer{margin-left:auto}
   .cleanbtn{display:inline-flex;align-items:center;gap:7px;font:inherit;font-size:12.5px;
             font-weight:600;padding:5px 12px;border-radius:20px;cursor:pointer;
@@ -97,6 +98,8 @@
           background:var(--bg);color:var(--text);font:inherit;font-size:12.5px;min-width:0}
   .unitbtn{font:inherit;font-size:11.5px;font-weight:700;width:38px;border-radius:6px;
            border:1px solid var(--border);background:var(--bg);color:var(--muted);cursor:pointer}
+  .unitbtn.wide{width:auto;padding:0 9px}
+  .unitbtn[aria-pressed="true"]{border-color:var(--fullbar);color:var(--fullbar)}
   .unitbtn:hover{border-color:var(--accent);color:var(--accent)}
   #scope{display:none;padding:7px 10px;border-bottom:1px solid var(--border);
          font-size:11.5px;color:var(--muted)}
@@ -121,6 +124,15 @@
   .pct2{color:var(--muted);font-weight:400;font-size:11px}
   .tagval{font-size:10px;border:1px solid var(--violet);color:var(--violet);
           border-radius:10px;padding:0 5px;vertical-align:1px}
+  .node.pkgnode{color:var(--muted)}
+  /* Quand on affiche tout le code, la couleur dit en un coup d'œil ce qui a servi. */
+  .node.live .lbl{color:var(--fullbar)}
+  .node.partial .lbl{color:var(--partbar)}
+  .node.dead .lbl{color:var(--missbar);opacity:.85}
+  .node.dead .pct{color:var(--missbar)}
+  .tagdead{font-size:10px;border:1px solid var(--missbar);color:var(--missbar);
+           border-radius:10px;padding:0 5px;vertical-align:1px}
+  .node.pkgnode .lbl{color:var(--text)}
   .node.callnode{color:var(--violet)}
   .callbadge{font-size:10px;border:1px solid var(--violet);color:var(--violet);
              border-radius:10px;padding:0 5px;vertical-align:1px}
@@ -296,19 +308,21 @@
 </div></div>
 <main>
   <div id="nav">
-    <span class="runpick" id="runpick" hidden>
-      <span class="runlabel">exécution</span>
-      <select id="runsel" title="Choisir l'exécution à regarder"></select>
-    </span>
+    <div class="runpick" id="runpick" hidden>
+      <span class="runlabel">exécutions affichées</span>
+      <div id="runboxes"></div>
+    </div>
     <div class="tabs">
-      <button id="tab-exec" class="on">Code exécuté</button>
-      <button id="tab-tree">Arbre d'appel</button>
-      <button id="tab-cls">Packages</button>
+      <button id="tab-tree" class="on" title="Ce que les exécutions ont fait : l'arbre d'appel, avec les exécutions pour racines">Exécutions</button>
+      <button id="tab-cls" title="Le code, par paquet et par classe, filtré sur ce qui a tourné">Code</button>
     </div>
     <div class="listbar">
       <input id="search" placeholder="Filtrer…" autocomplete="off">
       <button id="unitbtn" class="unitbtn" title="Basculer entre part du temps et temps estimé">%</button>
       <button id="pkgbtn" class="unitbtn" title="Afficher ou masquer les noms de paquet">pkg</button>
+      <button id="sortbtn" class="unitbtn" title="Trier par nom ou par temps passé">A→Z</button>
+      <button id="scopebtn" class="unitbtn wide" aria-pressed="true"
+              title="N'afficher que le code exécuté, ou tout le code du projet">exécuté</button>
     </div>
     <div id="scope"></div>
     <div class="list" id="list"></div>
@@ -347,12 +361,22 @@ let clean = true, mode = "exec", scopeFrame = null, selected = null, filter = ""
 // Les appels individuels viennent de l'inspection, et chacun est sélectionnable à part.
 // callIndex vaut null quand on regarde la méthode, ou l'indice de l'appel regardé.
 let callIndex = null;
+// Les listes « Code exécuté » et « Packages » peuvent réunir plusieurs exécutions : on
+// coche celles qu'on veut voir. La vue de code, elle, reste rattachée à UNE exécution —
+// couverture et valeurs n'ont de sens que dans celle où l'appel a eu lieu.
+let shownRuns = new Set(D.runs.map((_, i) => i));
 // Deux façons de lire le temps : la part du total, ou une durée estimée. La seconde parle
 // davantage à qui cherche « combien de temps », la première à qui compare deux méthodes.
 let unit = "pct";
 // Les noms de paquet complets rendent l'arbre illisible sur un projet à l'arborescence
 // profonde ; on peut les replier d'un bouton.
 let showPackages = true;
+// Par défaut, l'ordre alphabétique : on cherche une méthode qu'on connaît. Le classement
+// par temps répond à une autre question, et reste accessible d'un bouton.
+let sortBy = "nom";
+// Dans la vue par structure : ne montrer que ce qui a tourné, ou tout le code du projet.
+// Quand on montre tout, il faut distinguer d'un coup d'œil ce qui a servi de ce qui dort.
+let executedOnly = true;
 
 /** Nom d'une frame, avec ou sans son paquet, selon le réglage. */
 function frameLabel(frame){
@@ -397,13 +421,25 @@ function computeAgg(){
 let AGG = computeAgg();
 
 (function initRuns(){
-  const sel = document.getElementById("runsel");
-  if (D.runs.length < 2){ return; }
+  if (D.runs.length < 2) return;
   document.getElementById("runpick").hidden = false;
-  sel.innerHTML = D.runs.map((r,i) =>
-    '<option value="'+i+'">'+r.nom.replace(/</g,"&lt;")+'</option>').join("");
-  sel.onchange = () => switchRun(+sel.value, true);
+  const box = document.getElementById("runboxes");
+  box.innerHTML = D.runs.map((r, i) =>
+    '<label><input type="checkbox" data-run="' + i + '" checked> ' +
+    esc(r.nom) + '<span class="cnt">' + methodCount(r) + ' méthodes</span></label>').join("");
+  box.querySelectorAll("input[data-run]").forEach(cb => cb.onchange = () => {
+    const i = +cb.dataset.run;
+    cb.checked ? shownRuns.add(i) : shownRuns.delete(i);
+    if (!shownRuns.size){ shownRuns.add(i); cb.checked = true; return; }  // jamais rien à voir
+    mode === "cls" ? renderClasses() : renderTree();
+  });
 })();
+
+function methodCount(run){
+  let n = 0;
+  for (const info of Object.values(run.methods)) n += info.methods.filter(m => m.covered).length;
+  return n;
+}
 
 function switchRun(i, redraw){
   runIndex = i; R = D.runs[i]; AGG = computeAgg(); methodIndex = null;
@@ -411,7 +447,7 @@ function switchRun(i, redraw){
   const sel = document.getElementById("runsel");
   if (sel && !sel.hidden) sel.value = String(i);
   refreshHeader(); refreshLinks();
-  if (redraw){ selected = null; renderExec(); drawHome(); }
+  if (redraw){ selected = null; renderTree(); drawHome(); }
 }
 
 function refreshHeader(){
@@ -473,17 +509,34 @@ function framesUnder(target){
 }
 function executedMethods(){
   const scoped = scopeFrame ? framesUnder(scopeFrame) : null;
-  const out = [];
-  for (const [cls, info] of Object.entries(R.methods))
-    for (const m of info.methods){
-      if (!m.covered) continue;
-      const frame = cls + "." + m.name;
-      if (scoped && !(frame in scoped)) continue;
-      if (filter && !(dot(frame).toLowerCase().includes(filter))) continue;
-      out.push({frame, cls, name: m.name, line: m.line, source: info.source,
-                methods: info.methods, samples: AGG.weights[frame] || 0});
+  const merged = new Map();
+  for (const i of [...shownRuns].sort()){
+    const run = D.runs[i];
+    const weights = {};
+    (function walk(node){ for (const k of node.children){ weights[k.name] = (weights[k.name]||0) + k.total; walk(k); } })(run.calltree);
+    for (const [cls, info] of Object.entries(run.methods)){
+      for (const m of info.methods){
+        if (!m.covered) continue;
+        const frame = cls + "." + m.name;
+        if (scoped && !(frame in scoped)) continue;
+        if (filter && !(dot(frame).toLowerCase().includes(filter))) continue;
+        const seen = merged.get(frame);
+        const samples = weights[frame] || 0;
+        if (!seen){
+          merged.set(frame, {frame, cls, name: m.name, line: m.line, source: info.source,
+                             methods: info.methods, samples, runs: [i], bestRun: i, best: samples});
+        } else {
+          seen.samples += samples;
+          seen.runs.push(i);
+          if (samples > seen.best){ seen.best = samples; seen.bestRun = i; }
+        }
+      }
     }
-  return out.sort((a,b) => b.samples - a.samples || a.frame.localeCompare(b.frame));
+  }
+  const rows = [...merged.values()];
+  return sortBy === "temps"
+      ? rows.sort((a, b) => b.samples - a.samples || a.frame.localeCompare(b.frame))
+      : rows.sort((a, b) => dot(a.frame).localeCompare(dot(b.frame)));
 }
 
 /* ------------------------------------------------------------------ listes */
@@ -498,46 +551,21 @@ function renderScope(){
       esc(dot(scopeFrame).split(".").slice(-2).join(".")) + "</b>" +
       "<button id='unscope'>Toute l'exécution</button>";
   const b = document.getElementById("unscope");
-  if (b) b.onclick = () => { scopeFrame = null; renderExec(); };
+  if (b) b.onclick = () => { scopeFrame = null; mode === "cls" ? renderClasses() : renderTree(); };
+}
+function toggleRunPicker(show){
+  const p = document.getElementById("runpick");
+  if (p) p.hidden = !show || D.runs.length < 2;
 }
 function tab(id){ document.querySelectorAll(".tabs button").forEach(b=>b.classList.remove("on"));
                   document.getElementById(id).classList.add("on"); }
 
-function renderExec(){
-  mode = "exec"; tab("tab-exec"); renderScope();
-  const box = document.getElementById("list"); box.innerHTML = "";
-  const rows = executedMethods();
-  const total = rows.reduce((a,r)=>a+r.samples,0) || 1;
-  const head = document.createElement("div");
-  head.className = "grouphead";
-  head.textContent = rows.length + " méthode(s) — cliquer pour voir le code";
-  box.appendChild(head);
-  for (const r of rows){
-    const el = document.createElement("div");
-    el.className = "node";
-    const share = 100*r.samples/total;
-    const carriesValues = !!(R.values[r.frame] || []).length;
-    // Repère « mélangé » : dans quelles AUTRES exécutions cette méthode a-t-elle tourné ?
-    const alsoIn = D.runs.length > 1
-      ? D.runs.map((run, i) => i !== runIndex && ranIn(run, r.frame) ? i : -1).filter(i => i >= 0)
-      : [];
-    el.innerHTML = '<span class="pct">'+(share >= 0.05 ? share.toFixed(1)+"%" : "·")+
-                   '</span>'+esc(r.cls.split("/").pop()+"."+r.name)+
-                   (carriesValues ? ' <span class="tagval">valeurs</span>' : '') +
-                   (D.runs.length > 1
-                     ? (alsoIn.length
-                          ? ' <span class="tagrun" title="aussi exécutée dans : '+
-                            alsoIn.map(i => esc(D.runs[i].nom)).join(", ")+'">+'+alsoIn.length+'</span>'
-                          : ' <span class="tagonly" title="propre à cette exécution">seule ici</span>')
-                     : '');
-    el.title = dot(r.frame);
-    el.onclick = () => select(r, el);
-    box.appendChild(el);
-  }
-}
 
 function renderTree(){
   mode = "tree"; tab("tab-tree"); renderScope();
+  // L'arbre affiche TOUTES les exécutions comme racines : un sélecteur au-dessus ferait
+  // doublon. Il reste utile aux deux autres onglets, qui n'en montrent qu'une à la fois.
+  toggleRunPicker(false);
   const box = document.getElementById("list"); box.innerHTML = "";
 
   // Les exécutions sont les RACINES de l'arbre : une exécution est le contexte d'appel le
@@ -561,7 +589,8 @@ function renderTree(){
       if (open && !built){ level(holder, run.calltree, 1, total, idx); built = true; }
       holder.style.display = open ? "block" : "none";
       head.querySelector(".tw").textContent = open ? "▾" : "▸";
-      if (open && idx !== runIndex) switchRun(idx, false);
+      if (idx !== runIndex) switchRun(idx, true);
+      else if (!open) goHome();
     };
   });
 
@@ -573,9 +602,10 @@ function renderTree(){
       el.className = "node" + (known ? "" : " jdk");
       el.style.paddingLeft = (6 + depth * 11) + "px";
       const hasCalls = frameInfo(kid.name) && (R.values[kid.name] || []).length;
+      el.dataset.frame = kid.name;
       el.innerHTML = '<span class="tw">' + ((kid.children.length || hasCalls) ? "▸" : "") + '</span>' +
                      '<span class="pct">' + formatWeight(kid.total, total) + '</span>' +
-                     esc(frameLabel(kid.name)) +
+                     '<span class="lbl">' + esc(frameLabel(kid.name)) + '</span>' +
                      ((known && (R.values[kid.name] || []).length)
                         ? ' <span class="tagval">' + R.values[kid.name].length + ' appels</span>' : '');
       container.appendChild(el);
@@ -626,27 +656,143 @@ function renderTree(){
   }
 }
 
+/**
+ * Vue par structure : paquet › sous-paquet › classe › méthode, filtrée au code réellement
+ * exécuté par les exécutions cochées, en ordre alphabétique.
+ *
+ * <p>C'est le pendant de l'arbre d'appel : celui-ci suit l'exécution, celle-là suit
+ * l'organisation du code. On y cherche une classe qu'on connaît, plutôt qu'un chemin.
+ */
 function renderClasses(){
-  mode = "cls"; tab("tab-cls"); renderScope();
+  mode = "cls"; tab("tab-cls"); renderScope(); toggleRunPicker(true);
   const box = document.getElementById("list"); box.innerHTML = "";
-  for (const pkg of Object.keys(R.packages).sort()){
-    let classes = R.packages[pkg];
-    if (clean) classes = classes.filter(c => c.covered > 0);
-    if (filter) classes = classes.filter(c => (pkg+"."+c.simple).toLowerCase().includes(filter));
-    if (!classes.length) continue;
-    const head = document.createElement("div");
-    head.className = "grouphead"; head.textContent = dot(pkg);
-    box.appendChild(head);
-    for (const c of classes){
-      const el = document.createElement("div");
-      el.className = "node"; el.style.paddingLeft = "14px";
-      const pct = c.covered+c.missed ? Math.round(100*c.covered/(c.covered+c.missed)) : 0;
-      el.innerHTML = '<span class="pct">'+pct+'%</span>'+esc(c.simple);
-      el.onclick = () => select({frame:c.name, cls:c.name, name:null, line:0, source:c.source,
-                                 methods:(R.methods[c.name]||{}).methods||[]}, el);
-      box.appendChild(el);
+
+  // Union des exécutions cochées : une classe compte si elle a tourné dans l'une d'elles.
+  const classes = new Map();
+  for (const i of [...shownRuns].sort()){
+    const run = D.runs[i];
+    for (const [pkg, list] of Object.entries(run.packages)){
+      for (const c of list){
+        if (executedOnly && !c.covered) continue;
+        const seen = classes.get(c.name);
+        if (!seen) classes.set(c.name, {...c, pkg, runs: [i]});
+        else { seen.covered = Math.max(seen.covered, c.covered); seen.runs.push(i); }
+      }
     }
   }
+
+  // Arborescence des paquets, un niveau par segment.
+  const root = {children: new Map(), classes: []};
+  for (const c of [...classes.values()]){
+    if (filter && !(dot(c.name).toLowerCase().includes(filter))) continue;
+    let node = root;
+    for (const seg of c.pkg.split("/")){
+      if (!node.children.has(seg)) node.children.set(seg, {children: new Map(), classes: []});
+      node = node.children.get(seg);
+    }
+    node.classes.push(c);
+  }
+
+  // Un paquet qui ne contient qu'un sous-paquet est fusionné avec lui : « lab.sample.speed »
+  // se lit mieux que trois niveaux vides à déplier.
+  function compact(node, prefix){
+    while (node.classes.length === 0 && node.children.size === 1){
+      const [seg, only] = [...node.children.entries()][0];
+      prefix = prefix ? prefix + "." + seg : seg;
+      node = only;
+    }
+    return {node, prefix};
+  }
+
+  (function level(container, node, prefix, depth){
+    for (const [seg, child] of [...node.children.entries()].sort((a,b)=>a[0].localeCompare(b[0]))){
+      const merged = compact(child, seg);
+      const el = document.createElement("div");
+      el.className = "node pkgnode";
+      el.style.paddingLeft = (6 + depth*11) + "px";
+      const count = countClasses(merged.node);
+      el.innerHTML = '<span class="tw">▸</span><span class="lbl">' + esc(merged.prefix.toLowerCase()) +
+                     '</span> <span class="pct2">' + count +
+                     (count > 1 ? " classes" : " classe") + '</span>';
+      container.appendChild(el);
+      const holder = document.createElement("div");
+      holder.style.display = "none";
+      container.appendChild(holder);
+      let built = false;
+      el.onclick = () => {
+        const open = holder.style.display === "none";
+        if (open && !built){ level(holder, merged.node, merged.prefix, depth+1); built = true; }
+        holder.style.display = open ? "block" : "none";
+        el.querySelector(".tw").textContent = open ? "▾" : "▸";
+      };
+    }
+    for (const c of node.classes.sort((a,b)=>a.simple.localeCompare(b.simple))){
+      const el = document.createElement("div");
+      el.className = "node";
+      el.style.paddingLeft = (6 + depth*11) + "px";
+      const pct = c.covered + c.missed ? Math.round(100*c.covered/(c.covered+c.missed)) : 0;
+      if (!c.covered) el.classList.add("dead");
+      else if (pct < 100) el.classList.add("partial");
+      else el.classList.add("live");
+      el.innerHTML = '<span class="tw">▸</span><span class="pct">' + pct + '%</span>' +
+                     '<span class="lbl">' + esc(c.simple) + '</span>' +
+                     (!c.covered ? ' <span class="tagdead">jamais exécutée</span>' : '');
+      container.appendChild(el);
+      const holder = document.createElement("div");
+      holder.style.display = "none";
+      container.appendChild(holder);
+      let built = false;
+      el.onclick = () => {
+        const open = holder.style.display === "none";
+        if (open && !built){ methodsOf(holder, c, depth+1); built = true; }
+        holder.style.display = open ? "block" : "none";
+        el.querySelector(".tw").textContent = open ? "▾" : "▸";
+        openClass(c, el);
+      };
+    }
+  })(box, root, "", 0);
+
+  function countClasses(node){
+    let n = node.classes.length;
+    for (const child of node.children.values()) n += countClasses(child);
+    return n;
+  }
+}
+
+/** Les méthodes exécutées d'une classe, en ordre alphabétique. */
+function methodsOf(container, c, depth){
+  const run = D.runs.find((r, i) => shownRuns.has(i) && r.methods[c.name]) || R;
+  const info = run.methods[c.name];
+  if (!info) return;
+  const scoped = scopeFrame ? framesUnder(scopeFrame) : null;
+  const methods = info.methods
+      .filter(m => m.covered || !executedOnly)
+      .filter(m => !scoped || ((c.name + "." + m.name) in scoped))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  for (const m of methods){
+    const frame = c.name + "." + m.name;
+    const el = document.createElement("div");
+    el.className = "node " + (m.covered ? "live" : "dead");
+    el.style.paddingLeft = (6 + depth*11 + 12) + "px";
+    el.dataset.frame = frame;
+    const weight = AGG.weights[frame] || 0;
+    el.innerHTML = '<span class="pct">' + formatWeight(weight, R.calltree.total) + '</span>' +
+                   '<span class="lbl">' + esc(m.name) + '</span>' +
+                   ((R.values[frame] || []).length
+                      ? ' <span class="tagval">' + R.values[frame].length + ' appels</span>' : '');
+    el.onclick = e => {
+      e.stopPropagation();
+      const t = frameInfo(frame);
+      if (t) select(t, el);
+    };
+    container.appendChild(el);
+  }
+}
+
+function openClass(c, el){
+  const info = {frame: c.name, cls: c.name, name: null, line: 0, source: c.source,
+                methods: (R.methods[c.name] || {}).methods || []};
+  select(info, el);
 }
 
 /* ------------------------------------------- contextes d'appel d'une méthode
@@ -713,7 +859,6 @@ function renderContexts(info){
         e.preventDefault();
         switchRun(+a.dataset.run, false);
         const t = frameInfo(info.frame);
-        renderExec();
         if (t) select(t, null);
       });
     }
@@ -748,6 +893,15 @@ function buildMethodIndex(){
 }
 
 const RESERVED = new Set(["if","for","while","switch","catch","return","new","super","this","synchronized"]);
+
+/** Étendue des durées observées pour un appel : une valeur unique masquerait la dispersion,
+ *  qui est souvent l'information intéressante. */
+function durationRange(a){
+  if (a.cost) return a.cost;                       // ancien format, une seule mesure
+  if (a.minMs === undefined) return "";
+  const f = v => (v < 1 ? v.toFixed(3) : v.toFixed(2)) + "";
+  return a.minMs === a.maxMs ? f(a.minMs) + "ms" : f(a.minMs) + "–" + f(a.maxMs) + "ms";
+}
 
 function linkifyCalls(escapedLine, lineNumber){
   if (!methodIndex) methodIndex = buildMethodIndex();
@@ -794,6 +948,8 @@ function draw(){
 
   document.getElementById("crumb").innerHTML =
     '<a class="back" id="backHome" title="Revenir à la vue d\'ensemble">← Vue d\'ensemble</a> <span>›</span> ' +
+    (D.runs.length > 1 ? '<span class="pill" title="Exécution dont proviennent la couverture et les valeurs affichées">'
+        + esc(R.nom) + '</span> <span>›</span> ' : '') +
     '<span>'+esc(dot(info.cls).split(".").slice(0,-1).join("."))+' ›</span> <b>'+
     esc(info.cls.split("/").pop())+'.java</b>'+
     (info.name ? ' <span>›</span> <b>'+esc(info.name)+'()</b>' : '') +
@@ -831,7 +987,9 @@ function draw(){
     else if (traced && R.trace[nr])
       { const all = R.trace[nr];
         ann = "appelle " + all.slice(0,2).map(a =>
-          '<a href="#" data-f="'+esc(a.frame||"")+'">'+esc(a.callee)+'</a> <span class="dur">'+esc(a.cost)+'</span>').join(" · ")
+          '<a href="#" data-f="'+esc(a.frame||"")+'">'+esc(a.callee)+'</a>' +
+          (a.n > 1 ? ' <span class="dur">×'+a.n+'</span>' : '') +
+          ' <span class="dur">'+esc(durationRange(a))+'</span>').join(" · ")
           + (all.length > 2 ? ' <span style="opacity:.7">+'+(all.length-2)+'</span>' : ''); }
     html += '<tr class="'+cls+'" id="L'+nr+'"><td class="n">'+nr+'</td><td class="c">'+
             linkifyCalls(esc(text), nr)+'</td><td class="ann">'+ann+'</td></tr>';
@@ -855,7 +1013,7 @@ function draw(){
     if (f && frameInfo(f)) select(frameInfo(f), null);
   });
   const sb = document.getElementById("scopeBtn");
-  if (sb) sb.onclick = () => { scopeFrame = info.frame; renderExec(); };
+  if (sb) sb.onclick = () => { scopeFrame = info.frame; renderClasses(); };
   const lv = document.getElementById("lineValues");
   if (lv) lv.onclick = e => { e.preventDefault();
     document.getElementById("values").scrollIntoView({block:"nearest"}); };
@@ -1249,6 +1407,75 @@ function drawHome(){
   if (oh) oh.onclick = e => { e.preventDefault(); openHelp(); };
 }
 
+/** Revenir à la vue d'ensemble : on déselectionne la méthode en cours pour repartir du
+ *  contexte de l'exécution. */
+function goHome(){
+  selected = null; callIndex = null; ctxIndex = 0;
+  const c = document.getElementById("context");
+  if (c){ c.innerHTML = ""; c.style.display = "none"; }
+  document.querySelectorAll(".node.sel").forEach(n => n.classList.remove("sel"));
+  document.getElementById("code").scrollTop = 0;
+  drawHome();
+}
+
+function helpContent(){
+  return '<div class="home" style="padding:0;max-width:none">' +
+    '<h2>Le principe</h2>' +
+    '<p><b>L\'outil s\'intègre à une exécution Java, lance trois observateurs, et réunit ' +
+    'leurs sorties dans un rapport unique</b> — pour n\'avoir qu\'une page à lire plutôt que ' +
+    'trois formats à rapprocher.</p>' +
+    '<p>Ce qu\'on y voit d\'une exécution réelle : par où le code est passé, quel appel en a ' +
+    'déclenché un autre, et avec quelles valeurs.</p>' +
+    schema() +
+    '<ol>' +
+      '<li><b>À gauche, choisir un onglet</b>, puis cliquer sur une ligne.<br>' +
+
+        '<b>Exécutions</b> — l\'arbre d\'appel, avec <b>les exécutions pour racines</b> : une ' +
+        'exécution est le contexte d\'appel le plus haut qui soit. On suit ce qui s\'est passé.<br>' +
+        '<b>Code</b> — l\'organisation du code : paquet, sous-paquet, classe, méthode, filtrée ' +
+        'sur ce qui a réellement tourné. On cherche une classe qu\'on connaît. Le bouton ' +
+        '<i>exécuté / tout</i> montre aussi le code qui n\'a pas servi, en rouge.<br>' +
+        '<span style="opacity:.85">Le champ <i>Filtrer…</i> réduit la liste à mesure qu\'on ' +
+        'tape. Les deux boutons à côté basculent l\'affichage du temps (part ou durée) et ' +
+        'les noms de paquet.</span></li>' +
+      '<li><b>Au centre, le code s\'affiche</b>, colorié ligne par ligne : ' +
+        '<span style="background:var(--full);padding:1px 5px;border-radius:3px">exécutée</span> · ' +
+        '<span style="background:var(--part);padding:1px 5px;border-radius:3px">partiellement</span> · ' +
+        '<span style="background:var(--miss);padding:1px 5px;border-radius:3px">jamais exécutée</span>. ' +
+        'À droite de chaque ligne, les appels qui en partent et leur durée. <b>Dans le code, ' +
+        'les noms de méthodes de l\'application sont cliquables</b> : un clic entre dans ' +
+        'l\'appel. Un nom n\'est lié que si sa destination est certaine.</li>' +
+      '<li><b>Le bandeau du bas montre les valeurs.</b> Un nœud d\'arbre désigne un chemin ' +
+        'd\'appel, pas un appel : le profil est un agrégat. Les appels individuels viennent de ' +
+        'l\'inspection, et chacun est sélectionnable à part — dans l\'arbre sous la méthode, ' +
+        'ou depuis la liste du bandeau.</li>' +
+      '<li><b>Resserré sur la méthode</b> (bouton au-dessus du code, actif par défaut) : le ' +
+        'centre n\'affiche que la méthode choisie, sans ses lignes jamais exécutées. C\'est ce ' +
+        'qui garantit qu\'on regarde <b>une seule méthode à la fois</b>, même dans une classe ' +
+        'qui en contient plusieurs.</li>' +
+      '<li><b>Restreindre le périmètre</b> : sur une méthode ouverte, <i>« ne montrer que ce ' +
+        'qui tourne sous cette méthode »</i> ne garde dans la liste que le code appelé sous ' +
+        'elle — sans avoir à descendre d\'appel en appel.</li>' +
+      '<li><b>Le contexte d\'appel</b>, sous le fil d\'Ariane : par quels chemins la méthode a ' +
+        'été atteinte, et dans quelle proportion. S\'il y a plusieurs exécutions, celles où ' +
+        'la méthode a aussi tourné sont proposées.</li>' +
+      '<li><b>Revenir à la vue d\'ensemble</b> : le bouton en haut du code, le titre ' +
+        '<i>Runtime X-Ray</i>, ou la ligne d\'une exécution dans l\'arbre d\'appel.</li>' +
+    '</ol>' +
+    valuesHelp() +
+    '<h2>Comment ce rapport est produit</h2>' +
+    '<p>Trois outils libres et gratuits ont observé la même exécution :</p>' +
+    '<ul class="tools">' +
+      '<li><b>JaCoCo</b> — les lignes exécutées, et la liste exhaustive du code qui a tourné.</li>' +
+      '<li><b>async-profiler</b> — les mesures de temps et l\'arbre d\'appel.</li>' +
+      '<li><b>Arthas</b> — les valeurs des paramètres et les annotations d\'appel sur les lignes.</li>' +
+    '</ul>' +
+    '<p>Aucun ne fait les trois : c\'est leur combinaison qui répond. Tous fonctionnent sans ' +
+    'connexion Internet et sans licence.</p>' +
+    linksBlock() +
+    '</div>';
+}
+
 function openHelp(){
   document.getElementById("helpbody").innerHTML = helpContent();
   document.getElementById("help").hidden = false;
@@ -1261,8 +1488,29 @@ document.getElementById("pkgbtn").onclick = e => {
   const b = e.currentTarget;
   b.style.opacity = showPackages ? "1" : ".55";
   b.title = showPackages ? "Masquer les noms de paquet" : "Afficher les noms de paquet";
-  mode === "cls" ? renderClasses() : mode === "tree" ? renderTree() : renderExec();
-  reselect();
+  // Renommer sur place : reconstruire refermerait l'arbre qu'on vient d'ouvrir.
+  document.querySelectorAll("#list .node[data-frame]").forEach(el => {
+    const label = el.querySelector(".lbl");
+    if (label) label.textContent = frameLabel(el.dataset.frame);
+  });
+};
+document.getElementById("scopebtn").onclick = e => {
+  executedOnly = !executedOnly;
+  const b = e.currentTarget;
+  b.setAttribute("aria-pressed", String(executedOnly));
+  b.textContent = executedOnly ? "exécuté" : "tout";
+  b.title = executedOnly
+      ? "Seul le code exécuté est listé — cliquer pour voir tout le code"
+      : "Tout le code est listé, le non exécuté en rouge — cliquer pour n'afficher que l'exécuté";
+  if (mode === "cls"){ renderClasses(); reselect(); }
+};
+document.getElementById("sortbtn").onclick = e => {
+  sortBy = sortBy === "nom" ? "temps" : "nom";
+  e.currentTarget.textContent = sortBy === "nom" ? "A→Z" : "⏱";
+  e.currentTarget.title = sortBy === "nom"
+      ? "Trié par nom — cliquer pour trier par temps passé"
+      : "Trié par temps passé — cliquer pour trier par nom";
+  if (mode === "cls"){ renderClasses(); reselect(); }
 };
 document.getElementById("unitbtn").onclick = e => {
   unit = unit === "pct" ? "ms" : "pct";
@@ -1270,7 +1518,7 @@ document.getElementById("unitbtn").onclick = e => {
   e.currentTarget.title = unit === "pct"
     ? "Part du temps total — cliquer pour voir un temps estimé"
     : "Temps estimé (un relevé ≈ 1 ms de temps processeur) — cliquer pour voir la part";
-  mode === "cls" ? renderClasses() : mode === "tree" ? renderTree() : renderExec();
+  mode === "cls" ? renderClasses() : renderTree();
   reselect();
   if (selected) draw();
 };
@@ -1282,7 +1530,6 @@ document.getElementById("help").onclick = e => {
 document.addEventListener("keydown", e => {
   if (e.key === "Escape") document.getElementById("help").hidden = true;
 });
-document.getElementById("tab-exec").onclick = renderExec;
 document.getElementById("tab-tree").onclick = renderTree;
 document.getElementById("tab-cls").onclick  = renderClasses;
 function reselect(){
@@ -1301,13 +1548,13 @@ document.getElementById("clean").onclick = e => {
   b.lastChild.textContent = clean ? " Resserré sur la méthode" : " Fichier entier";
   b.title = clean ? "Resserré : seule la méthode sélectionnée est affichée, sans ses lignes mortes"
                   : "Fichier entier, y compris le code jamais exécuté";
-  mode === "cls" ? renderClasses() : mode === "tree" ? renderTree() : renderExec();
+  mode === "cls" ? renderClasses() : renderTree();
   reselect();
   draw();
 };
 document.getElementById("search").oninput = e => {
   filter = e.target.value.trim().toLowerCase();
-  mode === "cls" ? renderClasses() : mode === "tree" ? renderTree() : renderExec();
+  mode === "cls" ? renderClasses() : renderTree();
 };
 /* ------------------------------------------------------- panneaux ajustables */
 (function splitters(){
@@ -1356,7 +1603,7 @@ document.getElementById("search").oninput = e => {
   document.getElementById("htoggle").onclick = e => { e.stopPropagation(); toggleValues(); };
 })();
 
-renderExec();
+renderTree();
 drawHome();
 </script>
 </body>

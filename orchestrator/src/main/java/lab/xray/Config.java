@@ -30,6 +30,15 @@ public final class Config {
     public int attachAfterSeconds = 8;
     public int maxSeconds = 600;
     public int watchCount = 10;
+    /**
+     * Nombre d'invocations dont on trace l'arbre d'appel.
+     *
+     * <p>Chaque invocation empruntant des branches différentes, ce nombre détermine
+     * combien de lignes du code pourront être annotées : avec une seule, on ne voit que
+     * le chemin de cet appel-là. Le coût est faible — une invocation tracée fait quelques
+     * dizaines de lignes de sortie — donc la valeur par défaut est généreuse.
+     */
+    public int traceCount = 10;
     public boolean captureValues = true;
     /** Dépôt Maven d'où récupérer les composants. Un miroir interne suffit. */
     public String mavenRepo = "https://repo1.maven.org/maven2";
@@ -71,6 +80,7 @@ public final class Config {
             case "ATTACH_AFTER" -> attachAfterSeconds = parse(value, attachAfterSeconds);
             case "MAX_SECONDS" -> maxSeconds = parse(value, maxSeconds);
             case "WATCH_COUNT" -> watchCount = parse(value, watchCount);
+            case "TRACE_COUNT" -> traceCount = parse(value, traceCount);
             default -> { /* une clé inconnue n'est pas une erreur : le fichier peut servir à autre chose */ }
         }
     }
@@ -177,6 +187,11 @@ public final class Config {
 
             # Nombre d'appels dont on capture les valeurs, toutes méthodes de la classe racine.
             WATCH_COUNT=10
+
+            # Nombre d'invocations dont on trace l'arbre d'appel. Chaque invocation emprunte
+            # des branches différentes : plus il y en a, plus de lignes du code portent
+            # l'annotation « appelle … ». Le coût est faible.
+            TRACE_COUNT=10
 
             # Dépôt d'où récupérer les composants d'analyse, une seule fois. Sur un réseau
             # fermé, indiquer le miroir interne : c'est le seul réglage qui compte pour

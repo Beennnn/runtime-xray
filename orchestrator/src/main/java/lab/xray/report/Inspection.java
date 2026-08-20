@@ -162,7 +162,14 @@ public final class Inspection {
         return e;
     }
 
+    /**
+     * Plusieurs invocations sont tracées, et elles empruntent des branches différentes :
+     * c'est justement ce qui permet d'annoter davantage de lignes. En revanche, la même
+     * ligne revient alors plusieurs fois — on <b>agrège</b> par appelé plutôt que d'empiler
+     * des doublons, en conservant le nombre d'observations et l'étendue des durées.
+     */
     private void readTrace(Path file) throws IOException {
+        Map<String, Map<String, Map<String, Object>>> byLine = new LinkedHashMap<>();
         for (String line : clean(file)) {
             Matcher m = CALL.matcher(line);
             if (!m.find()) {
@@ -172,14 +179,30 @@ public final class Inspection {
             String cls = m.group(2);
             String method = m.group(3);
             String nr = m.group(4);
+            String frame = cls.replace('.', '/') + "." + method;
+
+            Map<String, Map<String, Object>> forLine =
+                    byLine.computeIfAbsent(nr, k -> new LinkedHashMap<>());
+            Map<String, Object> call = forLine.computeIfAbsent(frame, k -> {
+                Map<String, Object> fresh = new LinkedHashMap<>();
+                fresh.put("callee", cls.substring(cls.lastIndexOf('.') + 1) + "." + method + "()");
+                fresh.put("frame", frame);
+                fresh.put("n", 0);
+                return fresh;
+            });
+            call.put("n", ((Number) call.get("n")).intValue() + 1);
+
             Matcher d = DURATION.matcher(meta.replace(',', '.'));
-            Map<String, Object> call = new LinkedHashMap<>();
-            call.put("callee", cls.substring(cls.lastIndexOf('.') + 1) + "." + method + "()");
-            call.put("cost", d.find() ? d.group(1) + "ms" : "");
-            call.put("frame", cls.replace('.', '/') + "." + method);
-            @SuppressWarnings("unchecked")
-            List<Object> forLine = (List<Object>) trace.computeIfAbsent(nr, k -> new ArrayList<>());
-            forLine.add(call);
+            if (d.find()) {
+                double ms = Double.parseDouble(d.group(1));
+                double min = call.containsKey("minMs") ? (Double) call.get("minMs") : ms;
+                double max = call.containsKey("maxMs") ? (Double) call.get("maxMs") : ms;
+                call.put("minMs", Math.min(min, ms));
+                call.put("maxMs", Math.max(max, ms));
+            }
+        }
+        for (Map.Entry<String, Map<String, Map<String, Object>>> e : byLine.entrySet()) {
+            trace.put(e.getKey(), new ArrayList<Object>(e.getValue().values()));
         }
     }
 

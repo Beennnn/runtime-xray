@@ -1,0 +1,77 @@
+[INFO] JAVA_HOME: /Users/benoitbesson/.sdkman/candidates/java/25.0.2-tem
+[INFO] arthas-boot version: 4.3.4
+[INFO] arthas home: /Users/benoitbesson/.runtime-xray/arthas-4.3.4
+[INFO] Try to attach process 46177
+Picked up JAVA_TOOL_OPTIONS: 
+[INFO] Attach process 46177 success.
+[INFO] arthas-client connect 127.0.0.1 3658
+[1;31m  ,---.  [1;33m,------. [1;36m,--------.[1;35m,--.  ,--.[1;32m  ,---.  [1;34m ,---.  [0m                         
+[1;31m /  O  \ [1;33m|  .--. '[1;36m'--.  .--'[1;35m|  '--'  |[1;32m /  O  \ [1;34m'   .-' [0m                         
+[1;31m|  .-.  |[1;33m|  '--'.'[1;36m   |  |   [1;35m|  .--.  |[1;32m|  .-.  |[1;34m`.  `-. [0m                         
+[1;31m|  | |  |[1;33m|  |\  \ [1;36m   |  |   [1;35m|  |  |  |[1;32m|  | |  |[1;34m.-'    |[0m                         
+[1;31m`--' `--'[1;33m`--' '--'[1;36m   `--'   [1;35m`--'  `--'[1;32m`--' `--'[1;34m`-----' [0m                         
+
+wiki         https://arthas.aliyun.com/doc                                      
+tutorials    https://arthas.aliyun.com/doc/arthas-tutorials.html                
+version      4.3.4                                                              
+main_class   /Users/benoitbesson/dev/pro/runtime-xray/sample-app/target/sample- 
+             app.jar                                                            
+pid          46177                                                              
+start_time   2026-08-20 23:23:33.767                                            
+current_time 2026-08-20 23:23:47.189                                            
+
+[arthas@46177]$ trace lab.sample.terrain.Terrain slowdownFactor -n 10 | plaintex t
+Press Q or Ctrl+C to abort.
+Affect(class count: 1 , method count: 1) cost in 115 ms, listenerId: 1
+`---ts=2026-08-20 23:23:47.953;thread_name=main;id=3;is_daemon=false;priority=5;TCCL=jdk.internal.loader.ClassLoaders$AppClassLoader@14dad5dc
+    `---[1.1925ms] lab.sample.terrain.Terrain:slowdownFactor()
+        +---[22,39% min=0.0025ms,max=0.113041ms,total=0.26704ms,count=24] lab.sample.terrain.Elevation:gradePercentAt() #31
+        `---[14,82% min=0.0025ms,max=0.0565ms,total=0.176709ms,count=24] lab.sample.terrain.Terrain:penaltyFor() #32
+
+`---ts=2026-08-20 23:23:47.956;thread_name=main;id=3;is_daemon=false;priority=5;TCCL=jdk.internal.loader.ClassLoaders$AppClassLoader@14dad5dc
+    `---[0.321583ms] lab.sample.terrain.Terrain:slowdownFactor()
+        +---[20,94% min=0.002458ms,max=0.004834ms,total=0.067334ms,count=24] lab.sample.terrain.Elevation:gradePercentAt() #31
+        `---[20,34% min=0.002417ms,max=0.003333ms,total=0.065415ms,count=24] lab.sample.terrain.Terrain:penaltyFor() #32
+
+`---ts=2026-08-20 23:23:47.957;thread_name=main;id=3;is_daemon=false;priority=5;TCCL=jdk.internal.loader.ClassLoaders$AppClassLoader@14dad5dc
+    `---[0.320584ms] lab.sample.terrain.Terrain:slowdownFactor()
+        +---[21,39% min=0.002458ms,max=0.005875ms,total=0.068581ms,count=24] lab.sample.terrain.Elevation:gradePercentAt() #31
+        `---[21,00% min=0.002458ms,max=0.004667ms,total=0.067332ms,count=24] lab.sample.terrain.Terrain:penaltyFor() #32
+
+`---ts=2026-08-20 23:23:47.958;thread_name=main;id=3;is_daemon=false;priority=5;TCCL=jdk.internal.loader.ClassLoaders$AppClassLoader@14dad5dc
+    `---[0.295167ms] lab.sample.terrain.Terrain:slowdownFactor()
+        +---[21,54% min=0.002375ms,max=0.003708ms,total=0.063584ms,count=24] lab.sample.terrain.Elevation:gradePercentAt() #31
+        `---[21,32% min=0.002375ms,max=0.0035ms,total=0.062916ms,count=24] lab.sample.terrain.Terrain:penaltyFor() #32
+
+`---ts=2026-08-20 23:23:47.958;thread_name=main;id=3;is_daemon=false;priority=5;TCCL=jdk.internal.loader.ClassLoaders$AppClassLoader@14dad5dc
+    `---[0.290375ms] lab.sample.terrain.Terrain:slowdownFactor()
+        +---[20,91% min=0.002333ms,max=0.003208ms,total=0.060708ms,count=24] lab.sample.terrain.Elevation:gradePercentAt() #31
+        `---[20,61% min=0.002375ms,max=0.003083ms,total=0.059836ms,count=24] lab.sample.terrain.Terrain:penaltyFor() #32
+
+`---ts=2026-08-20 23:23:47.959;thread_name=main;id=3;is_daemon=false;priority=5;TCCL=jdk.internal.loader.ClassLoaders$AppClassLoader@14dad5dc
+    `---[0.382834ms] lab.sample.terrain.Terrain:slowdownFactor()
+        +---[19,87% min=0.002333ms,max=0.01075ms,total=0.076079ms,count=24] lab.sample.terrain.Elevation:gradePercentAt() #31
+        `---[19,51% min=0.002458ms,max=0.01075ms,total=0.074709ms,count=24] lab.sample.terrain.Terrain:penaltyFor() #32
+
+`---ts=2026-08-20 23:23:47.959;thread_name=main;id=3;is_daemon=false;priority=5;TCCL=jdk.internal.loader.ClassLoaders$AppClassLoader@14dad5dc
+    `---[0.285708ms] lab.sample.terrain.Terrain:slowdownFactor()
+        +---[20,08% min=0.002125ms,max=0.003625ms,total=0.057374ms,count=24] lab.sample.terrain.Elevation:gradePercentAt() #31
+        `---[24,57% min=0.002208ms,max=0.013209ms,total=0.070209ms,count=24] lab.sample.terrain.Terrain:penaltyFor() #32
+
+`---ts=2026-08-20 23:23:47.960;thread_name=main;id=3;is_daemon=false;priority=5;TCCL=jdk.internal.loader.ClassLoaders$AppClassLoader@14dad5dc
+    `---[0.283916ms] lab.sample.terrain.Terrain:slowdownFactor()
+        +---[13,46% min=0.001292ms,max=0.004333ms,total=0.038207ms,count=24] lab.sample.terrain.Elevation:gradePercentAt() #31
+        `---[14,46% min=0.001333ms,max=0.003708ms,total=0.041042ms,count=24] lab.sample.terrain.Terrain:penaltyFor() #32
+
+`---ts=2026-08-20 23:23:47.962;thread_name=main;id=3;is_daemon=false;priority=5;TCCL=jdk.internal.loader.ClassLoaders$AppClassLoader@14dad5dc
+    `---[0.21175ms] lab.sample.terrain.Terrain:slowdownFactor()
+        +---[15,90% min=0.001209ms,max=0.002542ms,total=0.033666ms,count=24] lab.sample.terrain.Elevation:gradePercentAt() #31
+        `---[16,35% min=0.001208ms,max=0.002083ms,total=0.034628ms,count=24] lab.sample.terrain.Terrain:penaltyFor() #32
+
+`---ts=2026-08-20 23:23:47.963;thread_name=main;id=3;is_daemon=false;priority=5;TCCL=jdk.internal.loader.ClassLoaders$AppClassLoader@14dad5dc
+    `---[0.184917ms] lab.sample.terrain.Terrain:slowdownFactor()
+        +---[34,27% min=0.001083ms,max=0.02125ms,total=0.063378ms,count=24] lab.sample.terrain.Elevation:gradePercentAt() #31
+        `---[16,04% min=0.001083ms,max=0.001833ms,total=0.029665ms,count=24] lab.sample.terrain.Terrain:penaltyFor() #32
+
+Command execution times exceed limit: 10, so command will exit. You can set it with -n option.
+[arthas@46177]$ 

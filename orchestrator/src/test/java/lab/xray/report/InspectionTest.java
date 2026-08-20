@@ -148,14 +148,37 @@ class InspectionTest {
         List<Object> line50 = (List<Object>) in.trace.get("50");
         Map<?, ?> call = (Map<?, ?>) line50.get(0);
         assertEquals("RoutePlanner.legMinutes()", call.get("callee"));
-        assertEquals("0.055583ms", call.get("cost"));
+        assertEquals(1, call.get("n"), "une seule observation ici");
+        assertEquals(0.055583, (Double) call.get("minMs"), 1e-9);
+        assertEquals(0.055583, (Double) call.get("maxMs"), 1e-9);
         assertEquals("lab/sample/RoutePlanner.legMinutes", call.get("frame"),
                 "la frame doit suivre la convention paquet/Classe.methode pour être cliquable");
     }
 
     @Test
-    @DisplayName("Plusieurs appels sur la même ligne sont tous conservés")
-    void keepsSeveralCallsOnOneLine(@TempDir Path dir) throws IOException {
+    @DisplayName("Plusieurs invocations d'une même ligne sont agrégées, pas empilées")
+    void aggregatesRepeatedObservations(@TempDir Path dir) throws IOException {
+        // Tracer plusieurs invocations est ce qui permet d'annoter plus de lignes — mais la
+        // même ligne revient alors autant de fois. Empiler les doublons rendrait l'annotation
+        // illisible ; on agrège, en gardant l'étendue des durées observées.
+        String trace = """
+                    +---[1,0% 0.010ms ] a.b.C:calculer() #12
+                    +---[1,0% 0.030ms ] a.b.C:calculer() #12
+                    +---[1,0% 0.020ms ] a.b.C:calculer() #12
+                """;
+        Inspection in = Inspection.read(dir.resolve("absent.txt"), write(dir, "t.txt", trace), 8);
+        @SuppressWarnings("unchecked")
+        List<Object> line = (List<Object>) in.trace.get("12");
+        assertEquals(1, line.size(), "une seule entrée pour un même appelé");
+        Map<?, ?> call = (Map<?, ?>) line.get(0);
+        assertEquals(3, call.get("n"), "les trois observations sont comptées");
+        assertEquals(0.010, (Double) call.get("minMs"), 1e-9);
+        assertEquals(0.030, (Double) call.get("maxMs"), 1e-9);
+    }
+
+    @Test
+    @DisplayName("Deux appelés différents sur la même ligne restent distincts")
+    void keepsDistinctCalleesOnOneLine(@TempDir Path dir) throws IOException {
         String trace = """
                     +---[1,0% 0.01ms ] a.b.C:un() #12
                     +---[2,0% 0.02ms ] a.b.D:deux() #12
