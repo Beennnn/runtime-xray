@@ -131,6 +131,11 @@
   .tagval{font-size:10px;border:1px solid var(--violet);color:var(--violet);
           border-radius:10px;padding:0 5px;vertical-align:1px}
   .node.pkgnode{color:var(--muted)}
+  .node.valnode{cursor:default;font-size:11.5px}
+  .node.valnode:hover{background:none}
+  .vkey{color:var(--muted)} .veq{color:var(--border);margin:0 4px}
+  .vval{color:var(--text)}
+  .node.vret .vkey{color:var(--violet)}
   /* Le ⊘ n'apparaît qu'au survol : présent en permanence sur des centaines de lignes,
      il ferait un mur de symboles et détournerait de la lecture. */
   .node .mask{float:right;margin-left:8px;opacity:0;color:var(--muted);font-size:12px;
@@ -188,7 +193,10 @@
           border-radius:10px;padding:0 5px;vertical-align:1px}
   .tagonly{font-size:10px;border:1px solid var(--partbar);color:var(--partbar);
            border-radius:10px;padding:0 5px;vertical-align:1px}
-  .node.sel .tagval{border-color:#fff;color:#fff}
+  /* Sélection = fond bleu plein. Les pastilles violettes y deviennent illisibles : sur
+     fond accentué, elles passent en blanc, comme le reste du texte de la ligne. */
+  .node.sel .tagval, .node.sel .callbadge{border-color:#fff;color:#fff;background:transparent}
+  .node.sel .vkey, .node.sel .vval, .node.sel .veq{color:#fff}
   .grouphead{padding:6px 8px 2px;color:var(--muted);font-size:11px;letter-spacing:.6px;text-transform:uppercase}
   #detail{display:flex;flex-direction:column;min-height:0}
   .crumb{padding:9px 16px;font-size:13px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
@@ -923,16 +931,24 @@ function renderTree(){
               leaf.className = "node callnode";
               leaf.style.paddingLeft = (6 + (depth + 1) * 11) + "px";
               const resume = (call.params || []).map(x => x.value).join(", ");
-              leaf.innerHTML = '<span class="tw"></span><span class="callbadge">appel ' +
+              leaf.innerHTML = '<span class="tw">▸</span><span class="callbadge">appel ' +
                                (k + 1) + '</span> ' + esc(resume.slice(0, 60));
               leaf.title = resume;
+              const fields = document.createElement("div");
+              fields.style.display = "none";
+              let filled = false;
               leaf.onclick = ev => {
                 ev.stopPropagation();
+                const open = fields.style.display === "none";
+                if (open && !filled){ fillValueNodes(fields, call, depth + 2); filled = true; }
+                fields.style.display = open ? "block" : "none";
+                leaf.querySelector(".tw").textContent = open ? "▾" : "▸";
                 if (idx !== runIndex) switchRun(idx, false);
                 const info2 = frameInfo(kid.name);
                 if (info2) select(info2, leaf, k);
               };
               holder.appendChild(leaf);
+              holder.appendChild(fields);
             });
             level(holder, kid, depth + 1, total, idx);
             built = true;
@@ -1289,6 +1305,65 @@ function select(info, el, call){
 function hasSource(frame){
   const info = frameInfo(frame);
   return !!(info && D.sources[info.source]);
+}
+
+/**
+ * Découpe une valeur composite en ses champs de premier niveau.
+ *
+ * <p>Une valeur relevée s'écrit {@code Trip[id=TRIP-164, mode=CAR, legs=[Leg[from=…]]]} :
+ * elle contient déjà ses propres clés, mais aplaties sur une ligne, illisibles dès qu'il y
+ * a plus de trois champs. Les redonner un par un rend la lecture immédiate.
+ *
+ * <p>Le découpage compte les crochets : couper naïvement sur les virgules casserait
+ * {@code legs=[Leg[…], Leg[…]]} en morceaux qui ne veulent plus rien dire.
+ */
+function splitFields(value){
+  const open = value.indexOf("[");
+  if (open < 0 || !value.endsWith("]")) return null;
+  const inner = value.slice(open + 1, -1);
+  const out = [];
+  let depth = 0, start = 0;
+  for (let i = 0; i < inner.length; i++){
+    const c = inner[i];
+    if (c === "[" || c === "(") depth++;
+    else if (c === "]" || c === ")") depth--;
+    else if (c === "," && depth === 0){ out.push(inner.slice(start, i)); start = i + 1; }
+  }
+  out.push(inner.slice(start));
+  const pairs = [];
+  for (const part of out){
+    const t = part.trim();
+    if (!t) continue;
+    const eq = t.indexOf("=");
+    // Sans '=' au premier niveau, ce n'est pas une structure à champs : on ne force pas.
+    if (eq <= 0) return null;
+    pairs.push({ cle: t.slice(0, eq).trim(), valeur: t.slice(eq + 1).trim() });
+  }
+  return pairs.length ? pairs : null;
+}
+
+/** Les valeurs d'un appel, un nœud par champ, sous le nœud de l'appel. */
+function fillValueNodes(container, call, depth){
+  const add = (cle, valeur, kind) => {
+    const el = document.createElement("div");
+    el.className = "node valnode" + (kind ? " " + kind : "");
+    el.style.paddingLeft = (6 + depth * 11) + "px";
+    el.innerHTML = '<span class="tw"></span><span class="vkey">' + esc(cle) +
+                   '</span><span class="veq">=</span><span class="vval">' + esc(valeur) + '</span>';
+    el.title = cle + " = " + valeur;
+    container.appendChild(el);
+  };
+  (call.params || []).forEach((p, i) => {
+    const fields = splitFields(p.value);
+    if (fields) {
+      // La valeur porte ses propres clés : ce sont elles qui parlent, pas « paramètre 2 ».
+      fields.forEach(f => add(f.cle, f.valeur));
+    } else {
+      add(p.type || ("paramètre " + (i + 1)), p.value);
+    }
+  });
+  if (call.retour) add("⟵ retour", call.retour.value, "vret");
+  if (!container.children.length) add("aucune valeur relevée", "", "vret");
 }
 
 function crumbPackage(cls){
