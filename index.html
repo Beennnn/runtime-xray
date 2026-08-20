@@ -98,11 +98,22 @@
     </a>
   </div>
 
+  <h2>Avec quelles valeurs — l'option</h2>
+  <div class="grid">
+    <a class="card" href="rapports/valeurs/watch-params.txt">
+      <div class="t">Valeurs des paramètres <span class="tag new">ARTHAS</span></div>
+      <div class="d">Les valeurs réellement passées : <code>@Mode[CAR] @Weather[SUNNY] @TimeOfDay[RUSH_HOUR]</code>, et la valeur de retour. Là où JFR n'affiche que la signature.</div>
+    </a>
+    <a class="card" href="rapports/valeurs/trace-calltree.txt">
+      <div class="t">L'arbre d'UN appel</div>
+      <div class="d">Le chemin réellement emprunté par un seul appel, avec les numéros de ligne — de quoi retourner droit dans le source.</div>
+    </a>
+  </div>
+
   <h2>Ce qu'aucun de ces rapports ne montre</h2>
   <ul class="plain">
-    <li><strong>Les valeurs passées en paramètres.</strong> JFR affiche la signature
-        <code>frequencyMinutes(Leg)</code> et la pile complète — jamais la valeur du
-        <code>Leg</code>. C'est le trou du socle gratuit, et il est vérifié, pas supposé.</li>
+    <li><strong>Les trois données dans un seul rapport.</strong> Aucun format ne les porte
+        ensemble : il faut au minimum un fichier de couverture et un fichier de profil.</li>
     <li><strong>Le masquage des lignes non exécutées à l'intérieur d'un fichier.</strong>
         La vue ciblée retire les classes entières non touchées ; réduire un fichier à ses
         seules lignes exécutées n'est proposé nativement par aucun outil recensé.</li>
