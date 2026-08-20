@@ -15,6 +15,7 @@ import java.util.zip.ZipOutputStream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -138,6 +139,32 @@ class ClassSourcesTest {
         assertEquals(Path.of("target/classes"), paths.get(0));
         assertEquals(Path.of("libs/noyau-1.4.jar"), paths.get(1));
         assertEquals(Path.of("build/classes/java/main"), paths.get(2));
+    }
+
+    @Test
+    @DisplayName("Le jar d'un « java -jar » est déduit tout seul")
+    void infersClassesFromJarLaunch(@TempDir Path dir) throws IOException {
+        Path jar = jarWith(dir, "appli.jar", "com/exemple/Main.class");
+        Config c = new Config();
+        c.javaCommand = "java -Xmx2g -jar " + jar + " --profil recette";
+        assertEquals(jar.toString(), c.inferredClasses(),
+                "le jar lancé EST le bytecode : le redemander serait un formulaire inutile");
+    }
+
+    @Test
+    @DisplayName("Rien n'est deviné quand la devinette serait fausse")
+    void refusesToGuessWhenUnsure(@TempDir Path dir) {
+        Config absent = new Config();
+        absent.javaCommand = "java -jar " + dir.resolve("jamais-construit.jar");
+        assertNull(absent.inferredClasses(), "un chemin faux ne se verrait qu'au rapport");
+
+        Config maven = new Config();
+        maven.javaCommand = "mvn -q exec:java -Dexec.mainClass=com.exemple.Main";
+        assertNull(maven.inferredClasses(), "là, seul l'utilisateur sait");
+
+        Config script = new Config();
+        script.javaCommand = "./demarrer-en-recette.sh";
+        assertNull(script.inferredClasses());
     }
 
     @Test

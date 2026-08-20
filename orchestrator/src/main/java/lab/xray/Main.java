@@ -115,7 +115,17 @@ public final class Main {
         require(!config.javaCommand.isBlank() || reportOnly, "--java est obligatoire");
         // Les classes servent à MESURER. Réassembler une vue depuis des mesures existantes
         // n'en a aucun besoin.
-        require(!config.classesDir.isBlank() || reportOnly, "--classes est obligatoire");
+        if (config.classesDir.isBlank() && !reportOnly) {
+            String devine = config.inferredClasses();
+            if (devine != null) {
+                config.classesDir = devine;
+                System.out.println("▶ Classes analysées : " + devine
+                        + " (déduit de la commande — préciser --classes pour en analyser d'autres)");
+            }
+        }
+        require(!config.classesDir.isBlank() || reportOnly,
+                "impossible de deviner où sont les classes : préciser --classes "
+                + "(un répertoire, le jar de l'application, ou une liste séparée par ':')");
         for (Path entry : config.classesPaths()) {
             require(Files.isDirectory(entry) || Files.isRegularFile(entry),
                     "classes introuvables : " + entry + " (ni répertoire, ni jar)");
@@ -418,7 +428,7 @@ public final class Main {
         System.out.println("Fichier de configuration généré : " + file);
         System.out.println();
         System.out.println("   Il contient les valeurs par défaut, des commentaires et des exemples.");
-        System.out.println("   Renseigner au minimum JAVA_CMD et CLASSES_DIR, puis relancer :");
+        System.out.println("   Renseigner au minimum JAVA_CMD, puis relancer :");
         System.out.println();
         System.out.println("     java -jar runtime-xray.jar " + relaunch);
     }

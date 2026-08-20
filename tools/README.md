@@ -1,5 +1,13 @@
 # Collecteurs, un dossier par outil
 
+> ⚠️ **Ce n'est pas l'outil.** L'outil est un jar :
+> `java -jar runtime-xray.jar` — voir [le mode d'emploi](../docs/outil/mode-emploi.md).
+>
+> Ces scripts sont la trace du **protocole manuel** de l'étude : ils montrent comment
+> chaque outil s'invoque *nativement*, sans orchestrateur autour. C'est ce qui rend les
+> affirmations du comparatif vérifiables une par une. Ils ne sont pas maintenus au niveau
+> de l'orchestrateur et ne produisent pas la même page.
+
 Chaque dossier contient la procédure **rejouable** d'un outil : un script qui produit une
 sortie réelle dans `reports-demo/generated/<outil>/`.
 

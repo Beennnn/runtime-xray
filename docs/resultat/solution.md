@@ -2,7 +2,7 @@
 
 > Sans licence · hors ligne · 0 € · vérifié de bout en bout sous Java 21.
 
-**[→ Voir la vue intégrée](https://beennnn.github.io/runtime-xray/vue-integree/)**
+**[→ Voir la vue intégrée](https://beennnn.github.io/runtime-xray/multi/)**
 
 ![Vue d'ensemble](../assets/shots/vue-accueil.png)
 
@@ -79,13 +79,13 @@ mesure aussi le travail de l'instrumentation. Les autres méthodes ne sont pas a
 ### Si les pourcentages doivent être justes
 
 ```bash
-TWO_RUNS=1 ./tools/run-all.sh
+java -jar runtime-xray.jar --java "…" --no-values      # mesure seule, profil propre
+java -jar runtime-xray.jar --java "…" --root "…"       # inspection, sur une seconde passe
 ```
 
-Deux exécutions du même scénario déterministe : mesure d'abord (JaCoCo + async-profiler
-seuls, profil propre), inspection ensuite (Arthas seul). Le script vérifie alors qu'aucune
-frame Arthas ne subsiste dans le profil. À réserver au jour où l'on s'intéressera vraiment
-aux temps.
+Deux exécutions du même scénario déterministe : la mesure d'abord, sans rien qui
+instrumente, puis l'inspection. À réserver au jour où l'on s'intéressera vraiment aux
+temps — c'est-à-dire pas dans le cadre de cette étude, où le temps n'est pas un critère.
 
 ### Ce qui a été vérifié, et qui n'allait pas de soi
 
@@ -100,9 +100,8 @@ classes qu'il observe, alors que JaCoCo les a déjà instrumentées — la couve
 
 ## La vue intégrée
 
-[`tools/summary/build-dashboard.py`](../../tools/summary/build-dashboard.py) produit **un
-fichier HTML autonome** (~275 Ko) à partir des sorties machine des trois outils. Il ne
-mesure rien : il assemble.
+L'orchestrateur produit **un fichier HTML autonome** à partir des sorties machine des trois
+outils. Il ne mesure rien : il assemble.
 
 | Source lue | Ce qu'elle alimente dans la vue |
 |---|---|

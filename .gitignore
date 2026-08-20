@@ -12,7 +12,7 @@ target/
 *.jfr
 
 # Clés de licence : jamais dans le dépôt (il est public, et git garde l'historique).
-# Elles vivent hors arborescence git — voir docs/EVALUATION-KEYS.md
+# Elles vivent hors arborescence git — voir docs/etude/cles-evaluation.md
 *.license
 *.key
 licence*.sh

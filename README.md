@@ -4,12 +4,12 @@
 
 # Runtime X-Ray
 
-**Voir ce qu'une exécution Java a réellement fait** : par où le code est passé, quel appel
-en a déclenché un autre, et avec quelles valeurs. Le tout dans **une page**, produite par
-une seule commande, sans licence et sans connexion pendant l'exécution.
+Voir ce qu'une exécution Java a réellement fait : par où le code est passé, quel appel en a
+déclenché un autre, et avec quelles valeurs. Le tout dans une seule page, produite par une
+seule commande, sans licence et sans connexion pendant l'exécution.
 
-**[▶ Voir un exemple](https://beennnn.github.io/runtime-xray/vue-integree/)** ·
-**[Le lancer sur votre projet](docs/outil/mode-emploi.md)** ·
+[▶ Voir un exemple](https://beennnn.github.io/runtime-xray/multi/) ·
+[Le lancer sur votre projet](docs/outil/mode-emploi.md) ·
 [Télécharger un rapport type](https://github.com/Beennnn/runtime-xray/releases/latest)
 
 ---
@@ -18,21 +18,21 @@ une seule commande, sans licence et sans connexion pendant l'exécution.
 
 ![La vue intégrée](docs/assets/shots/vue-methode-2.png)
 
-À gauche, **tout le code qui a tourné**, du plus coûteux au moins coûteux. Un clic ouvre la
+À gauche, tout le code qui a tourné, du plus coûteux au moins coûteux. Un clic ouvre la
 méthode : lignes exécutées en vert, jamais atteintes en rouge, et à droite de chaque ligne
-les appels qui en partent avec leur durée. En bas, **les valeurs reçues à chaque appel** et
-ce qui a été renvoyé.
+les appels qui en partent avec leur durée. En bas, les valeurs reçues à chaque appel et ce
+qui a été renvoyé.
 
 | | |
 |---|---|
-| **Par où le code est passé** | Ligne à ligne, y compris ce qui n'a **jamais** tourné |
-| **L'arbre d'appel** | Qui appelle qui, avec la part de temps de chaque branche |
-| **Les valeurs des paramètres** | Ce que la méthode a réellement reçu, appel par appel |
-| **Le contexte d'appel** | Par quels chemins une méthode a été atteinte, et dans quelle proportion |
+| Par où le code est passé | Ligne à ligne, y compris ce qui n'a jamais tourné |
+| L'arbre d'appel | Qui appelle qui, avec la part de temps de chaque branche |
+| Les valeurs des paramètres | Ce que la méthode a réellement reçu, appel par appel |
+| Le contexte d'appel | Par quels chemins une méthode a été atteinte, et dans quelle proportion |
 
-Trois portes d'entrée — **code exécuté**, **arbre d'appel**, **packages** — mènent au même
-code. Le mode *resserré*, actif par défaut, n'affiche que la méthode choisie, sans ses
-lignes mortes : on regarde **une méthode à la fois**.
+Deux portes d'entrée — le **code** rangé par paquet, et les **exécutions** vues comme un
+arbre d'appel — mènent au même endroit. Le mode *resserré*, actif par défaut, n'affiche que
+la méthode choisie, sans ses lignes mortes : on regarde une méthode à la fois.
 
 ## Le lancer sur votre projet
 
@@ -47,8 +47,10 @@ java -jar runtime-xray.jar \
   --sources src/main/java
 ```
 
-`--classes` accepte un répertoire **ou le jar livré**, y compris un jar « gras » dont les
-dépendances sont elles-mêmes des jar : elles sont analysées avec le reste.
+`--classes` est souvent inutile : quand la commande est un `java -jar …`, le jar *est* le
+bytecode et l'outil le déduit. On ne l'écrit que pour analyser autre chose — un répertoire
+de classes, ou le jar d'une dépendance en plus. Un jar « gras » dont les dépendances sont
+elles-mêmes des jar est analysé jusqu'au bout.
 
 ```bash
 open runtime-xray-out/index.html
@@ -57,15 +59,15 @@ open runtime-xray-out/index.html
 Fonctionne aussi avec `mvn exec:java`, `./gradlew run` ou un script maison. Le code analysé
 n'est pas modifié, le build non plus.
 
-**[→ Mode d'emploi complet](docs/outil/mode-emploi.md)** : paramètres, fichier de configuration, choix
-de la méthode racine, publication du résultat (GitLab, Confluence, un lien depuis GitHub).
+[→ Mode d'emploi complet](docs/outil/mode-emploi.md) : paramètres, fichier de
+configuration, choix de la méthode racine, publication du résultat.
 
 ## Ce que ça coûte
 
 | | |
 |---|---|
-| Licence | **aucune** — trois outils libres : JaCoCo, async-profiler, Arthas |
-| Connexion **pendant l'exécution** | **aucune** |
+| Licence | aucune — trois outils libres : JaCoCo, async-profiler, Arthas |
+| Connexion pendant l'exécution | aucune |
 | Connexion pour installer | une fois, depuis Internet ou un miroir Maven interne |
 | Java | 21 et 25 vérifiés — le résultat est identique |
 
@@ -77,16 +79,16 @@ mois dit de quoi il parle.
 
 Mettre en place des outils d'analyse dynamique pour un code Java permettant, à l'exécution
 d'une fonction, de récupérer les **lignes exécutées** et l'**arbre d'appel** — et, en
-option de seconde priorité, les **valeurs passées en paramètres**. But final : analyser,
+option de seconde priorité, les valeurs passées en paramètres. But final : analyser,
 restructurer et redéfinir le code à partir de ces données.
 
 | Contrainte | Conséquence |
 |---|---|
-| 🔌 **Exécution hors ligne** | Élimine tout SaaS. Le téléchargement préalable, lui, est libre |
-| ☕ **Java 21, Java 25 à évaluer** | Les deux sont vérifiés ; l'écart est [mesuré](docs/resultat/resultats.md#gains-dun-portage-vers-java-25) |
-| 🧭 **IntelliJ comme IDE cible** | Sans en dépendre : tout le monde n'a pas l'édition payante |
-| 👥 **Deux publics** | Un développeur dans son IDE, un non-technicien devant une page qu'on lui envoie |
-| 🎯 **Diagnostic ponctuel** | Pas de serveur à déployer ni à maintenir |
+| 🔌 Exécution hors ligne | Élimine tout SaaS. Le téléchargement préalable, lui, est libre |
+| ☕ Java 21, Java 25 à évaluer | Les deux sont vérifiés ; l'écart est [mesuré](docs/resultat/resultats.md#gains-dun-portage-vers-java-25) |
+| 🧭 IntelliJ comme IDE cible | Sans en dépendre : tout le monde n'a pas l'édition payante |
+| 👥 Deux publics | Un développeur dans son IDE, un non-technicien devant une page qu'on lui envoie |
+| 🎯 Diagnostic ponctuel | Pas de serveur à déployer ni à maintenir |
 
 **Hors critères** : le temps de calcul et la mémoire sont mesurés à titre indicatif.
 L'optimisation des performances est un sujet distinct, à traiter plus tard — une fois le

@@ -208,7 +208,7 @@ l'ensemble a été **vérifié de bout en bout** sur la même application, sous 
 **Coût : 0 €. Connexion : aucune. Licence : aucune.**
 
 Et les trois sorties s'assemblent dans **une seule page** —
-[la vue intégrée](https://beennnn.github.io/runtime-xray/vue-integree/) : on navigue dans
+[la vue intégrée](https://beennnn.github.io/runtime-xray/multi/) : on navigue dans
 l'arbre d'appel ou dans les classes, on choisit un point, et on voit d'un coup les lignes
 exécutées, les appels qui en partent avec leur coût, et les valeurs passées.
 
@@ -219,7 +219,7 @@ n'est pas corrompue — c'est vérifié automatiquement à chaque lancement. Seu
 Arthas capte l'essentiel des échantillons du profil, donc les **pourcentages de temps** sont
 surestimés sur la méthode qu'il observe. La vue replie ses frames pour restituer la forme de
 l'arbre et affiche la réserve en bandeau. Le temps n'étant pas un critère du projet, c'est
-un échange acceptable — et `TWO_RUNS=1` sépare les deux passes le jour où l'on voudra des
+un échange acceptable — et `--no-values` sépare les deux passes le jour où l'on voudra des
 temps justes. Détail dans [la solution](solution.md).
 
 ### Variante minimale, si Arthas pose problème

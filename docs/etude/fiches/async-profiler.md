@@ -52,7 +52,10 @@ Un **fichier HTML unique**, sans dépendance externe.
 ## Mise en œuvre
 
 ```bash
-brew install async-profiler       # une fois, hors ligne ensuite
+# Rien à installer : l'orchestrateur récupère le jar depuis Maven Central (ou le miroir
+# interne) et en extrait la bibliothèque native de la plateforme, une seule fois.
+# Pour une installation manuelle, la variable ASYNC_PROFILER_LIB pointe une copie à soi.
+brew install async-profiler       # facultatif, si l'on préfère l'installer soi-même
 ./tools/async-profiler/collect.sh
 ```
 

@@ -4,7 +4,7 @@
 > tout le code qui a tourné, son arbre d'appel et les valeurs passées à une méthode.
 > Aucune licence, aucune connexion pendant l'exécution.
 
-**[→ Exemple de sortie](https://beennnn.github.io/runtime-xray/vue-integree/)**
+**[→ Exemple de sortie](https://beennnn.github.io/runtime-xray/multi/)**
 
 ## Ce qu'il faut avoir
 
@@ -124,19 +124,36 @@ Aucune modification du code analysé, aucun changement dans le build.
 
 ## Les paramètres
 
+### Ce qu'on lui donne
+
 | Paramètre | Obligatoire | À quoi il sert |
 |---|:--:|---|
-| `JAVA_CMD` / `--java` | ✅ | La commande qui lance l'application |
-| `CLASSES_DIR` / `--classes` | ✅ | Les `.class` compilés — sans eux, pas de couverture |
-| `ROOT_METHOD` / `--root` | — | `paquet.Classe::methode` : **la fonction racine**, la seule dont les valeurs de paramètres seront capturées |
+| `JAVA_CMD` / `--java` | ✅ | La commande qui lance l'application, exécutée telle quelle |
+| `CLASSES_DIR` / `--classes` | souvent déduit | Le bytecode analysé : un répertoire, un jar, ou une liste séparée par `:`. **Déduit tout seul** quand `JAVA_CMD` est un `java -jar …` — le jar *est* le bytecode |
+| `ROOT_METHOD` / `--root` | — | `paquet.Classe::methode` : la fonction racine, la seule dont les valeurs de paramètres seront capturées |
 | `SOURCE_DIRS` / `--sources` | — | Les sources, pour afficher le code annoté. Plusieurs racines : séparées par `:` |
+| `HIDDEN_PACKAGES` / `--hide` | — | Paquets à taire comme le JDK, ex. `org.slf4j`. Leur temps revient à l'appelant |
 | `CLASS_FILTER` / `--filter` | — | Restreint les mesures de temps au code applicatif, ex. `com/exemple/*`. Déduit du paquet de `ROOT_METHOD` si absent |
 | `OUT_DIR` / `--out` | — | Répertoire de sortie (défaut `runtime-xray-out`) |
-| `RUN_NAME` / `--name` | — | Nom lisible de **cette** exécution. Les exécutions s'accumulent et la vue permet de passer de l'une à l'autre |
-| `ATTACH_AFTER` | — | Délai avant l'inspection des valeurs (défaut 8 s) |
-| `MAX_SECONDS` | — | Garde-fou si l'application ne se termine pas (défaut 600 s) |
-| `WATCH_COUNT` | — | Nombre d'appels dont on capture les valeurs (défaut 5) |
-| `--no-values` | — | Ne capture pas les valeurs : les pourcentages de temps deviennent exacts |
+| `RUN_NAME` / `--name` | — | Nom lisible de *cette* exécution. Elles s'accumulent, et la vue permet de passer de l'une à l'autre |
+
+### Les réglages de collecte
+
+| Paramètre | Défaut | À quoi il sert |
+|---|---|---|
+| `ATTACH_AFTER` / `--attach-after` | 8 s | Délai avant d'inspecter les valeurs. L'application doit avoir démarré **et** être encore en train de travailler |
+| `MAX_SECONDS` / `--max-seconds` | 600 s | Garde-fou : au-delà, l'exécution est interrompue et les rapports sont produits quand même |
+| `WATCH_COUNT` | 10 | Nombre d'appels dont on capture les valeurs |
+| `TRACE_COUNT` | 10 | Nombre d'invocations dont on trace le chemin d'appel. Plus il y en a, plus de lignes portent l'annotation « appelle … » |
+| `MAVEN_REPO` / `--repo` | Maven Central | D'où récupérer les composants d'analyse, une seule fois. **Le seul réglage qui compte pour un réseau fermé** : y mettre le miroir interne |
+| `--no-values` | — | Ne capture pas les valeurs. Les pourcentages de temps deviennent exacts, puisque plus rien n'instrumente |
+
+### Les deux modes qui ne mesurent rien
+
+| Option | Ce qu'elle fait |
+|---|---|
+| `--print-options` | Affiche la ligne d'agents à coller dans une commande Java **qu'on ne contrôle pas** — un service systemd, un conteneur, un serveur d'application. L'outil ne lance rien : il vous rend le texte |
+| `--report-only` | Réassemble la page depuis des exécutions déjà sur le disque, sans rien relancer. Utile après avoir renommé une exécution, ou changé les paquets masqués |
 
 ### Choisir la fonction racine
 
@@ -207,7 +224,7 @@ répertoire contenant un `run-context.json`. Rassembler des répertoires de sort
 sur des machines différentes dans un même dossier, puis :
 
 ```bash
-python3 tools/summary/build-dashboard.py --gen dossier-commun --sources src/main/java
+java -jar runtime-xray.jar --report-only --out dossier-commun --sources src/main/java
 ```
 
 ### Lire la vue

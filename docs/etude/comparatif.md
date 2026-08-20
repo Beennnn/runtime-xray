@@ -112,7 +112,7 @@ un développeur **comme** pour un non-développeur.
 |---|---|---|---|
 | **JFR** ✅ | Option JVM native | Un flag `-XX:StartFlightRecording` — **rien à installer**, c'est dans le JDK | ⭐ le plus simple |
 | **JaCoCo** ✅ | Agent JVM (`-javaagent`) | Récupérer un jar, lancer avec l'agent, générer le rapport (3 commandes, scriptées ici) | ⭐ simple |
-| **async-profiler** ✅ | Agent natif (`-agentpath`) | `brew install async-profiler`, puis un flag | ⭐ simple |
+| **async-profiler** ✅ | Agent natif (`-agentpath`) | Rien à installer : le jar Maven embarque la bibliothèque native | ⭐ simple |
 | **VisualVM** 📄 | Attachement au process | Lancer l'appli, ouvrir l'outil, cliquer sur le process | ⭐ simple, mais manuel |
 | **JProfiler** ⛔ | Agent + GUI | Installer, licencier, attacher — annoncé « zéro configuration » | à vérifier en essai |
 | **Arthas** 🚧 | Attachement au process | Un jar, puis des commandes interactives | simple si le réseau le permet |
