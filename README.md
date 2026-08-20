@@ -1,4 +1,4 @@
-# Tool Comparison Lab
+# Runtime X-Ray
 
 Un cadre **générique et réutilisable** pour comparer objectivement plusieurs outils
 (bibliothèques, frameworks, services...) sur la base de trois livrables :
@@ -17,7 +17,7 @@ souhaites évaluer.
 ## Structure
 
 ```
-tool-comparison-lab/
+runtime-xray/
 ├── docs/
 │   ├── METHODOLOGY.md      # comment mener une évaluation cohérente
 │   └── COMPARISON.md       # tableau comparatif (features / contraintes / coûts)
