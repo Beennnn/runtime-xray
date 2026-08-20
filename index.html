@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Runtime X-Ray — rapports d'exécution</title>
+<style>
+  :root{
+    --bg:#ffffff; --panel:#f6f8fa; --border:#d0d7de; --text:#1f2328; --muted:#59636e;
+    --accent:#0969da; --accent-soft:#ddf4ff; --green:#1a7f37; --red:#cf222e; --violet:#8250df;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#0d1117; --panel:#151b23; --border:#3d444d; --text:#e6edf3; --muted:#9198a1;
+      --accent:#4493f8; --accent-soft:#121d2f; --green:#3fb950; --red:#f85149; --violet:#ab7df8;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#0d1117; --panel:#151b23; --border:#3d444d; --text:#e6edf3; --muted:#9198a1;
+    --accent:#4493f8; --accent-soft:#121d2f; --green:#3fb950; --red:#f85149; --violet:#ab7df8;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);
+       font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+  .wrap{max-width:960px;margin:0 auto;padding:48px 20px 80px}
+  h1{font-size:32px;margin:0 0 4px;letter-spacing:-.5px}
+  .sub{color:var(--muted);margin:0 0 8px;font-size:17px}
+  .meta{color:var(--muted);font-size:13.5px;margin:0 0 36px}
+  code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.9em;
+       background:var(--panel);border:1px solid var(--border);border-radius:5px;padding:1px 5px}
+  h2{font-size:15px;text-transform:uppercase;letter-spacing:1.6px;color:var(--muted);
+     margin:40px 0 14px;font-weight:600}
+  .grid{display:grid;grid-template-columns:1fr;gap:14px}
+  @media(min-width:720px){.grid{grid-template-columns:1fr 1fr}}
+  a.card{display:block;text-decoration:none;color:inherit;background:var(--panel);
+         border:1px solid var(--border);border-radius:10px;padding:18px 20px;transition:.15s}
+  a.card:hover{border-color:var(--accent);background:var(--accent-soft)}
+  a.card .t{font-weight:600;font-size:17px;margin-bottom:5px}
+  a.card .d{color:var(--muted);font-size:14px;line-height:1.5}
+  .tag{display:inline-block;font-size:11.5px;font-weight:600;letter-spacing:.4px;
+       padding:2px 8px;border-radius:20px;margin-left:8px;vertical-align:2px}
+  .tag.ok{color:var(--green);border:1px solid var(--green)}
+  .tag.new{color:var(--violet);border:1px solid var(--violet)}
+  ul.plain{padding-left:20px;color:var(--muted);font-size:14.5px}
+  ul.plain li{margin:5px 0}
+  .note{background:var(--panel);border:1px solid var(--border);border-left:3px solid var(--accent);
+        border-radius:6px;padding:14px 18px;color:var(--muted);font-size:14.5px;margin:14px 0 0}
+  footer{margin-top:52px;padding-top:20px;border-top:1px solid var(--border);
+         color:var(--muted);font-size:13.5px}
+  footer a{color:var(--accent)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Runtime X-Ray</h1>
+  <p class="sub">Rapports produits par l'analyse dynamique d'une exécution réelle.</p>
+  <p class="meta">Programme analysé : un calculateur de temps de trajet (22 classes, 8 packages).
+     Exécution de ~10 s, 16 000 000 d'appels de la fonction analysée, sous Java 21.
+     Tout ce qui suit est une sortie brute d'outil, pas une capture d'écran.</p>
+
+  <h2>Par où le code est passé</h2>
+  <div class="grid">
+    <a class="card" href="rapports/couverture-ciblee/index.html">
+      <div class="t">Vue nettoyée <span class="tag new">CIBLÉE</span></div>
+      <div class="d">Uniquement les classes réellement exécutées. Le code jamais atteint est retiré du rapport — on ne navigue que dans ce qui a servi.</div>
+    </a>
+    <a class="card" href="rapports/couverture/index.html">
+      <div class="t">Couverture complète <span class="tag ok">JaCoCo</span></div>
+      <div class="d">Tout le code, exécuté ou non. Source annotée ligne à ligne : vert exécuté, rouge jamais atteint, jaune branche partielle.</div>
+    </a>
+  </div>
+  <div class="note">Descendre jusqu'au code : cliquer un package, puis une classe.
+    Le fichier <code>WeatherPenalty.java</code> du package <code>lab.sample.weather</code>
+    montre le cas le plus parlant — une branche rouge à l'intérieur d'une méthode exécutée
+    des millions de fois.</div>
+
+  <h2>L'arbre d'appel</h2>
+  <div class="grid">
+    <a class="card" href="rapports/profil/tree.html">
+      <div class="t">Arbre d'appel <span class="tag ok">async-profiler</span></div>
+      <div class="d">Dépliable et cherchable, avec le pourcentage de temps par branche. Bouton « Expand All » pour tout ouvrir.</div>
+    </a>
+    <a class="card" href="rapports/profil/flamegraph.html">
+      <div class="t">Flame graph</div>
+      <div class="d">La largeur d'une barre est le temps passé. Cliquer pour zoomer sur une branche, taper pour chercher une méthode.</div>
+    </a>
+  </div>
+
+  <h2>Java 21 contre Java 25 — la mesure</h2>
+  <div class="grid">
+    <a class="card" href="rapports/jfr/java21-summary.txt">
+      <div class="t">Java 21 — échantillonnage</div>
+      <div class="d">Seulement <code>jdk.ExecutionSample</code> : quelques centaines de photos de la pile, dont on infère où le temps est passé.</div>
+    </a>
+    <a class="card" href="rapports/jfr/java25-method-timing.txt">
+      <div class="t">Java 25 — comptage exact</div>
+      <div class="d">16 000 000 d'invocations comptées, min/moyenne/max par appel. Et 594 877 piles d'appel exactes (<a href="rapports/jfr/java25-method-trace-extrait.txt">extrait</a>).</div>
+    </a>
+  </div>
+
+  <h2>Ce qu'aucun de ces rapports ne montre</h2>
+  <ul class="plain">
+    <li><strong>Les valeurs passées en paramètres.</strong> JFR affiche la signature
+        <code>frequencyMinutes(Leg)</code> et la pile complète — jamais la valeur du
+        <code>Leg</code>. C'est le trou du socle gratuit, et il est vérifié, pas supposé.</li>
+    <li><strong>Le masquage des lignes non exécutées à l'intérieur d'un fichier.</strong>
+        La vue ciblée retire les classes entières non touchées ; réduire un fichier à ses
+        seules lignes exécutées n'est proposé nativement par aucun outil recensé.</li>
+  </ul>
+
+  <footer>
+    Ces pages sont générées par les scripts du dépôt
+    (<code>tools/&lt;outil&gt;/collect.sh</code>) à partir d'une exécution réelle.
+    <br>Dépôt, méthode et arbitrages : <a href="https://github.com/Beennnn/runtime-xray">github.com/Beennnn/runtime-xray</a>
+  </footer>
+</div>
+</body>
+</html>
