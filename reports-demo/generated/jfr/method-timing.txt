@@ -1,0 +1,9 @@
+jdk.MethodTiming {
+  startTime = 19:36:00.394 (2026-08-20)
+  method = lab.sample.RoutePlanner.travelTimeMinutes(Trip)
+  invocations = 16000000
+  minimum = 0,000084 ms
+  average = 0,000836 ms
+  maximum = 29,1 ms
+}
+

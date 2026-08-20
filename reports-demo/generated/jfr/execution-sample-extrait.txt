@@ -1,0 +1,200 @@
+jdk.ExecutionSample {
+  startTime = 19:35:58.451 (2026-08-20)
+  sampledThread = "main" (javaThreadId = 3)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    java.lang.StringLatin1.hashCode(byte[]) line: 195
+    java.lang.String.hashCode() line: 2432
+    lab.sample.terrain.Elevation.gradePercentAt(Leg, int) line: 19
+    lab.sample.terrain.Terrain.slowdownFactor(Leg, Mode) line: 31
+    lab.sample.RoutePlanner.legMinutes(Leg, SpeedModel, Mode) line: 75
+    ...
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 19:35:58.464 (2026-08-20)
+  sampledThread = "main" (javaThreadId = 3)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    lab.sample.Main.main(String[]) line: 55
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 19:35:58.474 (2026-08-20)
+  sampledThread = "main" (javaThreadId = 3)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    jdk.jfr.internal.tracing.TimedMethod.updateMinMax(long) line: 62
+    jdk.jfr.internal.tracing.PlatformTracer.addTiming(long, long) line: 155
+    jdk.jfr.tracing.MethodTracer.timing(long, long) line: 89
+    lab.sample.RoutePlanner.travelTimeMinutes(Trip) line: 69
+    lab.sample.Main.main(String[]) line: 55
+    ...
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 19:35:58.497 (2026-08-20)
+  sampledThread = "main" (javaThreadId = 3)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    lab.sample.RoutePlanner.travelTimeMinutes(Trip) line: 49
+    lab.sample.Main.main(String[]) line: 55
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 19:35:58.532 (2026-08-20)
+  sampledThread = "main" (javaThreadId = 3)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    java.lang.StringLatin1.hashCode(byte[]) line: 195
+    java.lang.String.hashCode() line: 2432
+    lab.sample.terrain.Elevation.gradePercentAt(Leg, int) line: 19
+    lab.sample.terrain.Terrain.slowdownFactor(Leg, Mode) line: 31
+    lab.sample.RoutePlanner.legMinutes(Leg, SpeedModel, Mode) line: 75
+    ...
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 19:35:58.545 (2026-08-20)
+  sampledThread = "main" (javaThreadId = 3)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    lab.sample.Main.main(String[]) line: 55
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 19:35:58.555 (2026-08-20)
+  sampledThread = "main" (javaThreadId = 3)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    lab.sample.RoutePlanner.travelTimeMinutes(Trip) line: 49
+    lab.sample.Main.main(String[]) line: 55
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 19:35:58.567 (2026-08-20)
+  sampledThread = "main" (javaThreadId = 3)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    lab.sample.RoutePlanner.travelTimeMinutes(Trip) line: 49
+    lab.sample.Main.main(String[]) line: 55
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 19:35:58.578 (2026-08-20)
+  sampledThread = "main" (javaThreadId = 3)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    lab.sample.RoutePlanner.travelTimeMinutes(Trip) line: 49
+    lab.sample.Main.main(String[]) line: 55
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 19:35:58.591 (2026-08-20)
+  sampledThread = "main" (javaThreadId = 3)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    java.lang.StringLatin1.hashCode(byte[]) line: 195
+    java.lang.String.hashCode() line: 2432
+    lab.sample.terrain.Elevation.gradePercentAt(Leg, int) line: 19
+    lab.sample.terrain.Terrain.slowdownFactor(Leg, Mode) line: 31
+    lab.sample.RoutePlanner.legMinutes(Leg, SpeedModel, Mode) line: 75
+    ...
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 19:35:58.602 (2026-08-20)
+  sampledThread = "main" (javaThreadId = 3)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    jdk.jfr.internal.tracing.TimedMethod.updateMinMax(long) line: 62
+    jdk.jfr.internal.tracing.PlatformTracer.addTiming(long, long) line: 155
+    jdk.jfr.tracing.MethodTracer.timing(long, long) line: 89
+    lab.sample.RoutePlanner.travelTimeMinutes(Trip) line: 69
+    lab.sample.Main.main(String[]) line: 55
+    ...
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 19:35:58.615 (2026-08-20)
+  sampledThread = "main" (javaThreadId = 3)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    lab.sample.RoutePlanner.travelTimeMinutes(Trip) line: 49
+    lab.sample.Main.main(String[]) line: 55
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 19:35:58.625 (2026-08-20)
+  sampledThread = "main" (javaThreadId = 3)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    lab.sample.RoutePlanner.travelTimeMinutes(Trip) line: 49
+    lab.sample.Main.main(String[]) line: 55
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 19:35:58.647 (2026-08-20)
+  sampledThread = "main" (javaThreadId = 3)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    lab.sample.RoutePlanner.travelTimeMinutes(Trip) line: 49
+    lab.sample.Main.main(String[]) line: 55
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 19:35:58.658 (2026-08-20)
+  sampledThread = "main" (javaThreadId = 3)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    lab.sample.RoutePlanner.travelTimeMinutes(Trip) line: 49
+    lab.sample.Main.main(String[]) line: 55
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 19:35:58.669 (2026-08-20)
+  sampledThread = "main" (javaThreadId = 3)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    lab.sample.RoutePlanner.travelTimeMinutes(Trip) line: 49
+    lab.sample.Main.main(String[]) line: 55
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 19:35:58.680 (2026-08-20)
+  sampledThread = "main" (javaThreadId = 3)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    jdk.jfr.internal.event.EventWriter.putUncheckedLong(long) line: 331
+    jdk.jfr.internal.event.EventWriter.putLong(long) line: 121
+    jdk.jfr.events.MethodTraceEvent.commit(long, long, long)
+    jdk.jfr.tracing.MethodTracer.trace(long, long) line: 81
+    lab.sample.transfer.Timetable.frequencyMinutes(Leg) line: 29
+    ...
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 19:35:58.712 (2026-08-20)
+  sampledThread = "main" (javaThreadId = 3)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    java.lang.StringLatin1.hashCode(byte[]) line: 195
+    java.lang.String.hashCode() line: 2432
+    lab.sample.terrain.Elevation.gradePercentAt(Leg, int) line: 19

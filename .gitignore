@@ -5,3 +5,8 @@ target/
 *.iml
 .vscode/
 .DS_Store
+
+# Enregistrements JFR : binaires, ~10 Mo pour 10 s d'exécution, illisibles hors JMC,
+# et leur contenu aléatoire déclenche le scanner de secrets de GitHub (faux positif
+# « Grafana token » constaté le 2026-08-20). Les extraits texte, eux, sont versionnés.
+*.jfr

@@ -22,8 +22,8 @@
   </properties>
 
   <modules>
-    <module>tools/example-tool</module>
-    <!-- Ajouter ici chaque nouveau module d'outil, ex: <module>tools/mon-outil</module> -->
+    <module>sample-app</module>
+    <!-- Les outils ne sont PAS des modules Maven : voir tools/README.md -->
   </modules>
 
 </project>
