@@ -21,9 +21,24 @@
     tourne, et une machine qui exécute du Java a un JDK, pas forcément bash ni Python.
   </description>
 
+  <dependencies>
+    <!-- Portée test uniquement : le jar livré reste sans aucune dépendance. -->
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <version>5.11.4</version>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
   <build>
     <finalName>runtime-xray</finalName>
     <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>3.5.2</version>
+      </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-jar-plugin</artifactId>

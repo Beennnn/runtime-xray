@@ -332,6 +332,9 @@ def load_run(base, label, overrides):
         "methods": methods,
         "packages": packages,
         "calltree": calltree,
+        # Un relevé toutes les millisecondes : c'est ce qui permet de convertir un nombre
+        # d'échantillons en durée estimée.
+        "intervalMs": 1,
         "profileNote": note,
         "trace": {str(k): v for k, v in load_trace(base).items()},
         "values": values,
