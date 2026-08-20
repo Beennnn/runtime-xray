@@ -1,126 +1,120 @@
 <p align="center">
-  <img src="docs/assets/banner.svg" alt="Runtime X-Ray — analyse dynamique Java : lignes exécutées, arbre d'appel, valeurs des paramètres" width="100%">
+  <img src="docs/assets/banner.svg" alt="Runtime X-Ray — obtenir des rapports par analyse dynamique de code Java" width="100%">
 </p>
 
-# Runtime X-Ray — outils d'analyse dynamique Java
+# Runtime X-Ray — obtenir des rapports par analyse dynamique de code Java
 
-**→ [Voir les résultats et les arbitrages à trancher](docs/RESULTS.md)**
+**Trouver la solution qui permet de produire, à l'exécution d'un programme Java, des
+rapports exploitables montrant par où le code est passé.**
 
-## Objectif du projet
+Il ne s'agit pas de départager des produits pour le plaisir de les classer, mais de
+répondre à un besoin précis : disposer de rapports qui rendent visible le comportement
+réel du code — pour l'analyser, puis le restructurer.
 
-Mettre en place des outils d'**analyse dynamique** pour un code Java permettant, **à
-l'exécution d'une fonction**, de récupérer :
+**→ [Résultats et arbitrages à trancher](docs/RESULTS.md)** · [Tableau comparatif](docs/COMPARISON.md) · [Fiches par outil](docs/tools/) · [Détails techniques](docs/TECHNICAL.md)
 
-- les **lignes de code exécutées** (couverture) ;
-- les **arbres d'appel** (call graphs / call trees) ;
-- les **valeurs passées en paramètres**.
+## Ce qu'on veut obtenir
 
-**But final : analyser, restructurer et redéfinir le code à partir de ces données.**
+| Donnée recherchée | À quoi ça sert |
+|---|---|
+| **Les lignes de code exécutées** | Savoir ce qui a réellement tourné — et surtout ce qui n'a **jamais** tourné |
+| **L'arbre d'appel** | Comprendre qui appelle quoi, et dans quel ordre |
+| **Les valeurs passées en paramètres** | Savoir **pourquoi** telle branche a été prise plutôt qu'une autre |
 
-Ce qui compte, concrètement : pouvoir **savoir facilement par où le code est passé**,
-**voir l'arbre d'appel**, et **naviguer dans le code** — que l'on soit développeur
-(dans l'IDE) ou non (dans une page web autonome).
+Et, transversalement : pouvoir **naviguer dans le code** depuis le rapport — pour un
+développeur dans son IDE, pour un non-technicien dans une page web qu'on lui envoie.
 
 ## Contraintes
 
 | Contrainte | Conséquence sur le choix |
 |---|---|
-| 🔌 **Environnement déconnecté d'Internet** | Éliminatoire pour tout SaaS (Datadog, New Relic, Codecov, SonarCloud) et pour tout outil qui télécharge ses composants au lancement. L'outil doit s'installer une fois, hors ligne, et fonctionner sans rappeler la maison. |
-| ☕ **Langage : Java** | — |
-| 🧭 **IDE cible : IntelliJ** | L'intégration IDE se juge sur IntelliJ en priorité ; à défaut, une page web navigable fait office d'équivalent. |
-| 👥 **Deux publics** | Un développeur lit dans son IDE ; un non-technicien a besoin d'une page qu'on lui envoie et qu'il ouvre seul, sans installation ni compte. |
-| 🎯 **Diagnostic ponctuel, pas supervision continue** | Un outil qui exige de déployer un collecteur et un backend est disproportionné. |
-
-> La contrainte hors-ligne est la plus structurante : elle retire d'emblée une famille
-> entière de solutions (les plateformes SaaS), et elle disqualifie aussi les outils dont
-> le lanceur récupère ses modules sur Internet au démarrage — cas rencontré ici même avec
-> Arthas, qui n'a pas pu être testé pour cette raison exacte.
+| 🔌 **Environnement déconnecté d'Internet** | Élimine tout SaaS (Datadog, New Relic, Codecov, SonarCloud) et tout outil qui télécharge ses composants au lancement |
+| ☕ **Java 21** | Élimine le traçage de méthodes de JFR, arrivé en Java 25 — [mesuré, avec le gain qu'un portage apporterait](docs/RESULTS.md#gains-dun-portage-vers-java-25) |
+| 🧭 **IntelliJ comme IDE cible** | L'intégration IDE se juge sur IntelliJ ; à défaut, une page web navigable fait office d'équivalent |
+| 👥 **Deux publics** | Un développeur lit dans son IDE ; un non-technicien ouvre une page seul, sans installation ni compte |
+| 🎯 **Diagnostic ponctuel** | Déployer un collecteur et un serveur pour répondre à une question est disproportionné |
 
 ## Critères d'évaluation, par ordre de priorité
 
-1. **Facilité de mise en œuvre** — pouvoir lancer l'outil sans configuration lourde.
-2. **Lisibilité des rapports** — rapports exploitables par des utilisateurs non techniques.
-3. **Couverture fonctionnelle** — couverture de lignes, arbres d'appel, capture des
-   valeurs de paramètres.
-4. **Intégration IDE** — idéalement dans IntelliJ, ou une page web de code annoté
-   permettant de naviguer hors IDE.
-5. **Coût** — gratuit/open source vs commercial, et si le payant se justifie.
+1. **Facilité de mise en œuvre** — lancer l'outil sans configuration lourde.
+2. **Lisibilité des rapports** — exploitables par des utilisateurs non techniques.
+3. **Couverture fonctionnelle** — lignes, arbre d'appel, valeurs des paramètres.
+4. **Intégration IDE** — IntelliJ, ou une page web de code annoté navigable hors IDE.
+5. **Coût** — gratuit vs commercial, et si le payant se justifie.
 
-> **L'ordre compte** : il fait qu'« un outil qui se lance avec un flag » pèse davantage
-> qu'« un outil au call tree plus riche mais qu'il faut configurer une demi-journée ».
->
-> **Hors critères** : le temps de calcul et la RAM consommée sont mesurés par
-> l'application-cible et rapportés **à titre de bonus**. Ils n'entrent pas dans le choix.
+> **Hors critères** : le temps de calcul et la RAM sont mesurés à titre de bonus, mais
+> n'entrent pas dans la décision.
+
+## Les outils comparés
+
+Dix-huit outils recensés, regroupés par ce qu'ils savent faire. Le détail — features,
+philosophie, licence, interfaces — est dans les [fiches individuelles](docs/tools/).
+
+| Outil | Lignes exécutées | Arbre d'appel | Valeurs des paramètres | Rapport lisible hors IDE | Coût | Statut |
+|---|:--:|:--:|:--:|---|---|---|
+| **[JaCoCo](docs/tools/jacoco.md)** | ✅ | ❌ | ❌ | ✅ site HTML, code annoté | 0 € | ✅ testé |
+| **[async-profiler](docs/tools/async-profiler.md)** | ❌ | ✅ | ❌ | ✅ HTML autonome interactif | 0 € | ✅ testé |
+| **[JFR / Mission Control](docs/tools/jfr-jmc.md)** | ⚠️ | ✅ | ❌ | ❌ GUI desktop | 0 € (dans le JDK) | ✅ testé |
+| **[VisualVM](docs/tools/visualvm.md)** | ❌ | ✅ | ❌ | ❌ GUI desktop | 0 € | 📄 |
+| **[Arthas](docs/tools/arthas.md)** | ❌ | ✅ | ✅ | ✅ console web | 0 € | 🚧 |
+| **[JMC Agent](docs/tools/jmc-agent.md)** | ❌ | ✅ | ✅ | ❌ via JMC | 0 € | 📄 |
+| **[BTrace / Byteman](docs/tools/btrace-byteman.md)** | ❌ | ✅ | ✅ | ❌ sortie texte | 0 € | 📄 |
+| **[OpenClover](docs/tools/openclover.md)** | ✅ | ❌ | ❌ | ✅ HTML, couverture par test | 0 € | 📄 |
+| **[Glowroot](docs/tools/glowroot.md)** | ❌ | ✅ | ⚠️ | ✅ interface web embarquée | 0 € | 📄 |
+| **[Kieker](docs/tools/kieker.md)** | ⚠️ | ✅ | ✅ | ⚠️ diagrammes générés | 0 € | 📄 |
+| **[OpenTelemetry](docs/tools/opentelemetry.md)** | ❌ | ✅ | ⚠️ | ✅ via Jaeger / Tempo | 0 € + backend | 📄 |
+| **[SonarQube](docs/tools/sonarqube.md)** | ✅ | ❌ | ❌ | ✅ web, pensé non-développeur | 0 € (Community) | 📄 |
+| **[IntelliJ IDEA](docs/tools/intellij.md)** | ✅ | ✅ (Ultimate) | ⚠️ | ❌ dans l'IDE | 0 € / abonnement | 📄 |
+| **[JProfiler](docs/tools/jprofiler.md)** | ❌ | ✅ | ✅ | ⚠️ export | ~500 $ | ⛔ licence |
+| **[YourKit](docs/tools/yourkit.md)** | ❌ | ✅ | ✅ | ⚠️ export | ~500 $ | ⛔ licence |
+| **[APM SaaS](docs/tools/apm-saas.md)** | ❌ | ✅ | ⚠️ | ✅ web | à l'usage | ⛔ hors ligne |
+
+Légende — ✅ testé ici · 🚧 bloqué techniquement · ⛔ bloqué par licence ou contrainte · 📄 sur documentation.
+
+> **Le constat qui structure la décision** : aucune ligne n'a trois ✅ dans les trois
+> premières colonnes. **La solution sera une combinaison d'au moins deux outils.**
+
+## À quoi ressemblent les rapports
+
+### Voir par où le code est passé, et naviguer dedans
+
+JaCoCo produit un site HTML où l'on descend de la vue d'ensemble jusqu'au **code source
+colorié ligne par ligne**. Aucun serveur, aucun compte : un dossier qu'on ouvre ou qu'on
+envoie.
+
+![Code source annoté par JaCoCo](docs/assets/shots/jacoco-source-weather.png)
+
+*Vert : exécuté. Rouge : jamais atteint. Losange jaune : condition partiellement couverte.
+Un lecteur non technique voit immédiatement ce qui n'a pas tourné.*
+
+La navigation se fait par le fil d'Ariane en haut — projet › package › classe › source —
+et depuis la vue d'ensemble, triable par colonne :
+
+![Vue d'ensemble JaCoCo](docs/assets/shots/jacoco-index.png)
+
+### Voir l'arbre d'appel
+
+async-profiler produit un **fichier HTML unique**, dépliable et cherchable, avec le
+pourcentage de temps passé dans chaque branche :
+
+![Arbre d'appel async-profiler](docs/assets/shots/async-tree.png)
+
+Et la même donnée en flame graph, où la largeur d'une barre est le temps passé :
+
+![Flame graph async-profiler](docs/assets/shots/async-flamegraph.png)
+
+Toutes ces sorties sont versionnées dans [`reports-demo/generated/`](reports-demo/) :
+elles s'ouvrent directement, sans rien réexécuter.
 
 ## Méthode
 
-On ne compare que ce qu'on a **fait tourner**. Tous les outils analysent la **même
-fonction**, dans le **même scénario déterministe**, et déposent leur sortie réelle dans
-[`reports-demo/generated/`](reports-demo/).
+On ne compare que ce qu'on a **fait tourner**. Tous les outils analysent le même
+programme, dans le même scénario déterministe, sous **Java 21**, et déposent leur sortie
+réelle dans le dépôt. Chaque affirmation du tableau porte un statut : *testé ici* ou
+*sur documentation* — une lecture de documentation n'est jamais présentée comme une mesure.
 
-1. **Une application-cible commune** — [`sample-app/`](sample-app/), 22 classes réparties
-   en 8 packages, sans aucune dépendance externe : ce qu'un outil affiche vient de ce
-   code, pas du bruit d'un framework. Exécution calibrée à **~10 secondes**, le minimum
-   pour qu'un outil qui s'attache à un process vivant ait le temps de faire quelque chose.
-2. **Un dossier par outil** — [`tools/<outil>/collect.sh`](tools/), la procédure exacte,
-   rejouable.
-3. **Les sorties versionnées** — pour pouvoir les rouvrir, les comparer, et vérifier une
-   affirmation du tableau sans relancer quoi que ce soit.
-4. **Un statut de vérification explicite** — ✅ testé ici / ⛔ bloqué par licence /
-   🚧 bloqué techniquement / 📄 sur documentation. Une lecture de documentation n'est
-   jamais présentée comme une mesure.
-
-Point structurant : **ces outils ne sont pas des dépendances Maven.** Ils s'intègrent de
-trois façons différentes — agent JVM (`-javaagent` / `-agentpath`), attachement à un
-process vivant, ou option native du JDK — et cette différence est elle-même un critère.
-
-<p align="center">
-  <img src="docs/assets/approach.svg" alt="Les cinq étapes de la démarche et les trois livrables" width="100%">
-</p>
-
-## La fonction sous analyse
-
-Tout tourne autour d'une question que tout le monde comprend : **« combien de temps pour
-aller de A à B ? »** —
-[`RoutePlanner.travelTimeMinutes(Trip)`](sample-app/src/main/java/lab/sample/RoutePlanner.java).
-
-Le code est conçu pour **départager les outils** : selon le contexte du trajet, ce ne sont
-pas les mêmes fonctions qui sont appelées.
-
-| Contexte | Ce qui s'exécute — ou pas |
-|---|---|
-| Voiture à l'heure de pointe | le calcul de bouchons s'exécute ; sinon tout ce sous-arbre est absent |
-| Train | les correspondances et la consultation d'horaires (seule opération **bloquante**) |
-| Vélo / à pied | la météo et les bagages ralentissent ; le train les ignore |
-| Tous sauf le train | le relief, calculé sur 24 sous-segments — le cœur de calcul |
-| Trajet > 2 h | les pauses, décidées sur une **valeur calculée** et non sur un argument reçu |
-| Avion, neige | **jamais exécutés** — un rapport de couverture doit les signaler en rouge |
-
-Deux appels de la même méthode parcourent donc des arbres d'appel différents. C'est
-exactement ce qu'on demande aux outils de savoir montrer.
-
-## Démarrer
-
-```bash
-mvn -q clean package
-java -jar sample-app/target/sample-app.jar
-```
-
-Puis, pour un outil donné :
-
-```bash
-./tools/jacoco/collect.sh
-```
-
-## Où regarder
-
-| | |
-|---|---|
-| **Résultats et arbitrages** | **[docs/RESULTS.md](docs/RESULTS.md)** — les solutions retenues et les questions à trancher |
-| Tableau comparatif complet | [docs/COMPARISON.md](docs/COMPARISON.md) |
-| Fiche par outil | [docs/tools/](docs/tools/) |
-| Protocole et critères | [docs/METHODOLOGY.md](docs/METHODOLOGY.md) |
-| Sorties réellement produites | [reports-demo/](reports-demo/) |
+Le détail — programme analysé, scripts de collecte, mode d'intégration de chaque outil —
+est dans **[docs/TECHNICAL.md](docs/TECHNICAL.md)**.
 
 ## Licence
 

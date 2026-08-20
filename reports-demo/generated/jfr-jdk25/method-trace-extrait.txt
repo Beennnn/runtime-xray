@@ -1,0 +1,60 @@
+jdk.MethodTrace {
+  startTime = 19:42:18.396 (2026-08-20)
+  duration = 0,000917 ms
+  method = lab.sample.transfer.Timetable.frequencyMinutes(Leg)
+  eventThread = "main" (javaThreadId = 3)
+  stackTrace = [
+    lab.sample.transfer.Connections.transferMinutes(Leg, Leg) line: 32
+    lab.sample.transfer.Connections.waitMinutes(List, int) line: 23
+    lab.sample.RoutePlanner.travelTimeMinutes(Trip) line: 63
+    lab.sample.Main.main(String[]) line: 55
+  ]
+}
+
+jdk.MethodTrace {
+  startTime = 19:42:18.396 (2026-08-20)
+  duration = 0,000125 ms
+  method = lab.sample.transfer.Timetable.frequencyMinutes(Leg)
+  eventThread = "main" (javaThreadId = 3)
+  stackTrace = [
+    lab.sample.transfer.Connections.transferMinutes(Leg, Leg) line: 32
+    lab.sample.transfer.Connections.waitMinutes(List, int) line: 23
+    lab.sample.RoutePlanner.travelTimeMinutes(Trip) line: 63
+    lab.sample.Main.main(String[]) line: 55
+  ]
+}
+
+jdk.MethodTrace {
+  startTime = 19:42:18.396 (2026-08-20)
+  duration = 0,000125 ms
+  method = lab.sample.transfer.Timetable.frequencyMinutes(Leg)
+  eventThread = "main" (javaThreadId = 3)
+  stackTrace = [
+    lab.sample.transfer.Connections.transferMinutes(Leg, Leg) line: 32
+    lab.sample.transfer.Connections.waitMinutes(List, int) line: 23
+    lab.sample.RoutePlanner.travelTimeMinutes(Trip) line: 63
+    lab.sample.Main.main(String[]) line: 55
+  ]
+}
+
+jdk.MethodTrace {
+  startTime = 19:42:18.396 (2026-08-20)
+  duration = 0,000042 ms
+  method = lab.sample.transfer.Timetable.frequencyMinutes(Leg)
+  eventThread = "main" (javaThreadId = 3)
+  stackTrace = [
+    lab.sample.transfer.Connections.transferMinutes(Leg, Leg) line: 32
+    lab.sample.transfer.Connections.waitMinutes(List, int) line: 23
+    lab.sample.RoutePlanner.travelTimeMinutes(Trip) line: 63
+    lab.sample.Main.main(String[]) line: 55
+  ]
+}
+
+jdk.MethodTrace {
+  startTime = 19:42:18.396 (2026-08-20)
+  duration = 0,000042 ms
+  method = lab.sample.transfer.Timetable.frequencyMinutes(Leg)
+  eventThread = "main" (javaThreadId = 3)
+  stackTrace = [
+    lab.sample.transfer.Connections.transferMinutes(Leg, Leg) line: 32
+    lab.sample.transfer.Connections.waitMinutes(List, int) line: 23

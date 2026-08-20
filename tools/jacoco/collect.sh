@@ -8,6 +8,8 @@ set -euo pipefail
 
 JACOCO_VERSION="0.8.13"   # épinglé : une version flottante changerait le rapport sans prévenir
 REPO_ROOT="$(git rev-parse --show-toplevel)"
+# shellcheck source=../java-env.sh
+source "$REPO_ROOT/tools/java-env.sh"
 OUT="$REPO_ROOT/reports-demo/generated/jacoco"
 AGENT_DIR="$REPO_ROOT/target/agents"
 

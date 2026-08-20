@@ -6,6 +6,8 @@
 set -euo pipefail
 
 REPO_ROOT="$(git rev-parse --show-toplevel)"
+# shellcheck source=../java-env.sh
+source "$REPO_ROOT/tools/java-env.sh"
 OUT="$REPO_ROOT/reports-demo/generated/async-profiler"
 LIB="$(brew --prefix async-profiler)/lib/libasyncProfiler.dylib"   # macOS/Homebrew
 
