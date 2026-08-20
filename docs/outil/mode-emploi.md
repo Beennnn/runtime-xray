@@ -76,11 +76,17 @@ Le temps des paquets masqués **n'est pas perdu** : il est attribué à la méth
 qui les a appelés, exactement comme pour le JDK. Masquer déplace l'information, ça ne la
 supprime pas.
 
-**On peut aussi l'apprendre en lisant le rapport** : chaque ligne de l'arbre porte un `⊘`
-au survol, qui propose de masquer la classe, son paquet, ou le paquet parent. La liste
-s'accumule dans la page, et un bouton la recopie sous la forme
-`HIDDEN_PACKAGES="…"` à coller dans le fichier de configuration. C'est plus rapide que de
-deviner d'avance ce qu'on ne veut pas voir.
+**On peut aussi l'apprendre en lisant le rapport.** Dans l'onglet **Code**, chaque classe
+et chaque paquet portent un bouton **filtrer** au survol ; le chemin affiché au-dessus du
+source rend chaque niveau de paquet cliquable de la même façon. La liste s'accumule dans la
+page et y **reste** — le navigateur la retient d'un chargement à l'autre, il n'y a rien à
+enregistrer.
+
+Le bouton *« Ne plus le mesurer non plus »* est un second geste, facultatif : il copie la
+ligne `HIDDEN_PACKAGES="…"` à coller dans la configuration, pour que les prochaines
+exécutions ne **mesurent** même plus ce code — collecte plus courte, rapport plus léger. Une
+page statique ne peut pas écrire dans votre fichier de configuration ; c'est aussi ce qui
+lui permet d'être publiée telle quelle.
 
 ### Avec un fichier de configuration
 

@@ -117,6 +117,10 @@
         overflow:hidden;text-overflow:ellipsis;font-size:12.5px}
   .node:hover{background:var(--accent-soft)}
   .node.sel{background:var(--accent);color:#fff}
+  /* Le curseur clavier n'est PAS la sélection : on doit pouvoir parcourir l'arbre sans
+     changer ce qu'affiche le panneau de droite. D'où un liseré, pas un aplat. */
+  .node.cur{outline:2px solid var(--accent);outline-offset:-2px}
+  .node.sel.cur{outline-color:#fff}
   .node .pct{color:var(--muted);font-size:11px;margin-right:6px;display:inline-block;
              width:38px;text-align:right;font-variant-numeric:tabular-nums}
   .node.sel .pct{color:#e8f0fb}
@@ -136,12 +140,17 @@
   .vkey{color:var(--muted)} .veq{color:var(--border);margin:0 4px}
   .vval{color:var(--text)}
   .node.vret .vkey{color:var(--violet)}
-  /* Le ⊘ n'apparaît qu'au survol : présent en permanence sur des centaines de lignes,
-     il ferait un mur de symboles et détournerait de la lecture. */
-  .node .mask{float:right;margin-left:8px;opacity:0;color:var(--muted);font-size:12px;
-              padding:0 3px;border-radius:4px}
-  .node:hover .mask{opacity:.55}
-  .node .mask:hover{opacity:1;color:#fff;background:var(--missbar)}
+  /* « filtrer » n'apparaît qu'au survol : présent en permanence sur des centaines de
+     lignes, il ferait un mur de texte et détournerait de la lecture. */
+  .node .mask{float:right;margin-left:8px;opacity:0;color:var(--muted);font-size:10.5px;
+              padding:0 5px;border-radius:9px;border:1px solid var(--border);
+              font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+  .node:hover .mask{opacity:.75}
+  .node .mask:hover{opacity:1;color:#fff;background:var(--missbar);border-color:var(--missbar)}
+  .filterhint{padding:6px 10px;font-size:11.5px;color:var(--muted);
+              border-bottom:1px solid var(--border);line-height:1.4}
+  .filterhint b{color:var(--text)}
+  .filterhint[hidden]{display:none}
   .node.sel .mask{color:#e8f0fb}
   #maskpop{position:fixed;z-index:60;background:var(--bg);border:1px solid var(--border);
            border-radius:9px;box-shadow:0 10px 30px rgba(0,0,0,.18);padding:8px;min-width:230px}
@@ -217,7 +226,7 @@
   .crumb b{font-weight:650} .crumb span{color:var(--muted)}
   .crumb a.pkgseg{color:var(--muted);text-decoration:none;border-radius:4px;padding:0 2px}
   .crumb a.pkgseg:hover{color:#fff;background:var(--missbar)}
-  .crumb a.pkgseg:hover::after{content:" ⊘"}
+  .crumb a.pkgseg:hover::after{content:" filtrer"; font-size:9.5px; opacity:.85}
   .crumb .pkgdot{color:var(--muted)}
   .pill{font-size:11px;border:1px solid var(--border);border-radius:20px;padding:1px 8px;color:var(--muted)}
   #context{display:none;padding:7px 16px;border-bottom:1px solid var(--border);background:var(--panel2)}
@@ -378,18 +387,23 @@
 <main>
   <div id="nav">
     <div class="tabs">
-      <button id="tab-tree" class="on" title="Ce que les exécutions ont fait : l'arbre d'appel, avec les exécutions pour racines">Exécutions</button>
-      <button id="tab-cls" title="Le code, par paquet et par classe, filtré sur ce qui a tourné">Code</button>
+      <button id="tab-cls" class="on" title="Le code, par paquet et par classe, filtré sur ce qui a tourné">Code</button>
+      <button id="tab-tree" title="Ce que les exécutions ont fait : l'arbre d'appel, avec les exécutions pour racines">Exécutions</button>
     </div>
     <div class="maskbar" id="maskbar" hidden></div>
     <div class="runpick" id="runpick" hidden>
       <span class="runlabel">exécutions affichées</span>
       <div id="runboxes"></div>
     </div>
+    <div class="filterhint" id="filterhint">
+      Pour ne plus voir une classe ou un paquet, cliquer <b>filtrer</b> au bout de sa ligne.
+    </div>
     <div class="listbar">
-      <input id="search" placeholder="Filtrer…" autocomplete="off">
+      <input id="search" placeholder="Chercher une classe, une méthode…" autocomplete="off">
       <button id="unitbtn" class="unitbtn" title="Basculer entre part du temps et temps estimé">%</button>
       <button id="pkgbtn" class="unitbtn" title="Afficher ou masquer les noms de paquet">pkg</button>
+      <button id="valbtn" class="unitbtn wide" aria-pressed="true"
+              title="Une ligne par champ de la valeur, ou une ligne par paramètre">par champ</button>
       <button id="scopebtn" class="unitbtn wide" aria-pressed="true"
               title="N'afficher que le code exécuté, ou tout le code du projet">exécuté</button>
       <button id="expandbtn" class="unitbtn wide"
@@ -439,7 +453,7 @@ let shownRuns = new Set(D.runs.map((_, i) => i));
 
 /* ---------------------------------------------------------- masquage par apprentissage
  * On n'écrit pas d'avance la liste des paquets qu'on ne veut pas voir : on la découvre en
- * lisant l'arbre, où ils se signalent tout seuls. D'où ce mécanisme — cliquer sur ⊘ à côté
+ * lisant le code, où ils se signalent tout seuls. D'où ce mécanisme — cliquer « filtrer » à côté
  * d'une méthode, choisir jusqu'où remonter (la classe, son paquet, le paquet parent…), et
  * elle disparaît. La liste s'accumule, se relit, et se recopie dans le fichier de
  * configuration pour que les exécutions suivantes partent déjà propres.
@@ -757,17 +771,101 @@ function toggleRunPicker(show){
 /** Un réglage qui n'agit pas sur la vue courante n'a pas à y figurer : il laisse croire
  *  qu'il ne marche pas. */
 function showOptionsFor(view){
+  // L'indication ne s'affiche que dans la vue où le geste existe : ailleurs elle
+  // désignerait un bouton introuvable, ce qui est pire que pas d'indication du tout.
+  const hint = document.getElementById("filterhint");
+  if (hint) hint.hidden = (view !== "cls");
   const only = {
     scopebtn: "cls",    // exécuté / tout : propre à la vue par structure
     pkgbtn: "tree",     // en vue Code, la hiérarchie porte déjà le paquet — rien à masquer
     unitbtn: "tree",    // en vue Code, le chiffre est un taux de couverture : ni % de temps,
                         // ni millisecondes. Le bouton n'y avait aucun effet.
+    valbtn: "tree",     // les valeurs capturées se déplient sous les appels, dans l'arbre
   };
   for (const [id, where] of Object.entries(only)){
     const b = document.getElementById(id);
     if (b) b.style.display = (where === view) ? "" : "none";
   }
 }
+/* ------------------------------------------------------------ navigation au clavier
+ * Un arbre se parcourt aux flèches — c'est le geste attendu partout ailleurs, et il évite
+ * de viser à la souris des lignes hautes de 18 pixels. Le modèle est celui des explorateurs
+ * de fichiers : haut/bas déplacent, droite ouvre puis descend, gauche ferme puis remonte.
+ *
+ * Le curseur est distinct de la sélection : on peut se promener sans changer ce qu'affiche
+ * le panneau de droite, et n'ouvrir que ce qu'on décide d'ouvrir. */
+let cursor = null;
+
+function visibleNodes(){
+  // offsetParent est nul dès qu'un ancêtre est en display:none — c'est exactement
+  // « replié », sans avoir à remonter les conteneurs à la main.
+  return [...document.querySelectorAll("#list .node")].filter(n => n.offsetParent !== null);
+}
+
+function setCursor(el){
+  if (!el) return;
+  document.querySelectorAll("#list .node.cur").forEach(n => n.classList.remove("cur"));
+  el.classList.add("cur");
+  cursor = el;
+  el.scrollIntoView({ block: "nearest" });
+}
+
+function twOf(el){ const t = el.querySelector(".tw"); return t ? t.textContent : ""; }
+
+/** Le conteneur des enfants d'un nœud : toujours le frère qui le suit. */
+function holderOf(el){
+  const h = el.nextElementSibling;
+  return h && !h.classList.contains("node") ? h : null;
+}
+
+function parentNode(el){
+  const holder = el.parentElement;
+  if (!holder || holder.id === "list") return null;
+  const prev = holder.previousElementSibling;
+  return prev && prev.classList.contains("node") ? prev : null;
+}
+
+document.addEventListener("keydown", e => {
+  const t = e.target;
+  if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable)) return;
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
+  if (!["ArrowDown", "ArrowUp", "ArrowRight", "ArrowLeft", "Enter", " ", "Home", "End"].includes(e.key)) return;
+
+  const nodes = visibleNodes();
+  if (!nodes.length) return;
+  if (!cursor || !cursor.isConnected || cursor.offsetParent === null) setCursor(nodes[0]);
+  const i = nodes.indexOf(cursor);
+  e.preventDefault();
+
+  switch (e.key){
+    case "ArrowDown": setCursor(nodes[Math.min(i + 1, nodes.length - 1)]); break;
+    case "ArrowUp":   setCursor(nodes[Math.max(i - 1, 0)]); break;
+    case "Home":      setCursor(nodes[0]); break;
+    case "End":       setCursor(nodes[nodes.length - 1]); break;
+    case "ArrowRight": {
+      if (twOf(cursor) === "▸"){ cursor.click(); }          // fermé : on ouvre
+      else {
+        const h = holderOf(cursor);                          // déjà ouvert : on descend
+        const first = h && [...h.children].find(c => c.classList.contains("node"));
+        if (first) setCursor(first);
+      }
+      break;
+    }
+    case "ArrowLeft": {
+      if (twOf(cursor) === "▾"){ const c = cursor; c.click(); setCursor(c); }  // ouvert : on ferme
+      else setCursor(parentNode(cursor) || cursor);                            // sinon on remonte
+      break;
+    }
+    case "Enter":
+    case " ": {
+      const c = cursor;
+      c.click();
+      setCursor(c);
+      break;
+    }
+  }
+});
+
 function tab(id){ document.querySelectorAll(".tabs button").forEach(b=>b.classList.remove("on"));
                   document.getElementById(id).classList.add("on"); }
 
@@ -811,12 +909,18 @@ function renderMaskBar(){
     : "";
   if (!masked.length){ bar.innerHTML = source; return; }
   bar.innerHTML =
-    '<b>Masqué dans cette vue</b>' +
+    '<b>Masqué — retenu automatiquement</b>' +
     masked.map(m => '<span class="chip">' + esc(m.replace(/\//g, ".")) +
                     '<button data-p="' + esc(m) + '" title="Réafficher">✕</button></span>').join("") +
+    // Rien à enregistrer : la liste est conservée par le navigateur et se retrouve telle
+    // quelle au prochain chargement du rapport. Le bouton ci-dessous ne sert donc PAS à
+    // sauvegarder — il sert à ne plus MESURER ce code du tout, ce qui est un autre sujet :
+    // moins de temps de collecte, un rapport plus léger. Une page statique ne peut pas
+    // écrire dans le fichier de configuration ; c'est aussi ce qui la rend transportable.
     '<div class="acts">' +
-      '<button id="maskcopy" title="Coller dans le fichier de configuration : les prochaines ' +
-      'exécutions ne mesureront même plus ce code">Copier pour la configuration</button>' +
+      '<button id="maskcopy" title="Pour ne plus MÊME MESURER ce code aux prochaines ' +
+      'exécutions : copie la ligne HIDDEN_PACKAGES à coller dans le fichier de ' +
+      'configuration">Ne plus le mesurer non plus</button>' +
       '<button id="maskclear">Tout réafficher</button>' +
     '</div>' + source;
   bar.querySelectorAll(".chip button").forEach(b => b.onclick = () => {
@@ -826,7 +930,8 @@ function renderMaskBar(){
   document.getElementById("maskcopy").onclick = e => {
     const line = 'HIDDEN_PACKAGES="' + masked.map(m => m.replace(/\//g, ".")).join(", ") + '"';
     navigator.clipboard.writeText(line).then(
-      () => { e.target.textContent = "copié ✓"; setTimeout(renderMaskBar, 1600); },
+      () => { e.target.textContent = "ligne copiée ✓ — à coller dans la conf";
+              setTimeout(renderMaskBar, 2400); },
       () => { e.target.textContent = line; });
   };
   document.getElementById("maskclear").onclick = () => { masked = []; saveMasks(); };
@@ -906,7 +1011,7 @@ function renderTree(){
       el.innerHTML = '<span class="tw">' + ((kidsShown.length || hasCalls) ? "▸" : "") + '</span>' +
                      '<span class="pct">' + formatWeight(kid.total, total) + '</span>' +
                      '<span class="lbl">' + esc(frameLabel(kid.name)) + '</span>' +
-                     // Pas de ⊘ ici : dans l'arbre d'appel on suit une exécution, on ne
+                     // Pas de « filtrer » ici : dans l'arbre d'appel on suit une exécution, on ne
                      // range pas du code. Le geste vit dans la vue Code et dans le chemin
                      // affiché au-dessus du source, là où on a le paquet sous les yeux.
                      ((known && (R.values[kid.name] || []).length)
@@ -935,6 +1040,8 @@ function renderTree(){
               leaf.innerHTML = '<span class="tw">▸</span><span class="callbadge">appel ' +
                                (k + 1) + '</span> ' + esc(resume.slice(0, 60));
               leaf.title = resume;
+              leaf.__call = call;
+              leaf.__depth = depth + 2;
               const fields = document.createElement("div");
               fields.style.display = "none";
               let filled = false;
@@ -1029,7 +1136,7 @@ function renderClasses(){
       el.innerHTML = '<span class="tw">▸</span><span class="lbl">' + esc(merged.prefix.toLowerCase()) +
                      '</span> <span class="pct2">' + count +
                      (count > 1 ? " classes" : " classe") + '</span>' +
-                     '<span class="mask" title="Ne plus voir ce paquet">⊘</span>';
+                     '<span class="mask" title="Ne plus voir ce paquet ni ce qu\'il contient">filtrer</span>';
       container.appendChild(el);
       const holder = document.createElement("div");
       holder.style.display = "none";
@@ -1056,7 +1163,7 @@ function renderClasses(){
       el.innerHTML = '<span class="tw">▸</span><span class="pct">' + pct + '%</span>' +
                      '<span class="lbl">' + esc(c.simple) + '</span>' +
                      (!c.covered ? ' <span class="tagdead">jamais exécutée</span>' : '') +
-                     '<span class="mask" title="Ne plus voir cette classe, ou son paquet">⊘</span>';
+                     '<span class="mask" title="Ne plus voir cette classe, ou tout son paquet">filtrer</span>';
       container.appendChild(el);
       const holder = document.createElement("div");
       holder.style.display = "none";
@@ -1343,7 +1450,18 @@ function splitFields(value){
   return pairs.length ? pairs : null;
 }
 
-/** Les valeurs d'un appel, un nœud par champ, sous le nœud de l'appel. */
+/**
+ * Comment découper une valeur capturée.
+ *
+ * <p>Deux granularités, parce qu'aucune ne convient à tous les cas. Une valeur composite
+ * ({@code Trip[id=…, mode=…, legs=…]}) se lit bien éclatée en un champ par ligne — c'est ce
+ * qui rend le contexte d'un appel lisible d'un coup d'œil. Mais quand les paramètres sont
+ * nombreux, ou qu'on veut simplement savoir <b>ce qui a été passé</b> sans entrer dedans,
+ * une ligne par paramètre suffit et tient à l'écran.
+ */
+let valueSplit = "champs";   // "champs" | "params"
+
+/** Les valeurs d'un appel, une ligne clé/valeur sous le nœud de l'appel. */
 function fillValueNodes(container, call, depth){
   const add = (cle, valeur, kind) => {
     const el = document.createElement("div");
@@ -1355,7 +1473,7 @@ function fillValueNodes(container, call, depth){
     container.appendChild(el);
   };
   (call.params || []).forEach((p, i) => {
-    const fields = splitFields(p.value);
+    const fields = valueSplit === "champs" ? splitFields(p.value) : null;
     if (fields) {
       // La valeur porte ses propres clés : ce sont elles qui parlent, pas « paramètre 2 ».
       fields.forEach(f => add(f.cle, f.valeur));
@@ -1372,8 +1490,9 @@ function crumbPackage(cls){
   if (!parts.length) return '<span>(paquet par défaut) ›</span>';
   return parts.map((seg, i) => {
     const path = parts.slice(0, i + 1).join("/");
-    return '<a href="#" class="pkgseg" data-p="' + esc(path) + '" title="Ne plus afficher ' +
-           esc(parts.slice(0, i + 1).join(".")) + ' — ni ce qu\'il contient">' +
+    return '<a href="#" class="pkgseg" data-p="' + esc(path) + '" title="Filtrer ' +
+           esc(parts.slice(0, i + 1).join(".")) + ' — ne plus afficher ce paquet ni ce ' +
+           'qu\'il contient">' +
            esc(seg) + '</a>';
   }).join('<span class="pkgdot">.</span>') + ' <span>›</span>';
 }
@@ -1581,7 +1700,7 @@ function compareCalls(calls){
   const rows = calls.map(call => {
     const cells = new Map();
     (call.params || []).forEach((prm, i) => {
-      const fields = splitFields(prm.value);
+      const fields = valueSplit === "champs" ? splitFields(prm.value) : null;
       if (fields) fields.forEach(f => cells.set(f.cle, f.valeur));
       else cells.set(prm.type || ("paramètre " + (i + 1)), prm.value);
     });
@@ -2109,6 +2228,26 @@ document.getElementById("scopebtn").onclick = e => {
     reselect();
   }
 };
+document.getElementById("valbtn").onclick = e => {
+  valueSplit = valueSplit === "champs" ? "params" : "champs";
+  const b = e.currentTarget;
+  b.textContent = valueSplit === "champs" ? "par champ" : "par paramètre";
+  b.setAttribute("aria-pressed", valueSplit === "champs");
+  b.title = valueSplit === "champs"
+    ? "Une ligne par champ de la valeur — cliquer pour n'avoir qu'une ligne par paramètre"
+    : "Une ligne par paramètre — cliquer pour éclater chaque valeur en ses champs";
+  // Redessiner sur place les appels déjà dépliés : reconstruire refermerait l'arbre.
+  document.querySelectorAll("#list .node.callnode").forEach(leaf => {
+    const holder = leaf.nextElementSibling;
+    if (!holder || holder.style.display === "none" || !holder.children.length) return;
+    const call = leaf.__call;
+    if (!call) return;
+    holder.innerHTML = "";
+    fillValueNodes(holder, call, leaf.__depth);
+  });
+  if (selected) draw();
+};
+
 document.getElementById("unitbtn").onclick = e => {
   unit = unit === "pct" ? "ms" : "pct";
   e.currentTarget.textContent = unit === "pct" ? "%" : "ms";
@@ -2203,7 +2342,9 @@ document.getElementById("search").oninput = e => {
   document.getElementById("htoggle").onclick = e => { e.stopPropagation(); toggleValues(); };
 })();
 
-renderTree();
+// La vue d'entrée suit l'onglet de gauche : s'ouvrir sur le second se lirait comme un
+// état bizarre plutôt que comme un choix.
+renderClasses();
 drawHome();
 </script>
 </body>
