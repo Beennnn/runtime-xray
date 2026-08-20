@@ -94,10 +94,10 @@ Ces résultats valent dans le cadre décrit, et pas au-delà. En particulier :
 
 ## Se procurer l'outil
 
-> ⏳ **Pas encore publié.** L'artefact est prêt, signé et vérifié, mais la publication
-> attend la validation de l'espace de noms `io.github.beennnn` sur le Central Portal.
-> En attendant, la compilation depuis les sources (plus bas) est la seule voie. Les
-> commandes ci-dessous seront exactes le jour où la publication aboutira.
+> ⏳ **Pas encore publié.** L'espace de noms `io.github.beennnn` est validé et l'artefact
+> est prêt et signé ; il reste à lancer la publication. En attendant, la compilation depuis
+> les sources (plus bas) est la seule voie — les commandes ci-dessous seront exactes le jour
+> où la publication aboutira.
 
 L'outil se distribue comme un jar sur Maven Central, sous
 `io.github.beennnn:runtime-xray-cli`. Ce n'est pas une bibliothèque qu'on met en

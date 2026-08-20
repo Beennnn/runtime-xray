@@ -85,7 +85,7 @@ souvent découvert trop tard :
 | Signature GPG | ✅ | RSA 4096, `8D181AA1F3545E3C43804355D7D3E62B52C66FCA`, publiée sur `keys.openpgp.org` **et** `keyserver.ubuntu.com` — c'est ce dernier que Sonatype interroge |
 | Signatures vérifiées | ✅ | Les quatre `.asc` du paquet passent `gpg --verify` |
 | Configuration Maven | ✅ | `~/.m2/settings.xml`, jeton lu dans l'environnement et non écrit dans le fichier |
-| Espace de noms validé | ⛔ | À faire une fois sur le Central Portal, en prouvant le compte GitHub |
+| Espace de noms validé | ✅ | `io.github.beennnn` — **Verified**, prouvé par le dépôt public `Beennnn/q5h7vezbmz`, que le Portal a lui-même nommé |
 | Jeton du Portal | ⛔ | À générer, puis `export CENTRAL_USERNAME` / `CENTRAL_PASSWORD` |
 
 ### ⚠️ `maven.deploy.skip` ne suffit pas à exclure un module
@@ -124,19 +124,24 @@ signature lancée depuis un script, un outil ou une tâche planifiée échoue al
 `Inappropriate ioctl for device`. Avec lui, la demande apparaît dans une fenêtre, et la
 phrase de passe ne transite ni par Maven ni par une variable d'environnement.
 
+### La validation de l'espace de noms
+
+Faite. Le Portal a donné une **clé de vérification** (`q5h7vezbmz`) et demandé un dépôt
+public GitHub portant exactement ce nom ; sa seule existence prouve la maîtrise du compte,
+donc du préfixe `io.github.beennnn`. Le dépôt n'a servi qu'à ça et peut être supprimé.
+
+À retenir pour un autre projet : la validation est **liée à la méthode de connexion**. Le
+Portal le dit lui-même — deux méthodes différentes sont deux comptes distincts, même avec
+la même adresse. Se reconnecter autrement ferait disparaître l'espace de noms de la liste.
+
 ### Ce qui reste
 
-Deux gestes, et ils exigent votre compte.
+Un geste, et il exige votre compte : **le jeton**, généré depuis *Account → Generate User
+Token*, puis dans le shell — jamais dans un fichier :
 
-1. **Valider l'espace de noms** sur [central.sonatype.com](https://central.sonatype.com) :
-   se connecter (« Continue with GitHub » est le chemin le plus court, puisque c'est ce
-   compte qui prouve `io.github.beennnn`), déclarer l'espace de noms, créer le dépôt
-   temporaire que le Portal demande comme preuve. Une seule fois, définitivement.
-2. **Le jeton**, généré depuis *Account → Generate User Token*, puis dans le shell — jamais
-   dans un fichier :
-   ```bash
-   export CENTRAL_USERNAME='...' CENTRAL_PASSWORD='...'
-   ```
+```bash
+export CENTRAL_USERNAME='...' CENTRAL_PASSWORD='...'
+```
 
 Ensuite :
 
