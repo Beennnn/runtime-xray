@@ -6,294 +6,416 @@
 <title>Vue intégrée — Runtime X-Ray</title>
 <style>
   :root{
-    --bg:#0d1117; --panel:#151b23; --panel2:#0f141b; --border:#30363d; --text:#e6edf3;
-    --muted:#9198a1; --accent:#4493f8; --full:#1f6d33; --part:#7a6320; --miss:#8c2b2b;
-    --fullbar:#3fb950; --partbar:#d29922; --missbar:#f85149; --violet:#ab7df8;
+    --bg:#fff; --panel:#f6f8fa; --panel2:#fbfcfd; --border:#d0d7de; --text:#1f2328;
+    --muted:#59636e; --accent:#0969da; --accent-soft:#ddf4ff;
+    --full:#dafbe1; --part:#fff8c5; --miss:#ffebe9;
+    --fullbar:#1a7f37; --partbar:#9a6700; --missbar:#cf222e; --violet:#8250df;
   }
-  @media (prefers-color-scheme: light){
-    :root:not([data-theme="dark"]){
-      --bg:#fff; --panel:#f6f8fa; --panel2:#fff; --border:#d0d7de; --text:#1f2328;
-      --muted:#59636e; --accent:#0969da; --full:#d7f8dd; --part:#fff5d6; --miss:#ffdcdc;
-      --fullbar:#1a7f37; --partbar:#9a6700; --missbar:#cf222e; --violet:#8250df;
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#0d1117; --panel:#151b23; --panel2:#10151c; --border:#30363d; --text:#e6edf3;
+      --muted:#9198a1; --accent:#4493f8; --accent-soft:#121d2f;
+      --full:#12261c; --part:#2b2412; --miss:#2d1416;
+      --fullbar:#3fb950; --partbar:#d29922; --missbar:#f85149; --violet:#ab7df8;
     }
   }
   *{box-sizing:border-box} html,body{height:100%}
   body{margin:0;background:var(--bg);color:var(--text);
        font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
-  header{padding:12px 18px;border-bottom:1px solid var(--border);display:flex;
-         align-items:center;gap:16px;flex-wrap:wrap;background:var(--panel)}
-  header h1{font-size:16px;margin:0;font-weight:650}
-  .badges{display:flex;gap:5px;align-items:center}
-  header .stat{color:var(--muted);font-size:12.5px}
-  header .stat b{color:var(--text)}
-  .toggle{margin-left:auto;display:flex;align-items:center;gap:7px;font-size:12.5px;
-          color:var(--muted);cursor:pointer;user-select:none}
-  main{display:grid;grid-template-columns:340px 1fr;height:calc(100% - 53px)}
-  @media(max-width:820px){main{grid-template-columns:1fr;height:auto}}
-  #nav{border-right:1px solid var(--border);overflow:auto;background:var(--panel2);min-height:0}
-  /* La colonne de droite doit borner sa hauteur, sinon #code ne défile pas : c'est la
-     PAGE qui défilerait, et l'arbre de gauche sortirait du champ. */
-  #detail{display:flex;flex-direction:column;min-height:0}
-  .tabs{display:flex;border-bottom:1px solid var(--border);position:sticky;top:0;
-        background:var(--panel2);z-index:2}
-  .tabs button{flex:1;padding:9px 8px;background:none;border:0;border-bottom:2px solid transparent;
-               color:var(--muted);font:inherit;font-size:12.5px;cursor:pointer}
+  a{color:var(--accent)}
+  header{padding:9px 16px;border-bottom:1px solid var(--border);display:flex;
+         align-items:center;gap:14px;flex-wrap:wrap;background:var(--panel)}
+  header h1{font-size:15px;margin:0;font-weight:650;white-space:nowrap}
+  .badges{display:flex;gap:4px;align-items:center}
+  .stat{color:var(--muted);font-size:12.5px} .stat b{color:var(--text)}
+  .spacer{margin-left:auto}
+  .toggle{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--muted);cursor:pointer;user-select:none}
+  .links{font-size:12px;color:var(--muted)} .links a{margin-left:10px}
+  #note{display:none;padding:8px 16px;background:var(--part);border-bottom:1px solid var(--border);
+        font-size:12.5px;color:var(--text)}
+  #note.on{display:block}
+  main{display:grid;grid-template-columns:330px 1fr;height:calc(100% - 47px)}
+  body.noted main{height:calc(100% - 47px - 37px)}
+  @media(max-width:860px){main{grid-template-columns:1fr;height:auto}}
+  #nav{border-right:1px solid var(--border);background:var(--panel2);
+       display:flex;flex-direction:column;min-height:0}
+  .tabs{display:flex;border-bottom:1px solid var(--border)}
+  .tabs button{flex:1;padding:8px 4px;background:none;border:0;border-bottom:2px solid transparent;
+               color:var(--muted);font:inherit;font-size:12px;cursor:pointer}
   .tabs button.on{color:var(--text);border-bottom-color:var(--accent);font-weight:600}
-  .tree{padding:6px 4px 30px}
-  .node{padding:2px 6px;border-radius:5px;cursor:pointer;white-space:nowrap;
+  #search{margin:8px;padding:5px 9px;border:1px solid var(--border);border-radius:6px;
+          background:var(--bg);color:var(--text);font:inherit;font-size:12.5px}
+  #scope{padding:7px 10px;border-bottom:1px solid var(--border);font-size:11.5px;color:var(--muted)}
+  #scope b{color:var(--text)}
+  #scope button{margin-top:5px;font:inherit;font-size:11px;background:var(--bg);color:var(--accent);
+                border:1px solid var(--border);border-radius:5px;padding:2px 7px;cursor:pointer}
+  .list{overflow:auto;flex:1 1 auto;min-height:0;padding:4px 4px 24px}
+  .node{padding:2px 7px;border-radius:5px;cursor:pointer;white-space:nowrap;
         overflow:hidden;text-overflow:ellipsis;font-size:12.5px}
-  .node:hover{background:var(--panel)}
+  .node:hover{background:var(--accent-soft)}
   .node.sel{background:var(--accent);color:#fff}
-  .node .pct{color:var(--muted);font-size:11px;margin-right:5px;font-variant-numeric:tabular-nums}
+  .node .pct{color:var(--muted);font-size:11px;margin-right:6px;display:inline-block;
+             width:38px;text-align:right;font-variant-numeric:tabular-nums}
   .node.sel .pct{color:#e8f0fb}
-  .node .tw{display:inline-block;width:12px;color:var(--muted)}
-  .node.app{color:var(--text)} .node.jdk{color:var(--muted)}
-  #code{overflow:auto;padding:0 0 40px;flex:1 1 auto;min-height:0}
-  .crumb{padding:10px 16px;border-bottom:1px solid var(--border);position:sticky;top:0;
-         background:var(--bg);z-index:1;font-size:13px}
-  .crumb b{font-weight:650}
-  .crumb span{color:var(--muted)}
-  table.src{border-collapse:collapse;width:100%;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12.5px}
+  .node .tw{display:inline-block;width:11px;color:var(--muted)}
+  .node.jdk{color:var(--muted)}
+  .grouphead{padding:6px 8px 2px;color:var(--muted);font-size:11px;letter-spacing:.6px;text-transform:uppercase}
+  #detail{display:flex;flex-direction:column;min-height:0}
+  .crumb{padding:9px 16px;border-bottom:1px solid var(--border);font-size:13px;
+         display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .crumb b{font-weight:650} .crumb span{color:var(--muted)}
+  .pill{font-size:11px;border:1px solid var(--border);border-radius:20px;padding:1px 8px;color:var(--muted)}
+  #code{overflow:auto;flex:1 1 auto;min-height:0;padding-bottom:24px}
+  table.src{border-collapse:collapse;width:100%;
+            font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12.5px}
   table.src td{padding:0 6px;vertical-align:top;white-space:pre}
   td.n{text-align:right;color:var(--muted);user-select:none;width:1%;
        border-right:1px solid var(--border);font-variant-numeric:tabular-nums}
   tr.full td.c{background:var(--full)} tr.part td.c{background:var(--part)} tr.miss td.c{background:var(--miss)}
   td.c{width:99%}
   tr.inmethod td.n{color:var(--accent);font-weight:700}
-  td.ann{color:var(--violet);font-size:11.5px;width:1%;max-width:300px;text-align:right;
+  td.ann{color:var(--violet);font-size:11px;width:1%;max-width:290px;text-align:right;
          white-space:normal;padding-left:14px}
-  .hidden-run{color:var(--muted);font-style:italic;padding:2px 12px;font-size:11.5px;
-              background:var(--panel);border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
-  #values{border-top:1px solid var(--border);background:var(--panel);padding:12px 16px}
-  #values h3{margin:0 0 8px;font-size:12px;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted)}
-  .call{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;
-        padding:5px 0;border-bottom:1px solid var(--border)}
+  td.ann a{color:var(--violet);text-decoration:none;border-bottom:1px dotted var(--violet)}
+  .fold{color:var(--muted);font-style:italic;padding:2px 12px;font-size:11.5px;
+        background:var(--panel);border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
+  #values{border-top:1px solid var(--border);background:var(--panel);padding:10px 16px;max-height:32%;overflow:auto}
+  #values h3{margin:0 0 7px;font-size:11px;letter-spacing:1.1px;text-transform:uppercase;color:var(--muted)}
+  .call{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11.5px;
+        padding:4px 0;border-bottom:1px solid var(--border)}
   .call .v{color:var(--violet)} .call .t{color:var(--muted)}
-  .legend{padding:8px 16px;color:var(--muted);font-size:11.5px;border-top:1px solid var(--border)}
-  .sw{display:inline-block;width:10px;height:10px;border-radius:2px;vertical-align:-1px;margin:0 4px 0 10px}
+  .legend{padding:7px 16px;color:var(--muted);font-size:11px;border-top:1px solid var(--border)}
+  .sw{display:inline-block;width:9px;height:9px;border-radius:2px;vertical-align:-1px;margin:0 4px 0 10px}
+  .home{padding:26px 32px;max-width:820px}
+  .home h2{font-size:17px;margin:0 0 6px}
+  .home p{color:var(--muted);margin:0 0 18px}
+  .home .cards{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:22px}
+  @media(max-width:700px){.home .cards{grid-template-columns:1fr}}
+  .card{border:1px solid var(--border);border-radius:9px;padding:13px 15px;background:var(--panel)}
+  .card .k{font-size:22px;font-weight:680} .card .l{color:var(--muted);font-size:12.5px}
+  .home ol{color:var(--muted);padding-left:20px} .home ol li{margin:6px 0}
+  .home code{background:var(--panel);border:1px solid var(--border);border-radius:4px;padding:1px 5px;font-size:12px}
 </style>
 </head>
 <body>
 <header>
   <span class="badges" title="Les trois outils qui alimentent cette page">
-    <svg viewBox="0 0 32 32" width="26" height="26"><rect width="32" height="32" rx="8" fill="#1a7f37" fill-opacity=".14" stroke="#1a7f37" stroke-opacity=".5"/><rect x="8" y="9" width="16" height="3" rx="1.5" fill="#3fb950"/><rect x="8" y="14.5" width="11" height="3" rx="1.5" fill="#3fb950"/><rect x="8" y="20" width="7" height="3" rx="1.5" fill="#f85149"/></svg>
-    <svg viewBox="0 0 32 32" width="26" height="26"><rect width="32" height="32" rx="8" fill="#d29922" fill-opacity=".14" stroke="#d29922" stroke-opacity=".5"/><rect x="6" y="20" width="20" height="4" rx="1.5" fill="#e3a72c"/><rect x="9" y="14.5" width="14" height="4" rx="1.5" fill="#f0b849"/><rect x="12" y="9" width="8" height="4" rx="1.5" fill="#f8d477"/></svg>
-    <svg viewBox="0 0 32 32" width="26" height="26"><rect width="32" height="32" rx="8" fill="#8250df" fill-opacity=".14" stroke="#8250df" stroke-opacity=".5"/><circle cx="14.5" cy="14" r="6" fill="none" stroke="#ab7df8" stroke-width="2.4"/><path d="M19 18.5L24 23.5" stroke="#ab7df8" stroke-width="2.6" stroke-linecap="round"/><circle cx="14.5" cy="14" r="2" fill="#ab7df8"/></svg>
+    <svg viewBox="0 0 32 32" width="24" height="24"><rect width="32" height="32" rx="8" fill="#1a7f37" fill-opacity=".14" stroke="#1a7f37" stroke-opacity=".5"/><rect x="8" y="9" width="16" height="3" rx="1.5" fill="#3fb950"/><rect x="8" y="14.5" width="11" height="3" rx="1.5" fill="#3fb950"/><rect x="8" y="20" width="7" height="3" rx="1.5" fill="#f85149"/></svg>
+    <svg viewBox="0 0 32 32" width="24" height="24"><rect width="32" height="32" rx="8" fill="#d29922" fill-opacity=".14" stroke="#d29922" stroke-opacity=".5"/><rect x="6" y="20" width="20" height="4" rx="1.5" fill="#e3a72c"/><rect x="9" y="14.5" width="14" height="4" rx="1.5" fill="#f0b849"/><rect x="12" y="9" width="8" height="4" rx="1.5" fill="#f8d477"/></svg>
+    <svg viewBox="0 0 32 32" width="24" height="24"><rect width="32" height="32" rx="8" fill="#8250df" fill-opacity=".14" stroke="#8250df" stroke-opacity=".5"/><circle cx="14.5" cy="14" r="6" fill="none" stroke="#ab7df8" stroke-width="2.4"/><path d="M19 18.5L24 23.5" stroke="#ab7df8" stroke-width="2.6" stroke-linecap="round"/><circle cx="14.5" cy="14" r="2" fill="#ab7df8"/></svg>
   </span>
-  <h1>Vue intégrée — une exécution, trois outils</h1>
+  <h1>Vue intégrée</h1>
   <div class="stat" id="stats"></div>
+  <span class="spacer"></span>
+  <span class="links" id="links"></span>
   <label class="toggle"><input type="checkbox" id="clean"> Masquer le code non exécuté</label>
 </header>
+<div id="note"></div>
 <main>
   <div id="nav">
     <div class="tabs">
-      <button id="tab-tree" class="on">Arbre d'appel</button>
-      <button id="tab-cls">Packages &amp; classes</button>
+      <button id="tab-exec" class="on">Code exécuté</button>
+      <button id="tab-tree">Arbre d'appel</button>
+      <button id="tab-cls">Packages</button>
     </div>
-    <div class="tree" id="tree"></div>
+    <input id="search" placeholder="Filtrer…" autocomplete="off">
+    <div id="scope"></div>
+    <div class="list" id="list"></div>
   </div>
   <div id="detail">
-    <div class="crumb" id="crumb"><span>Choisis un nœud à gauche.</span></div>
+    <div class="crumb" id="crumb"></div>
     <div id="code"></div>
     <div id="values"></div>
-    <div class="legend">
-      <span class="sw" style="background:var(--fullbar)"></span>exécuté
-      <span class="sw" style="background:var(--partbar)"></span>partiellement
-      <span class="sw" style="background:var(--missbar)"></span>jamais exécuté
-      <span style="margin-left:14px">— annotations violettes à droite : appels observés par Arthas sur cette ligne</span>
-      <div style="margin-top:6px">
-        <b>Qui produit quoi</b> :
-        <span style="color:var(--fullbar)">■</span> JaCoCo, la couleur des lignes ·
-        <span style="color:var(--partbar)">■</span> async-profiler, l'arbre d'appel et les pourcentages ·
-        <span style="color:var(--violet)">■</span> Arthas, les annotations de ligne et les valeurs.
-        Une seule exécution les a tous alimentés.
-      </div>
-    </div>
+    <div class="legend" id="legend"></div>
   </div>
 </main>
 <script>
 const D = /*__DATA__*/;
-const esc = s => s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
-let clean = false, selected = null, mode = "tree";
+const esc = s => String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+const dot = s => s.replace(/\//g,".");
+let clean = false, mode = "exec", scopeFrame = null, selected = null, filter = "";
 
-/* --- statistiques d'en-tête ------------------------------------------- */
-(function(){
-  let cov=0, miss=0, dead=[];
-  for (const [pkg, classes] of Object.entries(D.packages))
+/* ---------------------------------------------------------------- agrégats */
+const AGG = (() => {
+  let cov=0, miss=0; const dead=[];
+  for (const classes of Object.values(D.packages))
     for (const c of classes){ cov+=c.covered; miss+=c.missed; if(!c.covered) dead.push(c.simple); }
-  document.getElementById("stats").innerHTML =
-    "<b>"+(100*cov/(cov+miss)).toFixed(1)+" %</b> des instructions exécutées · "+
-    "<b>"+D.calltree.total+"</b> échantillons de pile · "+
-    "<b>"+D.values.length+"</b> appels capturés avec leurs valeurs"+
-    (dead.length? " · <b>"+dead.length+"</b> classe(s) jamais exécutée(s)" : "");
+  const weights = {};
+  (function walk(n){ for(const k of n.children){ weights[k.name]=(weights[k.name]||0)+k.total; walk(k);} })(D.calltree);
+  let methods=0;
+  for (const info of Object.values(D.methods)) methods += info.methods.filter(m=>m.covered).length;
+  return {cov, miss, dead, weights, methods,
+          pct: cov+miss ? 100*cov/(cov+miss) : 0, samples: D.calltree.total};
 })();
 
-/* --- résolution frame -> source --------------------------------------- */
-function frameInfo(frame){                       // "lab/sample/terrain/Terrain.slowdownFactor"
+document.getElementById("stats").innerHTML =
+  "<b>"+AGG.pct.toFixed(1)+" %</b> du code exécuté · <b>"+AGG.methods+"</b> méthodes ayant tourné"+
+  (AGG.dead.length ? " · <b>"+AGG.dead.length+"</b> classe(s) morte(s)" : "");
+document.getElementById("links").innerHTML =
+  '<a href="../jacoco/html/index.html">rapport JaCoCo</a>' +
+  '<a href="../jacoco-focused/html/index.html">rapport ciblé</a>' +
+  '<a href="../async-profiler/flamegraph.html">flame graph</a>';
+if (D.profileNote){
+  const n = document.getElementById("note");
+  n.className = "on";
+  n.innerHTML = "⚠️ <b>Réserve sur les pourcentages de temps</b> — " + esc(D.profileNote);
+  document.body.classList.add("noted");
+}
+document.getElementById("legend").innerHTML =
+  '<span class="sw" style="background:var(--fullbar)"></span>exécuté' +
+  '<span class="sw" style="background:var(--partbar)"></span>partiellement' +
+  '<span class="sw" style="background:var(--missbar)"></span>jamais exécuté' +
+  '<span style="margin-left:16px"><b>Qui produit quoi</b> : ' +
+  '<span style="color:var(--fullbar)">■</span> JaCoCo, la couleur des lignes et la liste du code exécuté · ' +
+  '<span style="color:var(--partbar)">■</span> async-profiler, les pourcentages et l\'arbre · ' +
+  '<span style="color:var(--violet)">■</span> Arthas, les annotations de ligne et les valeurs.</span>';
+
+/* --------------------------------------------------------- frame -> source */
+function frameInfo(frame){
   const i = frame.lastIndexOf(".");
   if (i < 0) return null;
-  const cls = frame.slice(0, i), method = frame.slice(i+1);
-  const m = D.methods[cls];
-  if (!m) return null;
-  const decl = m.methods.find(x => x.name === method);
-  return {cls, method, source: m.source, line: decl ? decl.line : 0, methods: m.methods};
+  const cls = frame.slice(0,i), name = frame.slice(i+1);
+  const info = D.methods[cls];
+  if (!info) return null;
+  const decl = info.methods.find(m => m.name === name);
+  return {frame, cls, name, line: decl ? decl.line : 0,
+          source: info.source, methods: info.methods};
 }
 
-/* --- arbre d'appel ------------------------------------------------------ */
-function renderCallTree(){
-  const box = document.getElementById("tree");
-  box.innerHTML = "";
-  const total = D.calltree.total || 1;
-  (function walk(node, depth, parent){
+/* ------------------------------------------- périmètre : sous une méthode */
+function framesUnder(target){
+  const acc = {};
+  (function walk(node, inside){
     for (const kid of node.children){
-      const info = frameInfo(kid.name);
-      const el = document.createElement("div");
-      el.className = "node " + (info ? "app" : "jdk");
-      el.style.paddingLeft = (6 + depth*11) + "px";
-      const pct = (100*kid.total/total).toFixed(1);
-      el.innerHTML = '<span class="tw">'+(kid.children.length?"▸":"")+'</span>'+
-                     '<span class="pct">'+pct+'%</span>'+esc(kid.name.replace(/\//g,"."));
-      box.appendChild(el);
-      const holder = document.createElement("div");
-      holder.style.display = "none";
-      box.appendChild(holder);
-      el.onclick = () => {
-        if (kid.children.length){
-          holder.style.display = holder.style.display === "none" ? "block" : "none";
-          el.querySelector(".tw").textContent = holder.style.display === "none" ? "▸" : "▾";
-        }
-        if (info) select(info, el);
-      };
-      const sub = {children: kid.children};
-      const inner = document.createElement("div");
-      holder.appendChild(inner);
-      renderInto(inner, sub, depth+1, total);
+      const now = inside || kid.name === target;
+      if (now) acc[kid.name] = (acc[kid.name]||0) + kid.total;
+      walk(kid, now);
     }
-  })(D.calltree, 0);
+  })(D.calltree, false);
+  return acc;
 }
-function renderInto(box, node, depth, total){
-  for (const kid of node.children){
-    const info = frameInfo(kid.name);
+function executedMethods(){
+  const scoped = scopeFrame ? framesUnder(scopeFrame) : null;
+  const out = [];
+  for (const [cls, info] of Object.entries(D.methods))
+    for (const m of info.methods){
+      if (!m.covered) continue;
+      const frame = cls + "." + m.name;
+      if (scoped && !(frame in scoped)) continue;
+      if (filter && !(dot(frame).toLowerCase().includes(filter))) continue;
+      out.push({frame, cls, name: m.name, line: m.line, source: info.source,
+                methods: info.methods, samples: AGG.weights[frame] || 0});
+    }
+  return out.sort((a,b) => b.samples - a.samples || a.frame.localeCompare(b.frame));
+}
+
+/* ------------------------------------------------------------------ listes */
+function renderScope(){
+  const box = document.getElementById("scope");
+  if (mode !== "exec"){ box.innerHTML = ""; return; }
+  box.innerHTML = scopeFrame
+    ? "Périmètre : <b>ce qui a tourné sous " + esc(dot(scopeFrame).split(".").slice(-2).join(".")) +
+      "</b> — établi sur les piles échantillonnées, une méthode très rare peut manquer." +
+      "<br><button id='unscope'>Toute l'exécution</button>"
+    : "Périmètre : <b>toute l'exécution</b>. Liste établie par JaCoCo, donc exhaustive. " +
+      "« · » = exécutée, mais trop brève ou trop rare pour être échantillonnée.";
+  const b = document.getElementById("unscope");
+  if (b) b.onclick = () => { scopeFrame = null; renderExec(); };
+}
+function tab(id){ document.querySelectorAll(".tabs button").forEach(b=>b.classList.remove("on"));
+                  document.getElementById(id).classList.add("on"); }
+
+function renderExec(){
+  mode = "exec"; tab("tab-exec"); renderScope();
+  const box = document.getElementById("list"); box.innerHTML = "";
+  const rows = executedMethods();
+  const total = rows.reduce((a,r)=>a+r.samples,0) || 1;
+  const head = document.createElement("div");
+  head.className = "grouphead";
+  head.textContent = rows.length + " méthode(s) — cliquer pour voir le code";
+  box.appendChild(head);
+  for (const r of rows){
     const el = document.createElement("div");
-    el.className = "node " + (info ? "app" : "jdk");
-    el.style.paddingLeft = (6 + depth*11) + "px";
-    el.innerHTML = '<span class="tw">'+(kid.children.length?"▸":"")+'</span>'+
-                   '<span class="pct">'+(100*kid.total/total).toFixed(1)+'%</span>'+
-                   esc(kid.name.replace(/\//g,"."));
+    el.className = "node";
+    const share = 100*r.samples/total;
+    el.innerHTML = '<span class="pct">'+(share >= 0.05 ? share.toFixed(1)+"%" : "·")+
+                   '</span>'+esc(r.cls.split("/").pop()+"."+r.name);
+    el.title = dot(r.frame);
+    el.onclick = () => select(r, el);
     box.appendChild(el);
-    const holder = document.createElement("div"); holder.style.display="none"; box.appendChild(holder);
-    renderInto(holder, kid, depth+1, total);
-    el.onclick = e => {
-      e.stopPropagation();
-      if (kid.children.length){
-        holder.style.display = holder.style.display==="none" ? "block":"none";
-        el.querySelector(".tw").textContent = holder.style.display==="none" ? "▸":"▾";
-      }
-      if (info) select(info, el);
-    };
   }
 }
 
-/* --- arbre des classes -------------------------------------------------- */
-function renderClassTree(){
-  const box = document.getElementById("tree");
-  box.innerHTML = "";
+function renderTree(){
+  mode = "tree"; tab("tab-tree"); renderScope();
+  const box = document.getElementById("list"); box.innerHTML = "";
+  const total = D.calltree.total || 1;
+  (function level(container, node, depth){
+    for (const kid of node.children){
+      if (filter && !dot(kid.name).toLowerCase().includes(filter) && !hasMatch(kid)) continue;
+      const info = frameInfo(kid.name);
+      const el = document.createElement("div");
+      el.className = "node " + (info ? "" : "jdk");
+      el.style.paddingLeft = (6 + depth*11) + "px";
+      el.innerHTML = '<span class="tw">'+(kid.children.length?"▸":"")+'</span>'+
+                     '<span class="pct">'+(100*kid.total/total).toFixed(1)+'%</span>'+
+                     esc(dot(kid.name));
+      container.appendChild(el);
+      const holder = document.createElement("div");
+      holder.style.display = "none"; container.appendChild(holder);
+      level(holder, kid, depth+1);
+      el.onclick = e => {
+        e.stopPropagation();
+        if (kid.children.length){
+          const open = holder.style.display === "none";
+          holder.style.display = open ? "block" : "none";
+          el.querySelector(".tw").textContent = open ? "▾" : "▸";
+        }
+        if (info){ selectFrame(kid.name, el); }
+      };
+    }
+  })(box, D.calltree, 0);
+  function hasMatch(node){
+    return node.children.some(k => dot(k.name).toLowerCase().includes(filter) || hasMatch(k));
+  }
+}
+
+function renderClasses(){
+  mode = "cls"; tab("tab-cls"); renderScope();
+  const box = document.getElementById("list"); box.innerHTML = "";
   for (const pkg of Object.keys(D.packages).sort()){
     let classes = D.packages[pkg];
     if (clean) classes = classes.filter(c => c.covered > 0);
+    if (filter) classes = classes.filter(c => (pkg+"."+c.simple).toLowerCase().includes(filter));
     if (!classes.length) continue;
     const head = document.createElement("div");
-    head.className = "node"; head.style.fontWeight = "600";
-    head.innerHTML = '<span class="tw">▾</span>'+esc(pkg.replace(/\//g,"."));
+    head.className = "grouphead"; head.textContent = dot(pkg);
     box.appendChild(head);
     for (const c of classes){
       const el = document.createElement("div");
-      el.className = "node app"; el.style.paddingLeft = "28px";
-      const pct = c.covered+c.missed ? (100*c.covered/(c.covered+c.missed)).toFixed(0) : "0";
+      el.className = "node"; el.style.paddingLeft = "14px";
+      const pct = c.covered+c.missed ? Math.round(100*c.covered/(c.covered+c.missed)) : 0;
       el.innerHTML = '<span class="pct">'+pct+'%</span>'+esc(c.simple);
-      el.onclick = () => select({cls:c.name, method:null, source:c.source, line:0,
-                                methods:(D.methods[c.name]||{}).methods||[]}, el);
+      el.onclick = () => select({frame:c.name, cls:c.name, name:null, line:0, source:c.source,
+                                 methods:(D.methods[c.name]||{}).methods||[]}, el);
       box.appendChild(el);
     }
   }
 }
 
-/* --- vue de code -------------------------------------------------------- */
+/* ------------------------------------------------------------ vue de code */
+function selectFrame(frame, el){
+  const info = frameInfo(frame);
+  if (!info) return;
+  scopeFrame = frame;
+  select(info, el);
+}
 function select(info, el){
-  document.querySelectorAll(".node.sel").forEach(n => n.classList.remove("sel"));
+  document.querySelectorAll(".node.sel").forEach(n=>n.classList.remove("sel"));
   if (el) el.classList.add("sel");
   selected = info;
   draw();
 }
 function draw(){
-  if (!selected) return;
-  const info = selected;
-  const src = D.sources[info.source];
-  const cov = D.coverage[info.source] || {};
-  document.getElementById("crumb").innerHTML =
-    '<span>'+esc(info.cls.split("/").slice(0,-1).join("."))+' › </span><b>'+
-    esc(info.cls.split("/").pop())+'.java</b>'+
-    (info.method ? '<span> › </span><b>'+esc(info.method)+'()</b>' : '');
-  if (!src){ document.getElementById("code").innerHTML =
-      '<p style="padding:16px;color:var(--muted)">Source indisponible pour '+esc(info.source)+'.</p>';
-      document.getElementById("values").innerHTML=""; return; }
+  const code = document.getElementById("code");
+  if (!selected){ drawHome(); return; }
+  const info = selected, src = D.sources[info.source], cov = D.coverage[info.source] || {};
+  const traced = info.cls === D.tracedClass;
+  const samples = AGG.weights[info.frame] || 0;
 
-  // Bornes de la méthode sélectionnée : de sa ligne de début à la méthode suivante.
+  document.getElementById("crumb").innerHTML =
+    '<span>'+esc(dot(info.cls).split(".").slice(0,-1).join("."))+' ›</span> <b>'+
+    esc(info.cls.split("/").pop())+'.java</b>'+
+    (info.name ? ' <span>›</span> <b>'+esc(info.name)+'()</b>' : '') +
+    (samples ? ' <span class="pill">'+(100*samples/(D.calltree.total||1)).toFixed(1)+' % du temps</span>' : '') +
+    (traced ? ' <span class="pill" style="color:var(--violet);border-color:var(--violet)">valeurs capturées</span>' : '') +
+    (mode==="exec" && info.name ? ' <span class="pill" style="cursor:pointer" id="scopeBtn">ne montrer que ce qui tourne sous cette méthode</span>' : '');
+
+  if (!src){ code.innerHTML = '<p style="padding:18px;color:var(--muted)">Source indisponible.</p>';
+             document.getElementById("values").innerHTML=""; return; }
+
   let from = 0, to = 1e9;
   if (info.line){
     from = info.line;
-    const next = info.methods.filter(m => m.line > info.line).map(m => m.line).sort((a,b)=>a-b)[0];
-    to = next ? next - 1 : 1e9;
+    const next = info.methods.filter(m=>m.line>info.line).map(m=>m.line).sort((a,b)=>a-b)[0];
+    to = next ? next-1 : 1e9;
   }
-  const isTraced = info.cls === D.tracedClass;
-  let html = '<table class="src">', hiddenRun = 0;
-  src.forEach((text, i) => {
-    const nr = i + 1, c = cov[nr];
-    if (clean && c && c.s === "miss"){ hiddenRun++; return; }
-    if (hiddenRun){
-      html += '<tr><td colspan="3" class="hidden-run">… '+hiddenRun+' ligne(s) jamais exécutée(s), masquée(s)</td></tr>';
-      hiddenRun = 0;
-    }
-    const cls = [c ? c.s : "", (nr>=from && nr<=to && info.line) ? "inmethod" : ""].join(" ");
-    const ann = isTraced && D.trace[nr]
-      ? D.trace[nr].map(a => esc(a.callee)+" "+a.cost).join(" · ") : "";
-    html += '<tr class="'+cls+'" id="L'+nr+'"><td class="n">'+nr+'</td>'+
-            '<td class="c">'+esc(text)+'</td><td class="ann">'+ann+'</td></tr>';
+  let html = '<table class="src">', fold = 0;
+  src.forEach((text,i) => {
+    const nr = i+1, c = cov[nr];
+    if (clean && c && c.s === "miss"){ fold++; return; }
+    if (fold){ html += '<tr><td colspan="3" class="fold">… '+fold+' ligne(s) jamais exécutée(s)</td></tr>'; fold = 0; }
+    const cls = [c ? c.s : "", (info.line && nr>=from && nr<=to) ? "inmethod" : ""].join(" ");
+    let ann = "";
+    if (traced && D.trace[nr])
+      { const all = D.trace[nr];
+        ann = all.slice(0,2).map(a =>
+          '<a href="#" data-f="'+esc(a.frame||"")+'">'+esc(a.callee)+'</a> '+esc(a.cost)).join(" · ")
+          + (all.length > 2 ? ' <span style="opacity:.7">+'+(all.length-2)+'</span>' : ''); }
+    html += '<tr class="'+cls+'" id="L'+nr+'"><td class="n">'+nr+'</td><td class="c">'+
+            esc(text)+'</td><td class="ann">'+ann+'</td></tr>';
   });
-  if (hiddenRun) html += '<tr><td colspan="3" class="hidden-run">… '+hiddenRun+' ligne(s) jamais exécutée(s), masquée(s)</td></tr>';
-  document.getElementById("code").innerHTML = html + "</table>";
-  // Faire défiler le PANNEAU, pas la page : scrollIntoView déplacerait tout le document
-  // et sortirait l'arbre de gauche du champ.
+  if (fold) html += '<tr><td colspan="3" class="fold">… '+fold+' ligne(s) jamais exécutée(s)</td></tr>';
+  code.innerHTML = html+"</table>";
+
   const anchor = document.getElementById("L"+(info.line||1));
-  const pane = document.getElementById("code");
-  // offsetTop est relatif au premier ancêtre positionné, pas au panneau : on passe par
-  // les rectangles pour obtenir un décalage juste quelle que soit la mise en page.
-  if (anchor) pane.scrollTop += anchor.getBoundingClientRect().top
-                              - pane.getBoundingClientRect().top - pane.clientHeight/3;
-  drawValues(isTraced);
+  if (anchor) code.scrollTop += anchor.getBoundingClientRect().top
+                              - code.getBoundingClientRect().top - code.clientHeight/3;
+  code.querySelectorAll("td.ann a").forEach(a => a.onclick = e => {
+    e.preventDefault();
+    const f = a.dataset.f;
+    if (f && frameInfo(f)) select(frameInfo(f), null);
+  });
+  const sb = document.getElementById("scopeBtn");
+  if (sb) sb.onclick = () => { scopeFrame = info.frame; renderExec(); };
+  drawValues(traced);
 }
-function drawValues(isTraced){
+function drawValues(traced){
   const box = document.getElementById("values");
-  if (!isTraced || !D.values.length){ box.innerHTML = ""; return; }
-  box.innerHTML = "<h3>Valeurs réellement passées à cet appel — capturées par Arthas</h3>" +
-    D.values.map(v =>
-      '<div class="call"><span class="t">'+esc(v.ts)+' · '+esc(v.cost)+'</span> — ' +
-      v.values.map(x => '<span class="v">'+esc(x.value)+'</span>').join(", ") + '</div>').join("");
+  if (!traced || !D.values.length){ box.innerHTML = ""; return; }
+  box.innerHTML = "<h3>Valeurs réellement passées à cette méthode — capturées par Arthas</h3>" +
+    D.values.map(v => '<div class="call"><span class="t">'+esc(v.cost)+'</span> — '+
+      v.values.map(x => '<span class="v">'+esc(x.value)+'</span>').join(", ")+'</div>').join("");
+}
+function drawHome(){
+  document.getElementById("crumb").innerHTML = '<span>Vue d\'ensemble</span>';
+  document.getElementById("values").innerHTML = "";
+  const hot = executedMethods().slice(0,5);
+  document.getElementById("code").innerHTML =
+   '<div class="home"><h2>Ce que cette page montre</h2>'+
+   '<p>Une exécution réelle du programme, vue par trois outils gratuits, assemblée ici.</p>'+
+   '<div class="cards">'+
+     '<div class="card"><div class="k">'+AGG.pct.toFixed(1)+' %</div><div class="l">du code exécuté <span style="opacity:.7">— JaCoCo</span></div></div>'+
+     '<div class="card"><div class="k">'+AGG.methods+'</div><div class="l">méthodes ayant tourné</div></div>'+
+     '<div class="card"><div class="k">'+AGG.samples.toLocaleString("fr")+'</div><div class="l">échantillons de pile <span style="opacity:.7">— async-profiler</span></div></div>'+
+     '<div class="card"><div class="k">'+D.values.length+'</div><div class="l">appels avec leurs valeurs <span style="opacity:.7">— Arthas</span></div></div>'+
+   '</div>'+
+   '<h2>Comment s\'en servir</h2><ol>'+
+     '<li><b>Code exécuté</b> — la liste de tout ce qui a tourné, du plus coûteux au moins coûteux. Cliquer ouvre le code, lignes exécutées en vert.</li>'+
+     '<li>Sur une méthode, <b>« ne montrer que ce qui tourne sous cette méthode »</b> restreint la liste à son périmètre — sans avoir à descendre d\'appel en appel.</li>'+
+     '<li><b>Arbre d\'appel</b> et <b>Packages</b> sont deux autres portes d\'entrée vers le même code.</li>'+
+     '<li><b>Masquer le code non exécuté</b>, en haut à droite, retire du rapport tout ce qui n\'a pas tourné.</li>'+
+   '</ol>'+
+   (AGG.dead.length ? '<h2>Jamais exécuté</h2><p>'+AGG.dead.map(d=>'<code>'+esc(d)+'</code>').join(" ")+'</p>' : '')+
+   '<h2>Les plus coûteuses</h2><p>'+hot.map(h=>'<code>'+esc(h.cls.split("/").pop()+"."+h.name)+'</code>').join(" ")+'</p>'+
+   '</div>';
 }
 
-/* --- interactions ------------------------------------------------------- */
-document.getElementById("tab-tree").onclick = () => {
-  mode="tree"; document.getElementById("tab-tree").classList.add("on");
-  document.getElementById("tab-cls").classList.remove("on"); renderCallTree(); };
-document.getElementById("tab-cls").onclick = () => {
-  mode="cls"; document.getElementById("tab-cls").classList.add("on");
-  document.getElementById("tab-tree").classList.remove("on"); renderClassTree(); };
+/* ------------------------------------------------------------ interactions */
+document.getElementById("tab-exec").onclick = renderExec;
+document.getElementById("tab-tree").onclick = renderTree;
+document.getElementById("tab-cls").onclick  = renderClasses;
 document.getElementById("clean").onchange = e => {
   clean = e.target.checked;
-  mode === "cls" ? renderClassTree() : renderCallTree();
+  mode === "cls" ? renderClasses() : mode === "tree" ? renderTree() : renderExec();
   draw();
 };
-renderCallTree();
+document.getElementById("search").oninput = e => {
+  filter = e.target.value.trim().toLowerCase();
+  mode === "cls" ? renderClasses() : mode === "tree" ? renderTree() : renderExec();
+};
+renderExec();
+drawHome();
 </script>
 </body>
 </html>

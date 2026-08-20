@@ -4,11 +4,18 @@
 
 **[→ Voir la vue intégrée](https://beennnn.github.io/runtime-xray/vue-integree/)**
 
-![La vue intégrée](assets/shots/vue-integree.png)
+![Vue d'ensemble](assets/shots/vue-accueil.png)
 
-*À gauche l'arbre d'appel, à droite le code de la méthode choisie : lignes vertes
-exécutées, annotations violettes indiquant quel appel part de quelle ligne et en combien
-de temps, et en bas les valeurs réellement passées.*
+*À l'ouverture : ce que l'exécution a produit, et à gauche **la liste de tout le code qui a
+tourné**, du plus coûteux au moins coûteux. Pas d'arbre à descendre — la liste est
+exhaustive, établie par JaCoCo.*
+
+![Le détail d'une méthode](assets/shots/vue-integree.png)
+
+*Un clic ouvre le code : lignes exécutées en vert, annotations violettes indiquant quel
+appel part de quelle ligne et en combien de temps, et en bas les valeurs réellement passées.
+Le bouton « ne montrer que ce qui tourne sous cette méthode » restreint la liste de gauche
+à ce périmètre.*
 
 ## Les trois outils et leur rôle
 
@@ -28,61 +35,68 @@ attachés au démarrage, puis y branche Arthas pendant que les appels ont lieu :
 ```
 java -javaagent:jacoco-agent.jar=destfile=…          ← instrumente le bytecode
      -agentpath:libasyncProfiler.dylib=start,…       ← échantillonne les piles
-     -jar sample-app.jar --iterations 48000000       ← ~30 s, le temps de s'attacher
+     -jar sample-app.jar --iterations 24000000       ← le temps de s'attacher
                                                      ↳ arthas-boot --arthas-home … -f watch-params.as
 ```
 
-Puis le rendu : rapport JaCoCo, rapport ciblé, et la vue intégrée.
-
 ```bash
 ./tools/run-all.sh
-python3 tools/summary/build-dashboard.py
 ```
+
+### Pourquoi une seule passe, alors qu'Arthas perturbe la mesure
+
+La question mérite d'être tranchée explicitement, parce que la perturbation est réelle et
+importante — mais elle ne touche **pas** ce que le projet cherche.
+
+Voici, objectif par objectif, ce que la passe unique donne :
+
+| Objectif | État en passe unique | Vérifié comment |
+|---|---|---|
+| **1 — lignes exécutées** | ✅ **intact** | Le script contrôle à chaque exécution que la classe observée conserve sa couverture. Arthas la *retransforme*, ce qui aurait pu l'effacer : ce n'est pas le cas |
+| **1 — arbre d'appel (la forme)** | ✅ **intact** | La structure des appels reste complète : `RoutePlanner → legMinutes → Terrain…`. Rien ne disparaît |
+| **2 — valeurs des paramètres** | ✅ intact | C'est justement Arthas qui les fournit |
+| *pourcentages de temps* | ⚠️ **faussés** | Plus de 80 % des échantillons tombaient dans l'instrumentation d'Arthas (`SpyAPI.atBeforeInvoke` 41 %, `atAfterInvoke` 40 %) |
+
+**Ce qui est dégradé est le seul indicateur qui ne soit pas un critère du projet.** Le
+temps de calcul a été explicitement classé hors critères : l'optimisation des performances
+est un sujet distinct, à traiter plus tard, une fois le code compris et reconçu. Sacrifier
+la précision d'une mesure de temps pour obtenir les trois données en un seul lancement est
+donc un bon échange.
+
+### L'atténuation appliquée
+
+Plutôt que d'afficher un profil trompeur, la vue intégrée **replie les frames d'Arthas sur
+la méthode applicative qui les a déclenchées**. Les échantillons restent comptés, mais
+attribués au code métier plutôt qu'à l'outil d'observation : la forme de la distribution
+est restituée, et l'arbre redevient lisible.
+
+Une bannière affiche la réserve en haut de la vue, avec la part d'échantillons concernée —
+on ne masque pas le problème, on l'annonce.
+
+**Réserve qui subsiste** : le coût affiché de la *méthode observée* reste surestimé, car on
+mesure aussi le travail de l'instrumentation. Les autres méthodes ne sont pas affectées.
+
+### Si les pourcentages doivent être justes
+
+```bash
+TWO_RUNS=1 ./tools/run-all.sh
+```
+
+Deux exécutions du même scénario déterministe : mesure d'abord (JaCoCo + async-profiler
+seuls, profil propre), inspection ensuite (Arthas seul). Le script vérifie alors qu'aucune
+frame Arthas ne subsiste dans le profil. À réserver au jour où l'on s'intéressera vraiment
+aux temps.
 
 ### Ce qui a été vérifié, et qui n'allait pas de soi
 
-**Les trois agents cohabitent sans se corrompre.** Arthas *retransforme* les classes qu'il
-observe, alors que JaCoCo les a déjà instrumentées — il était plausible que la couverture
-soit perdue sur ces classes. Le script vérifie donc explicitement, à chaque exécution, que
-la classe observée conserve sa couverture :
+**Les trois agents cohabitent sans corrompre la couverture.** Arthas retransforme les
+classes qu'il observe, alors que JaCoCo les a déjà instrumentées — la couverture aurait pu
+être perdue sur ces classes précises. Le contrôle est donc automatique, à chaque lancement :
 
 ```
-▶ Contrôle d'intégrité : la retransformation d'Arthas a-t-elle abîmé la couverture ?
-   RoutePlanner : 93 instructions couvertes (OK)
+▶ Contrôle d'intégrité : la couverture a-t-elle survécu à la retransformation d'Arthas ?
+   RoutePlanner : 93 instructions couvertes — OK
 ```
-
-## ⚠️ Le prix de l'exécution unique : Arthas fausse le profil
-
-C'est le résultat le plus important de cette intégration, et il est mesuré.
-
-Dans l'arbre d'appel produit par cette exécution commune, les deux premières branches sous
-la fonction analysée ne sont pas du code métier :
-
-| Branche | Part des échantillons |
-|---|---|
-| `java.arthas.SpyAPI.atBeforeInvoke` | **41,3 %** |
-| `java.arthas.SpyAPI.atAfterInvoke` | **40,4 %** |
-| `lab.sample.RoutePlanner.legMinutes` | 9,4 % |
-
-**Plus de 80 % du temps mesuré est celui de l'instrumentation d'Arthas**, pas celui du
-programme. C'est logique — Arthas intercepte chaque entrée et chaque sortie de la méthode
-observée — mais ça rend le profil inexploitable pour répondre à « où passe le temps ? ».
-
-### Le protocole recommandé : deux exécutions, pas une
-
-| Exécution | Outils | Ce qu'on en tire |
-|---|---|---|
-| **1 — mesure** | JaCoCo + async-profiler | La couverture **et** un profil non faussé |
-| **2 — inspection** | Arthas seul | Les valeurs des paramètres, l'arbre d'un appel |
-
-Les deux rejouent le même scénario déterministe, donc les résultats restent comparables et
-la vue intégrée les assemble sans difficulté. **L'exécution unique reste utile** pour une
-démonstration ou quand le programme est coûteux à relancer — à condition de savoir que les
-pourcentages du profil sont alors ceux d'un programme instrumenté, pas du programme.
-
-> C'est exactement le compromis énoncé ailleurs dans ce dépôt : l'instrumentation est
-> exacte sur ce qu'elle compte, et perturbe ce qu'elle mesure. Ici on en a la démonstration
-> chiffrée sur notre propre montage.
 
 ## La vue intégrée
 

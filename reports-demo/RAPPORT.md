@@ -10,11 +10,11 @@
 
 ## 1. Par où le code est passé — JaCoCo
 
-**91.1 % des instructions** et **81.8 % des branches** ont été exécutées.
+**92.7 % des instructions** et **85.7 % des branches** ont été exécutées.
 
 | Package | Instructions | Branches |
 |---|---:|---:|
-| `lab.sample` | 92 % | 83 % |
+| `lab.sample` | 95 % | 96 % |
 | `lab.sample.comfort` | 100 % | 100 % |
 | `lab.sample.model` | 84 % | 0 % |
 | `lab.sample.speed` | 82 % | 73 % |
@@ -49,27 +49,27 @@
 Valeurs réellement passées à `RoutePlanner.travelTimeMinutes`, telles qu'Arthas les a lues :
 
 ```
-ts=2026-08-20 20:08:02.619; [cost=5.866458ms] result=@ArrayList[
-    @String[TRIP-56],
+ts=2026-08-20 20:48:29.731; [cost=3.720167ms] result=@ArrayList[
+    @String[TRIP-84],
     @Mode[CAR],
-    @Weather[SUNNY],
+    @Weather[RAIN],
     @TimeOfDay[RUSH_HOUR],
     @Boolean[false],
-    @Double[52.00806981818182],
-ts=2026-08-20 20:08:02.621; [cost=0.031375ms] result=@ArrayList[
-    @String[TRIP-57],
+    @Double[37.51926857142858],
+ts=2026-08-20 20:48:29.734; [cost=0.020167ms] result=@ArrayList[
+    @String[TRIP-85],
     @Mode[TRAIN],
-    @Weather[SUNNY],
+    @Weather[RAIN],
     @TimeOfDay[RUSH_HOUR],
-    @Boolean[false],
-    @Double[56.833333333333336],
-ts=2026-08-20 20:08:02.622; [cost=0.019334ms] result=@ArrayList[
-    @String[TRIP-58],
+    @Boolean[true],
+    @Double[52.666666666666664],
+ts=2026-08-20 20:48:29.736; [cost=0.022ms] result=@ArrayList[
+    @String[TRIP-86],
     @Mode[BIKE],
-    @Weather[SUNNY],
+    @Weather[RAIN],
     @TimeOfDay[RUSH_HOUR],
     @Boolean[false],
-    @Double[365.7556000000001],
+    @Double[588.6771168],
 ```
 
 ---

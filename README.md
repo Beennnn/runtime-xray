@@ -11,8 +11,10 @@ Il ne s'agit pas de départager des produits pour le plaisir de les classer, mai
 répondre à un besoin précis : disposer de rapports qui rendent visible le comportement
 réel du code — pour l'analyser, puis le restructurer.
 
-**→ [Voir les rapports en ligne](https://beennnn.github.io/runtime-xray/)** — les sorties
-réelles, navigables dans le navigateur, sans rien installer.
+**→ [La vue intégrée](https://beennnn.github.io/runtime-xray/vue-integree/)** — tout le code
+exécuté, son arbre d'appel et les valeurs des paramètres, dans une seule page.
+**→ [Tous les rapports](https://beennnn.github.io/runtime-xray/)** — les sorties natives de
+chaque outil.
 **→ [Télécharger le rapport en un fichier](https://github.com/Beennnn/runtime-xray/releases/latest)** — 266 Ko, à décompresser et ouvrir hors ligne.
 
 [Résultats et arbitrages](docs/RESULTS.md) · [Tableau comparatif](docs/COMPARISON.md) · [Fiches par outil](docs/tools/) · [Outils écartés](docs/ECARTES.md) · [Publier le rapport](docs/PUBLICATION.md) · [Clés d'évaluation](docs/EVALUATION-KEYS.md) · [Détails techniques](docs/TECHNICAL.md)
@@ -27,6 +29,13 @@ réelles, navigables dans le navigateur, sans rien installer.
 
 > Les deux premières sont l'objectif. La troisième est un **plus** : souhaitable, mais elle
 > ne doit pas peser dans le choix si elle impose un compromis sur les deux autres.
+
+**Le périmètre visé** : **tout le code exécuté par une exécution**, éventuellement restreint
+à ce qui a tourné **sous une méthode d'entrée donnée**. Et sans avoir à suivre soi-même la
+chaîne des sous-appels : on veut la liste de ce qui a tourné, pas une descente pas à pas
+dans un arbre. C'est exactement ce que produit la
+[vue intégrée](https://beennnn.github.io/runtime-xray/vue-integree/) — la liste vient de
+JaCoCo, donc elle est exhaustive, et le filtre par point d'entrée s'applique dessus.
 
 Et, transversalement : pouvoir **naviguer dans le code** depuis le rapport — pour un
 développeur dans son IDE, pour un non-technicien dans une page web qu'on lui envoie.

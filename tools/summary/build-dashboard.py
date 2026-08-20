@@ -36,8 +36,19 @@ def load_coverage():
         for cls in pkg.findall("class"):
             cname = cls.get("name")
             src = f"{pkg_name}/{cls.get('sourcefilename')}"
-            mlist = [{"name": m.get("name"), "line": int(m.get("line", 0))}
-                     for m in cls.findall("method") if m.get("line")]
+            mlist = []
+            for m in cls.findall("method"):
+                if not m.get("line"):
+                    continue
+                # Couverture de la méthode elle-même : c'est JaCoCo qui sait EXACTEMENT
+                # ce qui a été exécuté. L'échantillonnage d'async-profiler, lui, rate les
+                # méthodes rares — il sert à pondérer, pas à établir la liste.
+                ic = 0
+                for c in m.findall("counter"):
+                    if c.get("type") == "INSTRUCTION":
+                        ic = int(c.get("covered", 0))
+                mlist.append({"name": m.get("name"), "line": int(m.get("line")),
+                              "covered": ic})
             methods[cname] = {"source": src, "methods": sorted(mlist, key=lambda m: m["line"])}
             counters = {c.get("type"): c for c in cls.findall("counter")}
             inst = counters.get("INSTRUCTION")
@@ -63,19 +74,34 @@ def load_coverage():
     return lines, methods, packages
 
 # ------------------------------------------------------------- arbre d'appel
+# Frames de l'instrumentation d'Arthas. Quand les trois outils tournent en une seule
+# passe, Arthas intercepte chaque entrée et sortie de la méthode observée : ses frames
+# captent l'essentiel des échantillons et écrasent le profil.
+#
+# On les REPLIE sur leur appelant plutôt que de les afficher : les échantillons restent
+# comptés, mais attribués à la méthode applicative qui les a déclenchés. La forme de
+# l'arbre est ainsi restituée. Réserve à garder en tête : le coût de la méthode observée
+# reste surestimé, puisqu'on mesure aussi le travail de l'instrumentation.
+ARTHAS_FRAME = re.compile(r"arthas|SpyAPI|taobao", re.I)
+
 def load_calltree(limit_depth=40):
     path = GEN / "async-profiler" / "profil.collapsed"
     if not path.exists():
-        return {"name": "(profil absent)", "total": 0, "children": []}
+        return {"name": "(profil absent)", "total": 0, "children": []}, None
     root = {"name": "tout", "total": 0, "children": {}}
+    folded = 0
     for line in path.read_text().splitlines():
         stack, _, count = line.rpartition(" ")
         if not count.isdigit():
             continue
         n = int(count)
+        frames = stack.split(";")
+        kept = [f for f in frames if not ARTHAS_FRAME.search(f)]
+        if len(kept) != len(frames):
+            folded += n
         root["total"] += n
         node = root
-        for frame in stack.split(";")[:limit_depth]:
+        for frame in kept[:limit_depth]:
             node = node["children"].setdefault(frame, {"name": frame, "total": 0, "children": {}})
             node["total"] += n
 
@@ -83,7 +109,16 @@ def load_calltree(limit_depth=40):
         kids = sorted(node["children"].values(), key=lambda c: -c["total"])
         return {"name": node["name"], "total": node["total"],
                 "children": [to_list(k) for k in kids]}
-    return to_list(root)
+    note = None
+    if folded:
+        share = 100 * folded / root["total"] if root["total"] else 0
+        note = (f"Profil collecté pendant qu'Arthas observait le programme : "
+                f"{share:.0f} % des échantillons tombaient dans son instrumentation. "
+                f"Ils ont été repliés sur la méthode applicative qui les a déclenchés, "
+                f"ce qui restitue la forme de l'arbre. Réserve : le coût affiché de la "
+                f"méthode observée reste surestimé — le temps n'étant pas un critère du "
+                f"projet, cela ne remet pas en cause les objectifs.")
+    return to_list(root), note
 
 # ------------------------------------------------------------------- arthas
 CALL_RE = re.compile(r"[+`]---\[([^\]]*)\]\s+([\w.$]+):(\w+)\(\)\s+#(\d+)")
@@ -125,11 +160,13 @@ def load_sources():
 
 def main():
     lines, methods, packages = load_coverage()
+    calltree, profile_note = load_calltree()
     data = {
         "coverage": lines,
         "methods": methods,
         "packages": packages,
-        "calltree": load_calltree(),
+        "calltree": calltree,
+        "profileNote": profile_note,
         "trace": {str(k): v for k, v in load_trace().items()},
         "values": load_values(),
         "sources": load_sources(),

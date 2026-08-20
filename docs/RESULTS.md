@@ -214,11 +214,13 @@ exécutées, les appels qui en partent avec leur coût, et les valeurs passées.
 
 ![La vue intégrée](assets/shots/vue-integree.png)
 
-⚠️ **Un point à connaître** : faire tourner les trois dans une **même exécution** est
-possible (la couverture n'est pas corrompue, c'est vérifié à chaque lancement), mais
-**Arthas fausse alors le profil** — plus de 80 % des échantillons tombent dans son propre
-code d'instrumentation. Le protocole recommandé est donc **deux exécutions du même
-scénario** : mesure d'abord, inspection ensuite. Détail dans [SOLUTION.md](SOLUTION.md).
+**Le tout en une seule exécution** : les trois outils tournent ensemble, et la couverture
+n'est pas corrompue — c'est vérifié automatiquement à chaque lancement. Seule réserve :
+Arthas capte l'essentiel des échantillons du profil, donc les **pourcentages de temps** sont
+surestimés sur la méthode qu'il observe. La vue replie ses frames pour restituer la forme de
+l'arbre et affiche la réserve en bandeau. Le temps n'étant pas un critère du projet, c'est
+un échange acceptable — et `TWO_RUNS=1` sépare les deux passes le jour où l'on voudra des
+temps justes. Détail dans [SOLUTION.md](SOLUTION.md).
 
 ### Variante minimale, si Arthas pose problème
 
@@ -244,6 +246,80 @@ détaillé dans [EVALUATION-KEYS.md](EVALUATION-KEYS.md#ce-quon-attend-des-outil
 
 Datadog, New Relic, Dynatrace, Codecov, Coveralls, SonarCloud — toutes SaaS. Le détail des
 rejets, avec leurs motifs, est dans [ECARTES.md](ECARTES.md).
+
+## Gains d'un portage vers Java 25 : **aucun gain visible sur le rapport**
+
+### Le verdict d'abord
+
+> **Sur la solution retenue, Java 25 n'améliore rien de ce que l'analyse donne à voir.**
+> Ne pas porter le code pour l'outillage d'analyse. S'il y a un portage, ce sera pour
+> d'autres raisons.
+
+Vérifié point par point, sur le même programme :
+
+| Ce que le rapport montre | Java 21 | Java 25 | Écart visible ? |
+|---|---|---|---|
+| Lignes exécutées (JaCoCo) | 91,1 % / 81,8 % | **identique, valeur par valeur** | ❌ aucun |
+| Arbre d'appel (async-profiler) | fonctionne | fonctionne pareil | ❌ aucun |
+| Valeurs des paramètres (Arthas) | fonctionne | fonctionne pareil | ❌ aucun |
+
+**Les trois outils retenus ignorent la version du JDK.** Le gain de Java 25 ne concerne
+qu'un quatrième outil — JFR — dont [on a établi plus haut](#et-jfr-dans-tout-ça--il-nest-pas-un-troisième-pilier)
+qu'on n'en a pas besoin.
+
+### Un argument en sens inverse
+
+[Kieker](tools/kieker.md), le seul outil qui viserait le *but final* du brief, annonce le
+support **jusqu'à Java 23**. Porter vers 25 **retirerait** cette option tant qu'il n'aura
+pas suivi. Du point de vue de l'outillage, le portage coûterait plutôt qu'il ne rapporterait.
+
+### Le seul cas où Java 25 changerait quelque chose
+
+Un scénario, et un seul : **celui où l'on ne peut rien installer** sur la machine cible. Il
+ne reste alors que ce que le JDK embarque, et la différence devient spectaculaire. Même
+programme, même durée, même commande :
+
+| Événement JFR | Java 21 | Java 25 |
+|---|---|---|
+| `jdk.ExecutionSample` (échantillonnage statistique) | 331 | 147 |
+| `jdk.MethodTrace` (pile d'appel **à chaque invocation**) | — | **594 877** |
+| `jdk.MethodTiming` (compte exact) | — | **16 000 000 invocations comptées** |
+
+Sous Java 21, la JVM refuse même le réglage :
+
+```
+[warning][jfr,start] The .jfc option/setting 'jdk.MethodTiming#filter' doesn't exist.
+```
+
+### Pourquoi Java 25 est plus précis — le mécanisme
+
+Ce n'est pas un réglage plus fin : **c'est un changement de nature de la mesure.**
+
+**Java 21 échantillonne.** JFR photographie périodiquement la pile des threads. Sur dix
+secondes, quelques centaines de clichés, à partir desquels on *infère* où le temps est
+passé. Une méthode appelée 16 millions de fois mais très brève peut n'apparaître dans
+presque aucun cliché. On ne sait jamais combien de fois une chose a été appelée — seulement
+dans quelle proportion des photos elle figurait.
+
+**Java 25 instrumente** (JEP 520). Le traceur réécrit le bytecode des méthodes **nommées
+dans le filtre** pour compter et chronométrer **chaque** invocation. Ce n'est plus un
+sondage, c'est un comptage exhaustif. Le filtre est ce qui rend l'opération soutenable :
+on ne paie le surcoût que sur les méthodes désignées.
+
+### Ce que cette précision coûte
+
+1. **L'instrumentation perturbe ce qu'elle mesure** — une méthode tracée n'est plus
+   *inlinée* de la même façon par le compilateur JIT. Le comptage reste exact, les durées
+   des méthodes très brèves sont à prendre avec précaution.
+2. **Le volume explose** — tracer une méthode du chemin chaud a produit **129 Mo pour
+   10 secondes**. Jouable en ciblé, ingérable en saupoudrage.
+
+Java 25 ne remplace donc pas l'échantillonnage : il **ajoute** un second mode. On
+échantillonne pour savoir où chercher, on instrumente pour mesurer ce qu'on a trouvé.
+
+Les sorties des deux versions sont versionnées côte à côte :
+[`reports-demo/generated/jfr/`](../reports-demo/generated/jfr/) (Java 21) et
+[`reports-demo/generated/jfr-jdk25/`](../reports-demo/generated/jfr-jdk25/) (Java 25).
 
 ## Décisions prises
 
