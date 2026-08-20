@@ -48,6 +48,17 @@
   .cleanbtn[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
   .cleanbtn[aria-pressed="true"] .dot{background:#fff;opacity:1}
   .links{font-size:12px;color:var(--muted)} .links a{margin-left:10px}
+  .helpbtn{font:inherit;font-size:12px;font-weight:600;padding:4px 11px;border-radius:15px;
+           cursor:pointer;border:1px solid var(--border);background:var(--bg);color:var(--muted)}
+  .helpbtn:hover{border-color:var(--accent);color:var(--accent)}
+  #help{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:50;display:flex;
+        align-items:flex-start;justify-content:center;padding:40px 16px;overflow:auto}
+  #help[hidden]{display:none}
+  .helpbox{position:relative;background:var(--bg);border:1px solid var(--border);
+           border-radius:12px;max-width:880px;width:100%;padding:28px 32px 34px}
+  .helpclose{position:absolute;top:12px;right:14px;background:none;border:0;color:var(--muted);
+             font-size:17px;cursor:pointer}
+  .helpclose:hover{color:var(--text)}
   .reserve{border:1px solid var(--border);border-left:3px solid var(--partbar);
            border-radius:6px;background:var(--panel);padding:12px 15px;color:var(--muted);
            font-size:12.5px;margin-top:22px}
@@ -173,6 +184,8 @@
         font-size:11.5px;border-radius:5px;padding:2px 7px;margin:0 5px 5px 0}
   .chip.dead{background:var(--miss);color:var(--missbar);border:1px solid var(--missbar)}
   .chip.hot{background:var(--part);color:var(--partbar);border:1px solid var(--partbar)}
+  .chip.val{background:var(--panel);color:var(--violet);border:1px solid var(--violet)}
+  .chip[data-f]:hover{filter:brightness(1.15)}
   .home h2{font-size:17px;margin:22px 0 6px;padding-left:9px;border-left:3px solid var(--accent)}
   .links2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
   @media(max-width:700px){.links2{grid-template-columns:1fr}}
@@ -182,6 +195,8 @@
   .lkt{display:block;color:var(--accent);font-weight:600;font-size:13.5px;margin-bottom:2px}
   .lkd{display:block;color:var(--muted);font-size:12px;line-height:1.45}
   .home ol{color:var(--muted);padding-left:20px} .home ol li{margin:6px 0}
+  svg.plan{width:100%;height:auto;max-width:820px;display:block;margin:6px 0 18px;
+           border:1px solid var(--border);border-radius:9px;background:var(--bg)}
   .home ul.tools{color:var(--muted);padding-left:20px} .home ul.tools li{margin:4px 0}
   .home ul.tools b{color:var(--text)}
   .home code{background:var(--panel);border:1px solid var(--border);border-radius:4px;padding:1px 5px;font-size:12px}
@@ -212,11 +227,19 @@
   <div class="stat" id="stats"></div>
   <span class="spacer"></span>
   <span class="links" id="links"></span>
+  <button id="helpbtn" class="helpbtn" title="Comment lire et utiliser cette page">? Aide</button>
+  <a class="helpbtn" href="https://github.com/Beennnn/runtime-xray" target="_blank" rel="noopener"
+     title="Le code, les scripts, et comment lancer cet outil sur un autre projet"
+     style="text-decoration:none">Dépôt ↗</a>
   <button id="clean" class="cleanbtn" aria-pressed="true"
           title="Resserré : seule la méthode sélectionnée est affichée, sans ses lignes mortes">
     <span class="dot"></span> Resserré sur la méthode
   </button>
 </header>
+<div id="help" hidden><div class="helpbox">
+  <button id="helpclose" class="helpclose" title="Fermer">✕</button>
+  <div id="helpbody"></div>
+</div></div>
 <main>
   <div id="nav">
     <div class="tabs">
@@ -298,10 +321,10 @@ function refreshLinks(){
   const b = R.chemin || "", a = R.rapports || {};
   const l = (ok, href, txt) => ok ? '<a href="'+b+href+'">'+txt+'</a>' : "";
   document.getElementById("links").innerHTML =
-    l(a.couverture, "../rapports/couverture/index.html", "couverture détaillée") +
-    l(a.ciblee, "../rapports/couverture-ciblee/index.html", "couverture ciblée") +
-    l(a.flamegraph, "../rapports/profil/flamegraph.html", "flame graph") +
-    l(a.arbre, "../rapports/profil/tree.html", "arbre d'appel");
+    l(a.couverture, "jacoco/html/index.html", "couverture détaillée") +
+    l(a.ciblee, "jacoco-focused/html/index.html", "couverture ciblée") +
+    l(a.flamegraph, "async-profiler/flamegraph.html", "flame graph") +
+    l(a.arbre, "async-profiler/tree.html", "arbre d'appel");
 }
 refreshLinks();
 document.getElementById("legend").innerHTML =
@@ -627,7 +650,7 @@ function jacocoLink(info){
   if (!(R.rapports || {}).couverture) return "";
   const pkg = info.cls.split("/").slice(0, -1).join(".");
   const file = info.cls.split("/").pop() + ".java.html";
-  const href = (R.chemin || "") + "../rapports/couverture/" + pkg + "/" + file +
+  const href = (R.chemin || "") + "jacoco/html/" + pkg + "/" + file +
                (info.line ? "#L" + info.line : "");
   return ' <a class="pill" style="text-decoration:none" target="_blank" rel="noopener" href="' +
          href + '" title="Ouvrir cette classe dans le rapport de couverture détaillé">' +
@@ -715,13 +738,13 @@ function linksBlock(){
   const b = R.chemin || "", a = R.rapports || {};
   const opt = (ok, href, titre, quoi) => ok ? l(b + href, titre, quoi) : "";
   return '<h2>Pour aller plus loin</h2><div class="links2">' +
-    opt(a.couverture, "../rapports/couverture/index.html", "Couverture détaillée",
+    opt(a.couverture, "jacoco/html/index.html", "Couverture détaillée",
       "Le rapport complet, fichier par fichier, avec le code annoté ligne à ligne.") +
-    opt(a.ciblee, "../rapports/couverture-ciblee/index.html", "Couverture ciblée",
+    opt(a.ciblee, "jacoco-focused/html/index.html", "Couverture ciblée",
       "Le même, restreint aux classes qui ont réellement tourné.") +
-    opt(a.flamegraph, "../rapports/profil/flamegraph.html", "Flame graph",
+    opt(a.flamegraph, "async-profiler/flamegraph.html", "Flame graph",
       "Où le temps est passé, vu comme un paysage : la largeur d\'une barre est sa durée.") +
-    opt(a.arbre, "../rapports/profil/tree.html", "Arbre d\'appel complet",
+    opt(a.arbre, "async-profiler/tree.html", "Arbre d\'appel complet",
       "La hiérarchie des appels, dépliable et cherchable, telle que produite par l\'outil de mesure.") +
     l(repo, "Le dépôt du projet ↗",
       "Le code, les scripts de collecte, et comment lancer cet outil sur un autre projet.") +
@@ -741,6 +764,97 @@ function reserveBlock(){
     'faire <b>plusieurs lancements</b> : un premier pour la couverture et le profil, un ' +
     'second pour la capture des valeurs. Les pourcentages deviennent alors exacts, au prix ' +
     'd\'une exécution supplémentaire.</div>';
+}
+/** Plan de l'interface. Une capture serait vite fausse ; un schéma dessiné reste juste,
+ *  suit le thème clair/sombre, et pointe les quatre gestes qui comptent. */
+function schema(){
+  return `<svg class="plan" viewBox="0 0 820 400" role="img"
+       aria-label="Plan de l'interface : liste à gauche, code au centre, valeurs en bas, bouton resserré en haut à droite">
+    <defs><style>
+      .fr{fill:var(--panel);stroke:var(--border)}
+      .fr2{fill:var(--bg);stroke:var(--border)}
+      .tx{fill:var(--muted);font:11px -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+      .tb{fill:var(--text);font:600 11px -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+      .num{fill:var(--accent)} .numt{fill:#fff;font:700 11px sans-serif;text-anchor:middle}
+      .cap{fill:var(--text);font:600 11.5px -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+      .lead{stroke:var(--accent);stroke-width:1.2;stroke-dasharray:3 3;fill:none}
+    </style></defs>
+
+    <!-- en-tête -->
+    <rect x="8" y="8" width="804" height="34" rx="6" class="fr"/>
+    <rect x="18" y="18" width="14" height="14" rx="3" fill="var(--accent)" opacity=".55"/>
+    <text x="40" y="29" class="tb">Runtime X-Ray</text>
+    <text x="130" y="29" class="tx">92,7 % du code exécuté · 40 méthodes</text>
+    <rect x="612" y="15" width="190" height="21" rx="11" fill="var(--accent)"/>
+    <text x="628" y="29" fill="#fff" font-size="10.5" font-family="sans-serif">● Resserré sur la méthode</text>
+
+    <!-- colonne gauche -->
+    <rect x="8" y="50" width="210" height="286" rx="6" class="fr2"/>
+    <rect x="8" y="50" width="70" height="24" rx="4" fill="var(--accent-soft)"/>
+    <text x="18" y="66" class="tb">Code exécuté</text>
+    <text x="92" y="66" class="tx">Arbre</text>
+    <text x="140" y="66" class="tx">Packages</text>
+    <rect x="16" y="84" width="194" height="18" rx="4" fill="var(--accent)"/>
+    <text x="24" y="97" fill="#fff" font-size="10.5" font-family="monospace">38,3 % RoutePlanner.travel…</text>
+    <g class="tx" font-family="monospace" font-size="10.5">
+      <text x="24" y="120">5,6 % RoutePlanner.legMinutes</text>
+      <text x="24" y="140">5,2 % Terrain.slowdownFactor</text>
+      <text x="24" y="160">2,7 % Connections.waitMinutes</text>
+      <text x="24" y="180">2,5 % Elevation.gradePercentAt</text>
+      <text x="24" y="200">1,3 % Terrain.penaltyFor</text>
+      <text x="24" y="220">0,1 % Speeds.forMode</text>
+      <text x="24" y="240">  ·   WeatherPenalty.applies</text>
+      <text x="24" y="260">  ·   CarSpeed.kmPerHour</text>
+    </g>
+
+    <!-- centre : le code -->
+    <rect x="228" y="50" width="584" height="196" rx="6" class="fr2"/>
+    <text x="240" y="66" class="tx">← Vue d'ensemble  ›  RoutePlanner.java  ›  travelTimeMinutes()</text>
+    <g>
+      <rect x="240" y="78" width="470" height="14" rx="2" fill="var(--full)"/>
+      <rect x="240" y="96" width="470" height="14" rx="2" fill="var(--full)"/>
+      <rect x="240" y="114" width="470" height="14" rx="2" fill="var(--part)"/>
+      <rect x="240" y="132" width="470" height="14" rx="2" fill="var(--full)"/>
+      <rect x="240" y="150" width="470" height="14" rx="2" fill="var(--miss)"/>
+      <rect x="240" y="168" width="470" height="14" rx="2" fill="var(--full)"/>
+      <rect x="240" y="186" width="470" height="14" rx="2" fill="var(--full)"/>
+    </g>
+    <g class="tx" font-family="monospace" font-size="9.5" fill="var(--violet)">
+      <text x="718" y="107">appelle Trip.mode() 0,01 ms</text>
+      <text x="718" y="143">appelle Traffic.applies() 0,01 ms</text>
+    </g>
+
+    <!-- bas : les valeurs -->
+    <rect x="228" y="254" width="584" height="82" rx="6" class="fr"/>
+    <text x="240" y="270" class="tb">VALEURS REÇUES PAR travelTimeMinutes</text>
+    <g font-family="monospace" font-size="9.5">
+      <text x="240" y="288" fill="var(--violet)">Trip[id=TRIP-112, mode=CAR, weather=SUNNY…]</text>
+      <text x="640" y="288" class="tx">→</text>
+      <text x="660" y="288" fill="var(--violet)">29.72</text>
+      <text x="240" y="306" fill="var(--violet)">Trip[id=TRIP-113, mode=TRAIN, weather=RAIN…]</text>
+      <text x="640" y="306" class="tx">→</text>
+      <text x="660" y="306" fill="var(--violet)">64.0</text>
+    </g>
+
+    <!-- repères -->
+    <g>
+      <circle cx="112" cy="356" r="11" class="num"/><text x="112" y="360" class="numt">1</text>
+      <path class="lead" d="M112 345V300"/>
+      <text x="130" y="360" class="cap">choisir un onglet, puis cliquer</text>
+
+      <circle cx="404" cy="356" r="11" class="num"/><text x="404" y="360" class="numt">2</text>
+      <path class="lead" d="M404 345V210"/>
+      <text x="422" y="360" class="cap">le code, colorié</text>
+
+      <circle cx="560" cy="356" r="11" class="num"/><text x="560" y="360" class="numt">3</text>
+      <path class="lead" d="M560 345V318"/>
+      <text x="578" y="360" class="cap">les valeurs reçues</text>
+
+      <circle cx="712" cy="356" r="11" class="num"/><text x="712" y="360" class="numt">4</text>
+      <path class="lead" d="M712 345V60 M712 60H707 M707 60V42"/>
+      <text x="730" y="360" class="cap">resserrer</text>
+    </g>
+  </svg>`;
 }
 function contextBlock(){
   const c = R.context;
@@ -763,81 +877,100 @@ function contextBlock(){
     row("Outils", Object.entries(t).map(([k,v]) => esc(k)+" "+esc(v)).join(" · ")) +
     '</table>';
 }
+function helpContent(){
+  return '<div class="home" style="padding:0;max-width:none">' +
+    '<h2>Ce que cette page montre</h2>' +
+    '<p>Une exécution réelle du programme : par où le code est passé, quel appel en a ' +
+    'déclenché un autre, et avec quelles valeurs.</p>' +
+    schema() +
+    '<ol>' +
+      '<li><b>À gauche, choisir un onglet</b>, puis cliquer sur une ligne.<br>' +
+        '<b>Code exécuté</b> — tout ce qui a tourné, du plus coûteux au moins coûteux. C\'est l\'entrée normale.<br>' +
+        '<b>Arbre d\'appel</b> — la hiérarchie des appels, avec <b>les exécutions comme racines</b> : ' +
+        'une exécution est le contexte d\'appel le plus haut qui soit.<br>' +
+        '<b>Packages</b> — le classement par fichier, quand on cherche une classe précise.<br>' +
+        '<span style="opacity:.85">Le champ <i>Filtrer…</i> réduit la liste à mesure qu\'on tape.</span></li>' +
+      '<li><b>Au centre, le code s\'affiche</b>, colorié ligne par ligne : ' +
+        '<span style="background:var(--full);padding:1px 5px;border-radius:3px">exécutée</span> · ' +
+        '<span style="background:var(--part);padding:1px 5px;border-radius:3px">partiellement</span> · ' +
+        '<span style="background:var(--miss);padding:1px 5px;border-radius:3px">jamais exécutée</span>. ' +
+        'À droite de chaque ligne, les appels qui en partent et leur durée — cliquables pour ' +
+        'sauter à la méthode appelée.</li>' +
+      '<li><b>Le bandeau du bas montre les valeurs de la méthode sélectionnée.</b> Chaque méthode ' +
+        'a les siennes ; changer de méthode change le contexte, et donc les valeurs.</li>' +
+      '<li><b>Resserré sur la méthode</b> (bouton en haut à droite, actif par défaut) : le centre ' +
+        'n\'affiche que la méthode choisie, sans ses lignes jamais exécutées, et la liste écarte ' +
+        'les classes mortes. C\'est ce qui garantit qu\'on regarde <b>une seule méthode à la fois</b>, ' +
+        'même dans une classe qui en contient plusieurs.</li>' +
+      '<li><b>Restreindre le périmètre</b> : sur une méthode ouverte, <i>« ne montrer que ce qui ' +
+        'tourne sous cette méthode »</i> ne garde dans la liste que le code appelé sous elle.</li>' +
+      '<li><b>Le contexte d\'appel</b>, sous le fil d\'Ariane : par quels chemins la méthode a été ' +
+        'atteinte, et dans quelle proportion.</li>' +
+    '</ol>' +
+    '<h2>Comment ce rapport est produit</h2>' +
+    '<p>Trois outils libres et gratuits ont observé la même exécution :</p>' +
+    '<ul class="tools">' +
+      '<li><b>JaCoCo</b> — les lignes exécutées, et la liste exhaustive du code qui a tourné.</li>' +
+      '<li><b>async-profiler</b> — les mesures de temps et l\'arbre d\'appel.</li>' +
+      '<li><b>Arthas</b> — les valeurs des paramètres et les annotations d\'appel sur les lignes.</li>' +
+    '</ul>' +
+    '<p>Aucun ne fait les trois : c\'est leur combinaison qui répond. Tous fonctionnent sans ' +
+    'connexion Internet et sans licence.</p>' +
+    linksBlock() +
+    '</div>';
+}
+
 function drawHome(){
-  document.getElementById("crumb").innerHTML = '<span>Vue d\'ensemble</span>';
+  document.getElementById("crumb").innerHTML =
+    '<b>' + esc(R.nom) + '</b> <span class="pill">vue d\'ensemble</span>' +
+    (D.runs.length > 1 ? ' <span class="pill">' + D.runs.length + ' exécutions dans ce rapport</span>' : '');
   document.getElementById("values").innerHTML = "";
-  const hot = executedMethods().slice(0,5);
+  const hot = executedMethods().slice(0, 6);
+  const observees = Object.keys(R.values || {});
   document.getElementById("code").innerHTML =
-   '<div class="home"><h2>Ce que cette page montre</h2>'+
-   '<p>Une exécution réelle du programme, vue par trois outils gratuits, assemblée ici.</p>'+
-   '<div class="cards">'+
+   '<div class="home">' +
+   '<div class="cards">' +
      '<div class="card c1"><div class="k">'+AGG.pct.toFixed(1)+' %</div><div class="l">du code exécuté</div></div>'+
      '<div class="card c2"><div class="k">'+AGG.methods+'</div><div class="l">méthodes ayant tourné</div></div>'+
      '<div class="card c3"><div class="k">'+AGG.samples.toLocaleString("fr")+'</div><div class="l">mesures de temps prises</div></div>'+
      '<div class="card c4"><div class="k">'+Object.values(R.values).reduce((a,v)=>a+v.length,0)+'</div><div class="l">appels avec leurs valeurs</div></div>'+
    '</div>'+
    '<div class="bar"><span style="width:'+AGG.pct.toFixed(1)+'%"></span></div>'+
-   '<h2>Comment s\'en servir</h2>'+
-   '<ol>'+
-     '<li><b>À gauche, choisir un onglet</b>, puis cliquer sur une ligne.<br>'+
-       '<b>Code exécuté</b> — tout ce qui a tourné, du plus coûteux au moins coûteux. C\'est l\'entrée normale.<br>'+
-       '<b>Arbre d\'appel</b> — la hiérarchie des appels, avec <b>les exécutions comme racines</b> : '+
-       'une exécution est le contexte d\'appel le plus haut qui soit.<br>'+
-       '<b>Packages</b> — le classement par fichier, quand on cherche une classe précise.<br>'+
-       '<span style="opacity:.85">Le champ <i>Filtrer…</i> réduit la liste à mesure qu\'on tape.</span></li>'+
-     '<li><b>Au centre, le code s\'affiche</b>, colorié ligne par ligne : '+
-       '<span style="background:var(--full);padding:1px 5px;border-radius:3px">exécutée</span> · '+
-       '<span style="background:var(--part);padding:1px 5px;border-radius:3px">partiellement</span> · '+
-       '<span style="background:var(--miss);padding:1px 5px;border-radius:3px">jamais exécutée</span>. '+
-       'À droite de chaque ligne, en violet, les appels qui en partent et leur coût — cliquables pour sauter à la méthode appelée.</li>'+
-     '<li><b>Le bandeau du bas montre les valeurs de la méthode sélectionnée</b> — chaque méthode a les siennes. '+
-       'Choisir une autre méthode à gauche change le contexte, et donc les valeurs affichées.</li>'+
-     '<li><b>Resserré sur la méthode</b> (bouton en haut à droite, actif par défaut) : le centre '+
-       'n\'affiche que la méthode choisie, sans ses lignes jamais exécutées, et la liste de gauche '+
-       'écarte les classes mortes. C\'est ce qui garantit qu\'on regarde <b>une seule méthode à la '+
-       'fois</b>, même dans une classe qui en contient plusieurs. Le désactiver montre le fichier entier.</li>'+
-     '<li><b>Restreindre le périmètre</b> : sur une méthode ouverte, le bouton <i>« ne montrer que ce qui tourne sous cette méthode »</i> ne garde dans la liste que le code appelé sous elle — sans avoir à descendre d\'appel en appel.</li>'+
-     '<li><b>Le contexte d\'appel</b> : juste sous le fil d\'Ariane, la liste des chemins par lesquels '+
-       'la méthode a été atteinte, avec leur part. Une méthode appelée depuis deux endroits n\'est pas '+
-       'la même histoire — cliquer un chemin le retient, cliquer un maillon ouvre ce maillon.</li>'+
-     '<li><b>Revenir ici</b> : le bouton <i>← Vue d\'ensemble</i> en haut du code, ou le titre <i>Runtime X-Ray</i>.</li>'+
-   '</ol>'+
-   valuesHelp()+
-   '<h2>Comment ce rapport est produit</h2>'+
-   '<p>Trois outils libres et gratuits ont observé la même exécution, et leurs sorties ont '+
-   'été assemblées dans cette page :</p>'+
-   '<ul class="tools">'+
-     '<li><b>JaCoCo</b> — les lignes exécutées, et la liste exhaustive du code qui a tourné.</li>'+
-     '<li><b>async-profiler</b> — les pourcentages de temps et l\'arbre d\'appel.</li>'+
-     '<li><b>Arthas</b> — les valeurs des paramètres et les annotations d\'appel sur les lignes.</li>'+
-   '</ul>'+
-   '<p>Aucun ne fait les trois : c\'est leur combinaison qui répond. Tous fonctionnent sans '+
-   'connexion Internet et sans licence.</p>'+
-   contextBlock() +
+   contextBlock()+
    (AGG.dead.length ? '<h2>Jamais exécuté</h2><p>'+AGG.dead.map(d=>'<span class="chip dead">'+esc(d)+'</span>').join("")+'</p>' : '')+
-   '<h2>Les plus coûteuses</h2><p>'+hot.map(h=>'<span class="chip hot">'+esc(h.cls.split("/").pop()+"."+h.name)+'</span>').join("")+'</p>'+
+   '<h2>Les plus coûteuses</h2><p>'+hot.map(h=>
+      '<span class="chip hot" data-f="'+esc(h.frame)+'">'+esc(h.cls.split("/").pop()+"."+h.name)+'</span>').join("")+'</p>'+
+   (observees.length
+      ? '<h2>Valeurs capturées</h2><p>'+observees.map(f =>
+          '<span class="chip val" data-f="'+esc(f)+'">'+esc(f.split("/").pop())+' — '+R.values[f].length+' appels</span>').join("")+'</p>'
+      : '')+
    reserveBlock()+
-   linksBlock()+
+   '<p style="margin-top:20px"><a href="#" id="openhelp">→ Comment se servir de cette page</a></p>'+
    '</div>';
-  const g = document.getElementById("gotoValues");
-  if (g) g.onclick = e => {
-    e.preventDefault();
-    const n = [...document.querySelectorAll("#list .node")]
-      .find(x => (x.title||"").startsWith(dot(R.tracedClass)));
-    if (n) n.click();
-  };
+  // Les puces sont cliquables : la vue d'ensemble sert de point de départ, pas de vitrine.
+  document.querySelectorAll(".chip[data-f]").forEach(c => {
+    c.style.cursor = "pointer";
+    c.onclick = () => { const t = frameInfo(c.dataset.f); if (t) select(t, null); };
+  });
+  const oh = document.getElementById("openhelp");
+  if (oh) oh.onclick = e => { e.preventDefault(); openHelp(); };
 }
 
-function goHome(){
-  selected = null; ctxIndex = 0;
-  const c = document.getElementById("context"); if (c){ c.innerHTML=""; c.style.display="none"; }
-  document.querySelectorAll(".node.sel").forEach(n=>n.classList.remove("sel"));
-  document.getElementById("code").scrollTop = 0;
-  drawHome();
+function openHelp(){
+  document.getElementById("helpbody").innerHTML = helpContent();
+  document.getElementById("help").hidden = false;
 }
 
 /* ------------------------------------------------------------ interactions */
 document.getElementById("home").onclick = e => { e.preventDefault(); goHome(); };
+document.getElementById("helpbtn").onclick = openHelp;
+document.getElementById("helpclose").onclick = () => document.getElementById("help").hidden = true;
+document.getElementById("help").onclick = e => {
+  if (e.target.id === "help") document.getElementById("help").hidden = true;
+};
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape") document.getElementById("help").hidden = true;
+});
 document.getElementById("tab-exec").onclick = renderExec;
 document.getElementById("tab-tree").onclick = renderTree;
 document.getElementById("tab-cls").onclick  = renderClasses;

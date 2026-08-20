@@ -1,0 +1,200 @@
+jdk.ExecutionSample {
+  startTime = 19:41:30.378 (2026-08-20)
+  sampledThread = "main" (javaThreadId = 1)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    lab.sample.transfer.Connections.waitMinutes(List, int) line: 20
+    lab.sample.transfer.Connections.waitMinutes(List, int) line: 24
+    lab.sample.RoutePlanner.travelTimeMinutes(Trip) line: 63
+    lab.sample.Main.main(String[]) line: 55
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 19:41:30.446 (2026-08-20)
+  sampledThread = "main" (javaThreadId = 1)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    java.lang.String.hashCode() line: 2358
+    lab.sample.terrain.Elevation.gradePercentAt(Leg, int) line: 19
+    lab.sample.terrain.Terrain.slowdownFactor(Leg, Mode) line: 31
+    lab.sample.RoutePlanner.legMinutes(Leg, SpeedModel, Mode) line: 75
+    lab.sample.RoutePlanner.travelTimeMinutes(Trip) line: 50
+    ...
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 19:41:30.459 (2026-08-20)
+  sampledThread = "main" (javaThreadId = 1)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    java.lang.String.hashCode() line: 2358
+    lab.sample.terrain.Elevation.gradePercentAt(Leg, int) line: 19
+    lab.sample.terrain.Terrain.slowdownFactor(Leg, Mode) line: 31
+    lab.sample.RoutePlanner.legMinutes(Leg, SpeedModel, Mode) line: 75
+    lab.sample.RoutePlanner.travelTimeMinutes(Trip) line: 50
+    ...
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 19:41:30.471 (2026-08-20)
+  sampledThread = "main" (javaThreadId = 1)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    java.lang.String.hashCode() line: 2358
+    lab.sample.terrain.Elevation.gradePercentAt(Leg, int) line: 19
+    lab.sample.terrain.Terrain.slowdownFactor(Leg, Mode) line: 31
+    lab.sample.RoutePlanner.legMinutes(Leg, SpeedModel, Mode) line: 75
+    lab.sample.RoutePlanner.travelTimeMinutes(Trip) line: 50
+    ...
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 19:41:30.507 (2026-08-20)
+  sampledThread = "main" (javaThreadId = 1)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    lab.sample.transfer.Timetable.frequencyMinutes(Leg) line: 29
+    lab.sample.transfer.Connections.transferMinutes(Leg, Leg) line: 32
+    lab.sample.transfer.Connections.waitMinutes(List, int) line: 23
+    lab.sample.RoutePlanner.travelTimeMinutes(Trip) line: 63
+    lab.sample.Main.main(String[]) line: 55
+    ...
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 19:41:30.518 (2026-08-20)
+  sampledThread = "main" (javaThreadId = 1)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    lab.sample.RoutePlanner.legMinutes(Leg, SpeedModel, Mode) line: 73
+    lab.sample.RoutePlanner.travelTimeMinutes(Trip) line: 50
+    lab.sample.Main.main(String[]) line: 55
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 19:41:30.530 (2026-08-20)
+  sampledThread = "main" (javaThreadId = 1)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    lab.sample.RoutePlanner.travelTimeMinutes(Trip) line: 54
+    lab.sample.Main.main(String[]) line: 55
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 19:41:30.575 (2026-08-20)
+  sampledThread = "main" (javaThreadId = 1)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    java.lang.String.hashCode() line: 2358
+    lab.sample.terrain.Elevation.gradePercentAt(Leg, int) line: 19
+    lab.sample.terrain.Terrain.slowdownFactor(Leg, Mode) line: 31
+    lab.sample.RoutePlanner.legMinutes(Leg, SpeedModel, Mode) line: 75
+    lab.sample.RoutePlanner.travelTimeMinutes(Trip) line: 50
+    ...
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 19:41:30.631 (2026-08-20)
+  sampledThread = "main" (javaThreadId = 1)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    java.lang.String.hashCode() line: 2358
+    lab.sample.terrain.Elevation.gradePercentAt(Leg, int) line: 19
+    lab.sample.terrain.Terrain.slowdownFactor(Leg, Mode) line: 31
+    lab.sample.RoutePlanner.legMinutes(Leg, SpeedModel, Mode) line: 75
+    lab.sample.RoutePlanner.travelTimeMinutes(Trip) line: 50
+    ...
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 19:41:30.642 (2026-08-20)
+  sampledThread = "main" (javaThreadId = 1)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    java.lang.String.hashCode() line: 2358
+    lab.sample.terrain.Elevation.gradePercentAt(Leg, int) line: 19
+    lab.sample.terrain.Terrain.slowdownFactor(Leg, Mode) line: 31
+    lab.sample.RoutePlanner.legMinutes(Leg, SpeedModel, Mode) line: 75
+    lab.sample.RoutePlanner.travelTimeMinutes(Trip) line: 50
+    ...
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 19:41:30.687 (2026-08-20)
+  sampledThread = "main" (javaThreadId = 1)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    java.lang.String.hashCode() line: 2358
+    lab.sample.terrain.Elevation.gradePercentAt(Leg, int) line: 19
+    lab.sample.terrain.Terrain.slowdownFactor(Leg, Mode) line: 31
+    lab.sample.RoutePlanner.legMinutes(Leg, SpeedModel, Mode) line: 75
+    lab.sample.RoutePlanner.travelTimeMinutes(Trip) line: 50
+    ...
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 19:41:30.812 (2026-08-20)
+  sampledThread = "main" (javaThreadId = 1)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    java.lang.String.hashCode() line: 2358
+    lab.sample.terrain.Elevation.gradePercentAt(Leg, int) line: 19
+    lab.sample.terrain.Terrain.slowdownFactor(Leg, Mode) line: 31
+    lab.sample.RoutePlanner.legMinutes(Leg, SpeedModel, Mode) line: 75
+    lab.sample.RoutePlanner.travelTimeMinutes(Trip) line: 50
+    ...
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 19:41:30.835 (2026-08-20)
+  sampledThread = "main" (javaThreadId = 1)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    java.lang.String.hashCode() line: 2358
+    lab.sample.terrain.Elevation.gradePercentAt(Leg, int) line: 19
+    lab.sample.terrain.Terrain.slowdownFactor(Leg, Mode) line: 31
+    lab.sample.RoutePlanner.legMinutes(Leg, SpeedModel, Mode) line: 75
+    lab.sample.RoutePlanner.travelTimeMinutes(Trip) line: 50
+    ...
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 19:41:30.881 (2026-08-20)
+  sampledThread = "main" (javaThreadId = 1)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    java.lang.String.hashCode() line: 2358
+    lab.sample.terrain.Elevation.gradePercentAt(Leg, int) line: 19
+    lab.sample.terrain.Terrain.slowdownFactor(Leg, Mode) line: 31
+    lab.sample.RoutePlanner.legMinutes(Leg, SpeedModel, Mode) line: 75
+    lab.sample.RoutePlanner.travelTimeMinutes(Trip) line: 50
+    ...
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 19:41:30.893 (2026-08-20)
+  sampledThread = "main" (javaThreadId = 1)
+  state = "STATE_RUNNABLE"
+  stackTrace = [
+    lab.sample.RoutePlanner.travelTimeMinutes(Trip) line: 49
+    lab.sample.Main.main(String[]) line: 55
+  ]
+}
+
+jdk.ExecutionSample {
+  startTime = 19:41:30.916 (2026-08-20)
+  sampledThread = "main" (javaThreadId = 1)

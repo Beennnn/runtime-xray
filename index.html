@@ -60,22 +60,28 @@
 
   <h2>La vue intégrée</h2>
   <div class="grid">
-    <a class="card" href="vue-integree/index.html" style="grid-column:1/-1">
+    <a class="card" href="demo/index.html" style="grid-column:1/-1">
       <div class="t">Tout sous les yeux <span class="tag new">RECOMMANDÉ</span></div>
       <div class="d">La liste de <b>tout le code exécuté</b>, du plus coûteux au moins coûteux.
       On clique : le code apparaît, lignes exécutées en vert, avec sur chaque ligne les appels
-      qui en partent et leur coût, et en bas les valeurs réellement passées. Une case à cocher
-      masque tout ce qui n'a pas tourné. Les trois outils, une seule page.</div>
+      qui en partent et leur coût, et en bas les valeurs réellement passées. Les trois outils,
+      une seule page.</div>
+    </a>
+    <a class="card" href="multi/index.html" style="grid-column:1/-1">
+      <div class="t">Trois exécutions dans un même rapport <span class="tag new">MULTI-RUN</span></div>
+      <div class="d">Le même outil, lancé trois fois avec des jeux de données différents.
+      Un sélecteur passe de l'une à l'autre, l'arbre d'appel prend les exécutions pour racines,
+      et la liste signale ce qui n'a tourné que dans l'une d'elles.</div>
     </a>
   </div>
 
   <h2>Par où le code est passé</h2>
   <div class="grid">
-    <a class="card" href="rapports/couverture-ciblee/index.html">
+    <a class="card" href="demo/jacoco-focused/html/index.html">
       <div class="t">Vue nettoyée <span class="tag new">CIBLÉE</span></div>
       <div class="d">Uniquement les classes réellement exécutées. Le code jamais atteint est retiré du rapport — on ne navigue que dans ce qui a servi.</div>
     </a>
-    <a class="card" href="rapports/couverture/index.html">
+    <a class="card" href="demo/jacoco/html/index.html">
       <div class="t">Couverture complète <span class="tag ok">JaCoCo</span></div>
       <div class="d">Tout le code, exécuté ou non. Source annotée ligne à ligne : vert exécuté, rouge jamais atteint, jaune branche partielle.</div>
     </a>
@@ -87,11 +93,11 @@
 
   <h2>L'arbre d'appel</h2>
   <div class="grid">
-    <a class="card" href="rapports/profil/tree.html">
+    <a class="card" href="demo/async-profiler/tree.html">
       <div class="t">Arbre d'appel <span class="tag ok">async-profiler</span></div>
       <div class="d">Dépliable et cherchable, avec le pourcentage de temps par branche. Bouton « Expand All » pour tout ouvrir.</div>
     </a>
-    <a class="card" href="rapports/profil/flamegraph.html">
+    <a class="card" href="demo/async-profiler/flamegraph.html">
       <div class="t">Flame graph</div>
       <div class="d">La largeur d'une barre est le temps passé. Cliquer pour zoomer sur une branche, taper pour chercher une méthode.</div>
     </a>
@@ -99,23 +105,23 @@
 
   <h2>Java 21 contre Java 25 — la mesure</h2>
   <div class="grid">
-    <a class="card" href="rapports/jfr/java21-summary.txt">
+    <a class="card" href="jfr/java21-summary.txt">
       <div class="t">Java 21 — échantillonnage</div>
       <div class="d">Seulement <code>jdk.ExecutionSample</code> : quelques centaines de photos de la pile, dont on infère où le temps est passé.</div>
     </a>
-    <a class="card" href="rapports/jfr/java25-method-timing.txt">
+    <a class="card" href="jfr/java25-method-timing.txt">
       <div class="t">Java 25 — comptage exact</div>
-      <div class="d">16 000 000 d'invocations comptées, min/moyenne/max par appel. Et 594 877 piles d'appel exactes (<a href="rapports/jfr/java25-method-trace-extrait.txt">extrait</a>).</div>
+      <div class="d">16 000 000 d'invocations comptées, min/moyenne/max par appel. Et 594 877 piles d'appel exactes (<a href="jfr/java25-method-trace-extrait.txt">extrait</a>).</div>
     </a>
   </div>
 
   <h2>Avec quelles valeurs — l'option</h2>
   <div class="grid">
-    <a class="card" href="rapports/valeurs/watch-params.txt">
+    <a class="card" href="demo/arthas/watch-params.txt">
       <div class="t">Valeurs des paramètres <span class="tag new">ARTHAS</span></div>
       <div class="d">Les valeurs réellement passées : <code>@Mode[CAR] @Weather[SUNNY] @TimeOfDay[RUSH_HOUR]</code>, et la valeur de retour. Là où JFR n'affiche que la signature.</div>
     </a>
-    <a class="card" href="rapports/valeurs/trace-calltree.txt">
+    <a class="card" href="demo/arthas/trace-calltree.txt">
       <div class="t">L'arbre d'UN appel</div>
       <div class="d">Le chemin réellement emprunté par un seul appel, avec les numéros de ligne — de quoi retourner droit dans le source.</div>
     </a>
