@@ -5,8 +5,20 @@
 
 ## Le programme analysé
 
-[`sample-app/`](../../sample-app) — 22 classes, 8 packages, **aucune dépendance externe** :
-ce qu'un outil affiche vient de ce code, pas du bruit d'un framework.
+[`sample-app/`](../../sample-app) — 27 classes, 9 paquets. Le **code métier** n'a aucune
+dépendance : ce qu'un outil affiche vient de ce code, pas du bruit d'un framework.
+
+Trois dépendances existent néanmoins, chacune pour produire un cas que le code local ne peut
+pas fabriquer :
+
+| Dépendance | Ce qu'elle démontre |
+|---|---|
+| `commons-lang3` | Du code à analyser qui ne vient pas d'un répertoire de classes mais d'un **jar**, comme une dépendance interne livrée compilée. Une seule de ses classes est appelée (`Range`, dans `Breaks`) |
+| `slf4j-api` + `slf4j-simple` | Une bibliothèque **hors JDK**, visible dans l'arbre d'appel puisque rien ne la replie d'office, et donc masquable par configuration — l'appel est laissé dans la boucle chaude exprès |
+
+Les jar de dépendances sont copiés dans `target/libs/` plutôt que fondus dans un jar
+unique : l'étude a besoin d'un **chemin stable vers le jar d'une dépendance** pour le donner
+à analyser, et un jar-uber effacerait justement la distinction qu'on veut montrer.
 
 La fonction sous analyse est
 [`RoutePlanner.travelTimeMinutes(Trip)`](../../sample-app/src/main/java/lab/sample/RoutePlanner.java) :
@@ -32,6 +44,7 @@ donne qu'un cumul global ne permet pas de le voir ; un outil qui trace par invoc
 
 | Élément | Pourquoi |
 |---|---|
+| Le paquet `export` entier | `ItineraryExporter` et `CsvExporter` compilent, ont l'air utiles, et ne sont **jamais appelés**. C'est le cas le plus intéressant en reprise de code : un paquet complet en rouge fait poser la question « qui appelle ça ? » |
 | `speed.PlaneSpeed` | Jamais instanciée — une **classe entière** doit ressortir en rouge |
 | Branche `Weather.SNOW` | Jamais empruntée, **à l'intérieur** d'une méthode exécutée des millions de fois : un pourcentage par classe le masque, un rapport ligne à ligne le montre |
 | Branche `Mode.PLANE` de `Speeds` | Volontairement instanciée dans le `switch` et non en champ `static final`, sinon la classe serait chargée et compterait comme partiellement couverte |

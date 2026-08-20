@@ -74,18 +74,59 @@ un bénéfice nul tant que la diffusion reste interne.
 L'obstacle n'est plus la nature de l'artefact, il est administratif — et un point est
 souvent découvert trop tard :
 
-| Point | État actuel | Ce qu'il faudrait |
+| Point | État | Détail |
 |---|---|---|
-| Nature de l'artefact | ✅ un jar exécutable de ~100 Ko, sans dépendance | — |
-| `groupId` | ⛔ `lab.tools` : **on ne peut pas prouver qu'on le possède** | `io.github.beennnn`, validé en prouvant le compte GitHub — c'est le chemin le plus court |
-| Signature | ⛔ absente | Clé GPG publiée sur un serveur de clés, signature à la publication |
-| Artefacts joints | ⛔ absents | Les jars `sources` et `javadoc`, exigés par la validation |
-| Métadonnées du POM | à compléter | `description`, `url`, `licenses`, `developers`, `scm` sont obligatoires |
-| Versions | ✅ `1.0.0` | Immuables : rien ne se corrige après coup, seulement une version de plus |
+| Nature de l'artefact | ✅ | Un jar exécutable de ~100 Ko, sans dépendance d'exécution |
+| `groupId` | ✅ | `io.github.beennnn` — le seul espace de noms qu'on puisse prouver posséder sans posséder un domaine |
+| Métadonnées du POM | ✅ | `name`, `description`, `url`, `licenses`, `developers`, `scm`, `issueManagement` |
+| Artefacts joints | ✅ | `sources` et `javadoc` produits par le profil `release`, avec `doclint` désactivé — la documentation est rédigée pour des lecteurs, pas pour un vérificateur HTML |
+| Plugin de publication | ✅ | `central-publishing-maven-plugin`, `autoPublish=false` : le dépôt est déposé mais **pas rendu définitif** sans relecture |
+| Module de démonstration exclu | ✅ | `maven.deploy.skip` sur `sample-app` : un exemple n'a pas à occuper un espace de noms permanent |
+| Signature GPG | ⛔ | La clé est **la vôtre** : à générer, à publier sur un serveur de clés |
+| Espace de noms validé | ⛔ | À faire une fois sur le Central Portal, en prouvant le compte GitHub |
+| Identifiants | ⛔ | Le jeton du Portal, dans `~/.m2/settings.xml` sous `<id>central</id>` |
 
-Aucun de ces points n'est difficile ; ensemble ils font une demi-journée la première fois,
-puis un job de publication automatisé. Le vrai coût est ailleurs : une version publiée ne
-se retire pas.
+### Les trois gestes qui restent
+
+Ils demandent votre compte et votre clé, donc ils ne peuvent pas être faits à votre place.
+
+1. **Valider l'espace de noms** sur [central.sonatype.com](https://central.sonatype.com) :
+   créer un compte, déclarer `io.github.beennnn`, prouver le compte GitHub par le dépôt
+   temporaire que le Portal demande. Une seule fois, définitivement.
+2. **Une clé de signature** :
+   ```bash
+   gpg --gen-key
+   gpg --list-keys --keyid-format short          # relever l'identifiant
+   gpg --keyserver keyserver.ubuntu.com --send-keys <ID>
+   ```
+   Central refuse un artefact dont la clé n'est pas publiée : la signature doit être
+   vérifiable par un tiers, sinon elle ne prouve rien.
+3. **Les identifiants**, dans `~/.m2/settings.xml` — le jeton se génère depuis le Portal :
+   ```xml
+   <server>
+     <id>central</id>
+     <username>…</username>
+     <password>…</password>
+   </server>
+   ```
+
+Ensuite :
+
+```bash
+mvn -Prelease deploy
+```
+
+Le dépôt apparaît dans le Portal **sans être publié** : on relit ce qui part, puis on
+confirme. C'est délibéré — une version publiée ne se retire pas.
+
+Pour vérifier le montage sans rien signer ni envoyer :
+
+```bash
+mvn -Prelease clean install -Dgpg.skip=true
+```
+
+produit `runtime-xray-cli-1.0.0.jar`, `-sources.jar`, `-javadoc.jar` et le POM, c'est-à-dire
+exactement les quatre artefacts que Central exige.
 
 ## Recommandation
 

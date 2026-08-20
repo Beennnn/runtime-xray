@@ -2,13 +2,18 @@
 
 Étude comparative d'outils d'analyse dynamique pour Java, et l'outil qui en découle.
 
+**→ [Consulter un rapport produit sur une exécution réelle](https://beennnn.github.io/runtime-xray/multi/)**
+
+C'est le livrable ; tout ce qui suit explique comment on y est arrivé, et
+[comment le lire](docs/outil/lire-le-rapport.md).
+
 ## Objet
 
 Disposer, à l'exécution d'une fonction Java, de trois informations :
 
-1. les **lignes exécutées** ;
-2. l'**arbre des appels** ;
-3. en option de seconde priorité, les **valeurs passées en paramètres**.
+1. les lignes exécutées ;
+2. l'arbre des appels ;
+3. en option de seconde priorité, les valeurs passées en paramètres.
 
 Finalité : disposer d'une base factuelle pour analyser, restructurer et redéfinir un code
 existant — plutôt que de s'en remettre à la lecture seule.
@@ -23,8 +28,8 @@ existant — plutôt que de s'en remettre à la lecture seule.
 | Deux publics | Un développeur dans son environnement, et un lecteur non technicien devant un document transmis |
 | Diagnostic ponctuel | Aucun serveur à déployer ni à maintenir |
 
-Le temps de calcul et la mémoire sont relevés à titre indicatif mais **ne font pas partie
-des critères de sélection**. L'optimisation des performances est un sujet distinct, qui
+Le temps de calcul et la mémoire sont relevés à titre indicatif, mais ne font pas partie
+des critères de sélection. L'optimisation des performances est un sujet distinct, qui
 suppose que le code soit d'abord compris.
 
 ## Démarche
@@ -34,8 +39,7 @@ suppose que le code soit d'abord compris.
 Dix-huit outils ont été recensés, puis évalués sur cinq critères ordonnés : facilité de
 mise en œuvre, lisibilité du rapport pour un lecteur non technicien, couverture
 fonctionnelle, intégration à l'IDE, coût. Chaque affirmation du comparatif porte un statut
-indiquant si elle a été **vérifiée par exécution** ou reprise de la documentation de
-l'éditeur.
+indiquant si elle a été vérifiée par exécution ou reprise de la documentation de l'éditeur.
 
 Le protocole et les critères sont décrits dans [la méthode](docs/etude/methode.md).
 
@@ -62,7 +66,7 @@ présentées comme un arbre d'appel — c'est cette seconde entrée qui est ouve
 Les lignes exécutées apparaissent en vert, celles jamais atteintes en rouge. À droite de
 chaque ligne, les appels qui en partent, avec le nombre de passages et l'étendue des durées
 observées : `×10` sur une ligne dans une boucle se déplie en un nœud par itération. En bas,
-les appels observés sont mis **en regard**, une colonne par champ, les colonnes qui varient
+les appels observés sont mis en regard, une colonne par champ, les colonnes qui varient
 signalées — c'est là que se lit ce qui a fait diverger deux exécutions de la même méthode.
 
 Un exemple produit par cette combinaison est
@@ -72,20 +76,20 @@ Un exemple produit par cette combinaison est
 
 Ces résultats valent dans le cadre décrit, et pas au-delà. En particulier :
 
-- **Les outils commerciaux n'ont pas été exécutés.** JProfiler, YourKit et les autres sont
+- Les outils commerciaux n'ont pas été exécutés. JProfiler, YourKit et les autres sont
   évalués sur leur documentation et leurs captures publiques. Les démarches pour obtenir
   des clés d'évaluation sont décrites dans [les clés
   d'évaluation](docs/etude/cles-evaluation.md), mais elles n'ont pas été entreprises. Ce
   qu'on en attendrait est énoncé, pas constaté.
-- **Un seul programme de démonstration** a servi de support, sur une seule machine
+- Un seul programme de démonstration a servi de support, sur une seule machine
   (macOS, Apple Silicon). Le comportement sur un code industriel — plusieurs milliers de
   classes, plusieurs fils d'exécution, un serveur d'application — n'a pas été observé.
-- **La capture des valeurs perturbe la mesure du temps.** Elle est menée dans la même
+- La capture des valeurs perturbe la mesure du temps : elle est menée dans la même
   exécution, ce qui surestime le coût de la méthode observée. La réserve est affichée dans
   le rapport et chiffrée ; elle est acceptée parce que le temps n'est pas un critère.
-- **Les valeurs ne sont capturées que sur une méthode**, désignée au lancement. Observer
+- Les valeurs ne sont capturées que sur une méthode, désignée au lancement. Observer
   toutes les méthodes produirait un volume ingérable.
-- **L'écart entre Java 21 et Java 25** a été mesuré sur ce seul programme et n'a pas montré
+- L'écart entre Java 21 et Java 25 a été mesuré sur ce seul programme et n'a pas montré
   de gain pour la combinaison retenue. Cela ne préjuge pas d'autres cas.
 
 ## L'outil
@@ -119,6 +123,8 @@ heure de début et de fin, durée, machine, système, version de Java.
 
 [Mode d'emploi complet](docs/outil/mode-emploi.md) — paramètres, fichier de configuration,
 choix de la méthode racine, publication du résultat.
+[Lire le rapport](docs/outil/lire-le-rapport.md) — ce que la page montre, ce qu'elle replie,
+et pourquoi.
 
 ## Documents
 
@@ -148,6 +154,7 @@ Trois dossiers, selon la question traitée.
 | Page | Contenu |
 |---|---|
 | [Mode d'emploi](docs/outil/mode-emploi.md) | Paramètres, configuration, méthode racine |
+| [Lire le rapport](docs/outil/lire-le-rapport.md) | Ce que la page montre, ce qu'elle replie, et ce qu'on peut lui demander |
 | [Détails techniques](docs/outil/technique.md) | Programme de démonstration et difficultés rencontrées |
 | [Diffusion](docs/outil/distribution.md) | Dépôt interne, Maven Central, et ce qu'a apporté la réécriture |
 

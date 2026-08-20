@@ -111,7 +111,7 @@ défaut, des commentaires et des exemples pour chaque clé.
 ```bash
 java -jar runtime-xray.jar --config mon-projet.conf
 # ✅ Fichier de configuration généré : mon-projet.conf
-#    Renseigner au minimum JAVA_CMD et CLASSES_DIR, puis relancer.
+#    Renseigner au minimum JAVA_CMD, puis relancer.
 
 java -jar runtime-xray.jar --config mon-projet.conf
 ```
@@ -192,16 +192,31 @@ grand-chose de toute façon.
 
 ```
 runtime-xray-out/
-├── index.html                  ← la vue intégrée : ouvrir le dossier suffit à la trouver
-├── noms.json                   ← renommer une exécution après coup (facultatif)
+├── index.html                   ← la vue intégrée : ouvrir le dossier suffit à la trouver
+├── rapport.md                   ← le même contenu, lisible dans une forge (voir plus bas)
+├── noms.json                    ← renommer une exécution après coup (facultatif)
 └── runs/
-    └── 20260820-221009-recette-v2/
-        ├── run-context.json    ← identifiant, nom, commande, heure, machine…
-        ├── execution.log       ← la sortie de l'application
-        ├── jacoco/html/        ← le rapport de couverture détaillé
-        ├── async-profiler/     ← les mesures de temps brutes
-        └── arthas/             ← les valeurs capturées
+    └── 20260821-004121-recette-v2/
+        ├── run-context.json     ← identifiant, nom, commande, heure, machine…
+        ├── execution.log        ← la sortie de l'application
+        ├── jacoco/html/         ← la couverture détaillée, tout le code analysé
+        ├── jacoco-focused/html/ ← la même, restreinte aux classes qui ont tourné
+        ├── classes-executees/   ← le bytecode retenu pour ce second rapport
+        ├── async-profiler/      ← les piles repliées, plus le profil rendu par l'outil
+        │                          lui-même (flamegraph.html et son inverse)
+        └── arthas/              ← les valeurs capturées et la trace d'invocation
 ```
+
+Tout ce que les outils ont écrit reste ainsi atteignable. La page en donne la liste, groupée
+par outil : c'est ce qui permet de vérifier la synthèse quand elle surprend — et de rester
+exploitable si elle ne s'ouvre plus.
+
+### `rapport.md` — pour une forge
+
+À côté de la page, l'outil écrit un **`rapport.md`** : le même contenu, réduit à ce qui se
+lit sans interaction. Il existe parce qu'une forge affiche un fichier `.html` comme du
+**code source**, pas comme une page ; le Markdown, lui, est rendu nativement par GitHub
+comme par GitLab, dépôt privé compris, sans Pages ni service tiers.
 
 ## Plusieurs exécutions dans un même rapport
 
@@ -244,16 +259,13 @@ java -jar runtime-xray.jar --report-only --out dossier-commun --sources src/main
 
 ### Lire la vue
 
-1. **À gauche**, choisir un onglet puis cliquer :
-   **Code exécuté** (tout ce qui a tourné, du plus coûteux au moins coûteux),
-   **Arbre d'appel** (la même chose en hiérarchie), **Packages** (par fichier).
-2. **Au centre**, le code apparaît colorié : vert exécuté, rouge jamais atteint, jaune
-   partiel. À droite de chaque ligne, les appels qui en partent et leur coût.
-3. **Masquer le code non exécuté** retire les classes mortes et replie les lignes rouges.
-4. **Restreindre le périmètre** à ce qui tourne sous une méthode, sans descendre d'appel
-   en appel.
-5. **Les valeurs des paramètres** s'affichent dans le bandeau du bas, sur la méthode
-   racine — repérable dans la liste à sa pastille *valeurs*.
+Deux onglets à gauche mènent au même code : **Code** (par paquet et par classe) et
+**Exécutions** (l'arbre d'appel, avec les exécutions pour racines). Les cases à cocher
+choisissent les exécutions affichées.
+
+Ce que la page montre exactement, ce qu'elle replie et pourquoi, comment filtrer un paquet
+d'un clic et comment déplier une boucle passage par passage : **[Lire le
+rapport](lire-le-rapport.md)**.
 
 ### Le contexte est écrit dans le rapport
 

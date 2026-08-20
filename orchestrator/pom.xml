@@ -5,7 +5,7 @@
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
-    <groupId>lab.tools</groupId>
+    <groupId>io.github.beennnn</groupId>
     <artifactId>runtime-xray</artifactId>
     <version>1.0.0</version>
     <relativePath>../pom.xml</relativePath>
@@ -14,12 +14,14 @@
   <artifactId>runtime-xray-cli</artifactId>
   <packaging>jar</packaging>
 
-  <name>runtime-xray-cli</name>
+  <name>Runtime X-Ray CLI</name>
   <description>
-    L'orchestrateur : lance une application Java sous observation et assemble le rapport.
+    L'orchestrateur : lance une application Java sous observation, récupère les composants
+    d'analyse depuis un dépôt Maven, et assemble leurs sorties en une page unique.
     AUCUNE dépendance hors du JDK — c'est le point : l'outil doit tourner là où l'application
     tourne, et une machine qui exécute du Java a un JDK, pas forcément bash ni Python.
   </description>
+  <url>https://github.com/Beennnn/runtime-xray</url>
 
   <dependencies>
     <!-- Portée test uniquement : le jar livré reste sans aucune dépendance. -->

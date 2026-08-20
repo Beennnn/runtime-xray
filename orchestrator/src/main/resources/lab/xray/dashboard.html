@@ -351,6 +351,11 @@
              padding:0 3px;line-height:16px;white-space:nowrap;box-sizing:border-box}
   .flame .fl.known{cursor:pointer}
   .flame .fl.known:hover{outline:1px solid var(--text);outline-offset:-1px}
+  /* La légende reprend l'échelle exacte du graphe : une légende approximative ne se
+     rapporte à rien de ce qu'on voit. */
+  .flamekey{display:inline-block;width:74px;height:9px;border-radius:5px;vertical-align:-1px;
+            margin:0 3px;border:1px solid var(--border);
+            background:linear-gradient(to right,#dbe7f3,#f3e2b4,#f5cf7a,#ef9f45,#e2662c,#c8341b)}
   .home code{background:var(--panel);border:1px solid var(--border);border-radius:4px;padding:1px 5px;font-size:12px}
   table.ctx{border-collapse:collapse;width:100%;margin-bottom:20px}
   table.ctx td{padding:5px 10px;border-bottom:1px solid var(--border);vertical-align:top;font-size:13px}
@@ -963,12 +968,17 @@ function renderTree(){
     let built = false;
     if (idx === runIndex){ level(holder, run.calltree, 1, total, idx); built = true; }
     head.onclick = () => {
+      // Changer d'exécution reconstruit la liste entière. Toucher AU PRÉALABLE au DOM
+      // qu'on s'apprête à remplacer laissait un conteneur déjà rempli mais marqué fermé —
+      // d'où une ligne orpheline sous la racine. On rend la main tout de suite : c'est le
+      // re-rendu qui ouvre la bonne exécution.
+      if (idx !== runIndex){ switchRun(idx, true); return; }
+
       const open = holder.style.display === "none";
       if (open && !built){ level(holder, run.calltree, 1, total, idx); built = true; }
       holder.style.display = open ? "block" : "none";
       head.querySelector(".tw").textContent = open ? "▾" : "▸";
-      if (idx !== runIndex) switchRun(idx, true);
-      else if (!open) goHome();
+      if (!open) goHome();
     };
   });
 
@@ -1978,7 +1988,12 @@ function flameBlock(){
     for (const kid of node.children){
       const w = kid.total / root.total;
       if (w * 100 < 0.4 || depth > MAXD){ x += w; continue; }   // trop fin pour être lu
-      bars.push({x, w, depth, name: kid.name, known: !!frameInfo(kid.name), total: kid.total});
+      // Le temps PROPRE : ce que la méthode garde pour elle, une fois retiré ce qu'elle a
+      // délégué. C'est la seule quantité qui désigne un endroit où agir — une barre large
+      // dont un enfant est tout aussi large ne fait que passer le relais.
+      const delegue = kid.children.reduce((sum, c) => sum + c.total, 0);
+      bars.push({x, w, depth, name: kid.name, known: !!frameInfo(kid.name), total: kid.total,
+                 propre: Math.max(0, kid.total - delegue) / root.total});
       maxDepth = Math.max(maxDepth, depth);
       layout(kid, depth + 1, x);
       x += w;
@@ -1991,22 +2006,38 @@ function flameBlock(){
     return '<div class="fl' + (b.known ? " known" : "") + '"' +
       (b.known ? ' data-f="' + esc(b.name) + '"' : '') +
       ' style="left:' + (b.x * 100).toFixed(4) + '%;width:' + (b.w * 100).toFixed(4) + '%;' +
-      'top:' + (b.depth * H) + 'px;background:' + flameColour(b.depth, b.known) + '"' +
-      ' title="' + esc(dot(b.name)) + '  —  ' + formatWeight(b.total, root.total) + '">' +
+      'top:' + (b.depth * H) + 'px;background:' + flameColour(b.propre, b.known) + '"' +
+      ' title="' + esc(dot(b.name)) + '  —  ' + formatWeight(b.total, root.total) +
+      ' au total, dont ' + (b.propre * 100).toFixed(1) + ' % en propre">' +
       '<span>' + esc(label) + '</span></div>';
   }).join("");
 
   return '<h2>Où le temps est passé</h2>' +
-    '<p style="margin-bottom:8px">Chaque barre est une méthode ; sa largeur est la part du ' +
-    'temps passé dessous. Cliquer entre dans la méthode.</p>' +
+    '<p style="margin-bottom:8px">Chaque barre est une méthode ; sa <b>largeur</b> est la ' +
+    'part du temps passé dessous, sa <b>couleur</b> la part qu\'elle garde <b>pour elle</b>, ' +
+    'une fois retiré ce qu\'elle a délégué. Une barre large et pâle ne fait que passer le ' +
+    'relais ; <span class="flamekey"></span> une barre colorée est un endroit où le temps ' +
+    'se consomme vraiment. Cliquer entre dans la méthode.</p>' +
     '<div class="flame" style="height:' + ((maxDepth + 1) * H) + 'px">' + body + '</div>';
 }
 
-/** Teintes chaudes en dégradé par profondeur, grisées hors code applicatif. */
-function flameColour(depth, known){
+/**
+ * La couleur dit le temps PROPRE, pas la profondeur.
+ *
+ * <p>Colorer par profondeur ne disait rien : la position verticale la donne déjà, et le
+ * résultat était six nuances du même jaune, décoratives. Le temps propre, lui, répond à la
+ * question qu'on se pose devant un flame graph — <i>où le temps se consomme-t-il
+ * réellement ?</i> — et il distingue une méthode qui travaille d'une méthode qui délègue.
+ *
+ * <p>L'échelle est volontairement compressée : au-delà de quelques pour cent de temps
+ * propre, on est déjà dans ce qui compte, et un dégradé linéaire écraserait tout le reste
+ * dans la même teinte pâle.
+ */
+function flameColour(propre, known){
   if (!known) return "var(--border)";
-  const tones = ["#e3a72c", "#e8b342", "#edbf58", "#f1c96e", "#f5d485", "#f8de9b"];
-  return tones[depth % tones.length];
+  const t = Math.min(1, Math.sqrt(propre / 0.25));      // 25 % en propre = saturation
+  const tons = ["#dbe7f3", "#f3e2b4", "#f5cf7a", "#ef9f45", "#e2662c", "#c8341b"];
+  return tons[Math.min(tons.length - 1, Math.round(t * (tons.length - 1)))];
 }
 
 function drawHome(){
