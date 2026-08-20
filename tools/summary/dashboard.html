@@ -8,14 +8,14 @@
   :root{
     --bg:#fff; --panel:#f6f8fa; --panel2:#fbfcfd; --border:#d0d7de; --text:#1f2328;
     --muted:#59636e; --accent:#0969da; --accent-soft:#ddf4ff;
-    --full:#c9f5d5; --part:#fff2ad; --miss:#ffd6d3;
+    --full:#b7f0c6; --part:#ffec9e; --miss:#ffc9c4;
     --fullbar:#1a7f37; --partbar:#9a6700; --missbar:#cf222e; --violet:#8250df;
   }
   @media (prefers-color-scheme: dark){
     :root:not([data-theme="light"]){
       --bg:#0d1117; --panel:#151b23; --panel2:#10151c; --border:#30363d; --text:#e6edf3;
       --muted:#9198a1; --accent:#4493f8; --accent-soft:#121d2f;
-      --full:#123d22; --part:#4a3a0e; --miss:#4d1a1d;
+      --full:#16512c; --part:#5c4710; --miss:#63201f;
       --fullbar:#3fb950; --partbar:#d29922; --missbar:#f85149; --violet:#ab7df8;
     }
   }
@@ -121,6 +121,16 @@
   .pct2{color:var(--muted);font-weight:400;font-size:11px}
   .tagval{font-size:10px;border:1px solid var(--violet);color:var(--violet);
           border-radius:10px;padding:0 5px;vertical-align:1px}
+  .node.callnode{color:var(--violet)}
+  .callbadge{font-size:10px;border:1px solid var(--violet);color:var(--violet);
+             border-radius:10px;padding:0 5px;vertical-align:1px}
+  .call.pick{cursor:pointer;border-radius:5px;padding-left:6px;padding-right:6px}
+  .call.pick:hover{background:var(--accent-soft)}
+  .callnav{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+  .callnav button{font:inherit;font-size:11.5px;padding:3px 10px;border-radius:14px;
+                  border:1px solid var(--border);background:var(--bg);color:var(--text);cursor:pointer}
+  .callnav button:disabled{opacity:.4;cursor:default}
+  .callnav a{font-size:11.5px;color:var(--accent);text-decoration:none;margin-left:auto}
   .tagrun{font-size:10px;border:1px solid var(--accent);color:var(--accent);
           border-radius:10px;padding:0 5px;vertical-align:1px}
   .tagonly{font-size:10px;border:1px solid var(--partbar);color:var(--partbar);
@@ -152,7 +162,11 @@
   table.src td{padding:0 6px;vertical-align:top;white-space:pre}
   td.n{text-align:right;color:var(--muted);user-select:none;width:1%;
        border-right:1px solid var(--border);font-variant-numeric:tabular-nums}
-  tr.full td.c{background:var(--full)} tr.part td.c{background:var(--part)} tr.miss td.c{background:var(--miss)}
+  /* Un liseré en marge en plus du fond : sur un fond sombre, la teinte seule se remarque
+     mal, et en mode resserré on ne voit presque que des lignes exécutées. */
+  tr.full td.c{background:var(--full);box-shadow:inset 3px 0 0 var(--fullbar)}
+  tr.part td.c{background:var(--part);box-shadow:inset 3px 0 0 var(--partbar)}
+  tr.miss td.c{background:var(--miss);box-shadow:inset 3px 0 0 var(--missbar)}
   td.c{width:99%}
   tr.inmethod td.n{color:var(--accent);font-weight:700}
   td.ann{color:var(--muted);font-size:11px;width:1%;max-width:300px;text-align:right;
@@ -232,6 +246,19 @@
            border:1px solid var(--border);border-radius:9px;background:var(--bg)}
   .home ul.tools{color:var(--muted);padding-left:20px} .home ul.tools li{margin:4px 0}
   .home ul.tools b{color:var(--text)}
+  svg.flame{width:100%;display:block;margin-bottom:20px;border:1px solid var(--border);
+            border-radius:8px;background:var(--panel)}
+  svg.flame text{font:10px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;fill:#1f2328;
+                 pointer-events:none}
+  svg.flame g.known{cursor:pointer}
+  svg.flame g.known:hover rect{stroke:var(--text);stroke-width:1}
+  .flame{position:relative;width:100%;margin-bottom:20px;border:1px solid var(--border);
+         border-radius:8px;background:var(--panel);overflow:hidden}
+  .flame .fl{position:absolute;height:16px;border-radius:2px;overflow:hidden;
+             font:10px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:#1f2328;
+             padding:0 3px;line-height:16px;white-space:nowrap;box-sizing:border-box}
+  .flame .fl.known{cursor:pointer}
+  .flame .fl.known:hover{outline:1px solid var(--text);outline-offset:-1px}
   .home code{background:var(--panel);border:1px solid var(--border);border-radius:4px;padding:1px 5px;font-size:12px}
   table.ctx{border-collapse:collapse;width:100%;margin-bottom:20px}
   table.ctx td{padding:5px 10px;border-bottom:1px solid var(--border);vertical-align:top;font-size:13px}
@@ -316,6 +343,10 @@ let R = D.runs[0];
 const esc = s => String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
 const dot = s => s.replace(/\//g,".");
 let clean = true, mode = "exec", scopeFrame = null, selected = null, filter = "", ctxIndex = 0;
+// Un nœud d'arbre d'appel désigne un CHEMIN, pas un appel : le profil est un agrégat.
+// Les appels individuels viennent de l'inspection, et chacun est sélectionnable à part.
+// callIndex vaut null quand on regarde la méthode, ou l'indice de l'appel regardé.
+let callIndex = null;
 // Deux façons de lire le temps : la part du total, ou une durée estimée. La seconde parle
 // davantage à qui cherche « combien de temps », la première à qui compare deux méthodes.
 let unit = "pct";
@@ -409,6 +440,7 @@ document.getElementById("legend").innerHTML =
   '<span class="sw" style="background:var(--full);border-color:var(--fullbar)"></span>exécutée' +
   '<span class="sw" style="background:var(--part);border-color:var(--partbar)"></span>partiellement' +
   '<span class="sw" style="background:var(--miss);border-color:var(--missbar)"></span>jamais exécutée' +
+  ' <span style="opacity:.75">(masquée tant que « Resserré sur la méthode » est actif)</span>' +
   '<span style="margin-left:16px">À droite d\'une ligne : <b>appelle …</b> = les méthodes appelées ' +
   'depuis cette ligne et leur <i>durée</i> · <span style="color:var(--violet)">valeurs des paramètres</span> ' +
   '= les valeurs reçues par la méthode, détaillées dans le bandeau du bas.</span>';
@@ -540,9 +572,12 @@ function renderTree(){
       const el = document.createElement("div");
       el.className = "node" + (known ? "" : " jdk");
       el.style.paddingLeft = (6 + depth * 11) + "px";
-      el.innerHTML = '<span class="tw">' + (kid.children.length ? "▸" : "") + '</span>' +
+      const hasCalls = frameInfo(kid.name) && (R.values[kid.name] || []).length;
+      el.innerHTML = '<span class="tw">' + ((kid.children.length || hasCalls) ? "▸" : "") + '</span>' +
                      '<span class="pct">' + formatWeight(kid.total, total) + '</span>' +
-                     esc(frameLabel(kid.name));
+                     esc(frameLabel(kid.name)) +
+                     ((known && (R.values[kid.name] || []).length)
+                        ? ' <span class="tagval">' + R.values[kid.name].length + ' appels</span>' : '');
       container.appendChild(el);
       const holder = document.createElement("div");
       holder.style.display = "none";
@@ -550,12 +585,34 @@ function renderTree(){
       // Les enfants ne sont construits qu'au premier dépliage. Sur une vraie application,
       // un arbre d'appel compte des dizaines de milliers de nœuds : tout construire d'avance
       // fige la page. Ici on ne paie que ce qu'on ouvre.
+      // Les appels observés de cette méthode deviennent des nœuds à part entière : un
+      // nœud = un appel, ce que le profil agrégé ne peut pas offrir.
+      const observedCalls = known ? (R.values[kid.name] || []) : [];
       let built = false;
       el.onclick = e => {
         e.stopPropagation();
-        if (kid.children.length){
+        if (kid.children.length || observedCalls.length){
           const open = holder.style.display === "none";
-          if (open && !built){ level(holder, kid, depth + 1, total, idx); built = true; }
+          if (open && !built){
+            observedCalls.forEach((call, k) => {
+              const leaf = document.createElement("div");
+              leaf.className = "node callnode";
+              leaf.style.paddingLeft = (6 + (depth + 1) * 11) + "px";
+              const resume = (call.params || []).map(x => x.value).join(", ");
+              leaf.innerHTML = '<span class="tw"></span><span class="callbadge">appel ' +
+                               (k + 1) + '</span> ' + esc(resume.slice(0, 60));
+              leaf.title = resume;
+              leaf.onclick = ev => {
+                ev.stopPropagation();
+                if (idx !== runIndex) switchRun(idx, false);
+                const info2 = frameInfo(kid.name);
+                if (info2) select(info2, leaf, k);
+              };
+              holder.appendChild(leaf);
+            });
+            level(holder, kid, depth + 1, total, idx);
+            built = true;
+          }
           holder.style.display = open ? "block" : "none";
           el.querySelector(".tw").textContent = open ? "▾" : "▸";
         }
@@ -720,10 +777,11 @@ function selectFrame(frame, el){
   scopeFrame = frame;
   select(info, el);
 }
-function select(info, el){
+function select(info, el, call){
   document.querySelectorAll(".node.sel").forEach(n=>n.classList.remove("sel"));
   if (el) el.classList.add("sel");
   selected = info;
+  callIndex = (call === undefined) ? null : call;
   draw();
 }
 function draw(){
@@ -841,100 +899,83 @@ function drawValues(info){
   const box = document.getElementById("values");
   const calls = R.values[info.frame] || [];
   if (!calls.length){
-    // Rien pour CETTE méthode : dire lesquelles en ont, plutôt que de laisser un vide.
     const others = Object.keys(R.values);
+    // Expliquer POURQUOI il n'y a rien : sans cela, on croit à un défaut de l'outil alors
+    // que c'est un choix — l'observation des valeurs est ciblée, et elle doit l'être.
+    const nom = esc(info.name || info.cls.split("/").pop());
+    const racine = R.context && R.context.methodeRacine ? R.context.methodeRacine : null;
     box.innerHTML = others.length
-      ? '<h3>Valeurs des paramètres</h3><div class="call" style="border:0;color:var(--muted)">'+
-        'Aucune valeur capturée pour <code>'+esc(info.name||info.cls.split("/").pop())+'</code>. '+
-        'Méthodes observées : '+ others.map(f =>
-          '<a href="#" class="vlink" data-f="'+esc(f)+'">'+esc(f.split("/").pop())+'</a>').join(" · ")+
-        '</div>'
-      : "";
+      ? '<h3>Valeurs des paramètres</h3><div class="explain">' +
+        '<b>Aucune valeur n\'a été capturée pour <code>' + nom + '</code></b> — ce qui ne veut ' +
+        'pas dire qu\'elle n\'a pas tourné : la couverture et les temps la montrent bien. ' +
+        'L\'observation des valeurs est <b>ciblée</b> sur une méthode racine' +
+        (racine ? ' — ici <code>' + esc(racine) + '</code>' : '') + ', parce qu\'observer ' +
+        'toutes les méthodes produirait un volume ingérable et fausserait la mesure.' +
+        '<br>Pour obtenir les valeurs de <code>' + nom + '</code>, relancer avec ' +
+        '<code>--root ' + esc(dot(info.cls) + "::" + (info.name || "")) + '</code>.' +
+        '<br>Méthodes observées dans cette exécution : ' + others.map(f =>
+          '<a href="#" class="vlink" data-f="' + esc(f) + '">' + esc(f.split("/").pop()) + '</a>')
+          .join(" · ") + '</div>'
+      : '<h3>Valeurs des paramètres</h3><div class="explain">Aucune méthode n\'a été observée ' +
+        'dans cette exécution : relancer avec <code>--root paquet.Classe::methode</code> pour ' +
+        'capturer les valeurs reçues par une méthode.</div>';
     box.querySelectorAll(".vlink").forEach(a => a.onclick = e => {
       e.preventDefault();
-      const t = frameInfo(a.dataset.f); if (t) select(t, null);
+      const t = frameInfo(a.dataset.f);
+      if (t) select(t, null);
     });
     return;
   }
-  // Rappeler la signature : sans elle, on ne sait pas à quel paramètre correspond
-  // chaque valeur affichée.
-  // JaCoCo pointe la première ligne EXÉCUTABLE, pas la déclaration : on remonte jusqu'à
-  // la ligne qui porte le nom de la méthode suivi d'une parenthèse.
-  const sig = declarationOf(info);
-  box.innerHTML =
-    "<h3>Valeurs reçues par <code>"+esc(info.name)+"</code></h3>" +
-    (sig ? '<div class="sig">'+esc(sig)+'</div>' : '') +
-    '<div class="explain"><b>Une ligne = un appel.</b> ' +
-    (calls.length === 1
-      ? 'Un seul appel a été observé, avec ce qu\'il a reçu et ce qu\'il a renvoyé.'
-      : 'La méthode a été appelée un grand nombre de fois pendant l\'exécution ; voici les ' +
-        calls.length + ' premiers appels observés, avec ce qu\'ils ont reçu et ce qu\'ils ont renvoyé.') +
-    ' <span style="opacity:.8">La durée d\'un appel observé n\'est pas affichée ici : elle ' +
-    'mesure surtout le coût de l\'observation. Le temps réellement passé dans la méthode est ' +
-    'celui indiqué à gauche.</span></div>' +
-    '<div class="callhead"><span>paramètres reçus</span><span>valeur renvoyée</span></div>' +
-    calls.map(v =>
-      '<div class="call"><span class="p">'+
-        (v.params||[]).map(x => '<span class="v">'+esc(x.value)+'</span>').join('<span class="sep">,</span> ')+
-      '</span><span class="arrow">→</span><span class="r">'+
-        (v.retour ? '<span class="v">'+esc(v.retour.value)+'</span>' : '<i>—</i>')+
-      '</span><span class="t"></span></div>').join("");
+
+  const decl = declarationOf(info);
+  // Sans appel choisi, on propose la liste — chaque ligne EST un appel, et en choisir un
+  // ferme la question « de quel appel parle-t-on ? ».
+  if (callIndex === null){
+    box.innerHTML =
+      '<h3>Appels observés de <code>' + esc(info.name) + '</code></h3>' +
+      (decl ? '<div class="sig">' + esc(decl) + '</div>' : '') +
+      '<div class="explain"><b>' + calls.length + ' appel' + (calls.length > 1 ? 's ont' : ' a') +
+      ' été observé' + (calls.length > 1 ? 's' : '') + '</b> pendant l\'exécution. ' +
+      'Choisir un appel pour ne voir que le sien.</div>' +
+      '<div class="callhead"><span>paramètres reçus</span><span>valeur renvoyée</span></div>' +
+      calls.map((v, i) => callRow(v, i, true)).join("");
+  } else {
+    const v = calls[callIndex];
+    box.innerHTML =
+      '<h3>Appel ' + (callIndex + 1) + ' sur ' + calls.length +
+      ' de <code>' + esc(info.name) + '</code></h3>' +
+      (decl ? '<div class="sig">' + esc(decl) + '</div>' : '') +
+      '<div class="callnav">' +
+        '<button data-go="' + (callIndex - 1) + '"' + (callIndex === 0 ? " disabled" : "") + '>‹ précédent</button>' +
+        '<button data-go="' + (callIndex + 1) + '"' + (callIndex === calls.length - 1 ? " disabled" : "") + '>suivant ›</button>' +
+        '<a href="#" id="allcalls">voir les ' + calls.length + ' appels observés</a>' +
+      '</div>' +
+      '<div class="callhead"><span>paramètres reçus</span><span>valeur renvoyée</span></div>' +
+      callRow(v, callIndex, false);
+  }
+
+  box.querySelectorAll(".call[data-i]").forEach(row => row.onclick = () => {
+    callIndex = +row.dataset.i;
+    draw();
+  });
+  box.querySelectorAll("button[data-go]").forEach(b => b.onclick = () => {
+    callIndex = +b.dataset.go;
+    draw();
+  });
+  const all = document.getElementById("allcalls");
+  if (all) all.onclick = e => { e.preventDefault(); callIndex = null; draw(); };
 }
-function valuesHelp(){
-  const t = dot(R.tracedClass || "");
-  const name = t.split(".").pop();
-  const methods = Object.keys(R.values || {});
-  const has = methods.length;
-  if (!has)
-    return '<h2>Les valeurs des paramètres</h2><p>Aucune valeur n\'a été capturée pour ce ' +
-      'rapport. Relancer en indiquant la méthode racine à inspecter (<code>--root</code>).</p>';
-  return '<h2>Où voir les valeurs des paramètres</h2>' +
-    '<p>Elles ne sont capturées que sur <b>une seule méthode</b> : la <b>méthode racine</b> ' +
-    'désignée au lancement — ici <code>' + esc(t) + '</code>. C\'est volontaire : capturer ' +
-    'les valeurs de toutes les méthodes produirait un volume ingérable.</p>' +
-    '<p><b>Les méthodes observées</b> — chacune a ses propres valeurs : ' +
-    methods.map(f => '<code>'+esc(f.split("/").pop())+'</code> ('+R.values[f].length+' appels)').join(" · ") +
-    '.</p>' +
-    '<p><b>Pour les voir</b> : ouvrir la méthode depuis la liste de gauche — elle porte une ' +
-    'pastille <span class="tagval">valeurs</span> — puis regarder le <b>bandeau en bas</b>. ' +
-    'On peut aussi cliquer le marqueur violet posé sur sa ligne de déclaration.</p>' +
-    '<p><a href="#" id="gotoValues">→ Ouvrir ' + esc(name) + ' et voir ses valeurs</a></p>';
+
+function callRow(v, i, clickable){
+  return '<div class="call' + (clickable ? " pick" : "") + '"' +
+    (clickable ? ' data-i="' + i + '" title="Ne voir que cet appel"' : '') + '>' +
+    '<span class="p">' + (v.params || []).map(x =>
+      '<span class="v">' + esc(x.value) + '</span>').join('<span class="sep">,</span> ') +
+    '</span><span class="arrow">→</span><span class="r">' +
+    (v.retour ? '<span class="v">' + esc(v.retour.value) + '</span>' : '<i>—</i>') +
+    '</span><span class="t">' + (clickable ? "appel " + (i + 1) : "") + '</span></div>';
 }
-function linksBlock(){
-  const repo = "https://github.com/Beennnn/runtime-xray";
-  const l = (href, titre, quoi) =>
-    '<a class="lk" href="'+href+'" target="_blank" rel="noopener">' +
-    '<span class="lkt">'+titre+'</span><span class="lkd">'+quoi+'</span></a>';
-  const b = R.chemin || "", a = R.rapports || {};
-  const opt = (ok, href, titre, quoi) => ok ? l(b + href, titre, quoi) : "";
-  return '<h2>Pour aller plus loin</h2><div class="links2">' +
-    opt(a.couverture, "jacoco/html/index.html", "Couverture détaillée",
-      "Le rapport complet, fichier par fichier, avec le code annoté ligne à ligne.") +
-    opt(a.ciblee, "jacoco-focused/html/index.html", "Couverture ciblée",
-      "Le même, restreint aux classes qui ont réellement tourné.") +
-    opt(a.flamegraph, "async-profiler/flamegraph.html", "Flame graph",
-      "Où le temps est passé, vu comme un paysage : la largeur d\'une barre est sa durée.") +
-    opt(a.arbre, "async-profiler/tree.html", "Arbre d\'appel complet",
-      "La hiérarchie des appels, dépliable et cherchable, telle que produite par l\'outil de mesure.") +
-    l(repo, "Le dépôt du projet ↗",
-      "Le code, les scripts de collecte, et comment lancer cet outil sur un autre projet.") +
-    l(repo + "/blob/main/docs/OUTIL.md", "Mode d\'emploi de l\'outil ↗",
-      "Le lancer sur votre propre application : paramètres, configuration, publication du résultat.") +
-    l(repo + "/blob/main/docs/RESULTS.md", "Pourquoi ces outils ↗",
-      "Ce qui a été comparé, ce qui a été écarté, et ce qui reste à trancher.") +
-    '</div>';
-}
-function reserveBlock(){
-  if (!R.profileNote) return "";
-  return '<div class="reserve"><b>Une réserve sur les pourcentages de temps.</b> ' +
-    esc(R.profileNote) + ' <br><br>' +
-    'Tout a été collecté en <b>un seul lancement</b> : c\'est le mode par défaut, parce ' +
-    'qu\'il donne les trois informations recherchées d\'un coup et que le temps d\'exécution ' +
-    'n\'est pas un critère du projet. <b>Si les temps devaient compter</b>, il suffit de ' +
-    'faire <b>plusieurs lancements</b> : un premier pour la couverture et le profil, un ' +
-    'second pour la capture des valeurs. Les pourcentages deviennent alors exacts, au prix ' +
-    'd\'une exécution supplémentaire.</div>';
-}
+
 /** Plan de l'interface. Une capture serait vite fausse ; un schéma dessiné reste juste,
  *  suit le thème clair/sombre, et pointe les quatre gestes qui comptent. */
 function schema(){
@@ -1026,6 +1067,61 @@ function schema(){
     </g>
   </svg>`;
 }
+function valuesHelp(){
+  const t = dot(R.tracedClass || "");
+  const name = t.split(".").pop();
+  const methods = Object.keys(R.values || {});
+  const has = methods.length;
+  if (!has)
+    return '<h2>Les valeurs des paramètres</h2><p>Aucune valeur n\'a été capturée pour ce ' +
+      'rapport. Relancer en indiquant la méthode racine à inspecter (<code>--root</code>).</p>';
+  return '<h2>Où voir les valeurs des paramètres</h2>' +
+    '<p>Elles ne sont capturées que sur <b>une seule méthode</b> : la <b>méthode racine</b> ' +
+    'désignée au lancement — ici <code>' + esc(t) + '</code>. C\'est volontaire : capturer ' +
+    'les valeurs de toutes les méthodes produirait un volume ingérable.</p>' +
+    '<p><b>Les méthodes observées</b> — chacune a ses propres valeurs : ' +
+    methods.map(f => '<code>'+esc(f.split("/").pop())+'</code> ('+R.values[f].length+' appels)').join(" · ") +
+    '.</p>' +
+    '<p><b>Pour les voir</b> : ouvrir la méthode depuis la liste de gauche — elle porte une ' +
+    'pastille <span class="tagval">valeurs</span> — puis regarder le <b>bandeau en bas</b>. ' +
+    'On peut aussi cliquer le marqueur violet posé sur sa ligne de déclaration.</p>' +
+    '<p><a href="#" id="gotoValues">→ Ouvrir ' + esc(name) + ' et voir ses valeurs</a></p>';
+}
+function linksBlock(){
+  const repo = "https://github.com/Beennnn/runtime-xray";
+  const l = (href, titre, quoi) =>
+    '<a class="lk" href="'+href+'" target="_blank" rel="noopener">' +
+    '<span class="lkt">'+titre+'</span><span class="lkd">'+quoi+'</span></a>';
+  const b = R.chemin || "", a = R.rapports || {};
+  const opt = (ok, href, titre, quoi) => ok ? l(b + href, titre, quoi) : "";
+  return '<h2>Pour aller plus loin</h2><div class="links2">' +
+    opt(a.couverture, "jacoco/html/index.html", "Couverture détaillée",
+      "Le rapport complet, fichier par fichier, avec le code annoté ligne à ligne.") +
+    opt(a.ciblee, "jacoco-focused/html/index.html", "Couverture ciblée",
+      "Le même, restreint aux classes qui ont réellement tourné.") +
+    opt(a.flamegraph, "async-profiler/flamegraph.html", "Flame graph",
+      "Où le temps est passé, vu comme un paysage : la largeur d\'une barre est sa durée.") +
+    opt(a.arbre, "async-profiler/tree.html", "Arbre d\'appel complet",
+      "La hiérarchie des appels, dépliable et cherchable, telle que produite par l\'outil de mesure.") +
+    l(repo, "Le dépôt du projet ↗",
+      "Le code, les scripts de collecte, et comment lancer cet outil sur un autre projet.") +
+    l(repo + "/blob/main/docs/OUTIL.md", "Mode d\'emploi de l\'outil ↗",
+      "Le lancer sur votre propre application : paramètres, configuration, publication du résultat.") +
+    l(repo + "/blob/main/docs/RESULTS.md", "Pourquoi ces outils ↗",
+      "Ce qui a été comparé, ce qui a été écarté, et ce qui reste à trancher.") +
+    '</div>';
+}
+function reserveBlock(){
+  if (!R.profileNote) return "";
+  return '<div class="reserve"><b>Une réserve sur les pourcentages de temps.</b> ' +
+    esc(R.profileNote) + ' <br><br>' +
+    'Tout a été collecté en <b>un seul lancement</b> : c\'est le mode par défaut, parce ' +
+    'qu\'il donne les trois informations recherchées d\'un coup et que le temps d\'exécution ' +
+    'n\'est pas un critère du projet. <b>Si les temps devaient compter</b>, il suffit de ' +
+    'faire <b>plusieurs lancements</b> : un premier pour la couverture et le profil, un ' +
+    'second pour la capture des valeurs. Les pourcentages deviennent alors exacts, au prix ' +
+    'd\'une exécution supplémentaire.</div>';
+}
 function contextBlock(){
   const c = R.context;
   if (!c) return "";
@@ -1048,52 +1144,7 @@ function contextBlock(){
         row(i === 0 ? "Outils employés" : "", '<code>'+esc(k)+'</code> '+esc(v))).join("") +
     '</table>';
 }
-function helpContent(){
-  return '<div class="home" style="padding:0;max-width:none">' +
-    '<h2>Le principe</h2>' +
-    '<p><b>L\'outil s\'intègre à une exécution Java, lance trois observateurs, et réunit ' +
-    'leurs sorties dans un rapport unique</b> — pour n\'avoir qu\'une page à lire plutôt que ' +
-    'trois formats à rapprocher.</p>' +
-    '<p>Ce qu\'on y voit d\'une exécution réelle : par où le code est passé, quel appel en a ' +
-    'déclenché un autre, et avec quelles valeurs.</p>' +
-    schema() +
-    '<ol>' +
-      '<li><b>À gauche, choisir un onglet</b>, puis cliquer sur une ligne.<br>' +
-        '<b>Code exécuté</b> — tout ce qui a tourné, du plus coûteux au moins coûteux. C\'est l\'entrée normale.<br>' +
-        '<b>Arbre d\'appel</b> — la hiérarchie des appels, avec <b>les exécutions comme racines</b> : ' +
-        'une exécution est le contexte d\'appel le plus haut qui soit.<br>' +
-        '<b>Packages</b> — le classement par fichier, quand on cherche une classe précise.<br>' +
-        '<span style="opacity:.85">Le champ <i>Filtrer…</i> réduit la liste à mesure qu\'on tape.</span></li>' +
-      '<li><b>Au centre, le code s\'affiche</b>, colorié ligne par ligne : ' +
-        '<span style="background:var(--full);padding:1px 5px;border-radius:3px">exécutée</span> · ' +
-        '<span style="background:var(--part);padding:1px 5px;border-radius:3px">partiellement</span> · ' +
-        '<span style="background:var(--miss);padding:1px 5px;border-radius:3px">jamais exécutée</span>. ' +
-        'À droite de chaque ligne, les appels qui en partent et leur durée. <b>Dans le code, ' +
-        'les noms de méthodes de l\'application sont cliquables</b> : un clic entre dans ' +
-        'l\'appel. Un nom n\'est lié que si sa destination est certaine.</li>' +
-      '<li><b>Le bandeau du bas montre les valeurs de la méthode sélectionnée.</b> Chaque méthode ' +
-        'a les siennes ; changer de méthode change le contexte, et donc les valeurs.</li>' +
-      '<li><b>Resserré sur la méthode</b> (bouton en haut à droite, actif par défaut) : le centre ' +
-        'n\'affiche que la méthode choisie, sans ses lignes jamais exécutées, et la liste écarte ' +
-        'les classes mortes. C\'est ce qui garantit qu\'on regarde <b>une seule méthode à la fois</b>, ' +
-        'même dans une classe qui en contient plusieurs.</li>' +
-      '<li><b>Restreindre le périmètre</b> : sur une méthode ouverte, <i>« ne montrer que ce qui ' +
-        'tourne sous cette méthode »</i> ne garde dans la liste que le code appelé sous elle.</li>' +
-      '<li><b>Le contexte d\'appel</b>, sous le fil d\'Ariane : par quels chemins la méthode a été ' +
-        'atteinte, et dans quelle proportion.</li>' +
-    '</ol>' +
-    '<h2>Comment ce rapport est produit</h2>' +
-    '<p>Trois outils libres et gratuits ont observé la même exécution :</p>' +
-    '<ul class="tools">' +
-      '<li><b>JaCoCo</b> — les lignes exécutées, et la liste exhaustive du code qui a tourné.</li>' +
-      '<li><b>async-profiler</b> — les mesures de temps et l\'arbre d\'appel.</li>' +
-      '<li><b>Arthas</b> — les valeurs des paramètres et les annotations d\'appel sur les lignes.</li>' +
-    '</ul>' +
-    '<p>Aucun ne fait les trois : c\'est leur combinaison qui répond. Tous fonctionnent sans ' +
-    'connexion Internet et sans licence.</p>' +
-    linksBlock() +
-    '</div>';
-}
+
 
 /* Une icône par indicateur : sur quatre nombres alignés, la forme se repère avant le texte. */
 const ICON = {
@@ -1102,10 +1153,59 @@ const ICON = {
   temps:    '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l3 2M9 2h6"/></svg>',
   valeurs:  '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5 5"/></svg>'
 };
+
 function card(cls, icon, value, label){
-  return '<div class="card '+cls+'"><div class="ci">'+icon+'</div>' +
-         '<div><div class="k">'+value+'</div><div class="l">'+label+'</div></div></div>';
+  return '<div class="card ' + cls + '"><div class="ci">' + icon + '</div>' +
+         '<div><div class="k">' + value + '</div><div class="l">' + label + '</div></div></div>';
 }
+
+/**
+ * Flamme dessinée ici même, à partir des mêmes mesures que l'arbre. Deux raisons de ne pas
+ * dépendre d'un fichier produit à côté : le rapport reste une page unique, et le lien ne
+ * peut pas être cassé. Chaque barre mène à sa méthode.
+ */
+function flameBlock(){
+  const root = R.calltree;
+  if (!root || !root.total) return "";
+  const H = 18, MAXD = 12;
+  const bars = [];
+  let maxDepth = 0;
+
+  (function layout(node, depth, x){
+    for (const kid of node.children){
+      const w = kid.total / root.total;
+      if (w * 100 < 0.4 || depth > MAXD){ x += w; continue; }   // trop fin pour être lu
+      bars.push({x, w, depth, name: kid.name, known: !!frameInfo(kid.name), total: kid.total});
+      maxDepth = Math.max(maxDepth, depth);
+      layout(kid, depth + 1, x);
+      x += w;
+    }
+  })(root, 0, 0);
+  if (!bars.length) return "";
+
+  const body = bars.map(b => {
+    const label = frameLabel(b.name).split(".").slice(-2).join(".");
+    return '<div class="fl' + (b.known ? " known" : "") + '"' +
+      (b.known ? ' data-f="' + esc(b.name) + '"' : '') +
+      ' style="left:' + (b.x * 100).toFixed(4) + '%;width:' + (b.w * 100).toFixed(4) + '%;' +
+      'top:' + (b.depth * H) + 'px;background:' + flameColour(b.depth, b.known) + '"' +
+      ' title="' + esc(dot(b.name)) + '  —  ' + formatWeight(b.total, root.total) + '">' +
+      '<span>' + esc(label) + '</span></div>';
+  }).join("");
+
+  return '<h2>Où le temps est passé</h2>' +
+    '<p style="margin-bottom:8px">Chaque barre est une méthode ; sa largeur est la part du ' +
+    'temps passé dessous. Cliquer entre dans la méthode.</p>' +
+    '<div class="flame" style="height:' + ((maxDepth + 1) * H) + 'px">' + body + '</div>';
+}
+
+/** Teintes chaudes en dégradé par profondeur, grisées hors code applicatif. */
+function flameColour(depth, known){
+  if (!known) return "var(--border)";
+  const tones = ["#e3a72c", "#e8b342", "#edbf58", "#f1c96e", "#f5d485", "#f8de9b"];
+  return tones[depth % tones.length];
+}
+
 function drawHome(){
   document.getElementById("crumb").innerHTML =
     '<b>' + esc(R.nom) + '</b> <span class="pill">vue d\'ensemble</span>' +
@@ -1122,6 +1222,7 @@ function drawHome(){
      card("c4", ICON.valeurs, Object.values(R.values).reduce((a,v)=>a+v.length,0), "appels avec leurs valeurs")+
    '</div>'+
    '<div class="bar"><span style="width:'+AGG.pct.toFixed(1)+'%"></span></div>'+
+   flameBlock()+
    contextBlock()+
    (AGG.dead.length ? '<h2>Jamais exécuté</h2><p>'+AGG.dead.map(d=>'<span class="chip dead">'+esc(d)+'</span>').join("")+'</p>' : '')+
    '<h2>Les plus coûteuses</h2><p>'+hot.map(h=>
@@ -1134,6 +1235,12 @@ function drawHome(){
    '<p style="margin-top:20px"><a href="#" id="openhelp">→ Comment se servir de cette page</a></p>'+
    '</div>';
   // Les puces sont cliquables : la vue d'ensemble sert de point de départ, pas de vitrine.
+  document.querySelectorAll("svg.flame g.known").forEach(g => {
+    g.onclick = () => { const t = frameInfo(g.dataset.f); if (t) select(t, null); };
+  });
+  document.querySelectorAll(".flame .fl.known").forEach(g => {
+    g.onclick = () => { const t = frameInfo(g.dataset.f); if (t) select(t, null); };
+  });
   document.querySelectorAll(".chip[data-f]").forEach(c => {
     c.style.cursor = "pointer";
     c.onclick = () => { const t = frameInfo(c.dataset.f); if (t) select(t, null); };
