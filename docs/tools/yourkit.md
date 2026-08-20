@@ -27,9 +27,25 @@ Agent + interface. Les probes demandent un développement — ce qui déplace le
 critère n° 1 selon qu'on se contente des sondes fournies ou qu'on en écrive.
 
 ## Licence et coût
-Commerciale, ordre de grandeur équivalent à JProfiler *(à vérifier)*. **Licences gratuites
-pour les projets open source** et tarifs réduits pour l'académique et la recherche
-*(à confirmer)* — à signaler si le contexte s'y prête.
+Commerciale. Prix relevés le 2026-08-20 sur [la page tarifaire](https://www.yourkit.com/java/profiler/purchase/) :
+
+| | Abonnement annuel | Perpétuel |
+|---|---|---|
+| 1 poste (Basic) | 449 $ | **549 $** |
+| 1 poste (Advanced) | 579 $ | 713 $ |
+| 5 postes (Basic) | 1 259 $ | 1 539 $ |
+| Flottante 1 utilisateur (Basic) | 2 249 $ | 2 749 $ |
+
+**Gratuit pour les projets open source** (en contrepartie d'un lien vers YourKit).
+**Académique : 99 $/an** par poste, **999 $/an** pour un établissement entier — nettement
+moins cher que JProfiler sur ce créneau.
+
+⚠️ **Hors ligne** : les licences **flottantes** utilisent par défaut un **serveur de
+licences dans le cloud**, incompatible avec la contrainte. Une option **auto-hébergée**
+existe — c'est elle qu'il faut demander. Les licences *seat* n'ont pas ce problème.
+
+Essai de 15 jours, téléchargement direct — voir
+[EVALUATION-KEYS.md](../EVALUATION-KEYS.md#yourkit-java-profiler).
 
 ## Ce qu'on peut en espérer
 Même rôle que JProfiler dans la décision. À tester dans le même mouvement, sur le même

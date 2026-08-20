@@ -36,9 +36,22 @@ Annoncée sans configuration (attachement distant inclus). **À vérifier en ess
 l'objet de l'action n° 1 des [arbitrages](../RESULTS.md).
 
 ## Licence et coût
-Commerciale. ~500 $ la licence standard, ~200 $ en académique *(chiffres du brief,
-non vérifiés sur la page tarifaire)*. Licence perpétuelle + maintenance.
-Fonctionne hors ligne une fois licencié *(à confirmer : mode d'activation).*
+Commerciale, **licence perpétuelle**. Prix relevés le 2026-08-20 sur la boutique de
+l'éditeur :
+
+| | Sans support | Avec 1 an de support et mises à jour |
+|---|---|---|
+| Licence simple | **549 $** | 768 $ |
+| Licence flottante (1 utilisateur simultané) | **2 199 $** | 3 078 $ |
+
+Licence **gratuite pour les projets open source**, sur demande à l'éditeur.
+
+⚠️ **Hors ligne** : la clé se saisit localement, mais il faut **confirmer auprès de
+l'éditeur qu'aucune activation en ligne n'est exigée** avant de compter sur l'outil en
+environnement déconnecté. Question à poser en même temps que la demande d'essai.
+
+Essai de 10 jours par formulaire — procédure détaillée dans
+[EVALUATION-KEYS.md](../EVALUATION-KEYS.md#jprofiler-ej-technologies).
 
 ## Ce qu'on peut en espérer
 **Le candidat sérieux pour combler le seul trou du socle gratuit.** La question n'est pas

@@ -14,6 +14,8 @@
 | 🚧 **Bloqué techniquement** | Gratuit, mais non exécutable dans cet environnement — raison indiquée |
 | 📄 **Sur documentation** | Non exécuté ; fiche établie sur sources publiques, à confirmer |
 
+**Sans licence**
+
 | Outil | Statut | Preuve / raison |
 |---|---|---|
 | JaCoCo | ✅ Testé ici | [`reports-demo/generated/jacoco/html/`](../reports-demo/generated/jacoco/) |
@@ -29,6 +31,11 @@
 | Glowroot | 📄 Sur documentation | Exige un agent + son serveur embarqué |
 | Kieker | 📄 Sur documentation | Non exécuté |
 | OpenClover | 📄 Sur documentation | Non exécuté |
+
+**Avec licence** — prix et démarches : [EVALUATION-KEYS.md](EVALUATION-KEYS.md)
+
+| Outil | Statut | Preuve / raison |
+|---|---|---|
 | JProfiler | ⛔ Bloqué par licence | Essai 10 jours à activer manuellement |
 | YourKit | ⛔ Bloqué par licence | Essai 15 jours à activer manuellement |
 | XRebel (Perforce) | ⛔ Bloqué par licence | Licence commerciale |

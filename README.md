@@ -11,7 +11,10 @@ Il ne s'agit pas de départager des produits pour le plaisir de les classer, mai
 répondre à un besoin précis : disposer de rapports qui rendent visible le comportement
 réel du code — pour l'analyser, puis le restructurer.
 
-**→ [Résultats et arbitrages à trancher](docs/RESULTS.md)** · [Tableau comparatif](docs/COMPARISON.md) · [Fiches par outil](docs/tools/) · [Détails techniques](docs/TECHNICAL.md)
+**→ [Voir les rapports en ligne](https://beennnn.github.io/runtime-xray/)** — les sorties
+réelles, navigables directement dans le navigateur, sans rien installer.
+
+[Résultats et arbitrages](docs/RESULTS.md) · [Tableau comparatif](docs/COMPARISON.md) · [Fiches par outil](docs/tools/) · [Clés d'évaluation](docs/EVALUATION-KEYS.md) · [Détails techniques](docs/TECHNICAL.md)
 
 ## Ce qu'on veut obtenir
 
@@ -47,32 +50,52 @@ développeur dans son IDE, pour un non-technicien dans une page web qu'on lui en
 
 ## Les outils comparés
 
-Dix-huit outils recensés, regroupés par ce qu'ils savent faire. Le détail — features,
-philosophie, licence, interfaces — est dans les [fiches individuelles](docs/tools/).
+Dix-huit outils recensés, **séparés en deux catégories** : ceux qui ne coûtent rien et
+ceux qui exigent une licence. La frontière est structurante — elle recoupe presque
+exactement la contrainte hors ligne et la question du budget.
 
-| Outil | Lignes exécutées | Arbre d'appel | Valeurs des paramètres | Rapport lisible hors IDE | Coût | Statut |
-|---|:--:|:--:|:--:|---|---|---|
-| **[JaCoCo](docs/tools/jacoco.md)** | ✅ | ❌ | ❌ | ✅ site HTML, code annoté | 0 € | ✅ testé |
-| **[async-profiler](docs/tools/async-profiler.md)** | ❌ | ✅ | ❌ | ✅ HTML autonome interactif | 0 € | ✅ testé |
-| **[JFR / Mission Control](docs/tools/jfr-jmc.md)** | ⚠️ | ✅ | ❌ | ❌ GUI desktop | 0 € (dans le JDK) | ✅ testé |
-| **[VisualVM](docs/tools/visualvm.md)** | ❌ | ✅ | ❌ | ❌ GUI desktop | 0 € | 📄 |
-| **[Arthas](docs/tools/arthas.md)** | ❌ | ✅ | ✅ | ✅ console web | 0 € | 🚧 |
-| **[JMC Agent](docs/tools/jmc-agent.md)** | ❌ | ✅ | ✅ | ❌ via JMC | 0 € | 📄 |
-| **[BTrace / Byteman](docs/tools/btrace-byteman.md)** | ❌ | ✅ | ✅ | ❌ sortie texte | 0 € | 📄 |
-| **[OpenClover](docs/tools/openclover.md)** | ✅ | ❌ | ❌ | ✅ HTML, couverture par test | 0 € | 📄 |
-| **[Glowroot](docs/tools/glowroot.md)** | ❌ | ✅ | ⚠️ | ✅ interface web embarquée | 0 € | 📄 |
-| **[Kieker](docs/tools/kieker.md)** | ⚠️ | ✅ | ✅ | ⚠️ diagrammes générés | 0 € | 📄 |
-| **[OpenTelemetry](docs/tools/opentelemetry.md)** | ❌ | ✅ | ⚠️ | ✅ via Jaeger / Tempo | 0 € + backend | 📄 |
-| **[SonarQube](docs/tools/sonarqube.md)** | ✅ | ❌ | ❌ | ✅ web, pensé non-développeur | 0 € (Community) | 📄 |
-| **[IntelliJ IDEA](docs/tools/intellij.md)** | ✅ | ✅ (Ultimate) | ⚠️ | ❌ dans l'IDE | 0 € / abonnement | 📄 |
-| **[JProfiler](docs/tools/jprofiler.md)** | ❌ | ✅ | ✅ | ⚠️ export | ~500 $ | ⛔ licence |
-| **[YourKit](docs/tools/yourkit.md)** | ❌ | ✅ | ✅ | ⚠️ export | ~500 $ | ⛔ licence |
-| **[APM SaaS](docs/tools/apm-saas.md)** | ❌ | ✅ | ⚠️ | ✅ web | à l'usage | ⛔ hors ligne |
+### Sans licence — gratuit et auto-hébergeable
+
+| Outil | Lignes exécutées | Arbre d'appel | Valeurs des paramètres | Rapport lisible hors IDE | Statut |
+|---|:--:|:--:|:--:|---|---|
+| **[JaCoCo](docs/tools/jacoco.md)** | ✅ | ❌ | ❌ | ✅ site HTML, code annoté | ✅ testé |
+| **[async-profiler](docs/tools/async-profiler.md)** | ❌ | ✅ | ❌ | ✅ HTML autonome interactif | ✅ testé |
+| **[JFR / Mission Control](docs/tools/jfr-jmc.md)** | ⚠️ | ✅ | ❌ | ❌ GUI desktop | ✅ testé |
+| **[Arthas](docs/tools/arthas.md)** | ❌ | ✅ | ✅ | ✅ console web | 🚧 |
+| **[JMC Agent](docs/tools/jmc-agent.md)** | ❌ | ✅ | ✅ | ❌ via JMC | 📄 |
+| **[BTrace / Byteman](docs/tools/btrace-byteman.md)** | ❌ | ✅ | ✅ | ❌ sortie texte | 📄 |
+| **[VisualVM](docs/tools/visualvm.md)** | ❌ | ✅ | ❌ | ❌ GUI desktop | 📄 |
+| **[OpenClover](docs/tools/openclover.md)** | ✅ | ❌ | ❌ | ✅ HTML, couverture par test | 📄 |
+| **[Glowroot](docs/tools/glowroot.md)** | ❌ | ✅ | ⚠️ | ✅ interface web embarquée | 📄 |
+| **[Kieker](docs/tools/kieker.md)** | ⚠️ | ✅ | ✅ | ⚠️ diagrammes générés | 📄 |
+| **[OpenTelemetry](docs/tools/opentelemetry.md)** | ❌ | ✅ | ⚠️ | ✅ via Jaeger / Tempo | 📄 |
+| **[SonarQube Community](docs/tools/sonarqube.md)** | ✅ | ❌ | ❌ | ✅ web, pensé non-développeur | 📄 |
+| **[IntelliJ IDEA Community](docs/tools/intellij.md)** | ✅ | ❌ | ⚠️ débogueur | ❌ dans l'IDE | 📄 |
+
+**Coût total de cette colonne : 0 €.** Tous s'installent une fois et fonctionnent sans
+connexion — sauf Arthas, dont le lanceur télécharge ses modules (contournable en installant
+le paquet complet au préalable).
+
+### Avec licence — commercial
+
+| Outil | Lignes exécutées | Arbre d'appel | Valeurs des paramètres | Prix relevé le 2026-08-20 | Statut |
+|---|:--:|:--:|:--:|---|---|
+| **[JProfiler](docs/tools/jprofiler.md)** | ❌ | ✅ | ✅ *method splitting* | **549 $** perpétuel · 2 199 $ flottante | ⛔ essai à activer |
+| **[YourKit](docs/tools/yourkit.md)** | ❌ | ✅ | ✅ *probes* | **549 $** perpétuel · **99 $/an** académique | ⛔ essai à activer |
+| **[IntelliJ IDEA Ultimate](docs/tools/intellij.md)** | ✅ | ✅ | ⚠️ débogueur | abonnement JetBrains | 📄 |
+| **[APM SaaS](docs/tools/apm-saas.md)** (Datadog, New Relic, Dynatrace) | ❌ | ✅ | ⚠️ | facturation à l'usage | ⛔ **hors ligne : éliminés** |
+
+⚠️ Deux points à vérifier **avant** d'engager une dépense, tous deux liés à la contrainte
+hors ligne : JProfiler doit confirmer qu'aucune activation en ligne n'est exigée, et
+YourKit ne convient en flottante que si l'on demande explicitement le **serveur de licences
+auto-hébergé** (le cloud est le défaut). Démarches et stockage des clés :
+**[EVALUATION-KEYS.md](docs/EVALUATION-KEYS.md)**.
 
 Légende — ✅ testé ici · 🚧 bloqué techniquement · ⛔ bloqué par licence ou contrainte · 📄 sur documentation.
 
-> **Le constat qui structure la décision** : aucune ligne n'a trois ✅ dans les trois
-> premières colonnes. **La solution sera une combinaison d'au moins deux outils.**
+> **Le constat qui structure la décision** : dans la catégorie sans licence, **aucune ligne
+> n'a trois ✅**. La solution sera une combinaison — et la seule chose que l'argent achète
+> ici, c'est de réunir l'arbre d'appel et les valeurs de paramètres dans un même outil.
 
 ## À quoi ressemblent les rapports
 

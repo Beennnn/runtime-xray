@@ -7,7 +7,9 @@ ou combiné.
 La vue d'ensemble est dans [COMPARISON.md](../COMPARISON.md), la décision dans
 [RESULTS.md](../RESULTS.md).
 
-## Testés sur l'application-cible
+## SANS LICENCE — gratuit, auto-hébergeable
+
+### Testés sur l'application-cible
 
 | Outil | Ce qu'il apporte |
 |---|---|
@@ -15,7 +17,7 @@ La vue d'ensemble est dans [COMPARISON.md](../COMPARISON.md), la décision dans
 | [async-profiler](async-profiler.md) | ✅ L'arbre d'appel, en HTML autonome interactif |
 | [JFR & Mission Control](jfr-jmc.md) | ✅ Le socle inclus dans le JDK — et l'écart mesuré entre Java 21 et 25 |
 
-## Pistes pour les valeurs de paramètres — le trou du socle gratuit
+### Pistes pour les valeurs de paramètres — le trou du socle gratuit
 
 | Outil | Ce qu'il apporte |
 |---|---|
@@ -24,7 +26,7 @@ La vue d'ensemble est dans [COMPARISON.md](../COMPARISON.md), la décision dans
 | [BTrace & Byteman](btrace-byteman.md) | 📄 Capture par script ou par règle, les plus exigeants |
 | [IntelliJ IDEA](intellij.md) | 📄 Point d'arrêt non suspensif : la réponse gratuite immédiate, mais artisanale |
 
-## Autres outils recensés
+### Autres outils recensés
 
 | Outil | Pourquoi il figure ici |
 |---|---|
@@ -35,10 +37,14 @@ La vue d'ensemble est dans [COMPARISON.md](../COMPARISON.md), la décision dans
 | [Kieker](kieker.md) | 📄 Le seul qui vise le « but final » : reconstruire l'architecture |
 | [OpenTelemetry](opentelemetry.md) | 📄 Le standard, mais c'est une infrastructure |
 
-## Commerciaux et écartés
+## AVEC LICENCE — commercial
 
-| Outil | |
-|---|---|
-| [JProfiler](jprofiler.md) | ⛔ *Method splitting by parameter values* — le candidat payant n° 1 |
-| [YourKit](yourkit.md) | ⛔ Probes extensibles, licences gratuites en open source |
-| [APM SaaS](apm-saas.md) | ⛔ Éliminés par la contrainte hors ligne — rejet motivé |
+Prix relevés le 2026-08-20. Démarches d'obtention des clés d'essai et stockage hors dépôt :
+**[EVALUATION-KEYS.md](../EVALUATION-KEYS.md)**.
+
+| Outil | Ce qu'il apporte | Prix |
+|---|---|---|
+| [JProfiler](jprofiler.md) | *Method splitting by parameter values* — le candidat payant n° 1 | 549 $ perpétuel |
+| [YourKit](yourkit.md) | Probes extensibles ; gratuit en open source, 99 $/an en académique | 549 $ perpétuel |
+| [IntelliJ IDEA Ultimate](intellij.md) | Profiler intégré — qui embarque async-profiler, gratuit par ailleurs | abonnement |
+| [APM SaaS](apm-saas.md) | ⛔ Éliminés par la contrainte hors ligne — rejet motivé | à l'usage |
