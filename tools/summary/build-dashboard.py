@@ -23,8 +23,9 @@ def parse_args():
                     help="Répertoire contenant jacoco/, async-profiler/ et arthas/")
     ap.add_argument("--sources", default=str(ROOT / "sample-app" / "src" / "main" / "java"),
                     help="Répertoires de sources .java, séparés par ':'")
-    ap.add_argument("--traced", default="lab.sample.RoutePlanner",
-                    help="Classe inspectée par Arthas (paquet.Classe)")
+    ap.add_argument("--traced", default="",
+                    help="Classe inspectée (paquet.Classe). Par défaut, déduite du contexte "
+                         "de chaque exécution : rien n'est codé en dur.")
     ap.add_argument("--out", default=None,
                     help="Répertoire où écrire index.html (défaut : le répertoire <gen> lui-même, "
                          "pour qu'ouvrir le dossier suffise à trouver la vue)")
@@ -292,19 +293,36 @@ def find_runs(root, depth=3):
     walk(root, 0)
     return found
 
+def _traced_class(ctx, values):
+    racine = (ctx or {}).get("methodeRacine") or ""
+    if racine:
+        return racine.split("::")[0].replace(".", "/")
+    if values:
+        first = next(iter(values))
+        return first[:first.rfind(".")]
+    return TRACED
+
 def load_run(base, label, overrides):
     """Charge une exécution. Les sources ne sont PAS chargées ici : elles sont communes
     à toutes les exécutions d'un même projet, donc stockées une seule fois."""
     lines, methods, packages = load_coverage(base)
     calltree, note = load_calltree(base)
     ctx = load_context(base)
+    values = load_values(base)
     try:
         rel = str(base.resolve().relative_to(OUT.resolve())) + "/"
     except ValueError:
         rel = ""
     uuid = (ctx or {}).get("uuid", "")
     origine = (ctx or {}).get("nomOrigine") or (ctx or {}).get("nom") or label
+    exists = lambda rel: (base / rel).exists()
     return {
+        "rapports": {
+            "couverture": exists("jacoco/html/index.html"),
+            "ciblee":     exists("jacoco-focused/html/index.html"),
+            "flamegraph": exists("async-profiler/flamegraph.html"),
+            "arbre":      exists("async-profiler/tree.html"),
+        },
         "uuid": uuid,
         "nomOrigine": origine,
         "renomme": bool(uuid and uuid in overrides),
@@ -316,10 +334,12 @@ def load_run(base, label, overrides):
         "calltree": calltree,
         "profileNote": note,
         "trace": {str(k): v for k, v in load_trace(base).items()},
-        "values": load_values(base),
+        "values": values,
         "context": ctx,
-        "tracedClass": (ctx or {}).get("methodeRacine", "").split("::")[0].replace(".", "/")
-                       or TRACED,
+        # La classe inspectée se déduit, dans l'ordre : du contexte de l'exécution, sinon
+        # des valeurs réellement capturées, sinon de l'option. Rien n'est codé en dur —
+        # le rapport doit marcher pour n'importe quelle application.
+        "tracedClass": _traced_class(ctx, values),
     }
 
 def main():
