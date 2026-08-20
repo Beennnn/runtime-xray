@@ -37,6 +37,18 @@
             align-items:baseline;gap:9px;flex-wrap:wrap}
   a.card .d{color:var(--muted);font-size:14px;line-height:1.5}
 
+  /* Une seule porte d'entrée, franche : la démo. Deux cartes concurrentes obligeaient à
+     choisir avant de savoir ce qu'on regarde. */
+  a.demo{display:flex;gap:18px;align-items:flex-start;text-decoration:none;color:inherit;
+         background:var(--accent-soft);border:1px solid var(--accent);border-radius:12px;
+         padding:20px 22px;transition:.15s}
+  a.demo:hover{background:var(--accent);border-color:var(--accent)}
+  a.demo:hover .demot,a.demo:hover .demod,a.demo:hover .play{color:#fff}
+  a.demo .play{font-size:20px;color:var(--accent);line-height:1.4;flex:0 0 auto}
+  a.demo .demotext{display:block}
+  a.demo .demot{display:block;font-size:20px;font-weight:700;color:var(--accent);margin-bottom:4px}
+  a.demo .demod{display:block;color:var(--muted);font-size:14.5px;line-height:1.55}
+
   .badge{display:inline-flex;vertical-align:-5px}
   .badge svg{display:block}
   .tag{font-size:11px;font-weight:700;letter-spacing:.5px;padding:2px 8px;border-radius:20px}
@@ -99,21 +111,18 @@
 
   <h2>La vue agrégée</h2>
   <p class="hint">C'est le livrable : les trois observations réunies, navigables ensemble.</p>
-  <div class="grid">
-    <a class="card" href="demo/index.html">
-      <div class="t">Une exécution <span class="tag reco">COMMENCER ICI</span></div>
-      <div class="d">À gauche, tout le code qui a tourné, du plus coûteux au moins coûteux.
-        Un clic ouvre la méthode : lignes exécutées en vert, jamais atteintes en rouge, les appels
-        qui partent de chaque ligne avec leur durée — et en bas les valeurs reçues, appel par appel.
-        Les noms de méthodes du code sont cliquables : on suit l'appel sans quitter le source.</div>
-    </a>
-    <a class="card" href="multi/index.html">
-      <div class="t">Trois exécutions comparées <span class="tag reco">MULTI-RUN</span></div>
-      <div class="d">Le même outil lancé trois fois, avec des jeux de données différents.
-        Un sélecteur passe de l'une à l'autre, l'arbre d'appel prend les exécutions pour racines,
-        et la liste signale ce qui n'a tourné que dans l'une d'elles.</div>
-    </a>
-  </div>
+
+  <a class="demo" href="multi/index.html">
+    <span class="play" aria-hidden="true">▶</span>
+    <span class="demotext">
+      <span class="demot">Voir la démo</span>
+      <span class="demod">Trois exécutions réelles du même programme, dans un seul rapport.
+        À gauche, tout le code qui a tourné, du plus coûteux au moins coûteux. Un clic ouvre la
+        méthode : lignes exécutées en vert, jamais atteintes en rouge, les appels qui partent de
+        chaque ligne avec leur durée, et en bas les valeurs reçues — appel par appel. Un sélecteur
+        passe d'une exécution à l'autre.</span>
+    </span>
+  </a>
 
   <h2>Les sorties brutes de chaque outil</h2>
   <p class="hint">Ce que la vue agrège, dans le format natif de chaque outil.
