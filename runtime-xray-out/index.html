@@ -476,12 +476,9 @@ document.getElementById("legend").innerHTML =
   '<span class="sw" style="background:var(--full);border-color:var(--fullbar)"></span>exécutée' +
   '<span class="sw" style="background:var(--part);border-color:var(--partbar)"></span>partiellement' +
   '<span class="sw" style="background:var(--miss);border-color:var(--missbar)"></span>jamais exécutée' +
-  ' <span style="opacity:.75">(masquée tant que « Resserré sur la méthode » est actif)</span>' +
-  '<span style="margin-left:16px">À droite d\'une ligne : <b>appelle …</b> = les méthodes appelées ' +
-  'depuis cette ligne et leur <i>durée</i> · <span style="color:var(--violet)">valeurs des paramètres</span> ' +
-  '= les valeurs reçues par la méthode, détaillées dans le bandeau du bas.</span>';
-// La répartition du travail entre les outils sous-jacents n'a pas sa place ici : elle
-// n'aide en rien à lire le rapport. Elle reste expliquée sur la vue d'ensemble.
+  ' <span style="opacity:.75">(masquée tant que « Resserré sur la méthode » est actif)</span>';
+// La légende ne garde que le code couleur : c'est la seule chose qu'on ne peut pas deviner.
+// Les annotations de ligne se lisent d'elles-mêmes, et le détail vit dans l'aide.
 
 /* --------------------------------------------------------- frame -> source */
 function frameInfo(frame){
