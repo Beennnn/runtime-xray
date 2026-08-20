@@ -53,3 +53,9 @@ jar récupéré.
 qu'elle s'appuie sur JFR, déjà présent. À tester juste après Arthas — et d'autant plus
 intéressante si le portage vers Java 25 est décidé, puisque tout converge alors vers un
 seul enregistrement JFR.
+
+## Facile / moins facile
+
+**Ce qui est facile.** S'adosser à l'existant : les événements produits arrivent dans le même enregistrement JFR que le GC et les verrous, corrélés.
+
+**Ce qui l'est moins.** **Trouver un binaire prêt à l'emploi** — il n'est pas publié sous forme exécutable sur Maven Central. Écrire le XML de sondes. Et lire le résultat, qui suppose JMC.

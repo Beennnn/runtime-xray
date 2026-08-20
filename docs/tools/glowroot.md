@@ -34,3 +34,9 @@ un service.
 Le bon choix **si le besoin glisse du diagnostic ponctuel vers un suivi dans le temps** —
 c'est précisément la question n° 4 des arbitrages. Pour une analyse ponctuelle, faire
 tourner un serveur pour lire un arbre d'appel est disproportionné face à un HTML autonome.
+
+## Facile / moins facile
+
+**Ce qui est facile.** Regarder : c'est la plus belle interface gratuite du panel, prête à l'emploi.
+
+**Ce qui l'est moins.** **Faire tourner un service** pour lire un arbre d'appel ponctuel. Et obtenir la couverture de lignes : ce n'est pas son métier.

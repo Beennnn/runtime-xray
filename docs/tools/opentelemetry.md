@@ -33,3 +33,9 @@ mais c'est une infrastructure, pas un outil.
 ## Ce qu'on peut en espérer
 Hors sujet pour le besoin décrit. Deviendrait pertinent si la question se déplaçait vers la
 supervision continue d'un système distribué.
+
+## Facile / moins facile
+
+**Ce qui est facile.** Instrumenter les frontières (HTTP, base de données) : l'agent le fait tout seul.
+
+**Ce qui l'est moins.** **Voir l'intérieur d'un calcul** — il faut instrumenter à la main. Et monter la chaîne complète collecteur + backend avant de voir la première trace.

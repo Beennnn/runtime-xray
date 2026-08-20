@@ -35,3 +35,9 @@ SonarLint dans l'IDE ✅.
 Un **canal de diffusion** pour la couverture, pas une source de données supplémentaire.
 Pertinent seulement si l'on veut un historique et un portail permanent — sinon le rapport
 HTML de JaCoCo suffit et ne demande aucune infrastructure. C'est l'arbitrage n° 3.
+
+## Facile / moins facile
+
+**Ce qui est facile.** Afficher une couverture déjà produite : il consomme le XML de JaCoCo sans rien demander de plus.
+
+**Ce qui l'est moins.** **Installer et maintenir un serveur** pour ce qu'un dossier HTML fait déjà, si l'on n'a pas besoin d'historique.

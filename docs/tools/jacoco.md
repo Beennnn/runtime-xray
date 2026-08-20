@@ -95,3 +95,9 @@ avec un profiler d'arbre d'appel, les deux agents cohabitant sur la même JVM.
 
 Sur `sample-app`, sous Java 21 : **91,1 % des instructions**, **81,8 % des branches**.
 `PlaneSpeed` et la branche `SNOW` ressortent bien comme non exécutées.
+
+## Facile / moins facile
+
+**Ce qui est facile.** Obtenir un rapport : un flag JVM, trois commandes scriptées. **Le lire sans formation** : le code colorié se comprend sans savoir ce qu'est une branche.
+
+**Ce qui l'est moins.** Mesurer une **exécution** plutôt qu'une suite de tests — c'est l'usage minoritaire, moins documenté. L'afficher dans GitLab (conversion Cobertura à faire) ou GitHub (service tiers, donc en ligne). Et **masquer les lignes non exécutées à l'intérieur d'un fichier** : impossible nativement, seule l'exclusion de classes entières l'est.

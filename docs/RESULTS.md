@@ -70,6 +70,70 @@ complète, mais **jamais la valeur du `Leg`**. Vérifié, pas déduit.
 C'est exactement le terrain sur lequel les outils commerciaux revendiquent leur valeur
 (*method splitting by parameter values* chez JProfiler, *probes* chez YourKit).
 
+## Analyse de synthèse — ce qui est facile, ce qui l'est moins
+
+### Facile, tout de suite, gratuitement
+
+**Savoir par où le code est passé** est un problème résolu. Un flag JVM, un dossier HTML,
+et n'importe qui ouvre le rapport et voit le code colorié ligne à ligne. Aucune
+configuration, aucun serveur, aucun compte, aucune connexion. C'est le besoin n° 1 du
+brief et il ne demande aucune décision.
+
+**Voir l'arbre d'appel** est presque aussi simple : une installation, un flag, un fichier
+HTML unique qu'on déplie et qu'on envoie par mail.
+
+**Publier tout ça pour un non-développeur** s'est révélé plus facile que prévu : les
+rapports sont des fichiers statiques, donc [directement publiables en
+ligne](https://beennnn.github.io/runtime-xray/). Un lien, rien à installer côté lecteur.
+
+**Restreindre le rapport au code réellement exécuté** fonctionne, avec le mécanisme natif
+de JaCoCo et une dizaine de lignes de script — les classes jamais atteintes disparaissent
+du rapport.
+
+### Moins facile, mais faisable
+
+**Afficher la couverture dans la forge.** GitLab sait le faire nativement, au prix d'une
+conversion au format Cobertura. GitHub ne sait pas, sans service tiers — donc sans
+connexion, il ne sait pas du tout. Le canal réaliste hors ligne reste le rapport HTML
+publié.
+
+**Faire tenir le tout dans l'IDE.** IntelliJ affiche la couverture dans la marge, et c'est
+imbattable pour un développeur — mais rien n'en sort pour quelqu'un d'autre.
+
+**Cibler sans se noyer.** Dès qu'on trace finement, le volume explose : 129 Mo pour dix
+secondes sur une méthode chaude. Le traçage se cible méthode par méthode ; c'est une
+compétence, pas un bouton.
+
+### Difficile — et c'est là que se joue la décision
+
+**Les valeurs passées en paramètres.** Aucun outil gratuit ne les donne *facilement*.
+Les quatre pistes existantes demandent chacune quelque chose : Arthas une installation
+hors ligne manuelle et une lecture en console, JMC Agent un XML de sondes et un binaire
+difficile à trouver, BTrace et Byteman un script par question, IntelliJ un point d'arrêt
+posé à la main dans une session de débogage. **Ce sont toutes des réponses d'expert, aucune
+n'est un rapport.** C'est précisément ce que vendent JProfiler et YourKit.
+
+**Réunir les trois besoins dans un seul rapport navigable.** Personne ne le fait. Le
+rapport de couverture ignore l'arbre d'appel, le flame graph ignore les lignes mortes, et
+aucun des deux ne montre une valeur. Un rapport unifié n'existe pas sur étagère — il
+faudrait le construire.
+
+**Masquer les portions non exécutées à l'intérieur d'un fichier.** Retirer une classe
+entière, oui. Réduire un fichier à ses seules lignes exécutées : aucun outil recensé ne le
+propose.
+
+### Ce que l'argent achète, exactement
+
+Une seule chose, mais elle est nette : **les valeurs de paramètres dans le même outil que
+l'arbre d'appel, sans écrire de script**. Ni la couverture (JaCoCo la donne mieux, et
+gratuitement), ni le flame graph (même moteur, gratuit), ni la lisibilité pour un
+non-développeur — sur ce dernier point, le HTML de JaCoCo est même supérieur à un
+instantané de profileur.
+
+549 $ pour combler un trou précis, à comparer à quelques jours d'appropriation d'Arthas ou
+du JMC Agent. **C'est tout l'arbitrage n° 1**, et il ne se tranche honnêtement qu'après
+l'essai gratuit.
+
 ## Les solutions jugées pertinentes
 
 ### Option A — Tout gratuit, hors ligne (socle acquis + une piste à valider)

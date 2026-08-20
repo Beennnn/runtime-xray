@@ -113,3 +113,9 @@ mais pas la meilleure réponse aux besoins du brief.
 **Sous Java 25** : l'arbre d'appel exact devient gratuit et sans installation — un argument
 sérieux en faveur d'un portage. Les valeurs de paramètres, elles, restent hors de portée
 dans les deux cas.
+
+## Facile / moins facile
+
+**Ce qui est facile.** Lancer un enregistrement : rien à installer, c'est un flag. Impossible de faire plus simple.
+
+**Ce qui l'est moins.** **En tirer quelque chose** : le `.jfr` est binaire, il faut JMC. Cibler le traçage sans exploser le volume (129 Mo pour 10 s sur une méthode chaude). Et sous **Java 21**, obtenir mieux qu'un échantillonnage : ce n'est pas difficile, c'est impossible.

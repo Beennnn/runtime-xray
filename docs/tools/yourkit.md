@@ -50,3 +50,9 @@ Essai de 15 jours, téléchargement direct — voir
 ## Ce qu'on peut en espérer
 Même rôle que JProfiler dans la décision. À tester dans le même mouvement, sur le même
 `sample-app`, pour comparer sur pièces plutôt que sur plaquette.
+
+## Facile / moins facile
+
+**Ce qui est facile.** Démarrer : téléchargement direct, l'essai de 15 jours est intégré, pas de formulaire.
+
+**Ce qui l'est moins.** **Les probes** — les sondes personnalisées, qui sont l'argument de l'outil pour capturer des valeurs, demandent du développement. Et en licence flottante, obtenir le serveur auto-hébergé plutôt que le cloud par défaut.

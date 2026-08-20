@@ -1,19 +1,45 @@
-# Ajouter un outil à évaluer
+# Collecteurs, un dossier par outil
 
-1. **Copier le module d'exemple**
-   ```bash
-   cp -r tools/example-tool tools/<nom-outil>
-   ```
-2. **Renommer** le `artifactId` dans `tools/<nom-outil>/pom.xml` et l'ajouter comme
-   module dans le `pom.xml` parent (racine du projet).
-3. **Ajouter la dépendance** de l'outil évalué dans `tools/<nom-outil>/pom.xml`.
-4. **Écrire le code dummy** : reproduire le même cas d'usage de référence que les
-   autres modules (voir [../docs/METHODOLOGY.md](../docs/METHODOLOGY.md)) — le
-   plus simple possible, juste ce qu'il faut pour produire un rapport.
-5. **Faire écrire la sortie** du rapport dans `reports-demo/generated/<nom-outil>/`.
-6. **Compléter une ligne** par tableau dans [../docs/COMPARISON.md](../docs/COMPARISON.md)
-   (features / contraintes / coûts).
-7. **Documenter la démo** : ajouter `reports-demo/generated/<nom-outil>/NOTES.md`
-   décrivant ce que montre le rapport et s'il est interactif ou statique.
+Chaque dossier contient la procédure **rejouable** d'un outil : un script qui produit une
+sortie réelle dans `reports-demo/generated/<outil>/`.
 
-Chaque module doit rester **autonome et buildable seul** (`mvn -pl tools/<nom-outil> package`).
+| Dossier | Ce qu'il produit |
+|---|---|
+| [`jacoco/collect.sh`](jacoco/collect.sh) | Couverture d'une exécution → site HTML à code source annoté |
+| [`jacoco/collect-focused.sh`](jacoco/collect-focused.sh) | Le même rapport **restreint aux classes réellement exécutées** |
+| [`async-profiler/collect.sh`](async-profiler/collect.sh) | Flame graph + arbre d'appel, deux HTML autonomes |
+| [`jfr/collect.sh`](jfr/collect.sh) | Enregistrement JFR + extraits texte, adapté à la version du JDK |
+| [`java-env.sh`](java-env.sh) | Fixe la version de Java utilisée par tous les collecteurs |
+
+## Choisir la version de Java
+
+Le projet évalue **deux plateformes**. Par défaut c'est Java 21 ; `JAVA_TARGET` bascule :
+
+```bash
+./tools/jacoco/collect.sh              # Java 21 (défaut)
+JAVA_TARGET=25 ./tools/jfr/collect.sh  # Java 25
+```
+
+Fixer la version explicitement est indispensable : prendre « le java du PATH » reviendrait
+à documenter des capacités que la plateforme cible n'a pas.
+
+## Ajouter un outil
+
+⚠️ **Un outil n'est pas un module Maven.** C'est le point qui surprend en arrivant : ces
+outils s'attachent à une JVM, ils ne se déclarent pas en dépendance.
+
+1. Créer `tools/<outil>/collect.sh`, sur le modèle d'un existant :
+   - `source "$REPO_ROOT/tools/java-env.sh"` en tête ;
+   - lancer **`sample-app` sans argument** — c'est l'exécution de référence, la même pour
+     tous, sinon la comparaison ne vaut rien ;
+   - écrire dans `reports-demo/generated/<outil>/`.
+2. Écrire la fiche `docs/tools/<outil>.md` en suivant la trame des autres.
+3. Compléter les tableaux de [`docs/COMPARISON.md`](../docs/COMPARISON.md) **avec le statut
+   de vérification** — ✅ testé ici seulement si le script a réellement tourné.
+4. Si l'outil demande une licence : ne rien mettre dans le dépôt, lire la clé depuis
+   l'environnement — voir [EVALUATION-KEYS.md](../docs/EVALUATION-KEYS.md).
+
+## Ce qui n'est pas versionné
+
+Les enregistrements `.jfr` (binaires, ~10 Mo pour 10 s, illisibles hors JMC, et dont le
+contenu aléatoire déclenche le scanner de secrets de GitHub). Les extraits texte, eux, le sont.

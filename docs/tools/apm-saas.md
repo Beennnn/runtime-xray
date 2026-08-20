@@ -30,3 +30,9 @@ Commerciales, facturation à l'usage.
 
 ## Ce qu'on peut en espérer
 Rien dans ce contexte. La fiche est là pour que la question ne soit pas reposée dans six mois.
+
+## Facile / moins facile
+
+**Ce qui est facile.** Tout, si l'on est connecté : c'est le principe même du modèle.
+
+**Ce qui l'est moins.** **Rien n'est possible hors ligne.** Ce n'est pas une difficulté à surmonter, c'est une incompatibilité d'architecture.

@@ -32,3 +32,9 @@ brancher son plugin dans le build. Plus intrusif.
 Intéressant seulement si la question « quel test couvre quoi ? » devient centrale. Pour le
 besoin décrit — la couverture d'une **exécution**, pas d'une suite de tests — JaCoCo est
 plus direct et mieux soutenu.
+
+## Facile / moins facile
+
+**Ce qui est facile.** Lire le rapport : même famille que JaCoCo, mêmes réflexes.
+
+**Ce qui l'est moins.** **L'insérer dans le build** — l'instrumentation se fait à la compilation, donc elle touche le processus de construction. Et évaluer la vitalité du projet, moins soutenu que JaCoCo.

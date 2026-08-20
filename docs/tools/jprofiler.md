@@ -57,3 +57,9 @@ Essai de 10 jours par formulaire — procédure détaillée dans
 **Le candidat sérieux pour combler le seul trou du socle gratuit.** La question n'est pas
 « JProfiler ou JaCoCo » — c'est « JProfiler **en plus de** JaCoCo, ou bien une piste
 gratuite (Arthas, JMC Agent) plus rugueuse ? ». C'est l'arbitrage n° 1.
+
+## Facile / moins facile
+
+**Ce qui est facile.** Ce que l'éditeur vend : attacher et voir, sans configuration, avec le plugin IntelliJ natif. **À vérifier en essai** — c'est une promesse commerciale, pas une mesure.
+
+**Ce qui l'est moins.** **Lever les deux inconnues avant de payer** : l'activation hors ligne, et ce que l'outil produit pour un lecteur non développeur. Les instantanés s'exportent, mais l'outil n'est pas conçu pour transmettre un rapport.

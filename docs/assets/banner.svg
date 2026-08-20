@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 320" width="1280" height="320" role="img" aria-label="Runtime X-Ray — comparer des outils objectivement : tableau, code, rapports">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 320" width="1280" height="320" role="img" aria-label="Runtime X-Ray — analyse dynamique Java : lignes exécutées, arbre d'appel, valeurs des paramètres">
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0%" stop-color="#0d1117"/>
@@ -31,24 +31,24 @@
   <rect x="80" y="64" width="56" height="3" rx="1.5" fill="url(#rule)"/>
 
   <g font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">
-    <text x="80" y="100" fill="#7dd3fc" font-size="13" font-weight="600" letter-spacing="3.2">MAVEN · JAVA 17 · MULTI-MODULE</text>
+    <text x="80" y="100" fill="#7dd3fc" font-size="13" font-weight="600" letter-spacing="3.2">JAVA 21 · JAVA 25 · HORS LIGNE</text>
     <text x="80" y="168" fill="#e6edf3" font-size="60" font-weight="700" letter-spacing="-1">Runtime X-Ray</text>
-    <text x="80" y="208" fill="#9aa7b8" font-size="21">Comparer des outils objectivement — tableau, code, rapports.</text>
+    <text x="80" y="208" fill="#9aa7b8" font-size="21">Lignes exécutées · arbre d'appel · valeurs des paramètres</text>
   </g>
 
   <!-- path chips -->
   <g font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13">
     <g>
-      <rect x="80" y="238" width="158" height="30" rx="8" fill="#38bdf8" fill-opacity="0.10" stroke="#38bdf8" stroke-opacity="0.35"/>
-      <text x="96" y="258" fill="#7dd3fc">docs/COMPARISON.md</text>
+      <rect x="80" y="238" width="106" height="30" rx="8" fill="#38bdf8" fill-opacity="0.10" stroke="#38bdf8" stroke-opacity="0.35"/>
+      <text x="96" y="258" fill="#7dd3fc">couverture</text>
     </g>
     <g>
-      <rect x="250" y="238" width="72" height="30" rx="8" fill="#a78bfa" fill-opacity="0.10" stroke="#a78bfa" stroke-opacity="0.35"/>
-      <text x="266" y="258" fill="#c4b5fd">tools/</text>
+      <rect x="198" y="238" width="132" height="30" rx="8" fill="#a78bfa" fill-opacity="0.10" stroke="#a78bfa" stroke-opacity="0.35"/>
+      <text x="214" y="258" fill="#c4b5fd">arbre d'appel</text>
     </g>
     <g>
-      <rect x="334" y="238" width="128" height="30" rx="8" fill="#5eead4" fill-opacity="0.10" stroke="#5eead4" stroke-opacity="0.35"/>
-      <text x="350" y="258" fill="#5eead4">reports-demo/</text>
+      <rect x="342" y="238" width="112" height="30" rx="8" fill="#5eead4" fill-opacity="0.10" stroke="#5eead4" stroke-opacity="0.35"/>
+      <text x="358" y="258" fill="#5eead4">paramètres</text>
     </g>
   </g>
 

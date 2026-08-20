@@ -39,3 +39,9 @@ par le critère n° 1.
 ## Ce qu'on peut en espérer
 À considérer **en second temps**, une fois le diagnostic de base outillé, si l'objectif de
 restructuration devient prioritaire. C'est un projet en soi, pas un complément.
+
+## Facile / moins facile
+
+**Ce qui est facile.** Rien, honnêtement. C'est le prix de ce qu'il vise.
+
+**Ce qui l'est moins.** **Tout** : instrumentation à configurer, chaîne d'analyse à monter, résultats à interpréter. En échange, c'est le seul qui adresse le « but final » du brief.

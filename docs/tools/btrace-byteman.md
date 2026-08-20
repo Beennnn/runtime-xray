@@ -48,3 +48,9 @@ technique** sans mise en forme supplémentaire.
 à écrire pour chaque question posée. Plus souples qu'Arthas, moins immédiats. À considérer
 **si** Arthas et JMC Agent échouent — ce sont les plus exigeants des trois en effort
 d'écriture, donc les plus pénalisés par le critère n° 1.
+
+## Facile / moins facile
+
+**Ce qui est facile.** Exprimer une question précise : ces outils peuvent capturer à peu près n'importe quoi.
+
+**Ce qui l'est moins.** **Tout le reste.** Un script ou une règle à écrire par question posée, une sortie texte sans mise en forme, et pour Byteman un outil dont l'objet premier est d'injecter des pannes, pas d'observer.

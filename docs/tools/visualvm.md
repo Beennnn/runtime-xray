@@ -52,3 +52,9 @@ Un **premier coup d'œil** en trente secondes, sans rien préparer. Pour ce proj
 dominé par async-profiler sur l'arbre d'appel (qui produit en plus un fichier partageable)
 et ne répond ni à la couverture ni aux paramètres. Utile comme outil d'appoint, pas comme
 solution.
+
+## Facile / moins facile
+
+**Ce qui est facile.** Voir quelque chose en trente secondes, sans rien préparer. C'est son unique argument, et il est réel.
+
+**Ce qui l'est moins.** **Rejouer ou partager** : tout est manuel et rien ne sort de l'outil. Aucun script, aucun fichier à transmettre.

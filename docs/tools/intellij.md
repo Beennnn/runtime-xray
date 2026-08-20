@@ -54,3 +54,9 @@ Pour le **critère n° 4**, IntelliJ est la réponse côté développeur, et l'�
 suffit pour la couverture. L'abonnement Ultimate n'ajoute, pour ce besoin précis, que le
 confort d'avoir async-profiler dans l'IDE plutôt qu'en ligne de commande — le moteur étant
 le même et gratuit par ailleurs.
+
+## Facile / moins facile
+
+**Ce qui est facile.** Pour un développeur, lire la couverture dans la marge de l'éditeur et sauter d'un appel à l'autre : rien n'égale ça en confort.
+
+**Ce qui l'est moins.** **Sortir de l'IDE.** Rien n'est transmissible à quelqu'un qui ne l'a pas installé. Le profiler intégré est réservé à Ultimate, et l'import d'un `.exec` externe reste à confirmer sur poste.

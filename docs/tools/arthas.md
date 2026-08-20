@@ -63,3 +63,9 @@ C'est le **meilleur candidat gratuit pour combler le trou** laissé par JaCoCo e
 async-profiler. À valider en priorité : s'il tient ses promesses hors ligne, l'option
 « tout gratuit » devient crédible et la question de la licence commerciale se pose
 beaucoup moins.
+
+## Facile / moins facile
+
+**Ce qui est facile.** Poser une question à une application vivante : `watch`, et les valeurs défilent. C'est le geste le plus direct de tout le panel pour le troisième besoin.
+
+**Ce qui l'est moins.** **L'installer hors ligne** — le lanceur veut Internet, il faut déposer le paquet complet à la main. Et **transmettre le résultat** : la sortie est un flux de texte dans une console, pas un rapport.

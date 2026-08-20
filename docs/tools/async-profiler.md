@@ -83,3 +83,9 @@ Après affinage du programme, **71 % des échantillons ont une feuille dans `lab
 et les cinq premières feuilles du profil sont des méthodes métier. Le profil a d'ailleurs
 servi à corriger trois défauts réels du programme d'exemple — voir
 [TECHNICAL.md](../TECHNICAL.md#affinages-décidés-à-la-mesure-pas-au-jugé).
+
+## Facile / moins facile
+
+**Ce qui est facile.** Un flag, un fichier HTML qu'on ouvre ou qu'on envoie. Zéro configuration une fois installé.
+
+**Ce qui l'est moins.** Écarter le bruit : sans `include=`, 60 % des échantillons sont le compilateur JIT, et sans `DebugNonSafepoints` les numéros de ligne sont faux — deux options qu'il faut connaître. Et **interpréter un profil échantillonné** : il ne prouve jamais qu'un code n'a pas tourné.

@@ -1,25 +1,41 @@
-# Reports demo
+# Sorties réellement produites
 
-Ce dossier accueille les **sorties réellement générées** par chaque module
-de `tools/`. Chaque outil dépose son rapport dans un sous-dossier dédié :
+Ce dossier contient ce que les outils ont **effectivement écrit** en analysant
+[`sample-app`](../sample-app/) — pas des captures d'écran, pas des exemples reconstitués.
 
+**→ [Tout est navigable en ligne](https://beennnn.github.io/runtime-xray/)** sans rien cloner.
+
+| Dossier | Outil | Ce qu'on y voit |
+|---|---|---|
+| `generated/jacoco/html/` | JaCoCo | Site de couverture, **code source colorié ligne à ligne**. Point d'entrée : `index.html` |
+| `generated/jacoco-focused/html/` | JaCoCo (CLI) | Le même, **restreint aux classes réellement exécutées** — le code jamais atteint disparaît du rapport |
+| `generated/async-profiler/` | async-profiler | `tree.html` (arbre d'appel dépliable) et `flamegraph.html` |
+| `generated/jfr/` | JFR sous Java 21 | Résumé et échantillons d'exécution — **pas** de traçage de méthodes : il n'existe pas avant Java 25 |
+| `generated/jfr-jdk25/` | JFR sous Java 25 | `method-timing.txt` (16 000 000 d'invocations comptées exactement) et un extrait de `MethodTrace` |
+
+## Comment les regarder
+
+```bash
+open reports-demo/generated/jacoco-focused/html/index.html
+open reports-demo/generated/async-profiler/tree.html
 ```
-reports-demo/generated/<nom-outil>/
-├── report.<ext>      # le(s) fichier(s) produit(s) par l'outil
-└── NOTES.md          # ce qu'on y voit + interactif ou statique
+
+Dans le rapport de couverture, le fichier le plus parlant est
+`lab.sample.weather/WeatherPenalty.java.html` : une branche rouge à l'intérieur d'une
+méthode exécutée des millions de fois — le cas qu'un pourcentage par classe masque et
+qu'un rapport ligne à ligne révèle.
+
+## Les régénérer
+
+```bash
+./tools/jacoco/collect.sh && ./tools/jacoco/collect-focused.sh
+./tools/async-profiler/collect.sh
+./tools/jfr/collect.sh
+JAVA_TARGET=25 ./tools/jfr/collect.sh
 ```
 
-## Grille de lecture (`NOTES.md` de chaque outil)
+## Ce que ces sorties ne montrent pas
 
-- **Aperçu** — capture d'écran ou description de ce qui est affiché
-- **Statique / interactif** — le rapport est-il figé (HTML/PDF/image) ou
-  permet-il une interaction (tri, filtre, drill-down, export depuis l'UI...) ?
-- **Fidélité au cas d'usage de référence** — l'outil a-t-il permis de
-  reproduire exactement le cas d'usage fixé dans `docs/METHODOLOGY.md`, ou
-  a-t-il fallu s'en écarter (et pourquoi) ?
-
-## Exemple
-
-Le module `example-tool` dépose son rapport dans
-`generated/example-tool/report.html` — un tableau HTML **statique** généré
-sans aucune bibliothèque, servant de point de comparaison "sans outil".
+**Les valeurs passées en paramètres.** JFR affiche la signature `frequencyMinutes(Leg)` et
+la pile d'appel complète, mais jamais la valeur du `Leg`. C'est le trou du socle gratuit,
+vérifié et non supposé — voir [RESULTS.md](../docs/RESULTS.md).
