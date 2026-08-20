@@ -12,20 +12,36 @@ les trois outils et les met côte à côte :
 Le tout est embarqué dans un HTML autonome : aucune ressource externe, donc lisible hors
 ligne et transmissible en pièce jointe.
 """
-import json, pathlib, re, sys, html as htmlmod
+import argparse, json, pathlib, re, sys
 import xml.etree.ElementTree as ET
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
-GEN = ROOT / "reports-demo" / "generated"
-SRC = ROOT / "sample-app" / "src" / "main" / "java"
-OUT = GEN / "vue-integree"
+
+def parse_args():
+    ap = argparse.ArgumentParser(description="Assemble la vue intégrée à partir des sorties d'outils.")
+    ap.add_argument("--gen", default=str(ROOT / "reports-demo" / "generated"),
+                    help="Répertoire contenant jacoco/, async-profiler/ et arthas/")
+    ap.add_argument("--sources", default=str(ROOT / "sample-app" / "src" / "main" / "java"),
+                    help="Répertoires de sources .java, séparés par ':'")
+    ap.add_argument("--traced", default="lab.sample.RoutePlanner",
+                    help="Classe inspectée par Arthas (paquet.Classe)")
+    ap.add_argument("--out", default=None,
+                    help="Répertoire où écrire index.html (défaut : le répertoire <gen> lui-même, "
+                         "pour qu'ouvrir le dossier suffise à trouver la vue)")
+    return ap.parse_args()
+
+ARGS = parse_args()
+GEN = pathlib.Path(ARGS.gen)
+SRC_DIRS = [pathlib.Path(d) for d in ARGS.sources.split(":") if d]
+OUT = pathlib.Path(ARGS.out) if ARGS.out else GEN
+TRACED = ARGS.traced.replace(".", "/")
 
 # ---------------------------------------------------------------- couverture
 def load_coverage():
     """-> (lignes par fichier source, méthodes par classe, arbre des packages)"""
     xml = GEN / "jacoco" / "html" / "jacoco.xml"
     if not xml.exists():
-        sys.exit("jacoco.xml absent — lancer ./tools/run-all.sh")
+        sys.exit(f"jacoco.xml absent sous {xml.parent} — lancer la collecte d'abord")
     # Le rapport JaCoCo référence une DTD externe : on la neutralise pour rester hors ligne.
     parser = ET.XMLParser()
     tree = ET.parse(xml, parser=parser)
@@ -123,10 +139,17 @@ def load_calltree(limit_depth=40):
 # ------------------------------------------------------------------- arthas
 CALL_RE = re.compile(r"[+`]---\[([^\]]*)\]\s+([\w.$]+):(\w+)\(\)\s+#(\d+)")
 
+def first_existing(*names):
+    for n in names:
+        p = GEN / "arthas" / n
+        if p.exists():
+            return p
+    return None
+
 def load_trace():
     """Pour un appel : quelle ligne appelle quoi, et en combien de temps."""
-    path = GEN / "arthas" / "trace-calltree.txt"
-    if not path.exists():
+    path = first_existing("trace-calltree.txt", "trace-params.txt", "trace.txt")
+    if path is None:
         return {}
     text = re.sub(r"\x1b\[[0-9;]*m", "", path.read_text())
     per_line = {}
@@ -136,27 +159,107 @@ def load_trace():
         pct = re.match(r"\s*([\d.,]+)%", meta)
         per_line.setdefault(int(nr), []).append(
             {"callee": f"{cls.split('.')[-1]}.{method}()", "cost": cost,
+             "frame": cls.replace(".", "/") + "." + method,
              "pct": pct.group(1) + "%" if pct else ""})
     return per_line
 
-def load_values(limit=6):
-    path = GEN / "arthas" / "watch-params.txt"
-    if not path.exists():
-        return []
+def load_values(limit_per_method=8):
+    """Valeurs capturées, groupées PAR MÉTHODE.
+
+    La sortie de l'observateur a cette forme, et l'indentation porte le sens :
+
+        method=paquet.Classe.methode location=AtExit
+        ts=…; [cost=1.24ms] result=@ArrayList[
+            @Object[][                 <- le tableau des paramètres
+                @Leg[Leg[from=Auch…]], <- un paramètre par ligne, indenté de 8
+                @Mode[CAR],
+            ],
+            @Double[29.72],            <- indenté de 4 : la valeur de RETOUR
+        ]
+
+    Deux pièges qui ont produit un affichage faux avant correction : les crochets sont
+    **imbriqués** (une expression régulière非 gourmande tronque la valeur), et la ligne de
+    retour est **hors** du bloc des paramètres (une capture ligne-à-ligne naïve l'ignore).
+    On s'appuie donc sur l'indentation plutôt que sur un motif global.
+    """
+    path = first_existing("watch-params.txt", "watch.txt")
+    if path is None:
+        return {}
     text = re.sub(r"\x1b\[[0-9;]*m", "", path.read_text())
-    out = []
-    for block in re.findall(r"ts=([\d\- :.]+);\s*\[cost=([^\]]*)\][^\n]*\n((?:\s+@[^\n]*\n)+)", text):
-        vals = re.findall(r"@(\w+)\[([^\]]*)\]", block[2])
-        out.append({"ts": block[0].strip(), "cost": block[1],
-                    "values": [{"type": t, "value": v} for t, v in vals]})
-        if len(out) >= limit:
-            break
-    return out
+    lines = text.splitlines()
+
+    def entry(line):
+        """'        @Leg[Leg[from=…]],' -> ('Leg', 'Leg[from=…]')"""
+        m = re.match(r"\s*@(\w+)\[(.*?),?\s*$", line)
+        if not m:
+            return None
+        typ, rest = m.group(1), m.group(2)
+        rest = rest.rstrip().rstrip(",").rstrip()
+        # Retirer UN seul crochet fermant — celui de @Type[…]. En retirer davantage
+        # tronquerait les valeurs imbriquées comme Leg[from=…, to=…].
+        if rest.endswith("]"):
+            rest = rest[:-1]
+        return {"type": typ, "value": rest.strip()}
+
+    per_method, i = {}, 0
+    while i < len(lines):
+        m = re.match(r"method=([\w.$]+)\s", lines[i])
+        if not m:
+            i += 1
+            continue
+        fqmn = m.group(1)
+        cls, _, meth = fqmn.rpartition(".")
+        frame = cls.replace(".", "/") + "." + meth
+        i += 1
+        ts = cost = ""
+        if i < len(lines):
+            t = re.match(r"ts=([\d\- :.]+);\s*\[cost=([^\]]*)\]", lines[i])
+            if t:
+                ts, cost = t.group(1).strip(), t.group(2)
+                i += 1
+        params, retour = [], None
+        while i < len(lines) and not lines[i].startswith("method="):
+            line = lines[i]
+            indent = len(line) - len(line.lstrip())
+            if line.strip().startswith("@") and indent >= 8:
+                e = entry(line)
+                if e and e["value"]:
+                    params.append(e)
+            elif line.strip().startswith("@") and indent == 4 and "@Object[][" not in line:
+                e = entry(line)
+                if e and e["value"]:
+                    retour = e
+            elif line.strip() in ("]", "],") and indent == 0:
+                i += 1
+                break
+            i += 1
+        calls = per_method.setdefault(frame, [])
+        if len(calls) < limit_per_method and (params or retour):
+            calls.append({"ts": ts, "cost": cost, "params": params, "retour": retour})
+    return per_method
 
 # -------------------------------------------------------------------- rendu
+def load_context():
+    """Contexte de l'exécution, s'il a été enregistré. Sans lui, un rapport retrouvé plus
+    tard ne dit pas de quoi il parle : quel programme, quels arguments, quand, où."""
+    path = GEN / "run-context.json"
+    if not path.exists():
+        return None
+    try:
+        return json.loads(path.read_text())
+    except Exception:
+        return None
+
 def load_sources():
-    return {str(p.relative_to(SRC)): p.read_text().splitlines()
-            for p in SRC.rglob("*.java")}
+    """Les chemins sont relatifs à leur racine de sources, comme dans le rapport JaCoCo
+    (paquet/Fichier.java) — ce qui permet de rapprocher source et couverture."""
+    out = {}
+    for root in SRC_DIRS:
+        if not root.exists():
+            continue
+        for f in root.rglob("*.java"):
+            out[str(f.relative_to(root))] = f.read_text(errors="replace").splitlines()
+    return out
 
 def main():
     lines, methods, packages = load_coverage()
@@ -170,7 +273,8 @@ def main():
         "trace": {str(k): v for k, v in load_trace().items()},
         "values": load_values(),
         "sources": load_sources(),
-        "tracedClass": "lab/sample/RoutePlanner",
+        "tracedClass": TRACED,
+        "context": load_context(),
     }
     OUT.mkdir(parents=True, exist_ok=True)
     template = (pathlib.Path(__file__).parent / "dashboard.html").read_text()

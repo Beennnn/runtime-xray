@@ -28,7 +28,7 @@ ITERATIONS=24000000
 
 cd "$REPO_ROOT"
 mvn -q clean package
-rm -rf "$GEN"/{jacoco,jacoco-focused,async-profiler,arthas,vue-integree}
+rm -rf "$GEN"/{jacoco,jacoco-focused,async-profiler,arthas} "$GEN/index.html"
 mkdir -p "$GEN"/{jacoco,async-profiler,arthas}
 
 [ -f "$ARTHAS_HOME/arthas-boot.jar" ] || "$REPO_ROOT/tools/arthas/install-offline.sh"

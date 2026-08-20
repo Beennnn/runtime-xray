@@ -1,0 +1,65 @@
+[INFO] JAVA_HOME: /Users/benoitbesson/.sdkman/candidates/java/25.0.2-tem
+[INFO] arthas-boot version: 4.3.4
+[INFO] arthas home: /Users/benoitbesson/.runtime-xray/arthas-4.3.4
+[INFO] Try to attach process 68824
+Picked up JAVA_TOOL_OPTIONS: 
+[INFO] Attach process 68824 success.
+[INFO] arthas-client connect 127.0.0.1 3658
+[1;31m  ,---.  [1;33m,------. [1;36m,--------.[1;35m,--.  ,--.[1;32m  ,---.  [1;34m ,---.  [0m                         
+[1;31m /  O  \ [1;33m|  .--. '[1;36m'--.  .--'[1;35m|  '--'  |[1;32m /  O  \ [1;34m'   .-' [0m                         
+[1;31m|  .-.  |[1;33m|  '--'.'[1;36m   |  |   [1;35m|  .--.  |[1;32m|  .-.  |[1;34m`.  `-. [0m                         
+[1;31m|  | |  |[1;33m|  |\  \ [1;36m   |  |   [1;35m|  |  |  |[1;32m|  | |  |[1;34m.-'    |[0m                         
+[1;31m`--' `--'[1;33m`--' '--'[1;36m   `--'   [1;35m`--'  `--'[1;32m`--' `--'[1;34m`-----' [0m                         
+
+wiki         https://arthas.aliyun.com/doc                                      
+tutorials    https://arthas.aliyun.com/doc/arthas-tutorials.html                
+version      4.3.4                                                              
+main_class   sample-app/target/sample-app.jar                                   
+pid          68824                                                              
+start_time   2026-08-20 21:04:03.261                                            
+current_time 2026-08-20 21:04:14.670                                            
+
+[arthas@68824]$ watch lab.sample.RoutePlanner travelTimeMinutes '{params, return Obj}' -n 5 -x 2 | plaintext
+Press Q or Ctrl+C to abort.
+Affect(class count: 1 , method count: 1) cost in 97 ms, listenerId: 1
+method=lab.sample.RoutePlanner.travelTimeMinutes location=AtExit
+ts=2026-08-20 21:04:15.778; [cost=2.557833ms] result=@ArrayList[
+    @Object[][
+        @Trip[Trip[id=TRIP-175, mode=WALK, weather=RAIN, timeOfDay=QUIET, withLuggage=true, legs=[Leg[from=Albi, to=Montauban, distanceKm=57.0], Leg[from=Montauban, to=Castres, distanceKm=4.0], Leg[from=Castres, to=Auch, distanceKm=11.0], Leg[from=Auch, to=Foix, distanceKm=18.0]]]],
+    ],
+    @Double[1598.9659488],
+]
+method=lab.sample.RoutePlanner.travelTimeMinutes location=AtExit
+ts=2026-08-20 21:04:15.788; [cost=0.016625ms] result=@ArrayList[
+    @Object[][
+        @Trip[Trip[id=TRIP-176, mode=CAR, weather=SUNNY, timeOfDay=RUSH_HOUR, withLuggage=false, legs=[Leg[from=Montauban, to=Castres, distanceKm=58.0]]]],
+    ],
+    @Double[52.00806981818182],
+]
+method=lab.sample.RoutePlanner.travelTimeMinutes location=AtExit
+ts=2026-08-20 21:04:15.789; [cost=0.013208ms] result=@ArrayList[
+    @Object[][
+        @Trip[Trip[id=TRIP-177, mode=TRAIN, weather=SUNNY, timeOfDay=RUSH_HOUR, withLuggage=false, legs=[Leg[from=Castres, to=Auch, distanceKm=59.0], Leg[from=Auch, to=Foix, distanceKm=6.0]]]],
+    ],
+    @Double[56.833333333333336],
+]
+method=lab.sample.RoutePlanner.travelTimeMinutes location=AtExit
+ts=2026-08-20 21:04:15.789; [cost=0.013291ms] result=@ArrayList[
+    @Object[][
+        @Trip[Trip[id=TRIP-178, mode=BIKE, weather=SUNNY, timeOfDay=RUSH_HOUR, withLuggage=false, legs=[Leg[from=Auch, to=Foix, distanceKm=60.0], Leg[from=Foix, to=Toulouse, distanceKm=7.0], Leg[from=Toulouse, to=Albi, distanceKm=14.0]]]],
+    ],
+    @Double[365.7556000000001],
+]
+method=lab.sample.RoutePlanner.travelTimeMinutes location=AtExit
+ts=2026-08-20 21:04:15.790; [cost=0.012583ms] result=@ArrayList[
+    @Object[][
+        @Trip[Trip[id=TRIP-179, mode=WALK, weather=SUNNY, timeOfDay=RUSH_HOUR, withLuggage=false, legs=[Leg[from=Foix, to=Toulouse, distanceKm=61.0], Leg[from=Toulouse, to=Albi, distanceKm=8.0], Leg[from=Albi, to=Montauban, distanceKm=15.0], Leg[from=Montauban, to=Castres, distanceKm=22.0]]]],
+    ],
+    @Double[1498.0183999999997],
+]
+Command execution times exceed limit: 5, so command will exit. You can set it with -n option.
+[arthas@68824]$ stop | plaintext
+Resetting all enhanced classes ...
+Affect(class count: 1 , method count: 0) cost in 11 ms, listenerId: 0
+Arthas Server is going to shutdown...
+[arthas@68824]$ 

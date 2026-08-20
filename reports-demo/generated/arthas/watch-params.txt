@@ -1,9 +1,9 @@
 [INFO] JAVA_HOME: /opt/homebrew/Cellar/openjdk@21/21.0.12.1/libexec/openjdk.jdk/Contents/Home
 [INFO] arthas-boot version: 4.3.4
 [INFO] arthas home: /Users/benoitbesson/.arthas/lib/4.3.4/arthas
-[INFO] Try to attach process 36990
+[INFO] Try to attach process 76919
 Picked up JAVA_TOOL_OPTIONS: 
-[INFO] Attach process 36990 success.
+[INFO] Attach process 76919 success.
 [INFO] arthas-client connect 127.0.0.1 3658
 [1;31m  ,---.  [1;33m,------. [1;36m,--------.[1;35m,--.  ,--.[1;32m  ,---.  [1;34m ,---.  [0m                         
 [1;31m /  O  \ [1;33m|  .--. '[1;36m'--.  .--'[1;35m|  '--'  |[1;32m /  O  \ [1;34m'   .-' [0m                         
@@ -15,61 +15,100 @@ wiki         https://arthas.aliyun.com/doc
 tutorials    https://arthas.aliyun.com/doc/arthas-tutorials.html                
 version      4.3.4                                                              
 main_class   sample-app/target/sample-app.jar                                   
-pid          36990                                                              
-start_time   2026-08-20 20:48:17.021                                            
-current_time 2026-08-20 20:48:28.652                                            
+pid          76919                                                              
+start_time   2026-08-20 21:08:07.027                                            
+current_time 2026-08-20 21:08:15.826                                            
 
-[arthas@36990]$ watch lab.sample.RoutePlanner travelTimeMinutes '{params[0].id() , params[0].mode(), params[0].weather(), params[0].timeOfDay(), params[0].withLu ggage(), returnObj}' -n 5 -x 2 | plaintext
+[arthas@76919]$ watch lab.sample.RoutePlanner * '{params, returnObj}' -n 10 -x 2  | plaintext
 Press Q or Ctrl+C to abort.
-Affect(class count: 1 , method count: 1) cost in 99 ms, listenerId: 1
-method=lab.sample.RoutePlanner.travelTimeMinutes location=AtExit
-ts=2026-08-20 20:48:29.731; [cost=3.720167ms] result=@ArrayList[
-    @String[TRIP-84],
-    @Mode[CAR],
-    @Weather[RAIN],
-    @TimeOfDay[RUSH_HOUR],
-    @Boolean[false],
-    @Double[37.51926857142858],
+Affect(class count: 1 , method count: 3) cost in 74 ms, listenerId: 1
+method=lab.sample.RoutePlanner.legMinutes location=AtExit
+ts=2026-08-20 21:08:16.440; [cost=1.240042ms] result=@ArrayList[
+    @Object[][
+        @Leg[Leg[from=Auch, to=Foix, distanceKm=54.0]],
+        @CarSpeed[lab.sample.speed.CarSpeed@299a06ac],
+        @Mode[CAR],
+    ],
+    @Double[29.720971636363636],
 ]
 method=lab.sample.RoutePlanner.travelTimeMinutes location=AtExit
-ts=2026-08-20 20:48:29.734; [cost=0.020167ms] result=@ArrayList[
-    @String[TRIP-85],
-    @Mode[TRAIN],
-    @Weather[RAIN],
-    @TimeOfDay[RUSH_HOUR],
-    @Boolean[true],
-    @Double[52.666666666666664],
+ts=2026-08-20 21:08:16.466; [cost=63.983125ms] result=@ArrayList[
+    @Object[][
+        @Trip[Trip[id=TRIP-112, mode=CAR, weather=SUNNY, timeOfDay=NIGHT, withLuggage=false, legs=[Leg[from=Auch, to=Foix, distanceKm=54.0]]]],
+    ],
+    @Double[29.720971636363636],
+]
+method=lab.sample.RoutePlanner.legMinutes location=AtExit
+ts=2026-08-20 21:08:16.476; [cost=0.008833ms] result=@ArrayList[
+    @Object[][
+        @Leg[Leg[from=Foix, to=Toulouse, distanceKm=55.0]],
+        @TrainSpeed[lab.sample.speed.TrainSpeed@27ddd392],
+        @Mode[TRAIN],
+    ],
+    @Double[36.66666666666667],
+]
+method=lab.sample.RoutePlanner.legMinutes location=AtExit
+ts=2026-08-20 21:08:16.477; [cost=0.009ms] result=@ArrayList[
+    @Object[][
+        @Leg[Leg[from=Toulouse, to=Albi, distanceKm=2.0]],
+        @TrainSpeed[lab.sample.speed.TrainSpeed@27ddd392],
+        @Mode[TRAIN],
+    ],
+    @Double[1.3333333333333335],
 ]
 method=lab.sample.RoutePlanner.travelTimeMinutes location=AtExit
-ts=2026-08-20 20:48:29.736; [cost=0.022ms] result=@ArrayList[
-    @String[TRIP-86],
-    @Mode[BIKE],
-    @Weather[RAIN],
-    @TimeOfDay[RUSH_HOUR],
-    @Boolean[false],
-    @Double[588.6771168],
+ts=2026-08-20 21:08:16.478; [cost=1.639042ms] result=@ArrayList[
+    @Object[][
+        @Trip[Trip[id=TRIP-113, mode=TRAIN, weather=SUNNY, timeOfDay=NIGHT, withLuggage=false, legs=[Leg[from=Foix, to=Toulouse, distanceKm=55.0], Leg[from=Toulouse, to=Albi, distanceKm=2.0]]]],
+    ],
+    @Double[64.0],
+]
+method=lab.sample.RoutePlanner.legMinutes location=AtExit
+ts=2026-08-20 21:08:16.479; [cost=0.020041ms] result=@ArrayList[
+    @Object[][
+        @Leg[Leg[from=Toulouse, to=Albi, distanceKm=56.0]],
+        @BikeSpeed[lab.sample.speed.BikeSpeed@19e1023e],
+        @Mode[BIKE],
+    ],
+    @Double[245.12768],
+]
+method=lab.sample.RoutePlanner.legMinutes location=AtExit
+ts=2026-08-20 21:08:16.479; [cost=0.015167ms] result=@ArrayList[
+    @Object[][
+        @Leg[Leg[from=Albi, to=Montauban, distanceKm=3.0]],
+        @BikeSpeed[lab.sample.speed.BikeSpeed@19e1023e],
+        @Mode[BIKE],
+    ],
+    @Double[10.88272],
+]
+method=lab.sample.RoutePlanner.legMinutes location=AtExit
+ts=2026-08-20 21:08:16.480; [cost=0.012708ms] result=@ArrayList[
+    @Object[][
+        @Leg[Leg[from=Montauban, to=Castres, distanceKm=10.0]],
+        @BikeSpeed[lab.sample.speed.BikeSpeed@19e1023e],
+        @Mode[BIKE],
+    ],
+    @Double[36.85813333333334],
 ]
 method=lab.sample.RoutePlanner.travelTimeMinutes location=AtExit
-ts=2026-08-20 20:48:29.736; [cost=0.017125ms] result=@ArrayList[
-    @String[TRIP-87],
-    @Mode[WALK],
-    @Weather[RAIN],
-    @TimeOfDay[RUSH_HOUR],
-    @Boolean[false],
-    @Double[2572.2331599999993],
+ts=2026-08-20 21:08:16.480; [cost=1.806417ms] result=@ArrayList[
+    @Object[][
+        @Trip[Trip[id=TRIP-114, mode=BIKE, weather=SUNNY, timeOfDay=NIGHT, withLuggage=false, legs=[Leg[from=Toulouse, to=Albi, distanceKm=56.0], Leg[from=Albi, to=Montauban, distanceKm=3.0], Leg[from=Montauban, to=Castres, distanceKm=10.0]]]],
+    ],
+    @Double[322.86853333333335],
 ]
-method=lab.sample.RoutePlanner.travelTimeMinutes location=AtExit
-ts=2026-08-20 20:48:29.737; [cost=0.011167ms] result=@ArrayList[
-    @String[TRIP-88],
-    @Mode[CAR],
-    @Weather[SUNNY],
-    @TimeOfDay[NIGHT],
-    @Boolean[false],
-    @Double[25.946879999999997],
+method=lab.sample.RoutePlanner.legMinutes location=AtExit
+ts=2026-08-20 21:08:16.481; [cost=0.010084ms] result=@ArrayList[
+    @Object[][
+        @Leg[Leg[from=Albi, to=Montauban, distanceKm=57.0]],
+        @WalkSpeed[lab.sample.speed.WalkSpeed@7cef4e59],
+        @Mode[WALK],
+    ],
+    @Double[717.54336],
 ]
-Command execution times exceed limit: 5, so command will exit. You can set it with -n option.
-[arthas@36990]$ stop | plaintext
+Command execution times exceed limit: 10, so command will exit. You can set it with -n option.
+[arthas@76919]$ stop | plaintext
 Resetting all enhanced classes ...
-Affect(class count: 1 , method count: 0) cost in 11 ms, listenerId: 0
+Affect(class count: 1 , method count: 0) cost in 8 ms, listenerId: 0
 Arthas Server is going to shutdown...
-[arthas@36990]$ 
+[arthas@76919]$ 

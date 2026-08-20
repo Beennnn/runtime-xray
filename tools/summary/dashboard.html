@@ -26,17 +26,39 @@
   header{padding:9px 16px;border-bottom:1px solid var(--border);display:flex;
          align-items:center;gap:14px;flex-wrap:wrap;background:var(--panel)}
   header h1{font-size:15px;margin:0;font-weight:650;white-space:nowrap}
-  .badges{display:flex;gap:4px;align-items:center}
+  header h1 a{color:inherit;text-decoration:none}
+  header h1 a:hover{color:var(--accent)}
+  .crumb .back{display:inline-flex;align-items:center;gap:5px;color:#fff;background:var(--accent);
+               border-radius:15px;padding:3px 11px;font-size:12px;font-weight:600;
+               cursor:pointer;text-decoration:none}
+  .crumb .back:hover{filter:brightness(1.12)}
+  /* Une seule icône d'application : les badges des trois outils invitaient à cliquer
+     alors qu'ils n'étaient qu'informatifs. Leur explication vit dans la légende, en bas. */
+  .applogo{display:flex;align-items:center}
   .stat{color:var(--muted);font-size:12.5px} .stat b{color:var(--text)}
   .spacer{margin-left:auto}
-  .toggle{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--muted);cursor:pointer;user-select:none}
+  .cleanbtn{display:inline-flex;align-items:center;gap:7px;font:inherit;font-size:12.5px;
+            font-weight:600;padding:5px 12px;border-radius:20px;cursor:pointer;
+            border:1px solid var(--border);background:var(--bg);color:var(--muted)}
+  .cleanbtn:hover{border-color:var(--accent);color:var(--accent)}
+  .cleanbtn .dot{width:9px;height:9px;border-radius:50%;background:var(--missbar);opacity:.55}
+  .cleanbtn[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+  .cleanbtn[aria-pressed="true"] .dot{background:#fff;opacity:1}
   .links{font-size:12px;color:var(--muted)} .links a{margin-left:10px}
-  #note{display:none;padding:8px 16px;background:var(--part);border-bottom:1px solid var(--border);
-        font-size:12.5px;color:var(--text)}
-  #note.on{display:block}
-  main{display:grid;grid-template-columns:330px 1fr;height:calc(100% - 47px)}
-  body.noted main{height:calc(100% - 47px - 37px)}
-  @media(max-width:860px){main{grid-template-columns:1fr;height:auto}}
+  .reserve{border:1px solid var(--border);border-left:3px solid var(--partbar);
+           border-radius:6px;background:var(--panel);padding:12px 15px;color:var(--muted);
+           font-size:12.5px;margin-top:22px}
+  .reserve b{color:var(--text)}
+  main{display:grid;grid-template-columns:var(--navw,330px) 6px 1fr;height:calc(100% - 47px)}
+  @media(max-width:860px){main{grid-template-columns:1fr;height:auto} .split{display:none}}
+  /* Séparateurs déplaçables : glisser pour redimensionner, double-cliquer pour replier
+     entièrement le panneau voisin — utile quand on veut le code plein écran. */
+  .split{background:var(--border);cursor:col-resize;position:relative}
+  .split:hover,.split.dragging{background:var(--accent)}
+  .split::after{content:"";position:absolute;inset:0 -4px}
+  .split.h{cursor:row-resize;height:6px}
+  .splitlabel{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+              font-size:9px;color:var(--bg);pointer-events:none}
   #nav{border-right:1px solid var(--border);background:var(--panel2);
        display:flex;flex-direction:column;min-height:0}
   .tabs{display:flex;border-bottom:1px solid var(--border)}
@@ -59,12 +81,26 @@
   .node.sel .pct{color:#e8f0fb}
   .node .tw{display:inline-block;width:11px;color:var(--muted)}
   .node.jdk{color:var(--muted)}
+  .tagval{font-size:10px;border:1px solid var(--violet);color:var(--violet);
+          border-radius:10px;padding:0 5px;vertical-align:1px}
+  .node.sel .tagval{border-color:#fff;color:#fff}
   .grouphead{padding:6px 8px 2px;color:var(--muted);font-size:11px;letter-spacing:.6px;text-transform:uppercase}
   #detail{display:flex;flex-direction:column;min-height:0}
   .crumb{padding:9px 16px;border-bottom:1px solid var(--border);font-size:13px;
          display:flex;align-items:center;gap:8px;flex-wrap:wrap}
   .crumb b{font-weight:650} .crumb span{color:var(--muted)}
   .pill{font-size:11px;border:1px solid var(--border);border-radius:20px;padding:1px 8px;color:var(--muted)}
+  #context{display:none;padding:7px 16px;border-bottom:1px solid var(--border);background:var(--panel2)}
+  .ctxlabel{display:block;color:var(--muted);font-size:11px;margin-bottom:4px}
+  .ctxpath{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11.5px;
+           padding:3px 8px;border-radius:5px;cursor:pointer;border:1px solid transparent}
+  .ctxpath:hover{background:var(--accent-soft)}
+  .ctxpath.on{border-color:var(--accent);background:var(--accent-soft)}
+  .ctxpath .share{display:inline-block;width:38px;color:var(--muted);font-variant-numeric:tabular-nums}
+  .ctxpath a{color:var(--accent);text-decoration:none}
+  .ctxpath a:hover{text-decoration:underline}
+  .ctxpath a.cur{color:var(--text);font-weight:600}
+  .ctxpath .sep{color:var(--muted)}
   #code{overflow:auto;flex:1 1 auto;min-height:0;padding-bottom:24px}
   table.src{border-collapse:collapse;width:100%;
             font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12.5px}
@@ -74,16 +110,33 @@
   tr.full td.c{background:var(--full)} tr.part td.c{background:var(--part)} tr.miss td.c{background:var(--miss)}
   td.c{width:99%}
   tr.inmethod td.n{color:var(--accent);font-weight:700}
-  td.ann{color:var(--violet);font-size:11px;width:1%;max-width:290px;text-align:right;
+  td.ann{color:var(--muted);font-size:11px;width:1%;max-width:300px;text-align:right;
          white-space:normal;padding-left:14px}
-  td.ann a{color:var(--violet);text-decoration:none;border-bottom:1px dotted var(--violet)}
+  td.ann a{color:var(--accent);text-decoration:none;border-bottom:1px dotted var(--accent)}
+  td.ann .dur{opacity:.6}
+  td.ann a.values{color:var(--violet);border-bottom-color:var(--violet);font-weight:600}
   .fold{color:var(--muted);font-style:italic;padding:2px 12px;font-size:11.5px;
         background:var(--panel);border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
-  #values{border-top:1px solid var(--border);background:var(--panel);padding:10px 16px;max-height:32%;overflow:auto}
-  #values h3{margin:0 0 7px;font-size:11px;letter-spacing:1.1px;text-transform:uppercase;color:var(--muted)}
+  #values{background:var(--panel);padding:10px 16px;overflow:auto;
+          height:var(--valh,190px);flex:0 0 auto}
+  #values:empty{display:none} #values:empty + .legend{border-top:1px solid var(--border)}
+  #values h3{margin:0 0 6px;font-size:11px;letter-spacing:1.1px;text-transform:uppercase;color:var(--muted)}
+  #values h3 code{text-transform:none;letter-spacing:0;color:var(--text);font-size:12px}
+  .sig{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11.5px;
+       color:var(--text);background:var(--bg);border:1px solid var(--border);border-radius:5px;
+       padding:4px 8px;margin-bottom:7px;display:inline-block}
+  .explain{color:var(--muted);font-size:11.5px;margin-bottom:8px}
+  .explain b{color:var(--text)}
   .call{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11.5px;
-        padding:4px 0;border-bottom:1px solid var(--border)}
-  .call .v{color:var(--violet)} .call .t{color:var(--muted)}
+        padding:5px 0;border-bottom:1px solid var(--border);display:grid;
+        grid-template-columns:1fr 18px minmax(90px,auto) 84px;gap:8px;align-items:baseline}
+  .callhead{display:grid;grid-template-columns:1fr 18px minmax(90px,auto) 84px;gap:8px;
+            font-size:10px;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);
+            padding-bottom:4px;border-bottom:1px solid var(--border)}
+  .callhead span:nth-child(2){grid-column:3}
+  .call .v{color:var(--violet)} .call .sep{color:var(--muted)}
+  .call .arrow{color:var(--muted);text-align:center}
+  .call .t{color:var(--muted);opacity:.65;text-align:right;font-size:10.5px}
   .legend{padding:7px 16px;color:var(--muted);font-size:11px;border-top:1px solid var(--border)}
   .sw{display:inline-block;width:9px;height:9px;border-radius:2px;vertical-align:-1px;margin:0 4px 0 10px}
   .home{padding:26px 32px;max-width:820px}
@@ -91,26 +144,64 @@
   .home p{color:var(--muted);margin:0 0 18px}
   .home .cards{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:22px}
   @media(max-width:700px){.home .cards{grid-template-columns:1fr}}
-  .card{border:1px solid var(--border);border-radius:9px;padding:13px 15px;background:var(--panel)}
-  .card .k{font-size:22px;font-weight:680} .card .l{color:var(--muted);font-size:12.5px}
+  .card{border:1px solid var(--border);border-radius:9px;padding:13px 15px;background:var(--panel);
+        border-left:4px solid var(--muted)}
+  .card.c1{border-left-color:var(--fullbar)} .card.c1 .k{color:var(--fullbar)}
+  .card.c2{border-left-color:var(--accent)}   .card.c2 .k{color:var(--accent)}
+  .card.c3{border-left-color:var(--partbar)}  .card.c3 .k{color:var(--partbar)}
+  .card.c4{border-left-color:var(--violet)}   .card.c4 .k{color:var(--violet)}
+  .card .k{font-size:24px;font-weight:700} .card .l{color:var(--muted);font-size:12.5px}
+  .card.c1 .k{color:var(--fullbar)} .card.c2 .k{color:var(--accent)}
+  .card.c3 .k{color:var(--partbar)} .card.c4 .k{color:var(--violet)}
+  .bar{height:9px;border-radius:6px;background:var(--miss);overflow:hidden;margin:2px 0 20px}
+  .bar span{display:block;height:100%;background:var(--fullbar)}
+  .chip{display:inline-block;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+        font-size:11.5px;border-radius:5px;padding:2px 7px;margin:0 5px 5px 0}
+  .chip.dead{background:var(--miss);color:var(--missbar);border:1px solid var(--missbar)}
+  .chip.hot{background:var(--part);color:var(--partbar);border:1px solid var(--partbar)}
+  .home h2{font-size:17px;margin:22px 0 6px;padding-left:9px;border-left:3px solid var(--accent)}
+  .links2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+  @media(max-width:700px){.links2{grid-template-columns:1fr}}
+  a.lk{display:block;border:1px solid var(--border);border-radius:8px;padding:10px 13px;
+       text-decoration:none;background:var(--panel);transition:.15s}
+  a.lk:hover{border-color:var(--accent);background:var(--accent-soft)}
+  .lkt{display:block;color:var(--accent);font-weight:600;font-size:13.5px;margin-bottom:2px}
+  .lkd{display:block;color:var(--muted);font-size:12px;line-height:1.45}
   .home ol{color:var(--muted);padding-left:20px} .home ol li{margin:6px 0}
+  .home ul.tools{color:var(--muted);padding-left:20px} .home ul.tools li{margin:4px 0}
+  .home ul.tools b{color:var(--text)}
   .home code{background:var(--panel);border:1px solid var(--border);border-radius:4px;padding:1px 5px;font-size:12px}
+  table.ctx{border-collapse:collapse;width:100%;margin-bottom:20px}
+  table.ctx td{padding:5px 10px;border-bottom:1px solid var(--border);vertical-align:top;font-size:13px}
+  td.ck{color:var(--muted);white-space:nowrap;width:1%}
+  td.cv{word-break:break-word}
 </style>
 </head>
 <body>
 <header>
-  <span class="badges" title="Les trois outils qui alimentent cette page">
-    <svg viewBox="0 0 32 32" width="24" height="24"><rect width="32" height="32" rx="8" fill="#1a7f37" fill-opacity=".14" stroke="#1a7f37" stroke-opacity=".5"/><rect x="8" y="9" width="16" height="3" rx="1.5" fill="#3fb950"/><rect x="8" y="14.5" width="11" height="3" rx="1.5" fill="#3fb950"/><rect x="8" y="20" width="7" height="3" rx="1.5" fill="#f85149"/></svg>
-    <svg viewBox="0 0 32 32" width="24" height="24"><rect width="32" height="32" rx="8" fill="#d29922" fill-opacity=".14" stroke="#d29922" stroke-opacity=".5"/><rect x="6" y="20" width="20" height="4" rx="1.5" fill="#e3a72c"/><rect x="9" y="14.5" width="14" height="4" rx="1.5" fill="#f0b849"/><rect x="12" y="9" width="8" height="4" rx="1.5" fill="#f8d477"/></svg>
-    <svg viewBox="0 0 32 32" width="24" height="24"><rect width="32" height="32" rx="8" fill="#8250df" fill-opacity=".14" stroke="#8250df" stroke-opacity=".5"/><circle cx="14.5" cy="14" r="6" fill="none" stroke="#ab7df8" stroke-width="2.4"/><path d="M19 18.5L24 23.5" stroke="#ab7df8" stroke-width="2.6" stroke-linecap="round"/><circle cx="14.5" cy="14" r="2" fill="#ab7df8"/></svg>
+  <span class="applogo" aria-hidden="true">
+    <svg viewBox="0 0 32 32" width="26" height="26">
+      <rect width="32" height="32" rx="8" fill="#0d1117"/>
+      <rect width="32" height="32" rx="8" fill="#38bdf8" fill-opacity=".10"/>
+      <rect x="8" y="9" width="13" height="2.6" rx="1.3" fill="#3fb950"/>
+      <rect x="8" y="14" width="9" height="2.6" rx="1.3" fill="#3fb950"/>
+      <rect x="8" y="19" width="6" height="2.6" rx="1.3" fill="#f85149"/>
+      <rect x="5" y="15.6" width="22" height="1.2" rx=".6" fill="#7dd3fc" fill-opacity=".85"/>
+      <g fill="none" stroke="#7dd3fc" stroke-width="1.8" stroke-linecap="round">
+        <path d="M6 10.5V7.5a1.5 1.5 0 0 1 1.5-1.5h3"/><path d="M21.5 6h3A1.5 1.5 0 0 1 26 7.5v3"/>
+        <path d="M26 21.5v3a1.5 1.5 0 0 1-1.5 1.5h-3"/><path d="M10.5 26h-3A1.5 1.5 0 0 1 6 24.5v-3"/>
+      </g>
+    </svg>
   </span>
-  <h1>Vue intégrée</h1>
+  <h1><a href="#" id="home" title="Revenir à la vue d'ensemble">Runtime X-Ray</a></h1>
   <div class="stat" id="stats"></div>
   <span class="spacer"></span>
   <span class="links" id="links"></span>
-  <label class="toggle"><input type="checkbox" id="clean"> Masquer le code non exécuté</label>
+  <button id="clean" class="cleanbtn" aria-pressed="true"
+          title="Resserré : seule la méthode sélectionnée est affichée, sans ses lignes mortes">
+    <span class="dot"></span> Resserré sur la méthode
+  </button>
 </header>
-<div id="note"></div>
 <main>
   <div id="nav">
     <div class="tabs">
@@ -122,9 +213,12 @@
     <div id="scope"></div>
     <div class="list" id="list"></div>
   </div>
+  <div class="split" id="vsplit" title="Glisser pour redimensionner · double-clic pour replier"></div>
   <div id="detail">
     <div class="crumb" id="crumb"></div>
+    <div id="context"></div>
     <div id="code"></div>
+    <div class="split h" id="hsplit" title="Glisser pour redimensionner · double-clic pour replier"></div>
     <div id="values"></div>
     <div class="legend" id="legend"></div>
   </div>
@@ -133,7 +227,7 @@
 const D = /*__DATA__*/;
 const esc = s => String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
 const dot = s => s.replace(/\//g,".");
-let clean = false, mode = "exec", scopeFrame = null, selected = null, filter = "";
+let clean = true, mode = "exec", scopeFrame = null, selected = null, filter = "", ctxIndex = 0;
 
 /* ---------------------------------------------------------------- agrégats */
 const AGG = (() => {
@@ -152,23 +246,18 @@ document.getElementById("stats").innerHTML =
   "<b>"+AGG.pct.toFixed(1)+" %</b> du code exécuté · <b>"+AGG.methods+"</b> méthodes ayant tourné"+
   (AGG.dead.length ? " · <b>"+AGG.dead.length+"</b> classe(s) morte(s)" : "");
 document.getElementById("links").innerHTML =
-  '<a href="../jacoco/html/index.html">rapport JaCoCo</a>' +
-  '<a href="../jacoco-focused/html/index.html">rapport ciblé</a>' +
-  '<a href="../async-profiler/flamegraph.html">flame graph</a>';
-if (D.profileNote){
-  const n = document.getElementById("note");
-  n.className = "on";
-  n.innerHTML = "⚠️ <b>Réserve sur les pourcentages de temps</b> — " + esc(D.profileNote);
-  document.body.classList.add("noted");
-}
+  '<a href="jacoco/html/index.html">couverture détaillée</a>' +
+  '<a href="jacoco-focused/html/index.html">couverture ciblée</a>' +
+  '<a href="async-profiler/flamegraph.html">flame graph</a>';
 document.getElementById("legend").innerHTML =
   '<span class="sw" style="background:var(--fullbar)"></span>exécuté' +
   '<span class="sw" style="background:var(--partbar)"></span>partiellement' +
   '<span class="sw" style="background:var(--missbar)"></span>jamais exécuté' +
-  '<span style="margin-left:16px"><b>Qui produit quoi</b> : ' +
-  '<span style="color:var(--fullbar)">■</span> JaCoCo, la couleur des lignes et la liste du code exécuté · ' +
-  '<span style="color:var(--partbar)">■</span> async-profiler, les pourcentages et l\'arbre · ' +
-  '<span style="color:var(--violet)">■</span> Arthas, les annotations de ligne et les valeurs.</span>';
+  '<span style="margin-left:16px">À droite d\'une ligne : <b>appelle …</b> = les méthodes appelées ' +
+  'depuis cette ligne et leur <i>durée</i> · <span style="color:var(--violet)">valeurs des paramètres</span> ' +
+  '= les valeurs reçues par la méthode, détaillées dans le bandeau du bas.</span>';
+// La répartition du travail entre les outils sous-jacents n'a pas sa place ici : elle
+// n'aide en rien à lire le rapport. Elle reste expliquée sur la vue d'ensemble.
 
 /* --------------------------------------------------------- frame -> source */
 function frameInfo(frame){
@@ -215,10 +304,11 @@ function renderScope(){
   if (mode !== "exec"){ box.innerHTML = ""; return; }
   box.innerHTML = scopeFrame
     ? "Périmètre : <b>ce qui a tourné sous " + esc(dot(scopeFrame).split(".").slice(-2).join(".")) +
-      "</b> — établi sur les piles échantillonnées, une méthode très rare peut manquer." +
+      "</b> — établi sur les mesures de temps, une méthode très rare peut manquer." +
       "<br><button id='unscope'>Toute l'exécution</button>"
-    : "Périmètre : <b>toute l'exécution</b>. Liste établie par JaCoCo, donc exhaustive. " +
-      "« · » = exécutée, mais trop brève ou trop rare pour être échantillonnée.";
+    : "Périmètre : <b>toute l'exécution</b>. La liste est exhaustive : elle vient de la " +
+      "mesure de couverture. « · » = exécutée, mais trop brève pour apparaître dans les " +
+      "mesures de temps.";
   const b = document.getElementById("unscope");
   if (b) b.onclick = () => { scopeFrame = null; renderExec(); };
 }
@@ -238,8 +328,10 @@ function renderExec(){
     const el = document.createElement("div");
     el.className = "node";
     const share = 100*r.samples/total;
+    const carriesValues = !!(D.values[r.frame] || []).length;
     el.innerHTML = '<span class="pct">'+(share >= 0.05 ? share.toFixed(1)+"%" : "·")+
-                   '</span>'+esc(r.cls.split("/").pop()+"."+r.name);
+                   '</span>'+esc(r.cls.split("/").pop()+"."+r.name)+
+                   (carriesValues ? ' <span class="tagval">valeurs</span>' : '');
     el.title = dot(r.frame);
     el.onclick = () => select(r, el);
     box.appendChild(el);
@@ -303,6 +395,52 @@ function renderClasses(){
   }
 }
 
+/* ------------------------------------------- contextes d'appel d'une méthode
+   Dans l'arbre, le contexte est donné par le chemin parcouru. Dans les listes à plat
+   (Code exécuté, Packages) il manque : une méthode appelée depuis deux endroits n'est
+   pas la même histoire. On reconstruit donc les chemins connus qui mènent à elle. */
+function pathsTo(frame, max = 4){
+  const found = [];
+  (function walk(node, path){
+    for (const kid of node.children){
+      const next = path.concat([kid.name]);
+      if (kid.name === frame) found.push({path: next, total: kid.total});
+      else walk(kid, next);
+    }
+  })(D.calltree, []);
+  found.sort((a,b) => b.total - a.total);
+  const sum = found.reduce((a,f) => a + f.total, 0) || 1;
+  return {chemins: found.slice(0, max), total: sum, nb: found.length};
+}
+function renderContexts(info){
+  const box = document.getElementById("context");
+  if (!info || !info.name){ box.innerHTML = ""; box.style.display = "none"; return; }
+  const {chemins, total, nb} = pathsTo(info.frame);
+  if (!chemins.length){ box.innerHTML = ""; box.style.display = "none"; return; }
+  box.style.display = "block";
+  const label = nb === 1 ? "Appelée depuis un seul contexte :"
+                         : "Appelée depuis " + nb + " contextes — choisir lequel regarder :";
+  box.innerHTML = '<span class="ctxlabel">' + label + '</span>' +
+    chemins.map((c, i) => {
+      const chain = c.path.filter(f => frameInfo(f));
+      const short = chain.map((f, j) =>
+        '<a href="#" data-f="'+esc(f)+'" class="'+(j === chain.length-1 ? "cur" : "")+'">'+
+        esc(f.split("/").pop())+'</a>').join('<span class="sep"> › </span>');
+      return '<div class="ctxpath'+(i === ctxIndex ? " on" : "")+'" data-i="'+i+'">'+
+             '<span class="share">'+(100*c.total/total).toFixed(0)+' %</span>'+short+'</div>';
+    }).join("");
+  box.querySelectorAll(".ctxpath").forEach(el => el.onclick = e => {
+    if (e.target.tagName === "A") return;
+    ctxIndex = +el.dataset.i;
+    renderContexts(info);
+  });
+  box.querySelectorAll("a[data-f]").forEach(a => a.onclick = e => {
+    e.preventDefault();
+    const t = frameInfo(a.dataset.f);
+    if (t) { ctxIndex = 0; select(t, null); }
+  });
+}
+
 /* ------------------------------------------------------------ vue de code */
 function selectFrame(frame, el){
   const info = frameInfo(frame);
@@ -320,15 +458,18 @@ function draw(){
   const code = document.getElementById("code");
   if (!selected){ drawHome(); return; }
   const info = selected, src = D.sources[info.source], cov = D.coverage[info.source] || {};
+  const myCalls = D.values[info.frame] || [];
   const traced = info.cls === D.tracedClass;
   const samples = AGG.weights[info.frame] || 0;
 
   document.getElementById("crumb").innerHTML =
+    '<a class="back" id="backHome" title="Revenir à la vue d\'ensemble">← Vue d\'ensemble</a> <span>›</span> ' +
     '<span>'+esc(dot(info.cls).split(".").slice(0,-1).join("."))+' ›</span> <b>'+
     esc(info.cls.split("/").pop())+'.java</b>'+
     (info.name ? ' <span>›</span> <b>'+esc(info.name)+'()</b>' : '') +
     (samples ? ' <span class="pill">'+(100*samples/(D.calltree.total||1)).toFixed(1)+' % du temps</span>' : '') +
-    (traced ? ' <span class="pill" style="color:var(--violet);border-color:var(--violet)">valeurs capturées</span>' : '') +
+    (myCalls.length ? ' <span class="pill" id="pillValues" style="color:var(--violet);border-color:var(--violet);cursor:pointer">'
+        + myCalls.length + ' appel(s) capturé(s) — voir les valeurs</span>' : '') +
     (mode==="exec" && info.name ? ' <span class="pill" style="cursor:pointer" id="scopeBtn">ne montrer que ce qui tourne sous cette méthode</span>' : '');
 
   if (!src){ code.innerHTML = '<p style="padding:18px;color:var(--muted)">Source indisponible.</p>';
@@ -336,26 +477,36 @@ function draw(){
 
   let from = 0, to = 1e9;
   if (info.line){
-    from = info.line;
+    from = declarationLine(info);
     const next = info.methods.filter(m=>m.line>info.line).map(m=>m.line).sort((a,b)=>a-b)[0];
     to = next ? next-1 : 1e9;
   }
+  // En mode resserré, on n'affiche QUE la méthode sélectionnée : à un instant donné on est
+  // dans une seule méthode, ce qui lève l'ambiguïté d'une classe qui en contient plusieurs.
+  const narrow = clean && info.line;
   let html = '<table class="src">', fold = 0;
+  if (narrow && from > 1)
+    html += '<tr><td colspan="3" class="fold">… '+(from-1)+' ligne(s) au-dessus, hors de cette méthode</td></tr>';
   src.forEach((text,i) => {
     const nr = i+1, c = cov[nr];
+    if (narrow && (nr < from || nr > to)) return;
     if (clean && c && c.s === "miss"){ fold++; return; }
     if (fold){ html += '<tr><td colspan="3" class="fold">… '+fold+' ligne(s) jamais exécutée(s)</td></tr>'; fold = 0; }
     const cls = [c ? c.s : "", (info.line && nr>=from && nr<=to) ? "inmethod" : ""].join(" ");
     let ann = "";
-    if (traced && D.trace[nr])
+    if (info.line && nr === info.line && myCalls.length)
+      ann = '<a href="#" id="lineValues" class="values">▾ valeurs des paramètres ('+myCalls.length+')</a>';
+    else if (traced && D.trace[nr])
       { const all = D.trace[nr];
-        ann = all.slice(0,2).map(a =>
-          '<a href="#" data-f="'+esc(a.frame||"")+'">'+esc(a.callee)+'</a> '+esc(a.cost)).join(" · ")
+        ann = "appelle " + all.slice(0,2).map(a =>
+          '<a href="#" data-f="'+esc(a.frame||"")+'">'+esc(a.callee)+'</a> <span class="dur">'+esc(a.cost)+'</span>').join(" · ")
           + (all.length > 2 ? ' <span style="opacity:.7">+'+(all.length-2)+'</span>' : ''); }
     html += '<tr class="'+cls+'" id="L'+nr+'"><td class="n">'+nr+'</td><td class="c">'+
             esc(text)+'</td><td class="ann">'+ann+'</td></tr>';
   });
   if (fold) html += '<tr><td colspan="3" class="fold">… '+fold+' ligne(s) jamais exécutée(s)</td></tr>';
+  if (narrow && to < src.length)
+    html += '<tr><td colspan="3" class="fold">… '+(src.length-to)+' ligne(s) en dessous, hors de cette méthode</td></tr>';
   code.innerHTML = html+"</table>";
 
   const anchor = document.getElementById("L"+(info.line||1));
@@ -368,14 +519,143 @@ function draw(){
   });
   const sb = document.getElementById("scopeBtn");
   if (sb) sb.onclick = () => { scopeFrame = info.frame; renderExec(); };
-  drawValues(traced);
+  const lv = document.getElementById("lineValues");
+  if (lv) lv.onclick = e => { e.preventDefault();
+    document.getElementById("values").scrollIntoView({block:"nearest"}); };
+  const bh = document.getElementById("backHome");
+  if (bh) bh.onclick = e => { e.preventDefault(); goHome(); };
+  renderContexts(info);
+  drawValues(info);
+  const pv = document.getElementById("pillValues");
+  if (pv) pv.onclick = () => document.getElementById("values").scrollIntoView({block:"nearest"});
 }
-function drawValues(traced){
+function declarationLine(info){
+  const src = D.sources[info.source] || [];
+  if (!info.name) return info.line;
+  const needle = new RegExp("\\b" + info.name.replace(/[$]/g, "\\$") + "\\s*\\(");
+  for (let i = info.line - 1; i >= Math.max(0, info.line - 12); i--)
+    if (needle.test(src[i] || "")) return i + 1;
+  return info.line;
+}
+function declarationOf(info){
+  const src = D.sources[info.source] || [];
+  if (!info.line || !info.name) return "";
+  const needle = new RegExp("\\b" + info.name.replace(/[$]/g, "\\$") + "\\s*\\(");
+  for (let i = info.line - 1; i >= Math.max(0, info.line - 12); i--)
+    if (needle.test(src[i] || "")) return (src[i] || "").trim().replace(/\s*\{\s*$/, "");
+  return "";
+}
+function drawValues(info){
   const box = document.getElementById("values");
-  if (!traced || !D.values.length){ box.innerHTML = ""; return; }
-  box.innerHTML = "<h3>Valeurs réellement passées à cette méthode — capturées par Arthas</h3>" +
-    D.values.map(v => '<div class="call"><span class="t">'+esc(v.cost)+'</span> — '+
-      v.values.map(x => '<span class="v">'+esc(x.value)+'</span>').join(", ")+'</div>').join("");
+  const calls = D.values[info.frame] || [];
+  if (!calls.length){
+    // Rien pour CETTE méthode : dire lesquelles en ont, plutôt que de laisser un vide.
+    const others = Object.keys(D.values);
+    box.innerHTML = others.length
+      ? '<h3>Valeurs des paramètres</h3><div class="call" style="border:0;color:var(--muted)">'+
+        'Aucune valeur capturée pour <code>'+esc(info.name||info.cls.split("/").pop())+'</code>. '+
+        'Méthodes observées : '+ others.map(f =>
+          '<a href="#" class="vlink" data-f="'+esc(f)+'">'+esc(f.split("/").pop())+'</a>').join(" · ")+
+        '</div>'
+      : "";
+    box.querySelectorAll(".vlink").forEach(a => a.onclick = e => {
+      e.preventDefault();
+      const t = frameInfo(a.dataset.f); if (t) select(t, null);
+    });
+    return;
+  }
+  // Rappeler la signature : sans elle, on ne sait pas à quel paramètre correspond
+  // chaque valeur affichée.
+  // JaCoCo pointe la première ligne EXÉCUTABLE, pas la déclaration : on remonte jusqu'à
+  // la ligne qui porte le nom de la méthode suivi d'une parenthèse.
+  const sig = declarationOf(info);
+  box.innerHTML =
+    "<h3>Valeurs reçues par <code>"+esc(info.name)+"</code></h3>" +
+    (sig ? '<div class="sig">'+esc(sig)+'</div>' : '') +
+    '<div class="explain"><b>Une ligne = un appel.</b> La méthode a été appelée un grand '+
+    'nombre de fois pendant l\'exécution ; voici les '+calls.length+' premiers appels '+
+    'observés, avec ce qu\'ils ont reçu et ce qu\'ils ont renvoyé.</div>' +
+    '<div class="callhead"><span>paramètres reçus</span><span>valeur renvoyée</span></div>' +
+    calls.map(v =>
+      '<div class="call"><span class="p">'+
+        (v.params||[]).map(x => '<span class="v">'+esc(x.value)+'</span>').join('<span class="sep">,</span> ')+
+      '</span><span class="arrow">→</span><span class="r">'+
+        (v.retour ? '<span class="v">'+esc(v.retour.value)+'</span>' : '<i>—</i>')+
+      '</span><span class="t" title="durée de cet appel">'+esc(v.cost)+'</span></div>').join("");
+}
+function valuesHelp(){
+  const t = dot(D.tracedClass || "");
+  const name = t.split(".").pop();
+  const methods = Object.keys(D.values || {});
+  const has = methods.length;
+  if (!has)
+    return '<h2>Les valeurs des paramètres</h2><p>Aucune valeur n\'a été capturée pour ce ' +
+      'rapport. Relancer en indiquant la méthode racine à inspecter (<code>--root</code>).</p>';
+  return '<h2>Où voir les valeurs des paramètres</h2>' +
+    '<p>Elles ne sont capturées que sur <b>une seule méthode</b> : la <b>méthode racine</b> ' +
+    'désignée au lancement — ici <code>' + esc(t) + '</code>. C\'est volontaire : capturer ' +
+    'les valeurs de toutes les méthodes produirait un volume ingérable.</p>' +
+    '<p><b>Les méthodes observées</b> — chacune a ses propres valeurs : ' +
+    methods.map(f => '<code>'+esc(f.split("/").pop())+'</code> ('+D.values[f].length+' appels)').join(" · ") +
+    '.</p>' +
+    '<p><b>Pour les voir</b> : ouvrir la méthode depuis la liste de gauche — elle porte une ' +
+    'pastille <span class="tagval">valeurs</span> — puis regarder le <b>bandeau en bas</b>. ' +
+    'On peut aussi cliquer le marqueur violet posé sur sa ligne de déclaration.</p>' +
+    '<p><a href="#" id="gotoValues">→ Ouvrir ' + esc(name) + ' et voir ses valeurs</a></p>';
+}
+function linksBlock(){
+  const repo = "https://github.com/Beennnn/runtime-xray";
+  const l = (href, titre, quoi) =>
+    '<a class="lk" href="'+href+'" target="_blank" rel="noopener">' +
+    '<span class="lkt">'+titre+'</span><span class="lkd">'+quoi+'</span></a>';
+  return '<h2>Pour aller plus loin</h2><div class="links2">' +
+    l("jacoco/html/index.html", "Couverture détaillée",
+      "Le rapport complet, fichier par fichier, avec le code annoté ligne à ligne.") +
+    l("jacoco-focused/html/index.html", "Couverture ciblée",
+      "Le même, restreint aux classes qui ont réellement tourné.") +
+    l("async-profiler/flamegraph.html", "Flame graph",
+      "Où le temps est passé, vu comme un paysage : la largeur d\'une barre est sa durée.") +
+    l("async-profiler/tree.html", "Arbre d\'appel complet",
+      "La hiérarchie des appels, dépliable et cherchable, telle que produite par l\'outil de mesure.") +
+    l(repo, "Le dépôt du projet ↗",
+      "Le code, les scripts de collecte, et comment lancer cet outil sur un autre projet.") +
+    l(repo + "/blob/main/docs/OUTIL.md", "Mode d\'emploi de l\'outil ↗",
+      "Le lancer sur votre propre application : paramètres, configuration, publication du résultat.") +
+    l(repo + "/blob/main/docs/RESULTS.md", "Pourquoi ces outils ↗",
+      "Ce qui a été comparé, ce qui a été écarté, et ce qui reste à trancher.") +
+    '</div>';
+}
+function reserveBlock(){
+  if (!D.profileNote) return "";
+  return '<div class="reserve"><b>Une réserve sur les pourcentages de temps.</b> ' +
+    esc(D.profileNote) + ' <br><br>' +
+    'Tout a été collecté en <b>un seul lancement</b> : c\'est le mode par défaut, parce ' +
+    'qu\'il donne les trois informations recherchées d\'un coup et que le temps d\'exécution ' +
+    'n\'est pas un critère du projet. <b>Si les temps devaient compter</b>, il suffit de ' +
+    'faire <b>plusieurs lancements</b> : un premier pour la couverture et le profil, un ' +
+    'second pour la capture des valeurs. Les pourcentages deviennent alors exacts, au prix ' +
+    'd\'une exécution supplémentaire.</div>';
+}
+function contextBlock(){
+  const c = D.context;
+  if (!c) return "";
+  const row = (k, v) => v ? '<tr><td class="ck">'+esc(k)+'</td><td class="cv">'+v+'</td></tr>' : "";
+  const t = c.outils || {};
+  return '<h2>Contexte de cette exécution</h2><table class="ctx">' +
+    row("Programme lancé", '<code>'+esc(c.commande||"")+'</code>') +
+    row("Méthode racine inspectée", c.methodeRacine ? '<code>'+esc(c.methodeRacine)+'</code>' : "") +
+    row("Filtre de profil", c.filtreClasses ? '<code>'+esc(c.filtreClasses)+'</code>' : "") +
+    row("Début", esc(c.debut)) +
+    row("Fin", esc(c.fin) + (c.dureeSecondes ? ' <span style="opacity:.7">— '+c.dureeSecondes+' s</span>' : "")) +
+    row("Statut", esc(c.statut)) +
+    row("Machine", esc(c.machine) + (c.utilisateur ? ' <span style="opacity:.7">('+esc(c.utilisateur)+')</span>' : "")) +
+    row("Système", esc(c.systeme) + (c.processeurs ? ' — '+c.processeurs+' cœurs' : "")) +
+    row("Java", '<code>'+esc(c.java||"")+'</code>') +
+    row("Répertoire de travail", '<code>'+esc(c.repertoireTravail||"")+'</code>') +
+    row("Classes analysées", '<code>'+esc(c.repertoireClasses||"")+'</code>') +
+    row("Sources", c.repertoiresSources ? '<code>'+esc(c.repertoiresSources)+'</code>' : "") +
+    row("Outils", Object.entries(t).map(([k,v]) => esc(k)+" "+esc(v)).join(" · ")) +
+    '</table>';
 }
 function drawHome(){
   document.getElementById("crumb").innerHTML = '<span>Vue d\'ensemble</span>';
@@ -385,28 +665,82 @@ function drawHome(){
    '<div class="home"><h2>Ce que cette page montre</h2>'+
    '<p>Une exécution réelle du programme, vue par trois outils gratuits, assemblée ici.</p>'+
    '<div class="cards">'+
-     '<div class="card"><div class="k">'+AGG.pct.toFixed(1)+' %</div><div class="l">du code exécuté <span style="opacity:.7">— JaCoCo</span></div></div>'+
-     '<div class="card"><div class="k">'+AGG.methods+'</div><div class="l">méthodes ayant tourné</div></div>'+
-     '<div class="card"><div class="k">'+AGG.samples.toLocaleString("fr")+'</div><div class="l">échantillons de pile <span style="opacity:.7">— async-profiler</span></div></div>'+
-     '<div class="card"><div class="k">'+D.values.length+'</div><div class="l">appels avec leurs valeurs <span style="opacity:.7">— Arthas</span></div></div>'+
+     '<div class="card c1"><div class="k">'+AGG.pct.toFixed(1)+' %</div><div class="l">du code exécuté</div></div>'+
+     '<div class="card c2"><div class="k">'+AGG.methods+'</div><div class="l">méthodes ayant tourné</div></div>'+
+     '<div class="card c3"><div class="k">'+AGG.samples.toLocaleString("fr")+'</div><div class="l">mesures de temps prises</div></div>'+
+     '<div class="card c4"><div class="k">'+Object.values(D.values).reduce((a,v)=>a+v.length,0)+'</div><div class="l">appels avec leurs valeurs</div></div>'+
    '</div>'+
-   '<h2>Comment s\'en servir</h2><ol>'+
-     '<li><b>Code exécuté</b> — la liste de tout ce qui a tourné, du plus coûteux au moins coûteux. Cliquer ouvre le code, lignes exécutées en vert.</li>'+
-     '<li>Sur une méthode, <b>« ne montrer que ce qui tourne sous cette méthode »</b> restreint la liste à son périmètre — sans avoir à descendre d\'appel en appel.</li>'+
-     '<li><b>Arbre d\'appel</b> et <b>Packages</b> sont deux autres portes d\'entrée vers le même code.</li>'+
-     '<li><b>Masquer le code non exécuté</b>, en haut à droite, retire du rapport tout ce qui n\'a pas tourné.</li>'+
+   '<div class="bar"><span style="width:'+AGG.pct.toFixed(1)+'%"></span></div>'+
+   '<h2>Comment s\'en servir</h2>'+
+   '<ol>'+
+     '<li><b>À gauche, choisir un onglet</b>, puis cliquer sur une ligne.<br>'+
+       '<b>Code exécuté</b> — tout ce qui a tourné, du plus coûteux au moins coûteux. C\'est l\'entrée normale.<br>'+
+       '<b>Arbre d\'appel</b> — la même chose vue comme une hiérarchie d\'appels.<br>'+
+       '<b>Packages</b> — le classement par fichier, quand on cherche une classe précise.<br>'+
+       '<span style="opacity:.85">Le champ <i>Filtrer…</i> réduit la liste à mesure qu\'on tape.</span></li>'+
+     '<li><b>Au centre, le code s\'affiche</b>, colorié ligne par ligne : '+
+       '<span style="background:var(--full);padding:1px 5px;border-radius:3px">exécutée</span> · '+
+       '<span style="background:var(--part);padding:1px 5px;border-radius:3px">partiellement</span> · '+
+       '<span style="background:var(--miss);padding:1px 5px;border-radius:3px">jamais exécutée</span>. '+
+       'À droite de chaque ligne, en violet, les appels qui en partent et leur coût — cliquables pour sauter à la méthode appelée.</li>'+
+     '<li><b>Le bandeau du bas montre les valeurs de la méthode sélectionnée</b> — chaque méthode a les siennes. '+
+       'Choisir une autre méthode à gauche change le contexte, et donc les valeurs affichées.</li>'+
+     '<li><b>Resserré sur la méthode</b> (bouton en haut à droite, actif par défaut) : le centre '+
+       'n\'affiche que la méthode choisie, sans ses lignes jamais exécutées, et la liste de gauche '+
+       'écarte les classes mortes. C\'est ce qui garantit qu\'on regarde <b>une seule méthode à la '+
+       'fois</b>, même dans une classe qui en contient plusieurs. Le désactiver montre le fichier entier.</li>'+
+     '<li><b>Restreindre le périmètre</b> : sur une méthode ouverte, le bouton <i>« ne montrer que ce qui tourne sous cette méthode »</i> ne garde dans la liste que le code appelé sous elle — sans avoir à descendre d\'appel en appel.</li>'+
+     '<li><b>Le contexte d\'appel</b> : juste sous le fil d\'Ariane, la liste des chemins par lesquels '+
+       'la méthode a été atteinte, avec leur part. Une méthode appelée depuis deux endroits n\'est pas '+
+       'la même histoire — cliquer un chemin le retient, cliquer un maillon ouvre ce maillon.</li>'+
+     '<li><b>Revenir ici</b> : le bouton <i>← Vue d\'ensemble</i> en haut du code, ou le titre <i>Runtime X-Ray</i>.</li>'+
    '</ol>'+
-   (AGG.dead.length ? '<h2>Jamais exécuté</h2><p>'+AGG.dead.map(d=>'<code>'+esc(d)+'</code>').join(" ")+'</p>' : '')+
-   '<h2>Les plus coûteuses</h2><p>'+hot.map(h=>'<code>'+esc(h.cls.split("/").pop()+"."+h.name)+'</code>').join(" ")+'</p>'+
+   valuesHelp()+
+   '<h2>Comment ce rapport est produit</h2>'+
+   '<p>Trois outils libres et gratuits ont observé la même exécution, et leurs sorties ont '+
+   'été assemblées dans cette page :</p>'+
+   '<ul class="tools">'+
+     '<li><b>JaCoCo</b> — les lignes exécutées, et la liste exhaustive du code qui a tourné.</li>'+
+     '<li><b>async-profiler</b> — les pourcentages de temps et l\'arbre d\'appel.</li>'+
+     '<li><b>Arthas</b> — les valeurs des paramètres et les annotations d\'appel sur les lignes.</li>'+
+   '</ul>'+
+   '<p>Aucun ne fait les trois : c\'est leur combinaison qui répond. Tous fonctionnent sans '+
+   'connexion Internet et sans licence.</p>'+
+   contextBlock() +
+   (AGG.dead.length ? '<h2>Jamais exécuté</h2><p>'+AGG.dead.map(d=>'<span class="chip dead">'+esc(d)+'</span>').join("")+'</p>' : '')+
+   '<h2>Les plus coûteuses</h2><p>'+hot.map(h=>'<span class="chip hot">'+esc(h.cls.split("/").pop()+"."+h.name)+'</span>').join("")+'</p>'+
+   reserveBlock()+
+   linksBlock()+
    '</div>';
+  const g = document.getElementById("gotoValues");
+  if (g) g.onclick = e => {
+    e.preventDefault();
+    const n = [...document.querySelectorAll("#list .node")]
+      .find(x => (x.title||"").startsWith(dot(D.tracedClass)));
+    if (n) n.click();
+  };
+}
+
+function goHome(){
+  selected = null; ctxIndex = 0;
+  const c = document.getElementById("context"); if (c){ c.innerHTML=""; c.style.display="none"; }
+  document.querySelectorAll(".node.sel").forEach(n=>n.classList.remove("sel"));
+  document.getElementById("code").scrollTop = 0;
+  drawHome();
 }
 
 /* ------------------------------------------------------------ interactions */
+document.getElementById("home").onclick = e => { e.preventDefault(); goHome(); };
 document.getElementById("tab-exec").onclick = renderExec;
 document.getElementById("tab-tree").onclick = renderTree;
 document.getElementById("tab-cls").onclick  = renderClasses;
-document.getElementById("clean").onchange = e => {
-  clean = e.target.checked;
+document.getElementById("clean").onclick = e => {
+  const b = e.currentTarget;
+  clean = !clean;
+  b.setAttribute("aria-pressed", String(clean));
+  b.lastChild.textContent = clean ? " Resserré sur la méthode" : " Fichier entier";
+  b.title = clean ? "Resserré : seule la méthode sélectionnée est affichée, sans ses lignes mortes"
+                  : "Fichier entier, y compris le code jamais exécuté";
   mode === "cls" ? renderClasses() : mode === "tree" ? renderTree() : renderExec();
   draw();
 };
@@ -414,6 +748,45 @@ document.getElementById("search").oninput = e => {
   filter = e.target.value.trim().toLowerCase();
   mode === "cls" ? renderClasses() : mode === "tree" ? renderTree() : renderExec();
 };
+/* ------------------------------------------------------- panneaux ajustables */
+(function splitters(){
+  const root = document.documentElement;
+  const nav = document.getElementById("nav");
+  const vs = document.getElementById("vsplit"), hs = document.getElementById("hsplit");
+  let navPrev = 330, valPrev = 190;
+
+  const startDrag = (el, onMove) => {
+    el.addEventListener("mousedown", e => {
+      e.preventDefault(); el.classList.add("dragging");
+      const move = ev => onMove(ev);
+      const up = () => { el.classList.remove("dragging");
+        document.removeEventListener("mousemove", move);
+        document.removeEventListener("mouseup", up); };
+      document.addEventListener("mousemove", move);
+      document.addEventListener("mouseup", up);
+    });
+  };
+  startDrag(vs, ev => {
+    const w = Math.max(0, Math.min(ev.clientX, window.innerWidth - 200));
+    root.style.setProperty("--navw", w + "px");
+    if (w > 40) navPrev = w;
+  });
+  startDrag(hs, ev => {
+    const box = document.getElementById("values").getBoundingClientRect();
+    const h = Math.max(0, Math.min(box.bottom - ev.clientY, window.innerHeight - 220));
+    root.style.setProperty("--valh", h + "px");
+    if (h > 30) valPrev = h;
+  });
+  vs.ondblclick = () => {
+    const cur = parseInt(getComputedStyle(root).getPropertyValue("--navw")) || 330;
+    root.style.setProperty("--navw", cur > 40 ? "0px" : navPrev + "px");
+  };
+  hs.ondblclick = () => {
+    const cur = parseInt(getComputedStyle(root).getPropertyValue("--valh")) || 190;
+    root.style.setProperty("--valh", cur > 30 ? "0px" : valPrev + "px");
+  };
+})();
+
 renderExec();
 drawHome();
 </script>

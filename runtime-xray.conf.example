@@ -1,0 +1,38 @@
+# Configuration de Runtime X-Ray — à copier et adapter.
+#   ./runtime-xray.sh --config mon-projet.conf
+#
+# Toutes les valeurs sont facultatives sauf JAVA_CMD et CLASSES_DIR.
+
+# Comment lancer l'application. AUCUNE contrainte : `java -jar`, `mvn exec:java`,
+# `gradle run`, un script maison… Les agents d'analyse sont injectés par
+# JAVA_TOOL_OPTIONS, que toute JVM lit au démarrage.
+JAVA_CMD="java -jar sample-app/target/sample-app.jar --iterations 24000000"
+
+# La fonction racine : celle dont on veut voir les valeurs de paramètres et l'arbre
+# d'un appel. Format paquet.Classe::methode. Facultatif — sans elle, on obtient la
+# couverture et le profil, mais pas les valeurs.
+ROOT_METHOD="lab.sample.RoutePlanner::travelTimeMinutes"
+
+# Les .class compilés — indispensables à la couverture.
+CLASSES_DIR="sample-app/target/classes"
+
+# Les sources, pour afficher le code annoté. Plusieurs racines : séparées par ':'.
+SOURCE_DIRS="sample-app/src/main/java"
+
+# Restreint le profil au code applicatif. Sans ce filtre, la majorité des échantillons
+# sont ceux du compilateur JIT : exact, mais illisible.
+# Déduit du paquet de ROOT_METHOD si non renseigné.
+CLASS_FILTER="lab/sample/*"
+
+OUT_DIR="runtime-xray-out"
+
+# Délai avant d'attacher l'inspecteur de valeurs. Il faut que l'application ait démarré
+# ET que les appels aient encore lieu : sur une exécution très courte, augmenter la
+# charge de travail plutôt que de réduire ce délai.
+ATTACH_AFTER=8
+
+# Garde-fou : au-delà, l'exécution est interrompue et les rapports sont produits.
+MAX_SECONDS=600
+
+# Nombre d'appels dont on capture les valeurs.
+WATCH_COUNT=5
