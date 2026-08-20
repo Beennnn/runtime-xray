@@ -22,7 +22,7 @@ C'est le point le plus important du brief, et c'est le mieux résolu.
 
 - Sortie : un **site HTML** où l'on descend de la vue d'ensemble jusqu'au **code source
   colorié ligne par ligne** — vert exécuté, rouge jamais atteint, jaune branche partielle.
-- Mesuré sur `sample-app` : **92,3 % des instructions**, **85,7 % des branches**.
+- Mesuré sur `sample-app` : **91,1 % des instructions**, **81,8 % des branches**.
 - Aucun serveur, aucun compte, aucune connexion : un dossier de fichiers qu'on ouvre ou
   qu'on envoie tel quel.
 
@@ -148,6 +148,44 @@ jdk.MethodTiming {
 ```
 
 Sous Java 21, cette ligne n'existe pas — il faut un outil tiers pour l'obtenir.
+
+### Pourquoi Java 25 est plus précis — le mécanisme
+
+Ce n'est pas un réglage plus fin : **c'est un changement de nature de la mesure.**
+
+**Java 21 — échantillonnage.** JFR photographie périodiquement la pile des threads
+(événement `jdk.ExecutionSample`). Sur 10 secondes, ça donne quelques centaines de
+clichés, à partir desquels on *infère* où le temps est passé. C'est une méthode
+statistique : elle est fidèle sur les grandes masses, et aveugle sur le reste. Une méthode
+appelée 16 millions de fois mais très brève peut n'apparaître dans presque aucun cliché ;
+une méthode appelée trois fois n'apparaîtra probablement jamais. **On ne sait jamais
+combien de fois quelque chose a été appelé — seulement quelle proportion des photos le
+montrait.**
+
+**Java 25 — instrumentation ciblée (JEP 520).** Le traceur de méthodes de JFR réécrit le
+bytecode des méthodes **nommées dans le filtre**, pour compter et chronométrer **chaque
+invocation**. Ce n'est plus un sondage, c'est un comptage exhaustif : d'où les
+16 000 000 d'invocations rapportées exactement, et les 594 877 piles d'appel enregistrées.
+
+Le **filtre est ce qui rend l'instrumentation soutenable** : on ne paie le surcoût que sur
+les méthodes qu'on a désignées. C'est tout le sens du JEP — l'instrumentation exhaustive
+existait déjà chez les outils commerciaux, la nouveauté est de l'avoir dans le JDK, ciblée.
+
+### Ce que cette précision coûte — à ne pas passer sous silence
+
+L'exactitude ne s'obtient pas gratuitement, et sur deux points elle se retourne :
+
+1. **L'instrumentation perturbe ce qu'elle mesure.** Une méthode tracée ne peut plus être
+   *inlinée* par le compilateur JIT de la même façon, et un événement est écrit à chaque
+   appel. Le **comptage** reste exact ; les **durées** de méthodes très brèves, elles, sont
+   à prendre avec précaution — on mesure aussi le coût de la mesure. L'échantillonnage de
+   Java 21, lui, ne déforme presque rien : il est moins précis mais moins intrusif.
+2. **Le volume explose.** Tracer une méthode du chemin chaud a produit **129 Mo pour 10
+   secondes** d'exécution. C'est jouable sur une méthode ciblée, ingérable en saupoudrage.
+
+Autrement dit : Java 25 ne remplace pas l'échantillonnage, il **ajoute** un second mode.
+On échantillonne pour savoir où chercher, on instrumente pour mesurer précisément ce qu'on
+a trouvé.
 
 ### Ce que le portage ferait gagner
 

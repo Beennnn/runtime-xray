@@ -147,7 +147,7 @@ Ce qui est **établi par l'exécution** (et non par lecture) :
 
 1. **Pour « par où le code est passé », JaCoCo est déjà la réponse.** Il produit un site
    HTML où l'on descend de la vue d'ensemble jusqu'au source colorié ligne par ligne, sans
-   IDE, sans serveur, sans compte. Sur `sample-app` : 90,9 % des instructions et 85,5 % des
+   IDE, sans serveur, sans compte. Sur `sample-app` : 91,1 % des instructions et 81,8 % des
    branches couvertes, avec `PlaneSpeed` à 0 % et la branche `SNOW` en rouge — exactement
    ce qu'un lecteur non technique doit pouvoir constater seul.
 2. **Pour l'arbre d'appel, async-profiler donne le meilleur rapport effort/résultat gratuit** :

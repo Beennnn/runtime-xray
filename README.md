@@ -29,7 +29,7 @@ développeur dans son IDE, pour un non-technicien dans une page web qu'on lui en
 | Contrainte | Conséquence sur le choix |
 |---|---|
 | 🔌 **Environnement déconnecté d'Internet** | Élimine tout SaaS (Datadog, New Relic, Codecov, SonarCloud) et tout outil qui télécharge ses composants au lancement |
-| ☕ **Java 21** | Élimine le traçage de méthodes de JFR, arrivé en Java 25 — [mesuré, avec le gain qu'un portage apporterait](docs/RESULTS.md#gains-dun-portage-vers-java-25) |
+| ☕ **Java 21 aujourd'hui, Java 25 à évaluer** | Les deux plateformes sont évaluées. L'écart est mesuré et il est important : le traçage de méthodes de JFR n'existe qu'à partir de Java 25 — [pourquoi, et ce que ça change](docs/RESULTS.md#gains-dun-portage-vers-java-25) |
 | 🧭 **IntelliJ comme IDE cible** | L'intégration IDE se juge sur IntelliJ ; à défaut, une page web navigable fait office d'équivalent |
 | 👥 **Deux publics** | Un développeur lit dans son IDE ; un non-technicien ouvre une page seul, sans installation ni compte |
 | 🎯 **Diagnostic ponctuel** | Déployer un collecteur et un serveur pour répondre à une question est disproportionné |
@@ -109,8 +109,9 @@ elles s'ouvrent directement, sans rien réexécuter.
 ## Méthode
 
 On ne compare que ce qu'on a **fait tourner**. Tous les outils analysent le même
-programme, dans le même scénario déterministe, sous **Java 21**, et déposent leur sortie
-réelle dans le dépôt. Chaque affirmation du tableau porte un statut : *testé ici* ou
+programme, dans le même scénario déterministe, **sous Java 21 puis sous Java 25**, et
+déposent leur sortie réelle dans le dépôt. Vérifié au passage : la couverture est
+**identique** sur les deux versions ; c'est JFR, et lui seul, qui change. Chaque affirmation du tableau porte un statut : *testé ici* ou
 *sur documentation* — une lecture de documentation n'est jamais présentée comme une mesure.
 
 Le détail — programme analysé, scripts de collecte, mode d'intégration de chaque outil —
