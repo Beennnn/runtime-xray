@@ -51,7 +51,10 @@ développeur dans son IDE, pour un non-technicien dans une page web qu'on lui en
 5. **Coût** — gratuit vs commercial, et si le payant se justifie.
 
 > **Hors critères** : le temps de calcul et la RAM sont mesurés à titre de bonus, mais
-> n'entrent pas dans la décision.
+> n'entrent pas dans la décision. **L'optimisation des performances est un sujet distinct,
+> à traiter plus tard** — une fois le code compris, puis reconçu avec ses propres
+> contraintes de performance. Choisir un outil d'analyse sur sa vitesse reviendrait à
+> laisser une question ultérieure décider à la place de la question actuelle.
 
 ## Les outils comparés
 

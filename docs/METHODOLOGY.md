@@ -44,6 +44,13 @@ L'ordre n'est pas décoratif : il tranche les cas où deux outils sont bons diff
 **Hors critères, mesuré en bonus** : temps de calcul et RAM. L'application les rapporte
 elle-même, ce qui donne une référence indépendante pour estimer le surcoût d'un outil.
 
+Ces chiffres ne servent qu'à ça. **L'optimisation des performances du code analysé est un
+sujet à part entière, et il vient plus tard** : d'abord comprendre ce que fait le code —
+c'est l'objet de ce dépôt —, ensuite le reconcevoir, et alors seulement l'optimiser en
+fonction de contraintes de performance qui lui seront propres. Les mesures rapportées ici
+ne préjugent en rien de cette étape : elles servent à savoir si un outil d'analyse ralentit
+trop l'exécution pour rester utilisable, pas à juger le code.
+
 ## 3. Trois modes d'intégration — et pourquoi ça compte
 
 Ces outils **ne sont pas des dépendances Maven**. C'est la principale surprise structurelle

@@ -49,7 +49,13 @@ L'application imprime elle-même son temps par étape et la mémoire occupée
 
 C'est une **référence indépendante** : quand un outil annonce un temps, on peut le
 confronter à une mesure qui ne vient pas de lui, et constater combien l'outil lui-même
-ralentit l'exécution. Ces chiffres sont un bonus, **pas un critère de choix**.
+ralentit l'exécution.
+
+⚠️ Ces chiffres sont un bonus, **pas un critère de choix** — et ils ne disent rien de la
+performance du code. **L'optimisation sera étudiée à part, plus tard** : quand le code aura
+été compris grâce à ces outils, puis reconçu avec ses propres contraintes de performance.
+Ici, la seule question posée est : *l'outil d'analyse ralentit-il assez peu pour rester
+utilisable ?*
 
 ### Calibrage à ~10 secondes
 
