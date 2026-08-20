@@ -95,8 +95,11 @@
 
   <ul class="steps">
     <li><b><span class="n">1</span>Il s'intègre à une exécution</b>
-        Sans toucher au code ni au build : les observateurs sont injectés au démarrage de la JVM,
-        quelle que soit la façon dont elle est lancée.</li>
+        On lui donne la commande, il la lance telle quelle&nbsp;:
+        <code>--java "java -jar mon-appli.jar"</code>. Rien à changer dans le code ni dans le
+        build&nbsp;— les observateurs entrent par <code>JAVA_TOOL_OPTIONS</code>, que toute JVM
+        lit à son démarrage. Sur une JVM qu'on ne lance pas soi-même (service, conteneur),
+        <code>--print-options</code> rend la ligne à coller.</li>
     <li><b><span class="n">2</span>Trois outils observent</b>
         JaCoCo relève les lignes exécutées, async-profiler mesure le temps, Arthas capte les
         valeurs reçues. Chacun produit son rapport, dans son format.</li>
@@ -105,12 +108,9 @@
         trois formats à rapprocher soi-même.</li>
   </ul>
 
-  <p class="meta">Ce qui suit vient d'une exécution réelle : un calculateur de temps de trajet
-    (22 classes, 8 paquets), sous Java 21. Toutes les pages ci-dessous sont des sorties d'outils,
-    pas des captures d'écran.</p>
-
-  <h2>La vue agrégée</h2>
-  <p class="hint">C'est le livrable : les trois observations réunies, navigables ensemble.</p>
+  <p class="meta">Ce qui suit vient d'exécutions réelles&nbsp;: un calculateur de temps de trajet
+    (27 classes, 9 paquets, plus une dépendance analysée depuis son jar), sous Java 25.
+    Toutes les pages ci-dessous sont des sorties d'outils, pas des captures d'écran.</p>
 
   <a class="demo" href="multi/index.html">
     <span class="play" aria-hidden="true">▶</span>
@@ -139,10 +139,10 @@
       <div class="d">Tout le code, exécuté ou non. Source annotée ligne à ligne : vert exécuté,
         rouge jamais atteint, jaune branche partiellement couverte.</div>
     </a>
-    <a class="card" href="demo/async-profiler/tree.html">
-      <div class="t">Arbre d'appel <span class="badge" title="Produit par async-profiler" role="img" aria-label="async-profiler"><svg viewBox="0 0 32 32" width="22" height="22"><rect width="32" height="32" rx="8" fill="#d29922" fill-opacity=".14" stroke="#d29922" stroke-opacity=".5"/><rect x="6" y="20" width="20" height="4" rx="1.5" fill="#e3a72c"/><rect x="9" y="14.5" width="14" height="4" rx="1.5" fill="#f0b849"/><rect x="12" y="9" width="8" height="4" rx="1.5" fill="#f8d477"/></svg></span></div>
-      <div class="d">Qui appelle qui, dépliable et cherchable, avec la part de temps de chaque
-        branche. Le bouton « Expand All » ouvre tout d'un coup.</div>
+    <a class="card" href="demo/async-profiler/flamegraph-inverse.html">
+      <div class="t">Profil inversé <span class="badge" title="Produit par async-profiler" role="img" aria-label="async-profiler"><svg viewBox="0 0 32 32" width="22" height="22"><rect width="32" height="32" rx="8" fill="#d29922" fill-opacity=".14" stroke="#d29922" stroke-opacity=".5"/><rect x="6" y="20" width="20" height="4" rx="1.5" fill="#e3a72c"/><rect x="9" y="14.5" width="14" height="4" rx="1.5" fill="#f0b849"/><rect x="12" y="9" width="8" height="4" rx="1.5" fill="#f8d477"/></svg></span></div>
+      <div class="d">Le graphe retourné : on part d'une méthode coûteuse et on remonte vers
+        ceux qui l'appellent. C'est la question que le graphe classique ne répond pas.</div>
     </a>
     <a class="card" href="demo/async-profiler/flamegraph.html">
       <div class="t">Flame graph <span class="badge" title="Produit par async-profiler" role="img" aria-label="async-profiler"><svg viewBox="0 0 32 32" width="22" height="22"><rect width="32" height="32" rx="8" fill="#d29922" fill-opacity=".14" stroke="#d29922" stroke-opacity=".5"/><rect x="6" y="20" width="20" height="4" rx="1.5" fill="#e3a72c"/><rect x="9" y="14.5" width="14" height="4" rx="1.5" fill="#f0b849"/><rect x="12" y="9" width="8" height="4" rx="1.5" fill="#f8d477"/></svg></span></div>
@@ -176,7 +176,7 @@
 
   <h2>Le lancer sur votre projet</h2>
   <div class="grid">
-    <a class="card" href="https://github.com/Beennnn/runtime-xray/blob/main/docs/OUTIL.md">
+    <a class="card" href="https://github.com/Beennnn/runtime-xray/blob/main/docs/outil/mode-emploi.md">
       <div class="t">Mode d'emploi ↗</div>
       <div class="d">Un seul fichier, lancé par le <code>java</code> déjà présent : aucune
         contrainte sur la façon de démarrer l'application, aucune licence, et aucune connexion
@@ -192,7 +192,7 @@
   <footer>
     Produit par JaCoCo, async-profiler et Arthas — libres, gratuits, et fonctionnant sans
     connexion.<br>
-    En marge : <a href="https://github.com/Beennnn/runtime-xray/blob/main/docs/RESULTS.md#gains-dun-portage-vers-java-25">Java 21 contre Java 25</a>,
+    En marge : <a href="https://github.com/Beennnn/runtime-xray/blob/main/docs/resultat/resultats.md#gains-dun-portage-vers-java-25">Java 21 contre Java 25</a>,
     mesuré sur le même programme — spectaculaire, mais sans effet sur la solution retenue.<br>
     <a href="https://github.com/Beennnn/runtime-xray">github.com/Beennnn/runtime-xray</a>
   </footer>

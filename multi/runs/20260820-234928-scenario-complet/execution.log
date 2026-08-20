@@ -1,0 +1,20 @@
+Picked up JAVA_TOOL_OPTIONS: -javaagent:/Users/benoitbesson/.runtime-xray/org.jacoco.agent-0.8.13-runtime.jar=destfile=/Users/benoitbesson/dev/pro/runtime-xray/runtime-xray-out/runs/20260820-234928-scenario-complet/jacoco/jacoco.exec -agentpath:/Users/benoitbesson/.runtime-xray/libasyncProfiler-4.1.dylib=start,event=itimer,interval=1ms,collapsed,file=/Users/benoitbesson/dev/pro/runtime-xray/runtime-xray-out/runs/20260820-234928-scenario-complet/async-profiler/profil.collapsed,include=lab/sample/* -XX:+UnlockDiagnosticVMOptions -XX:+DebugNonSafepoints
+Profiling started
+sample-app : 24000000 trajets évalués, pause finale 0 s
+  [JVM démarrée                ] étape        0 ms | cumul        0 ms | mémoire ~1 Mo / 8192 Mo max
+  [jeu de trajets fabriqué     ] étape       14 ms | cumul       14 ms | mémoire ~2 Mo / 8192 Mo max
+WARNING: A Java agent has been loaded dynamically (/Users/benoitbesson/.runtime-xray/arthas-4.3.4/arthas-agent.jar)
+WARNING: If a serviceability tool is in use, please run with -XX:+EnableDynamicAgentLoading to hide this warning
+WARNING: If a serviceability tool is not in use, please run with -Djdk.instrument.traceUsage for more information
+WARNING: Dynamic loading of agents will be disallowed by default in a future release
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::arrayBaseOffset has been called by com.alibaba.arthas.deps.com.alibaba.fastjson2.util.JDKUtils (file:/Users/benoitbesson/.runtime-xray/arthas-4.3.4/arthas-core.jar)
+WARNING: Please consider reporting this to the maintainers of class com.alibaba.arthas.deps.com.alibaba.fastjson2.util.JDKUtils
+WARNING: sun.misc.Unsafe::arrayBaseOffset will be removed in a future release
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+WARNING: A Java agent has been loaded dynamically (/Users/benoitbesson/.runtime-xray/arthas-4.3.4/arthas-agent.jar)
+WARNING: If a serviceability tool is in use, please run with -XX:+EnableDynamicAgentLoading to hide this warning
+WARNING: If a serviceability tool is not in use, please run with -Djdk.instrument.traceUsage for more information
+WARNING: Dynamic loading of agents will be disallowed by default in a future release
+  [calcul terminé              ] étape    60522 ms | cumul    60536 ms | mémoire ~16 Mo / 8192 Mo max
+durée cumulée = 14407220021 minutes
