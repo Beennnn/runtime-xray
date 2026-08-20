@@ -96,6 +96,13 @@ avec un profiler d'arbre d'appel, les deux agents cohabitant sur la même JVM.
 Sur `sample-app`, sous Java 21 : **91,1 % des instructions**, **81,8 % des branches**.
 `PlaneSpeed` et la branche `SNOW` ressortent bien comme non exécutées.
 
+## Comparable à
+
+- **[OpenClover](openclover.md)** — Même métier — la couverture — mais il conserve le lien avec **le test** qui a couvert chaque ligne. Plus riche sur cet axe, plus intrusif : il instrumente à la compilation, pas à l'exécution. Pour la couverture d'un **run**, JaCoCo est plus direct.
+- **[SonarQube](sonarqube.md)** — Ce n'est pas un concurrent : il **consomme** le XML de JaCoCo. Il l'affiche mieux, avec un historique — au prix d'un serveur à maintenir.
+- **[IntelliJ IDEA](intellij.md)** — Autre consommateur, pas autre mesureur : il affiche le `.exec` dans la marge de l'éditeur.
+- **[async-profiler](async-profiler.md)** — **Complémentaire, jamais substituable.** JaCoCo sait ce qui n'a *pas* tourné, un profiler par échantillonnage ne le saura jamais.
+
 ## Facile / moins facile
 
 **Ce qui est facile.** Obtenir un rapport : un flag JVM, trois commandes scriptées. **Le lire sans formation** : le code colorié se comprend sans savoir ce qu'est une branche.

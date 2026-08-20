@@ -49,6 +49,12 @@ technique** sans mise en forme supplémentaire.
 **si** Arthas et JMC Agent échouent — ce sont les plus exigeants des trois en effort
 d'écriture, donc les plus pénalisés par le critère n° 1.
 
+## Comparable à
+
+- **[Arthas](arthas.md)** — Répond aux mêmes questions, sans écrire une ligne. C'est ce qui le fait passer devant sur le critère n° 1.
+- **[JMC Agent](jmc-agent.md)** — Même capacité, en déclaratif, avec une sortie standardisée (JFR) au lieu d'un flux texte.
+- **[JProfiler](jprofiler.md) · [YourKit](yourkit.md)** — Les versions commerciales de la même idée, avec une interface et l'agrégation en plus.
+
 ## Facile / moins facile
 
 **Ce qui est facile.** Exprimer une question précise : ces outils peuvent capturer à peu près n'importe quoi.

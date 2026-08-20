@@ -1,7 +1,7 @@
 GROUP,PACKAGE,CLASS,INSTRUCTION_MISSED,INSTRUCTION_COVERED,BRANCH_MISSED,BRANCH_COVERED,LINE_MISSED,LINE_COVERED,COMPLEXITY_MISSED,COMPLEXITY_COVERED,METHOD_MISSED,METHOD_COVERED
 Runtime X-Ray — code réellement exécuté,lab.sample,Metrics,0,78,0,0,0,14,0,2,0,2
 Runtime X-Ray — code réellement exécuté,lab.sample,Scenarios,0,176,0,4,0,16,0,4,0,2
-Runtime X-Ray — code réellement exécuté,lab.sample,Main,40,99,4,6,6,18,4,4,1,2
+Runtime X-Ray — code réellement exécuté,lab.sample,Main,25,114,1,9,4,20,2,6,1,2
 Runtime X-Ray — code réellement exécuté,lab.sample,RoutePlanner,0,93,0,10,0,17,0,7,0,2
 Runtime X-Ray — code réellement exécuté,lab.sample.terrain,Elevation,0,31,0,0,0,4,0,1,0,1
 Runtime X-Ray — code réellement exécuté,lab.sample.terrain,Terrain,3,60,2,9,1,14,2,8,0,3

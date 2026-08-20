@@ -53,6 +53,12 @@ dominé par async-profiler sur l'arbre d'appel (qui produit en plus un fichier p
 et ne répond ni à la couverture ni aux paramètres. Utile comme outil d'appoint, pas comme
 solution.
 
+## Comparable à
+
+- **[async-profiler](async-profiler.md)** — Le remplace avantageusement dès qu'on veut **garder** ou **transmettre** un résultat.
+- **[JFR](jfr-jmc.md) · [JMC](jfr-jmc.md)** — Même famille, issue du JDK. JMC enregistre plus finement, VisualVM se prend en main plus vite.
+- **[JProfiler](jprofiler.md)** — Ce que VisualVM fait, en beaucoup plus complet — c'est le pas payant.
+
 ## Facile / moins facile
 
 **Ce qui est facile.** Voir quelque chose en trente secondes, sans rien préparer. C'est son unique argument, et il est réel.

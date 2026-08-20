@@ -35,6 +35,12 @@ Le bon choix **si le besoin glisse du diagnostic ponctuel vers un suivi dans le 
 c'est précisément la question n° 4 des arbitrages. Pour une analyse ponctuelle, faire
 tourner un serveur pour lire un arbre d'appel est disproportionné face à un HTML autonome.
 
+## Comparable à
+
+- **[OpenTelemetry](opentelemetry.md)** — Même famille — le traçage de transactions — mais Glowroot embarque son serveur et son interface, là où OTel exige de monter collecteur et backend. Bien plus simple à essayer.
+- **[APM SaaS](apm-saas.md)** — **L'équivalent auto-hébergeable** : la même promesse, sans l'envoi de données à un éditeur, donc compatible avec une exécution hors ligne.
+- **[async-profiler](async-profiler.md)** — Deux échelles différentes : Glowroot trace des transactions, async-profiler échantillonne des méthodes.
+
 ## Facile / moins facile
 
 **Ce qui est facile.** Regarder : c'est la plus belle interface gratuite du panel, prête à l'emploi.

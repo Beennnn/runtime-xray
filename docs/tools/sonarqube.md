@@ -36,6 +36,12 @@ Un **canal de diffusion** pour la couverture, pas une source de données supplé
 Pertinent seulement si l'on veut un historique et un portail permanent — sinon le rapport
 HTML de JaCoCo suffit et ne demande aucune infrastructure. C'est l'arbitrage n° 3.
 
+## Comparable à
+
+- **[JaCoCo](jacoco.md)** — Fournisseur, pas concurrent : Sonar n'exécute rien, il affiche le XML de JaCoCo.
+- **[Codecov](../ECARTES.md) · Coveralls** — Les équivalents SaaS, éliminés par la contrainte d'exécution hors ligne — alors que SonarQube Community s'auto-héberge.
+- **[IntelliJ IDEA](intellij.md)** — L'autre façade de la même donnée, dans l'éditeur plutôt que dans un portail.
+
 ## Facile / moins facile
 
 **Ce qui est facile.** Afficher une couverture déjà produite : il consomme le XML de JaCoCo sans rien demander de plus.

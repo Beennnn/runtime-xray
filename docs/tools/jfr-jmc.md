@@ -114,6 +114,13 @@ mais pas la meilleure réponse aux besoins du brief.
 sérieux en faveur d'un portage. Les valeurs de paramètres, elles, restent hors de portée
 dans les deux cas.
 
+## Comparable à
+
+- **[async-profiler](async-profiler.md)** — **Le concurrent direct.** Sous Java 21, il fait mieux pour moins d'effort. Sous Java 25, le rapport s'inverse : JFR compte exactement là où l'autre échantillonne.
+- **[VisualVM](visualvm.md)** — Même famille, plus ancienne. VisualVM s'ouvre plus vite, JFR enregistre plus finement.
+- **[JMC Agent](jmc-agent.md)** — Son extension naturelle : il ajoute au flux JFR des événements portant les **valeurs des paramètres**, que JFR seul ne capture pas.
+- **[JProfiler](jprofiler.md) · [YourKit](yourkit.md)** — Ils font ce que JFR fait, plus les valeurs d'arguments, dans une interface unique — contre une licence.
+
 ## Facile / moins facile
 
 **Ce qui est facile.** Lancer un enregistrement : rien à installer, c'est un flag. Impossible de faire plus simple.

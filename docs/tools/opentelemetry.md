@@ -34,6 +34,12 @@ mais c'est une infrastructure, pas un outil.
 Hors sujet pour le besoin décrit. Deviendrait pertinent si la question se déplaçait vers la
 supervision continue d'un système distribué.
 
+## Comparable à
+
+- **[Glowroot](glowroot.md)** — La version « clé en main » de la même idée : agent plus interface, sans infrastructure à monter.
+- **[APM SaaS](apm-saas.md)** — Ils consomment justement de l'OTel. La différence est où atterrissent les données.
+- **[Kieker](kieker.md)** — Même matière première — des traces — pour une finalité différente : superviser contre reconstruire.
+
 ## Facile / moins facile
 
 **Ce qui est facile.** Instrumenter les frontières (HTTP, base de données) : l'agent le fait tout seul.

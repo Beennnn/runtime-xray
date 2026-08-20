@@ -3,9 +3,10 @@
 > **Statut : ✅ testé ici, hors ligne** — sorties dans
 > [`reports-demo/generated/arthas/`](../../reports-demo/generated/arthas/)
 >
-> Le blocage initial (le lanceur télécharge ses modules chez l'éditeur) est **levé** :
-> le paquet complet est publié sur Maven Central et s'installe à la main. Une fois posé,
-> `--arthas-home` fait que le lanceur ne sort plus jamais sur le réseau.
+> Son lanceur télécharge ses modules au premier démarrage — ce qui **n'est pas un
+> obstacle**, puisque le critère porte sur l'exécution et non sur l'installation. Le paquet
+> complet est publié sur Maven Central ; une fois posé, `--arthas-home` fait que plus rien
+> ne sort sur le réseau. Vérifié avec le trafic HTTP coupé.
 
 > ℹ️ **Précision sur le nom** : Arthas est un outil d'**Alibaba** (projet open source
 > `alibaba/arthas`). Le serveur que son lanceur contacte par défaut est
@@ -16,9 +17,11 @@
 
 C'est la question qui décide de tout pour ce projet, alors elle a été **testée**.
 
-**La dépendance réseau existe, mais elle est dans le lanceur, pas dans l'outil.**
-`arthas-boot` télécharge les modules d'Arthas au premier lancement. C'est cette étape,
-et elle seule, qui échoue en environnement coupé.
+**La dépendance réseau existe, mais elle est dans le lanceur, à l'installation.**
+`arthas-boot` télécharge les modules d'Arthas au premier démarrage. Le critère du projet
+portant sur l'**exécution** hors ligne, cette étape n'est pas rédhibitoire : elle se fait
+une fois, à l'avance. Reste à s'assurer qu'ensuite **plus rien ne sort** — c'est ce qui a
+été testé.
 
 **Elle se contourne en deux gestes** : récupérer le paquet complet
 `com.taobao.arthas:arthas-packaging:<version>:zip:bin` (~17 Mo, publié sur **Maven
@@ -168,6 +171,13 @@ le socle gratuit couvre les trois besoins du brief :
 Ce que ça change : **la question de la licence commerciale ne porte plus sur une capacité
 manquante, mais sur le confort**. JProfiler et YourKit réuniraient tout dans une interface
 unique ; le trio gratuit demande trois outils et une console.
+
+## Comparable à
+
+- **[BTrace](btrace-byteman.md) · [Byteman](btrace-byteman.md)** — **Même famille** : injecter de l'observation dans une application vivante. La différence est ergonomique et décisive — Arthas répond à une commande, les deux autres demandent d'écrire un script ou une règle par question.
+- **[JMC Agent](jmc-agent.md)** — Même objectif, philosophie opposée : **déclaratif** (un XML de sondes, une donnée structurée en sortie) contre **interactif** (une commande, du texte en sortie). Le JMC Agent produit une donnée réutilisable, Arthas une réponse immédiate.
+- **[JProfiler](jprofiler.md) · [YourKit](yourkit.md)** — Ce qu'ils ajoutent est précis : **agréger** l'arbre d'appel par valeur d'argument sur des millions d'appels. Arthas montre quelques appels individuels — utile pour comprendre un cas, insuffisant pour raisonner sur un ensemble.
+- **[IntelliJ IDEA](intellij.md)** — Le point d'arrêt non suspensif qui journalise une expression fait la même chose, gratuitement, dans l'IDE — mais seulement pendant une session de débogage.
 
 ## Facile / moins facile
 

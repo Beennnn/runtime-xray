@@ -46,22 +46,7 @@ pas tourné, sans rien savoir de Java.*
 
 → [Fiche async-profiler](tools/async-profiler.md)
 
-### 3. Le socle déjà présent → **JFR**, inclus dans le JDK.
-
-Zéro installation, zéro téléchargement — donc **compatible hors ligne par construction**.
-Depuis le JDK 25 (JEP 520), il trace une méthode ciblée avec sa pile d'appel :
-
-```
-jdk.MethodTiming {
-  method = lab.sample.RoutePlanner.travelTimeMinutes(Trip)
-  invocations = 16000000
-  minimum = 0,000084 ms   average = 0,000836 ms   maximum = 29,1 ms
-}
-```
-
-→ [Fiche JFR & Mission Control](tools/jfr-jmc.md)
-
-### 4. Les valeurs des paramètres → **Arthas**. Le trou est comblé.
+### 3. Les valeurs des paramètres → **Arthas**. Le trou est comblé.
 
 C'était le point manquant, et il ne l'est plus. Arthas s'attache à la JVM en cours et
 répond aux deux questions restantes, **gratuitement et hors ligne** :
@@ -91,6 +76,38 @@ est sur Maven Central, on le décompresse dans `~/.arthas/`, et `--arthas-home` 
 le lanceur ne contacte plus jamais l'éditeur.
 
 → [Fiche Arthas](tools/arthas.md)
+
+## Et JFR dans tout ça ? — il n'est PAS un troisième pilier
+
+Il figurait plus haut dans une version précédente de cette page comme un point à part
+entière. **C'était trompeur, et la question mérite d'être tranchée nettement.**
+
+**Sous Java 21, JFR n'apporte rien qu'async-profiler ne fasse déjà — et il le fait moins
+bien.** Les deux échantillonnent les piles d'appel ; c'est la même nature de donnée. Mais
+async-profiler produit un HTML autonome qu'on ouvre et qu'on envoie, là où JFR produit un
+binaire qui exige JDK Mission Control, une application de bureau. Sur nos critères n° 1
+(mise en œuvre) et n° 2 (lisibilité), **il est dominé**.
+
+Il garde pourtant trois intérêts réels, dont aucun n'est « une capacité de plus
+aujourd'hui » :
+
+1. **Il est déjà là.** C'est le seul outil disponible quand on ne peut **rien installer**
+   sur la machine cible — un environnement verrouillé, une machine de production sur
+   laquelle on n'a pas la main. C'est un **filet de sécurité**, pas un pilier.
+2. **Il change de nature en Java 25.** Avec le traçage de méthodes (JEP 520), il ne
+   échantillonne plus : il **compte exactement** — 16 000 000 d'invocations relevées, pas
+   estimées. Ni async-profiler ni Arthas ne savent faire ça. C'est le seul argument
+   technique sérieux en faveur d'un portage, et il est détaillé
+   [plus bas](#gains-dun-portage-vers-java-25).
+3. **C'est le seul format standard capable de porter des valeurs de paramètres.** Un
+   événement JFR a des champs typés ; c'est ce qu'exploite le
+   [JMC Agent](tools/jmc-agent.md). Arthas, lui, produit du texte de console. Si le besoin
+   de **réutiliser** les valeurs capturées apparaît un jour — les rejouer, les comparer,
+   les alimenter dans un autre outil — c'est par JFR que ça passera, pas par Arthas.
+   Voir [FORMATS.md](FORMATS.md).
+
+**En résumé** : aujourd'hui, sous Java 21, on n'en a pas besoin. Demain, sous Java 25 ou
+si les valeurs doivent devenir des données structurées, il redevient central.
 
 ## Le socle gratuit couvre les deux priorités — et l'option
 
@@ -175,145 +192,58 @@ instantané de profileur.
 du JMC Agent. **C'est tout l'arbitrage n° 1**, et il ne se tranche honnêtement qu'après
 l'essai gratuit.
 
-## Les solutions jugées pertinentes
+## La solution retenue : JaCoCo + async-profiler + Arthas
 
-### Option A — Tout gratuit, hors ligne (socle acquis + une piste à valider)
+**→ [Page dédiée : le montage complet, le protocole et la vue intégrée](SOLUTION.md)**
 
-| Besoin | Outil | Statut |
-|---|---|---|
-| Lignes exécutées | JaCoCo | ✅ vérifié |
-| Arbre d'appel | async-profiler | ✅ vérifié |
-| Valeurs des paramètres | **JMC Agent** ou **BTrace** ou **Byteman** | 📄 à tester |
+Les trois outils se complètent exactement — ce que l'un ignore, un autre le couvre — et
+l'ensemble a été **vérifié de bout en bout** sur la même application, sous Java 21.
 
-**Coût : 0 €.** Le risque porte entièrement sur la troisième ligne : ces trois outils
-capturent bien des valeurs, mais au prix d'une configuration (XML de sondes pour JMC
-Agent, script pour BTrace, règles pour Byteman) — ce qui pèse contre le **critère n° 1**.
+| Priorité | Besoin | Outil | Ce qu'on obtient |
+|---|---|---|---|
+| **1** | Lignes exécutées | **JaCoCo** | Site HTML, code colorié ligne à ligne, classes mortes en rouge |
+| **1** | Arbre d'appel | **async-profiler** | HTML autonome dépliable, part de temps par branche |
+| **2 — option** | Valeurs des paramètres | **Arthas** | Les valeurs réelles, et l'arbre d'un appel avec ses numéros de ligne |
 
-### Option B — Gratuit pour les deux premiers besoins, payant pour le troisième
+**Coût : 0 €. Connexion : aucune. Licence : aucune.**
 
-| Besoin | Outil | Statut |
-|---|---|---|
-| Lignes exécutées | JaCoCo | ✅ vérifié |
-| Arbre d'appel + **valeurs des paramètres** | **JProfiler** ou **YourKit** | ⛔ essai à activer |
+Et les trois sorties s'assemblent dans **une seule page** —
+[la vue intégrée](https://beennnn.github.io/runtime-xray/vue-integree/) : on navigue dans
+l'arbre d'appel ou dans les classes, on choisit un point, et on voit d'un coup les lignes
+exécutées, les appels qui en partent avec leur coût, et les valeurs passées.
 
-L'argument : on n'achète la licence que pour le point précis où le gratuit décroche, et
-on obtient au passage l'intégration IntelliJ native (**critère n° 4**).
-Ordre de grandeur : ~500 $/licence, ~200 $ en académique — **chiffres du brief, non
-vérifiés sur les pages tarifaires**.
+![La vue intégrée](assets/shots/vue-integree.png)
 
-### Option C — Reconstruction d'architecture (le « but final » du brief)
+⚠️ **Un point à connaître** : faire tourner les trois dans une **même exécution** est
+possible (la couverture n'est pas corrompue, c'est vérifié à chaque lancement), mais
+**Arthas fausse alors le profil** — plus de 80 % des échantillons tombent dans son propre
+code d'instrumentation. Le protocole recommandé est donc **deux exécutions du même
+scénario** : mesure d'abord, inspection ensuite. Détail dans [SOLUTION.md](SOLUTION.md).
 
-**Kieker** est le seul outil identifié qui soit *conçu* pour reconstruire une architecture
-à partir de traces d'exécution — ce qui est littéralement l'objectif final annoncé. En
-contrepartie, c'est le plus lourd à mettre en œuvre : c'est un cadre de recherche, pas un
-outil qu'on lance en trois clics.
+### Variante minimale, si Arthas pose problème
 
-→ À considérer **en second temps**, une fois le diagnostic de base outillé.
+**JaCoCo + async-profiler seuls** couvrent les **deux objectifs prioritaires**. Arthas ne
+sert que la seconde priorité : son installation manuelle hors ligne, ou le fait que sa
+sortie soit une console plutôt qu'un rapport, ne remettent pas en cause l'essentiel.
+
+### Le complément payant — repoussé, pas écarté
+
+**JProfiler ou YourKit**, en plus du socle, apporteraient une chose précise qu'Arthas ne
+sait pas faire : **agréger l'arbre d'appel par valeur de paramètre** sur l'ensemble des
+appels. La décision n° 1 l'a classé secondaire. Ce qu'il faudrait vérifier en essai est
+détaillé dans [EVALUATION-KEYS.md](EVALUATION-KEYS.md#ce-quon-attend-des-outils-commerciaux--et-pourquoi).
+
+### Pour plus tard
+
+- **[Kieker](tools/kieker.md)** — le seul outil qui vise le *but final* : reconstruire une
+  architecture à partir de l'exécution. À ouvrir une fois le diagnostic outillé, pas avant.
+- **Le portage vers Java 25** — il rendrait le comptage exact des appels disponible sans
+  aucun outil tiers. Voir [les gains mesurés](#gains-dun-portage-vers-java-25).
 
 ### Écartées d'office par la contrainte hors ligne
 
-Datadog, New Relic, Dynatrace, Codecov, Coveralls, SonarCloud — toutes SaaS. Et **Arthas**,
-pourtant excellent candidat gratuit pour les valeurs de paramètres, n'a **pas pu être
-testé ici** : son lanceur télécharge ses modules depuis `arthas.aliyun.com`. Il reste
-utilisable hors ligne à condition d'installer le paquet complet à la main au préalable —
-c'est une contrainte d'installation, pas un rejet définitif.
-
-## Gains d'un portage vers Java 25
-
-La contrainte est **Java 21**. Elle a un coût mesurable, et il est plus lourd qu'attendu.
-
-Le JDK 25 apporte le **traçage de méthodes dans JFR** (JEP 520). Sous Java 21, ces
-réglages n'existent pas — la JVM le dit explicitement :
-
-```
-[warning][jfr,start] The .jfc option/setting 'jdk.MethodTiming#filter' doesn't exist.
-```
-
-Même programme, même durée, même commande — voici ce que chaque version enregistre :
-
-| Événement JFR | Java 21 | Java 25 |
-|---|---|---|
-| `jdk.ExecutionSample` (échantillonnage statistique) | 331 | 147 |
-| `jdk.MethodTrace` (pile d'appel **à chaque invocation**) | — | **594 877** |
-| `jdk.MethodTiming` (compte exact + min/moy/max) | — | **1 événement, 16 000 000 invocations comptées** |
-
-**La différence n'est pas quantitative, elle est de nature.** Java 21 donne un
-*échantillonnage* : 331 photos prises au hasard pendant 10 secondes, dont on infère
-statistiquement où le temps est passé. Java 25 donne une *mesure* : le nombre exact
-d'appels, et la pile complète de chacun.
-
-Concrètement, sur `RoutePlanner.travelTimeMinutes` :
-
-```
-jdk.MethodTiming {
-  method = lab.sample.RoutePlanner.travelTimeMinutes(Trip)
-  invocations = 16000000
-  minimum = 0,000042 ms   average = 0,000903 ms   maximum = 19,0 ms
-}
-```
-
-Sous Java 21, cette ligne n'existe pas — il faut un outil tiers pour l'obtenir.
-
-### Pourquoi Java 25 est plus précis — le mécanisme
-
-Ce n'est pas un réglage plus fin : **c'est un changement de nature de la mesure.**
-
-**Java 21 — échantillonnage.** JFR photographie périodiquement la pile des threads
-(événement `jdk.ExecutionSample`). Sur 10 secondes, ça donne quelques centaines de
-clichés, à partir desquels on *infère* où le temps est passé. C'est une méthode
-statistique : elle est fidèle sur les grandes masses, et aveugle sur le reste. Une méthode
-appelée 16 millions de fois mais très brève peut n'apparaître dans presque aucun cliché ;
-une méthode appelée trois fois n'apparaîtra probablement jamais. **On ne sait jamais
-combien de fois quelque chose a été appelé — seulement quelle proportion des photos le
-montrait.**
-
-**Java 25 — instrumentation ciblée (JEP 520).** Le traceur de méthodes de JFR réécrit le
-bytecode des méthodes **nommées dans le filtre**, pour compter et chronométrer **chaque
-invocation**. Ce n'est plus un sondage, c'est un comptage exhaustif : d'où les
-16 000 000 d'invocations rapportées exactement, et les 594 877 piles d'appel enregistrées.
-
-Le **filtre est ce qui rend l'instrumentation soutenable** : on ne paie le surcoût que sur
-les méthodes qu'on a désignées. C'est tout le sens du JEP — l'instrumentation exhaustive
-existait déjà chez les outils commerciaux, la nouveauté est de l'avoir dans le JDK, ciblée.
-
-### Ce que cette précision coûte — à ne pas passer sous silence
-
-L'exactitude ne s'obtient pas gratuitement, et sur deux points elle se retourne :
-
-1. **L'instrumentation perturbe ce qu'elle mesure.** Une méthode tracée ne peut plus être
-   *inlinée* par le compilateur JIT de la même façon, et un événement est écrit à chaque
-   appel. Le **comptage** reste exact ; les **durées** de méthodes très brèves, elles, sont
-   à prendre avec précaution — on mesure aussi le coût de la mesure. L'échantillonnage de
-   Java 21, lui, ne déforme presque rien : il est moins précis mais moins intrusif.
-2. **Le volume explose.** Tracer une méthode du chemin chaud a produit **129 Mo pour 10
-   secondes** d'exécution. C'est jouable sur une méthode ciblée, ingérable en saupoudrage.
-
-Autrement dit : Java 25 ne remplace pas l'échantillonnage, il **ajoute** un second mode.
-On échantillonne pour savoir où chercher, on instrumente pour mesurer précisément ce qu'on
-a trouvé.
-
-### Ce que le portage ferait gagner
-
-1. **Un besoin du brief passe de "outil tiers" à "inclus dans le JDK"** — l'arbre d'appel
-   exact, sans rien installer. C'est le critère n° 1 (facilité de mise en œuvre) qui
-   bascule, et il est prioritaire.
-2. **Compatible hors ligne par construction**, puisque c'est le JDK lui-même.
-3. **Le nombre d'appels devient exact**, ce qui compte pour restructurer du code : savoir
-   qu'une méthode est appelée 16 millions de fois n'a pas la même valeur que « elle
-   apparaît dans 4 % des échantillons ».
-
-Ce qui reste inchangé : **les valeurs des paramètres**. Java 25 ne les donne pas
-davantage. Le portage réduit le besoin d'outillage tiers, il ne le supprime pas.
-
-### Ce que ça ne dit pas
-
-Rien ici ne mesure le **coût** du portage 21 → 25 sur le code réel — c'est une question
-de compatibilité applicative, hors périmètre de ce dépôt. Le tableau ci-dessus dit ce
-qu'on gagnerait ; il ne dit pas ce qu'on paierait.
-
-Les sorties des deux versions sont versionnées côte à côte pour vérification :
-[`reports-demo/generated/jfr/`](../reports-demo/generated/jfr/) (Java 21) et
-[`reports-demo/generated/jfr-jdk25/`](../reports-demo/generated/jfr-jdk25/) (Java 25).
+Datadog, New Relic, Dynatrace, Codecov, Coveralls, SonarCloud — toutes SaaS. Le détail des
+rejets, avec leurs motifs, est dans [ECARTES.md](ECARTES.md).
 
 ## Décisions prises
 

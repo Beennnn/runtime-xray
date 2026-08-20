@@ -33,6 +33,11 @@ Intéressant seulement si la question « quel test couvre quoi ? » devient cent
 besoin décrit — la couverture d'une **exécution**, pas d'une suite de tests — JaCoCo est
 plus direct et mieux soutenu.
 
+## Comparable à
+
+- **[JaCoCo](jacoco.md)** — **Le concurrent direct**, et celui qui est retenu ici : instrumentation à l'exécution plutôt qu'à la compilation, écosystème nettement plus vivant. OpenClover ne reprend l'avantage que si la question devient « quel test couvre quoi ? ».
+- **[SonarQube](sonarqube.md)** — Même rôle d'afficheur pour l'un comme pour l'autre.
+
 ## Facile / moins facile
 
 **Ce qui est facile.** Lire le rapport : même famille que JaCoCo, mêmes réflexes.

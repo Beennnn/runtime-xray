@@ -35,7 +35,7 @@ développeur dans son IDE, pour un non-technicien dans une page web qu'on lui en
 
 | Contrainte | Conséquence sur le choix |
 |---|---|
-| 🔌 **Environnement déconnecté d'Internet** | Élimine tout SaaS (Datadog, New Relic, Codecov, SonarCloud) et tout outil qui télécharge ses composants au lancement |
+| 🔌 **Exécution hors ligne** | Le **téléchargement préalable est possible** : installer un outil depuis Internet ou un miroir interne ne pose aucun problème. Ce qui est éliminatoire, c'est le besoin de réseau **pendant l'exécution** — donc tout SaaS (Datadog, New Relic, Codecov, SonarCloud), et toute licence validée en ligne à chaque lancement |
 | ☕ **Java 21 aujourd'hui, Java 25 à évaluer** | Les deux plateformes sont évaluées. L'écart est mesuré et il est important : le traçage de méthodes de JFR n'existe qu'à partir de Java 25 — [pourquoi, et ce que ça change](docs/RESULTS.md#gains-dun-portage-vers-java-25) |
 | 🧭 **IntelliJ comme IDE cible** | L'intégration IDE se juge sur IntelliJ ; à défaut, une page web navigable fait office d'équivalent |
 | 👥 **Deux publics** | Un développeur lit dans son IDE ; un non-technicien ouvre une page seul, sans installation ni compte |
@@ -97,6 +97,43 @@ tout le trafic HTTP coupé**, et il fonctionne.
 | **[YourKit](docs/tools/yourkit.md)** | ❌ | ✅ | ✅ *probes* | **549 $** perpétuel · **99 $/an** académique | ⛔ essai à activer |
 | **[IntelliJ IDEA Ultimate](docs/tools/intellij.md)** | ✅ | ✅ | ⚠️ débogueur | abonnement JetBrains | 📄 |
 | **[APM SaaS](docs/tools/apm-saas.md)** (Datadog, New Relic, Dynatrace) | ❌ | ✅ | ⚠️ | facturation à l'usage | ⛔ **hors ligne : éliminés** |
+
+#### Ce qu'ils apporteraient concrètement
+
+Les lister sans dire ce qu'on y gagnerait ne servirait à rien. Voici, pour chacun, ce qu'il
+ajoute **par rapport au socle gratuit déjà en place** — et ce qu'il n'ajoute pas.
+
+**JProfiler — l'agrégation par valeur de paramètre.** C'est le gain sérieux, et il est
+précis. Arthas montre les valeurs de **quelques appels** : « ce trajet-là était en voiture,
+à l'heure de pointe ». JProfiler revendique de **scinder l'arbre d'appel par valeur
+d'argument** : sur 48 000 000 d'appels, un sous-arbre pour `mode=CAR`, un autre pour
+`mode=TRAIN`, avec leurs temps respectifs. Autrement dit, il répond à *« quel contexte
+d'appel coûte cher ? »* là où Arthas répond *« que s'est-il passé sur cet appel-ci ? »*.
+S'y ajoutent la corrélation CPU / mémoire / verrous dans les mêmes vues, et un plugin
+IntelliJ natif qui déclenche le profilage depuis l'éditeur.
+
+**YourKit — les sondes personnalisées.** Son API ouverte permet de définir une sonde
+métier — compter les trajets par mode, mesurer une file d'attente — et de la voir agrégée
+dans l'interface au même titre que les métriques natives. Il sait aussi **comparer deux
+instantanés**, ce qui intéresse directement le but final du projet : mesurer l'effet d'une
+restructuration avant/après. Et il est **le moins cher sur le créneau académique** :
+99 $/an par poste contre une licence pleine chez le concurrent.
+
+**IntelliJ IDEA Ultimate — le confort de ne pas quitter l'IDE.** Flame graph dans
+l'éditeur, saut au code d'un clic, ouverture native des `.jfr`. À relativiser : son moteur
+**est** async-profiler, qu'on a déjà gratuitement — on paie l'intégration, pas la mesure.
+
+**Ce qu'aucun des trois n'apporte**, et c'est ce qui borne la dépense :
+
+- **la couverture de lignes** — ni JProfiler ni YourKit ne la produisent ; JaCoCo reste
+  nécessaire dans tous les cas ;
+- **un rapport lisible par un non-développeur** — leurs instantanés s'exportent, mais
+  aucun ne vaut le HTML annoté de JaCoCo sur ce terrain ;
+- **le fonctionnement hors ligne garanti** — c'est même le risque, voir juste en dessous.
+
+> **En une phrase** : ils n'achèteraient rien sur les deux objectifs prioritaires, et sur
+> l'option ils apporteraient une chose qu'Arthas ne sait pas faire — **agréger par valeur
+> de paramètre sur l'ensemble des appels**. C'est le seul point qui mérite un essai.
 
 ⚠️ Deux points à vérifier **avant** d'engager une dépense, tous deux liés à la contrainte
 hors ligne : JProfiler doit confirmer qu'aucune activation en ligne n'est exigée, et

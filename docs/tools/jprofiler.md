@@ -58,6 +58,13 @@ Essai de 10 jours par formulaire — procédure détaillée dans
 « JProfiler ou JaCoCo » — c'est « JProfiler **en plus de** JaCoCo, ou bien une piste
 gratuite (Arthas, JMC Agent) plus rugueuse ? ». C'est l'arbitrage n° 1.
 
+## Comparable à
+
+- **[YourKit](yourkit.md)** — **Le concurrent direct**, à prix comparable. JProfiler mise sur des vues abouties et prêtes à l'emploi ; YourKit sur l'extensibilité par sondes. À tester ensemble, sur le même programme.
+- **[Arthas](arthas.md)** — L'alternative gratuite, et elle couvre déjà le besoin. Ce que JProfiler ajoute est précis : l'**agrégation par valeur de paramètre**.
+- **[async-profiler](async-profiler.md)** — Sur le seul arbre d'appel, l'écart est faible et le second est gratuit.
+- **[IntelliJ Ultimate](intellij.md)** — Son plugin fait d'IntelliJ la façade de JProfiler — ce qui atténue l'intérêt de payer *aussi* Ultimate pour son profiler intégré.
+
 ## Facile / moins facile
 
 **Ce qui est facile.** Ce que l'éditeur vend : attacher et voir, sans configuration, avec le plugin IntelliJ natif. **À vérifier en essai** — c'est une promesse commerciale, pas une mesure.

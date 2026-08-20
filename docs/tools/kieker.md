@@ -96,6 +96,12 @@ ce code une fois qu'on l'a compris.
 L'ouvrir maintenant reviendrait à monter une infrastructure d'analyse avant d'avoir la
 première mesure. L'ordre raisonnable est l'inverse.
 
+## Comparable à
+
+- **[OpenTelemetry](opentelemetry.md)** — Tous deux produisent des traces destinées à être traitées ailleurs. Mais OTel vise la supervision d'un système en marche, Kieker vise la **compréhension de sa structure**.
+- **[Glowroot](glowroot.md)** — Glowroot montre des traces, Kieker en **dérive une architecture**. Ce n'est pas la même question.
+- **[Arthas](arthas.md)** — À l'opposé exact : Arthas répond à une question ponctuelle en trois secondes, Kieker construit une représentation de tout le système.
+
 ## Facile / moins facile
 
 **Ce qui est facile.** Rien, honnêtement — et c'est le prix de ce qu'il vise. Aucun autre

@@ -51,6 +51,12 @@ Essai de 15 jours, téléchargement direct — voir
 Même rôle que JProfiler dans la décision. À tester dans le même mouvement, sur le même
 `sample-app`, pour comparer sur pièces plutôt que sur plaquette.
 
+## Comparable à
+
+- **[JProfiler](jprofiler.md)** — **Le concurrent direct.** Deux philosophies : sondes extensibles ici, vues abouties là. YourKit est nettement moins cher en académique (99 $/an) et gratuit pour l'open source.
+- **[Arthas](arthas.md)** — Gratuit, et suffisant pour capturer des valeurs. Les *probes* de YourKit ne prennent l'avantage que si l'on veut une donnée métier **agrégée** dans l'interface.
+- **[Kieker](kieker.md)** — Sa comparaison d'instantanés avant/après recoupe l'objectif de restructuration que Kieker adresse autrement.
+
 ## Facile / moins facile
 
 **Ce qui est facile.** Démarrer : téléchargement direct, l'essai de 15 jours est intégré, pas de formulaire.

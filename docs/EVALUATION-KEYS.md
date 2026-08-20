@@ -107,7 +107,7 @@ l'outil est bon », mais **cette question-là**.
 | **Données conservées par l'éditeur** | Nom, société, e-mail et IP anonymisée ; un e-mail de relance est envoyé pendant l'évaluation |
 | **Téléchargement** | [ej-technologies.com/download/jprofiler](https://www.ej-technologies.com/download/jprofiler/files) |
 | **Licence open source** | Gratuite pour les projets open source — à demander à l'éditeur |
-| **⚠️ Hors ligne** | À vérifier au moment de la demande : la saisie de la clé est locale, mais **il faut confirmer qu'aucune activation en ligne n'est exigée** avant de compter sur l'outil en environnement déconnecté |
+| **⚠️ Hors ligne** | La question n'est pas le téléchargement (autorisé) mais **l'activation** : une clé saisie une fois et validée localement convient ; une vérification en ligne **à chaque lancement** serait éliminatoire. À faire confirmer par l'éditeur |
 
 **Prix (relevés le 2026-08-20 sur la boutique de l'éditeur)** — licences perpétuelles :
 
@@ -124,7 +124,7 @@ l'outil est bon », mais **cette question-là**.
 | **Durée** | **15 jours** |
 | **Licence open source** | **Gratuite**, en contrepartie d'un lien vers YourKit sur les pages du projet. À demander au service commercial |
 | **Académique / scientifique** | Abonnement à **99 $/an** par poste, **999 $/an** pour un établissement entier |
-| **⚠️ Hors ligne** | Les licences **flottantes** s'appuient par défaut sur un **serveur de licences dans le cloud** — incompatible avec la contrainte. Une option **auto-hébergée** existe : c'est elle qu'il faut demander. Les licences *seat* ne posent pas ce problème |
+| **⚠️ Hors ligne** | Les licences **flottantes** interrogent par défaut un **serveur de licences dans le cloud pendant l'exécution** — c'est éliminatoire. Une option **auto-hébergée** existe : c'est elle qu'il faut demander. Les licences *seat*, validées localement, ne posent pas ce problème |
 
 **Prix (relevés le 2026-08-20 sur [la page tarifaire](https://www.yourkit.com/java/profiler/purchase/))** :
 

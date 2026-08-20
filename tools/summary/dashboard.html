@@ -1,0 +1,299 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vue intégrée — Runtime X-Ray</title>
+<style>
+  :root{
+    --bg:#0d1117; --panel:#151b23; --panel2:#0f141b; --border:#30363d; --text:#e6edf3;
+    --muted:#9198a1; --accent:#4493f8; --full:#1f6d33; --part:#7a6320; --miss:#8c2b2b;
+    --fullbar:#3fb950; --partbar:#d29922; --missbar:#f85149; --violet:#ab7df8;
+  }
+  @media (prefers-color-scheme: light){
+    :root:not([data-theme="dark"]){
+      --bg:#fff; --panel:#f6f8fa; --panel2:#fff; --border:#d0d7de; --text:#1f2328;
+      --muted:#59636e; --accent:#0969da; --full:#d7f8dd; --part:#fff5d6; --miss:#ffdcdc;
+      --fullbar:#1a7f37; --partbar:#9a6700; --missbar:#cf222e; --violet:#8250df;
+    }
+  }
+  *{box-sizing:border-box} html,body{height:100%}
+  body{margin:0;background:var(--bg);color:var(--text);
+       font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+  header{padding:12px 18px;border-bottom:1px solid var(--border);display:flex;
+         align-items:center;gap:16px;flex-wrap:wrap;background:var(--panel)}
+  header h1{font-size:16px;margin:0;font-weight:650}
+  .badges{display:flex;gap:5px;align-items:center}
+  header .stat{color:var(--muted);font-size:12.5px}
+  header .stat b{color:var(--text)}
+  .toggle{margin-left:auto;display:flex;align-items:center;gap:7px;font-size:12.5px;
+          color:var(--muted);cursor:pointer;user-select:none}
+  main{display:grid;grid-template-columns:340px 1fr;height:calc(100% - 53px)}
+  @media(max-width:820px){main{grid-template-columns:1fr;height:auto}}
+  #nav{border-right:1px solid var(--border);overflow:auto;background:var(--panel2);min-height:0}
+  /* La colonne de droite doit borner sa hauteur, sinon #code ne défile pas : c'est la
+     PAGE qui défilerait, et l'arbre de gauche sortirait du champ. */
+  #detail{display:flex;flex-direction:column;min-height:0}
+  .tabs{display:flex;border-bottom:1px solid var(--border);position:sticky;top:0;
+        background:var(--panel2);z-index:2}
+  .tabs button{flex:1;padding:9px 8px;background:none;border:0;border-bottom:2px solid transparent;
+               color:var(--muted);font:inherit;font-size:12.5px;cursor:pointer}
+  .tabs button.on{color:var(--text);border-bottom-color:var(--accent);font-weight:600}
+  .tree{padding:6px 4px 30px}
+  .node{padding:2px 6px;border-radius:5px;cursor:pointer;white-space:nowrap;
+        overflow:hidden;text-overflow:ellipsis;font-size:12.5px}
+  .node:hover{background:var(--panel)}
+  .node.sel{background:var(--accent);color:#fff}
+  .node .pct{color:var(--muted);font-size:11px;margin-right:5px;font-variant-numeric:tabular-nums}
+  .node.sel .pct{color:#e8f0fb}
+  .node .tw{display:inline-block;width:12px;color:var(--muted)}
+  .node.app{color:var(--text)} .node.jdk{color:var(--muted)}
+  #code{overflow:auto;padding:0 0 40px;flex:1 1 auto;min-height:0}
+  .crumb{padding:10px 16px;border-bottom:1px solid var(--border);position:sticky;top:0;
+         background:var(--bg);z-index:1;font-size:13px}
+  .crumb b{font-weight:650}
+  .crumb span{color:var(--muted)}
+  table.src{border-collapse:collapse;width:100%;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12.5px}
+  table.src td{padding:0 6px;vertical-align:top;white-space:pre}
+  td.n{text-align:right;color:var(--muted);user-select:none;width:1%;
+       border-right:1px solid var(--border);font-variant-numeric:tabular-nums}
+  tr.full td.c{background:var(--full)} tr.part td.c{background:var(--part)} tr.miss td.c{background:var(--miss)}
+  td.c{width:99%}
+  tr.inmethod td.n{color:var(--accent);font-weight:700}
+  td.ann{color:var(--violet);font-size:11.5px;width:1%;max-width:300px;text-align:right;
+         white-space:normal;padding-left:14px}
+  .hidden-run{color:var(--muted);font-style:italic;padding:2px 12px;font-size:11.5px;
+              background:var(--panel);border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
+  #values{border-top:1px solid var(--border);background:var(--panel);padding:12px 16px}
+  #values h3{margin:0 0 8px;font-size:12px;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted)}
+  .call{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;
+        padding:5px 0;border-bottom:1px solid var(--border)}
+  .call .v{color:var(--violet)} .call .t{color:var(--muted)}
+  .legend{padding:8px 16px;color:var(--muted);font-size:11.5px;border-top:1px solid var(--border)}
+  .sw{display:inline-block;width:10px;height:10px;border-radius:2px;vertical-align:-1px;margin:0 4px 0 10px}
+</style>
+</head>
+<body>
+<header>
+  <span class="badges" title="Les trois outils qui alimentent cette page">
+    <svg viewBox="0 0 32 32" width="26" height="26"><rect width="32" height="32" rx="8" fill="#1a7f37" fill-opacity=".14" stroke="#1a7f37" stroke-opacity=".5"/><rect x="8" y="9" width="16" height="3" rx="1.5" fill="#3fb950"/><rect x="8" y="14.5" width="11" height="3" rx="1.5" fill="#3fb950"/><rect x="8" y="20" width="7" height="3" rx="1.5" fill="#f85149"/></svg>
+    <svg viewBox="0 0 32 32" width="26" height="26"><rect width="32" height="32" rx="8" fill="#d29922" fill-opacity=".14" stroke="#d29922" stroke-opacity=".5"/><rect x="6" y="20" width="20" height="4" rx="1.5" fill="#e3a72c"/><rect x="9" y="14.5" width="14" height="4" rx="1.5" fill="#f0b849"/><rect x="12" y="9" width="8" height="4" rx="1.5" fill="#f8d477"/></svg>
+    <svg viewBox="0 0 32 32" width="26" height="26"><rect width="32" height="32" rx="8" fill="#8250df" fill-opacity=".14" stroke="#8250df" stroke-opacity=".5"/><circle cx="14.5" cy="14" r="6" fill="none" stroke="#ab7df8" stroke-width="2.4"/><path d="M19 18.5L24 23.5" stroke="#ab7df8" stroke-width="2.6" stroke-linecap="round"/><circle cx="14.5" cy="14" r="2" fill="#ab7df8"/></svg>
+  </span>
+  <h1>Vue intégrée — une exécution, trois outils</h1>
+  <div class="stat" id="stats"></div>
+  <label class="toggle"><input type="checkbox" id="clean"> Masquer le code non exécuté</label>
+</header>
+<main>
+  <div id="nav">
+    <div class="tabs">
+      <button id="tab-tree" class="on">Arbre d'appel</button>
+      <button id="tab-cls">Packages &amp; classes</button>
+    </div>
+    <div class="tree" id="tree"></div>
+  </div>
+  <div id="detail">
+    <div class="crumb" id="crumb"><span>Choisis un nœud à gauche.</span></div>
+    <div id="code"></div>
+    <div id="values"></div>
+    <div class="legend">
+      <span class="sw" style="background:var(--fullbar)"></span>exécuté
+      <span class="sw" style="background:var(--partbar)"></span>partiellement
+      <span class="sw" style="background:var(--missbar)"></span>jamais exécuté
+      <span style="margin-left:14px">— annotations violettes à droite : appels observés par Arthas sur cette ligne</span>
+      <div style="margin-top:6px">
+        <b>Qui produit quoi</b> :
+        <span style="color:var(--fullbar)">■</span> JaCoCo, la couleur des lignes ·
+        <span style="color:var(--partbar)">■</span> async-profiler, l'arbre d'appel et les pourcentages ·
+        <span style="color:var(--violet)">■</span> Arthas, les annotations de ligne et les valeurs.
+        Une seule exécution les a tous alimentés.
+      </div>
+    </div>
+  </div>
+</main>
+<script>
+const D = /*__DATA__*/;
+const esc = s => s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+let clean = false, selected = null, mode = "tree";
+
+/* --- statistiques d'en-tête ------------------------------------------- */
+(function(){
+  let cov=0, miss=0, dead=[];
+  for (const [pkg, classes] of Object.entries(D.packages))
+    for (const c of classes){ cov+=c.covered; miss+=c.missed; if(!c.covered) dead.push(c.simple); }
+  document.getElementById("stats").innerHTML =
+    "<b>"+(100*cov/(cov+miss)).toFixed(1)+" %</b> des instructions exécutées · "+
+    "<b>"+D.calltree.total+"</b> échantillons de pile · "+
+    "<b>"+D.values.length+"</b> appels capturés avec leurs valeurs"+
+    (dead.length? " · <b>"+dead.length+"</b> classe(s) jamais exécutée(s)" : "");
+})();
+
+/* --- résolution frame -> source --------------------------------------- */
+function frameInfo(frame){                       // "lab/sample/terrain/Terrain.slowdownFactor"
+  const i = frame.lastIndexOf(".");
+  if (i < 0) return null;
+  const cls = frame.slice(0, i), method = frame.slice(i+1);
+  const m = D.methods[cls];
+  if (!m) return null;
+  const decl = m.methods.find(x => x.name === method);
+  return {cls, method, source: m.source, line: decl ? decl.line : 0, methods: m.methods};
+}
+
+/* --- arbre d'appel ------------------------------------------------------ */
+function renderCallTree(){
+  const box = document.getElementById("tree");
+  box.innerHTML = "";
+  const total = D.calltree.total || 1;
+  (function walk(node, depth, parent){
+    for (const kid of node.children){
+      const info = frameInfo(kid.name);
+      const el = document.createElement("div");
+      el.className = "node " + (info ? "app" : "jdk");
+      el.style.paddingLeft = (6 + depth*11) + "px";
+      const pct = (100*kid.total/total).toFixed(1);
+      el.innerHTML = '<span class="tw">'+(kid.children.length?"▸":"")+'</span>'+
+                     '<span class="pct">'+pct+'%</span>'+esc(kid.name.replace(/\//g,"."));
+      box.appendChild(el);
+      const holder = document.createElement("div");
+      holder.style.display = "none";
+      box.appendChild(holder);
+      el.onclick = () => {
+        if (kid.children.length){
+          holder.style.display = holder.style.display === "none" ? "block" : "none";
+          el.querySelector(".tw").textContent = holder.style.display === "none" ? "▸" : "▾";
+        }
+        if (info) select(info, el);
+      };
+      const sub = {children: kid.children};
+      const inner = document.createElement("div");
+      holder.appendChild(inner);
+      renderInto(inner, sub, depth+1, total);
+    }
+  })(D.calltree, 0);
+}
+function renderInto(box, node, depth, total){
+  for (const kid of node.children){
+    const info = frameInfo(kid.name);
+    const el = document.createElement("div");
+    el.className = "node " + (info ? "app" : "jdk");
+    el.style.paddingLeft = (6 + depth*11) + "px";
+    el.innerHTML = '<span class="tw">'+(kid.children.length?"▸":"")+'</span>'+
+                   '<span class="pct">'+(100*kid.total/total).toFixed(1)+'%</span>'+
+                   esc(kid.name.replace(/\//g,"."));
+    box.appendChild(el);
+    const holder = document.createElement("div"); holder.style.display="none"; box.appendChild(holder);
+    renderInto(holder, kid, depth+1, total);
+    el.onclick = e => {
+      e.stopPropagation();
+      if (kid.children.length){
+        holder.style.display = holder.style.display==="none" ? "block":"none";
+        el.querySelector(".tw").textContent = holder.style.display==="none" ? "▸":"▾";
+      }
+      if (info) select(info, el);
+    };
+  }
+}
+
+/* --- arbre des classes -------------------------------------------------- */
+function renderClassTree(){
+  const box = document.getElementById("tree");
+  box.innerHTML = "";
+  for (const pkg of Object.keys(D.packages).sort()){
+    let classes = D.packages[pkg];
+    if (clean) classes = classes.filter(c => c.covered > 0);
+    if (!classes.length) continue;
+    const head = document.createElement("div");
+    head.className = "node"; head.style.fontWeight = "600";
+    head.innerHTML = '<span class="tw">▾</span>'+esc(pkg.replace(/\//g,"."));
+    box.appendChild(head);
+    for (const c of classes){
+      const el = document.createElement("div");
+      el.className = "node app"; el.style.paddingLeft = "28px";
+      const pct = c.covered+c.missed ? (100*c.covered/(c.covered+c.missed)).toFixed(0) : "0";
+      el.innerHTML = '<span class="pct">'+pct+'%</span>'+esc(c.simple);
+      el.onclick = () => select({cls:c.name, method:null, source:c.source, line:0,
+                                methods:(D.methods[c.name]||{}).methods||[]}, el);
+      box.appendChild(el);
+    }
+  }
+}
+
+/* --- vue de code -------------------------------------------------------- */
+function select(info, el){
+  document.querySelectorAll(".node.sel").forEach(n => n.classList.remove("sel"));
+  if (el) el.classList.add("sel");
+  selected = info;
+  draw();
+}
+function draw(){
+  if (!selected) return;
+  const info = selected;
+  const src = D.sources[info.source];
+  const cov = D.coverage[info.source] || {};
+  document.getElementById("crumb").innerHTML =
+    '<span>'+esc(info.cls.split("/").slice(0,-1).join("."))+' › </span><b>'+
+    esc(info.cls.split("/").pop())+'.java</b>'+
+    (info.method ? '<span> › </span><b>'+esc(info.method)+'()</b>' : '');
+  if (!src){ document.getElementById("code").innerHTML =
+      '<p style="padding:16px;color:var(--muted)">Source indisponible pour '+esc(info.source)+'.</p>';
+      document.getElementById("values").innerHTML=""; return; }
+
+  // Bornes de la méthode sélectionnée : de sa ligne de début à la méthode suivante.
+  let from = 0, to = 1e9;
+  if (info.line){
+    from = info.line;
+    const next = info.methods.filter(m => m.line > info.line).map(m => m.line).sort((a,b)=>a-b)[0];
+    to = next ? next - 1 : 1e9;
+  }
+  const isTraced = info.cls === D.tracedClass;
+  let html = '<table class="src">', hiddenRun = 0;
+  src.forEach((text, i) => {
+    const nr = i + 1, c = cov[nr];
+    if (clean && c && c.s === "miss"){ hiddenRun++; return; }
+    if (hiddenRun){
+      html += '<tr><td colspan="3" class="hidden-run">… '+hiddenRun+' ligne(s) jamais exécutée(s), masquée(s)</td></tr>';
+      hiddenRun = 0;
+    }
+    const cls = [c ? c.s : "", (nr>=from && nr<=to && info.line) ? "inmethod" : ""].join(" ");
+    const ann = isTraced && D.trace[nr]
+      ? D.trace[nr].map(a => esc(a.callee)+" "+a.cost).join(" · ") : "";
+    html += '<tr class="'+cls+'" id="L'+nr+'"><td class="n">'+nr+'</td>'+
+            '<td class="c">'+esc(text)+'</td><td class="ann">'+ann+'</td></tr>';
+  });
+  if (hiddenRun) html += '<tr><td colspan="3" class="hidden-run">… '+hiddenRun+' ligne(s) jamais exécutée(s), masquée(s)</td></tr>';
+  document.getElementById("code").innerHTML = html + "</table>";
+  // Faire défiler le PANNEAU, pas la page : scrollIntoView déplacerait tout le document
+  // et sortirait l'arbre de gauche du champ.
+  const anchor = document.getElementById("L"+(info.line||1));
+  const pane = document.getElementById("code");
+  // offsetTop est relatif au premier ancêtre positionné, pas au panneau : on passe par
+  // les rectangles pour obtenir un décalage juste quelle que soit la mise en page.
+  if (anchor) pane.scrollTop += anchor.getBoundingClientRect().top
+                              - pane.getBoundingClientRect().top - pane.clientHeight/3;
+  drawValues(isTraced);
+}
+function drawValues(isTraced){
+  const box = document.getElementById("values");
+  if (!isTraced || !D.values.length){ box.innerHTML = ""; return; }
+  box.innerHTML = "<h3>Valeurs réellement passées à cet appel — capturées par Arthas</h3>" +
+    D.values.map(v =>
+      '<div class="call"><span class="t">'+esc(v.ts)+' · '+esc(v.cost)+'</span> — ' +
+      v.values.map(x => '<span class="v">'+esc(x.value)+'</span>').join(", ") + '</div>').join("");
+}
+
+/* --- interactions ------------------------------------------------------- */
+document.getElementById("tab-tree").onclick = () => {
+  mode="tree"; document.getElementById("tab-tree").classList.add("on");
+  document.getElementById("tab-cls").classList.remove("on"); renderCallTree(); };
+document.getElementById("tab-cls").onclick = () => {
+  mode="cls"; document.getElementById("tab-cls").classList.add("on");
+  document.getElementById("tab-tree").classList.remove("on"); renderClassTree(); };
+document.getElementById("clean").onchange = e => {
+  clean = e.target.checked;
+  mode === "cls" ? renderClassTree() : renderCallTree();
+  draw();
+};
+renderCallTree();
+</script>
+</body>
+</html>

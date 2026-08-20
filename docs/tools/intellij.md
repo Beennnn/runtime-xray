@@ -55,6 +55,13 @@ suffit pour la couverture. L'abonnement Ultimate n'ajoute, pour ce besoin préci
 confort d'avoir async-profiler dans l'IDE plutôt qu'en ligne de commande — le moteur étant
 le même et gratuit par ailleurs.
 
+## Comparable à
+
+- **[JaCoCo](jacoco.md)** — Fournisseur, pas concurrent : IntelliJ **affiche** ce que JaCoCo a mesuré.
+- **[async-profiler](async-profiler.md)** — Le profiler d'Ultimate **est** async-profiler. Le choix se résume à : en ligne de commande (gratuit, sortie partageable) ou dans l'éditeur (payant, plus confortable).
+- **[JProfiler](jprofiler.md) · [YourKit](yourkit.md)** — Tous deux fournissent un plugin IntelliJ : l'IDE devient leur façade.
+- **[SonarQube](sonarqube.md)** — L'autre façon d'afficher la même couverture — dans un portail web plutôt que dans l'éditeur.
+
 ## Facile / moins facile
 
 **Ce qui est facile.** Pour un développeur, lire la couverture dans la marge de l'éditeur et sauter d'un appel à l'autre : rien n'égale ça en confort.

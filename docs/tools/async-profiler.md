@@ -84,6 +84,14 @@ et les cinq premières feuilles du profil sont des méthodes métier. Le profil 
 servi à corriger trois défauts réels du programme d'exemple — voir
 [TECHNICAL.md](../TECHNICAL.md#affinages-décidés-à-la-mesure-pas-au-jugé).
 
+## Comparable à
+
+- **[JFR](jfr-jmc.md)** — **Le concurrent direct** : même nature de donnée, des piles échantillonnées. Sous Java 21, async-profiler gagne sur la mise en œuvre et la lisibilité (HTML autonome contre binaire + application de bureau). Sous Java 25, JFR passe devant grâce au comptage exact.
+- **[VisualVM](visualvm.md)** — Même service, en interface graphique. Plus immédiat à ouvrir, mais rien n'en sort : ni fichier à transmettre, ni commande à rejouer.
+- **[JProfiler](jprofiler.md) · [YourKit](yourkit.md)** — Payants, et plus riches : ils corrèlent le profil avec la mémoire, les verrous, et les valeurs d'arguments. Sur le seul arbre d'appel, l'écart est faible.
+- **[IntelliJ Ultimate](intellij.md)** — Ce n'est pas un concurrent : son profiler **embarque async-profiler**. On paie l'intégration, pas le moteur.
+- **[JaCoCo](jacoco.md)** — **Complémentaire.** L'un dit où le temps passe, l'autre ce qui n'a jamais tourné.
+
 ## Facile / moins facile
 
 **Ce qui est facile.** Un flag, un fichier HTML qu'on ouvre ou qu'on envoie. Zéro configuration une fois installé.

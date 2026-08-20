@@ -1,9 +1,9 @@
 [INFO] JAVA_HOME: /opt/homebrew/Cellar/openjdk@21/21.0.12.1/libexec/openjdk.jdk/Contents/Home
 [INFO] arthas-boot version: 4.3.4
 [INFO] arthas home: /Users/benoitbesson/.arthas/lib/4.3.4/arthas
-[INFO] Try to attach process 53089
+[INFO] Try to attach process 89607
 Picked up JAVA_TOOL_OPTIONS: 
-[INFO] Attach process 53089 success.
+[INFO] Attach process 89607 success.
 [INFO] arthas-client connect 127.0.0.1 3658
 [1;31m  ,---.  [1;33m,------. [1;36m,--------.[1;35m,--.  ,--.[1;32m  ,---.  [1;34m ,---.  [0m                         
 [1;31m /  O  \ [1;33m|  .--. '[1;36m'--.  .--'[1;35m|  '--'  |[1;32m /  O  \ [1;34m'   .-' [0m                         
@@ -15,15 +15,42 @@ wiki         https://arthas.aliyun.com/doc
 tutorials    https://arthas.aliyun.com/doc/arthas-tutorials.html                
 version      4.3.4                                                              
 main_class   sample-app/target/sample-app.jar                                   
-pid          53089                                                              
-start_time   2026-08-20 20:07:45.553                                            
-current_time 2026-08-20 20:08:01.810                                            
+pid          89607                                                              
+start_time   2026-08-20 20:25:48.198                                            
+current_time 2026-08-20 20:25:59.667                                            
 
-[arthas@53089]$ watch lab.sample.RoutePlanner travelTimeMinutes '{params[0].id() , params[0].mode(), params[0].weather(), params[0].timeOfDay(), params[0].withLu ggage(), returnObj}' -n 5 -x 2 | plaintext
+[arthas@89607]$ watch lab.sample.RoutePlanner travelTimeMinutes '{params[0].id() , params[0].mode(), params[0].weather(), params[0].timeOfDay(), params[0].withLu ggage(), returnObj}' -n 5 -x 2 | plaintext
 Press Q or Ctrl+C to abort.
-Affect(class count: 1 , method count: 1) cost in 83 ms, listenerId: 1
+Affect(class count: 1 , method count: 1) cost in 96 ms, listenerId: 1
 method=lab.sample.RoutePlanner.travelTimeMinutes location=AtExit
-ts=2026-08-20 20:08:02.619; [cost=5.866458ms] result=@ArrayList[
+ts=2026-08-20 20:26:00.933; [cost=1.513959ms] result=@ArrayList[
+    @String[TRIP-53],
+    @Mode[TRAIN],
+    @Weather[RAIN],
+    @TimeOfDay[QUIET],
+    @Boolean[false],
+    @Double[64.0],
+]
+method=lab.sample.RoutePlanner.travelTimeMinutes location=AtExit
+ts=2026-08-20 20:26:00.936; [cost=0.027458ms] result=@ArrayList[
+    @String[TRIP-54],
+    @Mode[BIKE],
+    @Weather[RAIN],
+    @TimeOfDay[QUIET],
+    @Boolean[false],
+    @Double[366.7988133333333],
+]
+method=lab.sample.RoutePlanner.travelTimeMinutes location=AtExit
+ts=2026-08-20 20:26:00.937; [cost=0.015042ms] result=@ArrayList[
+    @String[TRIP-55],
+    @Mode[WALK],
+    @Weather[RAIN],
+    @TimeOfDay[QUIET],
+    @Boolean[true],
+    @Double[1598.9659488],
+]
+method=lab.sample.RoutePlanner.travelTimeMinutes location=AtExit
+ts=2026-08-20 20:26:00.937; [cost=0.013208ms] result=@ArrayList[
     @String[TRIP-56],
     @Mode[CAR],
     @Weather[SUNNY],
@@ -32,7 +59,7 @@ ts=2026-08-20 20:08:02.619; [cost=5.866458ms] result=@ArrayList[
     @Double[52.00806981818182],
 ]
 method=lab.sample.RoutePlanner.travelTimeMinutes location=AtExit
-ts=2026-08-20 20:08:02.621; [cost=0.031375ms] result=@ArrayList[
+ts=2026-08-20 20:26:00.938; [cost=0.011125ms] result=@ArrayList[
     @String[TRIP-57],
     @Mode[TRAIN],
     @Weather[SUNNY],
@@ -40,36 +67,9 @@ ts=2026-08-20 20:08:02.621; [cost=0.031375ms] result=@ArrayList[
     @Boolean[false],
     @Double[56.833333333333336],
 ]
-method=lab.sample.RoutePlanner.travelTimeMinutes location=AtExit
-ts=2026-08-20 20:08:02.622; [cost=0.019334ms] result=@ArrayList[
-    @String[TRIP-58],
-    @Mode[BIKE],
-    @Weather[SUNNY],
-    @TimeOfDay[RUSH_HOUR],
-    @Boolean[false],
-    @Double[365.7556000000001],
-]
-method=lab.sample.RoutePlanner.travelTimeMinutes location=AtExit
-ts=2026-08-20 20:08:02.624; [cost=0.023ms] result=@ArrayList[
-    @String[TRIP-59],
-    @Mode[WALK],
-    @Weather[SUNNY],
-    @TimeOfDay[RUSH_HOUR],
-    @Boolean[false],
-    @Double[1498.0183999999997],
-]
-method=lab.sample.RoutePlanner.travelTimeMinutes location=AtExit
-ts=2026-08-20 20:08:02.625; [cost=0.017166ms] result=@ArrayList[
-    @String[TRIP-60],
-    @Mode[CAR],
-    @Weather[RAIN],
-    @TimeOfDay[RUSH_HOUR],
-    @Boolean[true],
-    @Double[12.850304000000001],
-]
 Command execution times exceed limit: 5, so command will exit. You can set it with -n option.
-[arthas@53089]$ stop | plaintext
+[arthas@89607]$ stop | plaintext
 Resetting all enhanced classes ...
-Affect(class count: 1 , method count: 0) cost in 9 ms, listenerId: 0
+Affect(class count: 1 , method count: 0) cost in 10 ms, listenerId: 0
 Arthas Server is going to shutdown...
-[arthas@53089]$ 
+[arthas@89607]$ 

@@ -54,6 +54,12 @@ qu'elle s'appuie sur JFR, déjà présent. À tester juste après Arthas — et 
 intéressante si le portage vers Java 25 est décidé, puisque tout converge alors vers un
 seul enregistrement JFR.
 
+## Comparable à
+
+- **[Arthas](arthas.md)** — Le concurrent immédiat, et il a un avantage net : il fonctionne en deux commandes, sans écrire de XML. L'avantage du JMC Agent est ailleurs — sa sortie est **structurée** (des événements JFR), donc réutilisable.
+- **[BTrace](btrace-byteman.md) · [Byteman](btrace-byteman.md)** — Même travail d'instrumentation, exprimé en code plutôt qu'en déclaration.
+- **[JFR](jfr-jmc.md)** — Il ne le remplace pas, il l'**étend** : mêmes enregistrements, mêmes outils de lecture, avec des événements en plus.
+
 ## Facile / moins facile
 
 **Ce qui est facile.** S'adosser à l'existant : les événements produits arrivent dans le même enregistrement JFR que le GC et les verrous, corrélés.

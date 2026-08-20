@@ -31,6 +31,11 @@ Commerciales, facturation à l'usage.
 ## Ce qu'on peut en espérer
 Rien dans ce contexte. La fiche est là pour que la question ne soit pas reposée dans six mois.
 
+## Comparable à
+
+- **[Glowroot](glowroot.md)** — **Le remplaçant recommandé** : même promesse, agent et interface auto-hébergés, donc utilisable sans réseau pendant l'exécution.
+- **[OpenTelemetry](opentelemetry.md)** — La voie ouverte vers le même résultat, au prix d'un collecteur et d'un backend à installer.
+
 ## Facile / moins facile
 
 **Ce qui est facile.** Tout, si l'on est connecté : c'est le principe même du modèle.

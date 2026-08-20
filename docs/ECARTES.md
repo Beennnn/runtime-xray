@@ -3,14 +3,21 @@
 > Cette page existe pour que les rejets soient **motivés et datés**, et qu'on ne repose pas
 > les mêmes questions dans six mois. Aucun de ces outils n'est mauvais : ils sont
 > incompatibles avec *ces* contraintes.
+>
+> ⚠️ **Précision sur le critère hors ligne** : il porte sur l'**exécution**, pas sur
+> l'installation. Télécharger un outil au préalable — depuis Internet ou un miroir interne —
+> ne pose aucun problème. Est éliminatoire le besoin de réseau **pendant que le programme
+> tourne**. C'est cette lecture qui est appliquée ci-dessous.
 
 ## Écartés par la contrainte hors ligne
 
 ### Datadog, New Relic, Dynatrace — ⛔ incompatibilité d'architecture
 
-Leur modèle repose entièrement sur une connexion sortante permanente vers l'éditeur :
-l'agent instrumente, mais **n'affiche rien** — il envoie. Sans lien sortant, il n'a nulle
-part où écrire. Ce n'est pas un réglage, c'est le produit.
+Leur modèle repose sur une connexion sortante **permanente, pendant l'exécution** :
+l'agent instrumente, mais **n'affiche rien** — il envoie, en continu, vers l'éditeur. Ce
+n'est donc pas un problème d'installation qu'on règlerait en téléchargant à l'avance :
+sans lien sortant au moment où le programme tourne, l'agent n'a nulle part où écrire.
+Ce n'est pas un réglage, c'est le produit.
 
 **L'équivalent utilisable** : [Glowroot](tools/glowroot.md) (agent + serveur web embarqué,
 auto-hébergeable) ou [OpenTelemetry](tools/opentelemetry.md) + Jaeger/Tempo.
