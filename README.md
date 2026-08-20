@@ -12,9 +12,10 @@ répondre à un besoin précis : disposer de rapports qui rendent visible le com
 réel du code — pour l'analyser, puis le restructurer.
 
 **→ [Voir les rapports en ligne](https://beennnn.github.io/runtime-xray/)** — les sorties
-réelles, navigables directement dans le navigateur, sans rien installer.
+réelles, navigables dans le navigateur, sans rien installer.
+**→ [Télécharger le rapport en un fichier](https://github.com/Beennnn/runtime-xray/releases/latest)** — 266 Ko, à décompresser et ouvrir hors ligne.
 
-[Résultats et arbitrages](docs/RESULTS.md) · [Tableau comparatif](docs/COMPARISON.md) · [Fiches par outil](docs/tools/) · [Clés d'évaluation](docs/EVALUATION-KEYS.md) · [Détails techniques](docs/TECHNICAL.md)
+[Résultats et arbitrages](docs/RESULTS.md) · [Tableau comparatif](docs/COMPARISON.md) · [Fiches par outil](docs/tools/) · [Outils écartés](docs/ECARTES.md) · [Publier le rapport](docs/PUBLICATION.md) · [Clés d'évaluation](docs/EVALUATION-KEYS.md) · [Détails techniques](docs/TECHNICAL.md)
 
 ## Ce qu'on veut obtenir
 
@@ -61,7 +62,7 @@ exactement la contrainte hors ligne et la question du budget.
 | **[JaCoCo](docs/tools/jacoco.md)** | ✅ | ❌ | ❌ | ✅ site HTML, code annoté | ✅ testé |
 | **[async-profiler](docs/tools/async-profiler.md)** | ❌ | ✅ | ❌ | ✅ HTML autonome interactif | ✅ testé |
 | **[JFR / Mission Control](docs/tools/jfr-jmc.md)** | ⚠️ | ✅ | ❌ | ❌ GUI desktop | ✅ testé |
-| **[Arthas](docs/tools/arthas.md)** | ❌ | ✅ | ✅ | ✅ console web | 🚧 |
+| **[Arthas](docs/tools/arthas.md)** | ❌ | ✅ **par appel, avec n° de ligne** | ✅ **les valeurs** | ⚠️ sortie console | ✅ testé, **hors ligne prouvé** |
 | **[JMC Agent](docs/tools/jmc-agent.md)** | ❌ | ✅ | ✅ | ❌ via JMC | 📄 |
 | **[BTrace / Byteman](docs/tools/btrace-byteman.md)** | ❌ | ✅ | ✅ | ❌ sortie texte | 📄 |
 | **[VisualVM](docs/tools/visualvm.md)** | ❌ | ✅ | ❌ | ❌ GUI desktop | 📄 |
@@ -73,8 +74,13 @@ exactement la contrainte hors ligne et la question du budget.
 | **[IntelliJ IDEA Community](docs/tools/intellij.md)** | ✅ | ❌ | ⚠️ débogueur | ❌ dans l'IDE | 📄 |
 
 **Coût total de cette colonne : 0 €.** Tous s'installent une fois et fonctionnent sans
-connexion — sauf Arthas, dont le lanceur télécharge ses modules (contournable en installant
-le paquet complet au préalable).
+connexion. Pour Arthas, le lanceur télécharge normalement ses modules chez Alibaba : le
+contournement (paquet complet depuis Maven Central + `--arthas-home`) a été **testé avec
+tout le trafic HTTP coupé**, et il fonctionne.
+
+> **Les trois besoins du brief sont couverts par cette seule colonne** — JaCoCo pour les
+> lignes, async-profiler pour l'arbre d'appel, Arthas pour les valeurs des paramètres.
+> Vérifié sur l'application-cible, sous Java 21, pour 0 €.
 
 ### Avec licence — commercial
 
@@ -93,9 +99,10 @@ auto-hébergé** (le cloud est le défaut). Démarches et stockage des clés :
 
 Légende — ✅ testé ici · 🚧 bloqué techniquement · ⛔ bloqué par licence ou contrainte · 📄 sur documentation.
 
-> **Le constat qui structure la décision** : dans la catégorie sans licence, **aucune ligne
-> n'a trois ✅**. La solution sera une combinaison — et la seule chose que l'argent achète
-> ici, c'est de réunir l'arbre d'appel et les valeurs de paramètres dans un même outil.
+> **Le constat qui structure la décision** : aucun outil ne fait tout seul les trois
+> colonnes, mais **trois outils gratuits y suffisent**. Ce que l'argent achèterait n'est
+> donc pas une capacité manquante — c'est de réunir le tout dans une interface unique, et
+> d'**agréger l'arbre d'appel par valeur de paramètre**, ce qu'Arthas ne sait pas faire.
 
 ## À quoi ressemblent les rapports
 

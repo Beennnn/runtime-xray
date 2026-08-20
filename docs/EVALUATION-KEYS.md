@@ -35,6 +35,68 @@ Trois protections, cumulées :
 > `security add-generic-password -s runtime-xray -a jprofiler -w '<clé>'` pour déposer,
 > `security find-generic-password -s runtime-xray -a jprofiler -w` pour relire dans un script.
 
+## Avant de demander quoi que ce soit : ce qu'on a déjà
+
+Demander un essai n'a de sens que si l'on sait **ce qu'on cherche à obtenir en plus**.
+Voici l'état vérifié du socle gratuit, sur la même application, sous Java 21 :
+
+| Besoin | Outil | Ce qu'on obtient, concrètement |
+|---|---|---|
+| Lignes exécutées | JaCoCo | Site HTML, code colorié ligne à ligne, 91,1 % des instructions couvertes, classes mortes en rouge |
+| Arbre d'appel cumulé | async-profiler | HTML autonome dépliable, % de temps par branche, 71 % des échantillons sur des méthodes métier |
+| Arbre d'appel d'**un** appel | Arthas `trace` | L'arbre d'une invocation, **avec les numéros de ligne**, branches conditionnelles comprises |
+| **Valeurs des paramètres** | Arthas `watch` | `@Mode[CAR] @Weather[SUNNY] @TimeOfDay[RUSH_HOUR]` et la valeur de retour |
+
+**Les trois besoins du brief sont couverts, pour 0 €, hors ligne.** L'essai commercial ne
+sert donc plus à combler un manque : il sert à répondre à une question plus étroite.
+
+## Ce qu'on attend des outils commerciaux — et pourquoi
+
+### Le gain principal : l'agrégation par valeur de paramètre
+
+C'est le seul point où l'on peut raisonnablement attendre mieux, et il mérite d'être
+énoncé précisément parce que c'est lui qui justifierait la dépense.
+
+**Ce qu'Arthas fait** : il montre les valeurs de **quelques appels individuels** — les
+cinq prochains, par exemple. Utile pour comprendre un cas, insuffisant pour raisonner sur
+un ensemble.
+
+**Ce que JProfiler revendique** (*method splitting by parameter values*) : **scinder l'arbre
+d'appel par valeur d'argument**. Sur 16 000 000 d'appels, cela donnerait un sous-arbre pour
+`mode=CAR`, un autre pour `mode=TRAIN`, avec leurs temps respectifs — c'est-à-dire la
+réponse à *« quel contexte coûte cher ? »*, et non seulement *« que s'est-il passé sur cet
+appel-ci ? »*.
+
+Arthas ne sait pas agréger ainsi. **C'est le gain à vérifier, et c'est le seul qui vaille
+549 $.**
+
+### Le gain secondaire : un seul outil au lieu de trois
+
+Aujourd'hui : un agent pour la couverture, un agent pour le profil, une console attachée
+pour les valeurs — trois procédures, trois formats de sortie. Un profileur commercial
+réunirait le profil et les valeurs dans une session unique, avec la corrélation
+temps / mémoire / verrous dans les mêmes vues.
+
+Gain réel, mais **de confort** : la décision n° 1 l'a explicitement classé secondaire.
+
+### Ce qu'il ne faut PAS en attendre
+
+- **La couverture de lignes** — ni JProfiler ni YourKit ne la produisent. JaCoCo reste
+  nécessaire dans tous les cas.
+- **Un rapport lisible par un non-développeur** — leurs instantanés s'exportent, mais ils
+  ne valent pas le HTML annoté de JaCoCo sur ce terrain. Le canal retenu (décision n° 3)
+  ne changerait pas.
+- **L'intégration IntelliJ** — déclassée par la décision n° 5, puisqu'on ne peut pas
+  supposer que tout le monde a Ultimate.
+
+### Le critère de décision, en une phrase
+
+> Si le *method splitting by parameter values* apporte quelque chose qu'Arthas ne donne pas
+> en trois commandes, la licence se justifie. Sinon, non.
+
+C'est ce qu'il faut aller vérifier pendant les 10 et 15 jours d'essai — pas « est-ce que
+l'outil est bon », mais **cette question-là**.
+
 ## JProfiler (ej-technologies)
 
 | | |

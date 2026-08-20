@@ -11,16 +11,28 @@
 # méthodes JFR (JEP 520), présent en 25 et absent en 21.
 JAVA_TARGET="${JAVA_TARGET:-21}"
 
-for candidate in \
-  "/opt/homebrew/opt/openjdk@${JAVA_TARGET}/libexec/openjdk.jdk/Contents/Home" \
-  "/opt/homebrew/Cellar/openjdk/${JAVA_TARGET}"*/libexec/openjdk.jdk/Contents/Home \
-  "$HOME/.sdkman/candidates/java/${JAVA_TARGET}"* ; do
+# Les motifs sont développés par `ls` et non par le shell : sourcé depuis zsh, un glob
+# sans correspondance provoque « no matches found » et interrompt la résolution — ce qui
+# fait silencieusement retomber sur le java du PATH (constaté : un test censé tourner sous
+# Java 21 s'est exécuté sous Java 25).
+# Le développement des motifs est délégué à un bash explicite : le script peut être
+# sourcé depuis zsh, où un glob sans correspondance provoque « no matches found » et
+# interrompt la résolution — ce qui fait retomber en silence sur le java du PATH.
+for candidate in $(bash -c "ls -d \
+      '/opt/homebrew/opt/openjdk@${JAVA_TARGET}/libexec/openjdk.jdk/Contents/Home' \
+      /opt/homebrew/Cellar/openjdk/${JAVA_TARGET}*/libexec/openjdk.jdk/Contents/Home \
+      $HOME/.sdkman/candidates/java/${JAVA_TARGET}* \
+      2>/dev/null"); do
   if [ -x "$candidate/bin/java" ]; then
     export JAVA_HOME="$candidate"
     export PATH="$JAVA_HOME/bin:$PATH"
     break
   fi
 done
+
 JAVA_MAJOR="$(java -version 2>&1 | head -1 | sed -E 's/.*"([0-9]+).*/\1/')"
 export JAVA_MAJOR
+if [ "${JAVA_MAJOR}" != "${JAVA_TARGET}" ]; then
+  echo "⚠️  JAVA_TARGET=${JAVA_TARGET} demandé mais java -version dit ${JAVA_MAJOR} — résolution échouée" >&2
+fi
 echo "JDK utilisé : $(java -version 2>&1 | head -1)"

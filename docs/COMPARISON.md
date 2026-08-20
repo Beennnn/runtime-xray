@@ -24,7 +24,7 @@
 | JDK Mission Control | 📄 Sur documentation | GUI desktop : l'ouverture du `.jfr` produit ici n'a pas été faite |
 | VisualVM | 📄 Sur documentation | GUI desktop, attachement manuel |
 | IntelliJ IDEA | 📄 Sur documentation | Vérification = ouvrir l'IDE ; non automatisable ici |
-| Arthas | 🚧 Bloqué techniquement | `arthas-boot` exige un téléchargement depuis `arthas.aliyun.com`, injoignable depuis ce poste |
+| Arthas | ✅ Testé ici | [`reports-demo/generated/arthas/`](../reports-demo/generated/arthas/) — installé hors ligne depuis Maven Central, vérifié avec le trafic HTTP coupé |
 | JMC Agent | 📄 Sur documentation | Non publié sur Maven Central sous une forme directement exécutable |
 | BTrace / Byteman | 📄 Sur documentation | Non exécutés |
 | OpenTelemetry Java agent | 📄 Sur documentation | Exige un collecteur + un backend de visualisation |
@@ -53,7 +53,7 @@ valeurs des paramètres.
 | **JFR** ✅ | ⚠️ partiel — piles échantillonnées, pas une couverture | ✅ oui (piles + `jdk.MethodTrace` ciblé) | ❌ non — la signature `(List, int)` est affichée, **pas les valeurs** |
 | **JMC** 📄 | ⚠️ idem JFR | ✅ oui, vue graphique du `.jfr` | ❌ non |
 | **VisualVM** 📄 | ❌ non | ✅ oui (sampler / instrumentation) | ❌ non |
-| **Arthas** 🚧 | ❌ non | ✅ oui (`trace`, `stack`) | ✅ **oui** (`watch`, expressions OGNL sur `params`) |
+| **Arthas** ✅ | ❌ non | ✅ **oui, par appel, avec les numéros de ligne** | ✅ **oui** — les valeurs, pas les types |
 | **BTrace** 📄 | ❌ non | ✅ oui | ✅ oui (scripts d'instrumentation) |
 | **Byteman** 📄 | ❌ non | ⚠️ indirect | ✅ oui (règles d'injection) |
 | **JMC Agent** 📄 | ❌ non | ✅ via JFR | ✅ oui — capture déclarative (XML) de paramètres et valeurs de retour dans des événements JFR |

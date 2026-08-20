@@ -12,6 +12,7 @@ Ce dossier contient ce que les outils ont **effectivement écrit** en analysant
 | `generated/async-profiler/` | async-profiler | `tree.html` (arbre d'appel dépliable) et `flamegraph.html` |
 | `generated/jfr/` | JFR sous Java 21 | Résumé et échantillons d'exécution — **pas** de traçage de méthodes : il n'existe pas avant Java 25 |
 | `generated/jfr-jdk25/` | JFR sous Java 25 | `method-timing.txt` (16 000 000 d'invocations comptées exactement) et un extrait de `MethodTrace` |
+| `generated/arthas/` | Arthas | `watch-params.txt` : **les valeurs réellement passées** · `trace-calltree.txt` : l'arbre d'**un** appel avec les numéros de ligne |
 
 ## Comment les regarder
 
@@ -34,8 +35,9 @@ qu'un rapport ligne à ligne révèle.
 JAVA_TARGET=25 ./tools/jfr/collect.sh
 ```
 
-## Ce que ces sorties ne montrent pas
+## Le contraste à regarder
 
-**Les valeurs passées en paramètres.** JFR affiche la signature `frequencyMinutes(Leg)` et
-la pile d'appel complète, mais jamais la valeur du `Leg`. C'est le trou du socle gratuit,
-vérifié et non supposé — voir [RESULTS.md](../docs/RESULTS.md).
+Ouvrir `generated/jfr/` puis `generated/arthas/watch-params.txt` : JFR affiche la signature
+`travelTimeMinutes(Trip)` et la pile complète, **mais jamais la valeur du `Trip`**. Arthas,
+lui, dit `@Mode[CAR] @Weather[SUNNY] @TimeOfDay[RUSH_HOUR]`. C'est toute la différence entre
+savoir *qu'un* appel a eu lieu et savoir *lequel*.

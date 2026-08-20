@@ -61,14 +61,50 @@ jdk.MethodTiming {
 
 → [Fiche JFR & Mission Control](tools/jfr-jmc.md)
 
-## Le trou, et il est net
+### 4. Les valeurs des paramètres → **Arthas**. Le trou est comblé.
 
-**Les valeurs des paramètres ne sont couvertes par aucun des trois.** Ce n'est pas une
-supposition : JFR affiche la signature `frequencyMinutes(Leg)` et la pile d'appel
-complète, mais **jamais la valeur du `Leg`**. Vérifié, pas déduit.
+C'était le point manquant, et il ne l'est plus. Arthas s'attache à la JVM en cours et
+répond aux deux questions restantes, **gratuitement et hors ligne** :
 
-C'est exactement le terrain sur lequel les outils commerciaux revendiquent leur valeur
-(*method splitting by parameter values* chez JProfiler, *probes* chez YourKit).
+```
+watch lab.sample.RoutePlanner travelTimeMinutes '{params[0].id(), params[0].mode(), ...}'
+
+ts=2026-08-20 20:08:02.619; [cost=5.866458ms] result=@ArrayList[
+    @String[TRIP-56], @Mode[CAR], @Weather[SUNNY], @TimeOfDay[RUSH_HOUR],
+    @Boolean[false], @Double[52.00806981818182],
+]
+```
+
+Là où JFR affiche `travelTimeMinutes(Trip)`, Arthas dit **quel** trajet et **ce qu'il a
+répondu**. Et sa commande `trace` donne l'arbre d'appel d'**un seul appel**, avec les
+**numéros de ligne** :
+
+```
+`---[0.416459ms] lab.sample.RoutePlanner:travelTimeMinutes()
+    +---[13,35% 0.055583ms ] lab.sample.RoutePlanner:legMinutes() #50
+    +---[2,60%  0.010834ms ] lab.sample.traffic.Traffic:applies() #53
+    +---[3,06%  0.01275ms  ] lab.sample.weather.WeatherPenalty:applies() #57
+```
+
+**L'installation hors ligne était le seul obstacle, et il est levé** : le paquet complet
+est sur Maven Central, on le décompresse dans `~/.arthas/`, et `--arthas-home` fait que
+le lanceur ne contacte plus jamais l'éditeur.
+
+→ [Fiche Arthas](tools/arthas.md)
+
+## Le socle gratuit couvre les trois besoins
+
+| Besoin | Outil | Statut |
+|---|---|---|
+| Lignes exécutées | JaCoCo | ✅ vérifié |
+| Arbre d'appel cumulé, visuel | async-profiler | ✅ vérifié |
+| Arbre d'appel d'un appel + **valeurs des paramètres** | Arthas | ✅ vérifié |
+
+**Coût : 0 €. Connexion nécessaire : aucune.**
+
+Ce que ça change pour la décision : la question de la licence commerciale ne porte plus sur
+une **capacité manquante**, mais sur le **confort** — réunir tout cela dans une interface
+unique plutôt que dans trois outils et une console.
 
 ## Analyse de synthèse — ce qui est facile, ce qui l'est moins
 
@@ -273,6 +309,74 @@ qu'on gagnerait ; il ne dit pas ce qu'on paierait.
 Les sorties des deux versions sont versionnées côte à côte pour vérification :
 [`reports-demo/generated/jfr/`](../reports-demo/generated/jfr/) (Java 21) et
 [`reports-demo/generated/jfr-jdk25/`](../reports-demo/generated/jfr-jdk25/) (Java 25).
+
+## Décisions prises
+
+Arbitrages tranchés par Benoît le 2026-08-20. Ils réduisent le périmètre et fixent le canal
+de diffusion.
+
+| # | Question | Décision |
+|---|---|---|
+| 1 | Acheter une licence pour les valeurs de paramètres ? | **Non, secondaire pour l'instant.** D'autant qu'Arthas les fournit gratuitement — voir ci-dessus |
+| 2 | Capture ciblée ou générale ? | **À développer** — voir juste en dessous |
+| 3 | Comment le non-technicien reçoit-il le rapport ? | **Un dossier envoyé dans un fichier**, analysable **sans IntelliJ** |
+| 4 | Historiser les résultats ? | **Non, pas pour l'instant** |
+| 5 | IntelliJ Ultimate ? | **Ne pas en dépendre** — tout le monde ne l'a pas. Ce qui n'existe qu'en Ultimate ne doit pas être sur le chemin critique |
+| 6 | Viser le « but final » (restructuration) ? | **À développer** — voir la section Kieker |
+
+### Ce que ces décisions éliminent
+
+- **SonarQube, Glowroot, OpenTelemetry** sortent du périmètre : ils supposent un serveur à
+  installer et à maintenir, ce que les décisions 3 et 4 rendent inutile.
+- **Le profiler d'IntelliJ Ultimate** sort du chemin critique (décision 5).
+- **JProfiler et YourKit** sont repoussés, sans être écartés (décision 1).
+
+### Question 2, développée : capture ciblée ou générale ?
+
+La question porte sur **l'étendue** de la capture des valeurs : instrumenter tout le code,
+ou seulement les méthodes qu'on désigne.
+
+**Le mode général** — enregistrer tous les appels de toutes les méthodes avec leurs
+arguments — est séduisant : on n'a rien à décider d'avance, on capture puis on cherche.
+**Il est impraticable, et c'est mesuré** : tracer **une seule** méthode du chemin chaud a
+produit **129 Mo pour 10 secondes** d'exécution. Étendu à quelques centaines de méthodes,
+on parle de gigaoctets par minute, et d'un ralentissement qui change le comportement même
+qu'on observe.
+
+**Le mode ciblé** — désigner les méthodes qui nous intéressent — est ce que proposent tous
+les outils concernés : `watch <classe> <méthode>` chez Arthas, un XML de sondes chez JMC
+Agent, un `filter` chez JFR en Java 25. Sa contrepartie : **il faut savoir quoi regarder
+avant de regarder.**
+
+**Recommandation : ciblé, et une méthode de travail en deux temps.**
+
+1. **Repérer** avec les outils exhaustifs et bon marché — la couverture JaCoCo dit par où
+   on est passé, le flame graph dit où le temps part. Aucune décision à prendre à ce stade.
+2. **Comprendre** en ciblant : une fois la méthode intéressante identifiée, `watch` dessus
+   pour voir les valeurs, `trace` pour voir son arbre.
+
+Ce n'est pas un pis-aller : c'est ainsi qu'on travaille avec un débogueur — on ne pose pas
+un point d'arrêt sur toutes les lignes. **Et surtout, ça ne départage aucun outil** :
+aucun ne propose le mode général de façon soutenable. Cette question définit la *méthode*,
+pas le *choix*.
+
+### Question 5, développée : que perd-on sans IntelliJ Ultimate ?
+
+| Capacité | Community | Ultimate |
+|---|---|---|
+| Couverture affichée dans la marge de l'éditeur | ✅ | ✅ |
+| Import d'un `.exec` JaCoCo produit à l'extérieur | ✅ *(à confirmer sur poste)* | ✅ |
+| Profiler intégré : flame graph, arbre d'appel | ❌ | ✅ (embarque async-profiler) |
+| Ouverture d'un enregistrement `.jfr` | ❌ | ✅ |
+
+**Conséquence, cohérente avec la décision 5** : la **couverture** peut se regarder dans
+l'IDE par tout le monde, Community comprise. L'**arbre d'appel**, non — le canal commun
+reste le HTML autonome d'async-profiler, qui a l'avantage d'être lisible par quelqu'un qui
+n'a aucun IDE.
+
+Autrement dit, l'absence d'Ultimate ne coûte rien : le moteur de son profiler
+(async-profiler) est gratuit en ligne de commande, et sa sortie est *plus* partageable que
+celle de l'IDE.
 
 ## Les questions à arbitrer
 
