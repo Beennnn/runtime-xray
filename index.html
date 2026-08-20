@@ -3,48 +3,59 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Runtime X-Ray — rapports d'exécution</title>
+<title>Runtime X-Ray — analyse dynamique de code Java</title>
 <style>
   :root{
     --bg:#ffffff; --panel:#f6f8fa; --border:#d0d7de; --text:#1f2328; --muted:#59636e;
-    --accent:#0969da; --accent-soft:#ddf4ff; --green:#1a7f37; --red:#cf222e; --violet:#8250df;
+    --accent:#0969da; --accent-soft:#ddf4ff; --green:#1a7f37; --amber:#9a6700; --violet:#8250df;
   }
   @media (prefers-color-scheme: dark){
     :root:not([data-theme="light"]){
-      --bg:#0d1117; --panel:#151b23; --border:#3d444d; --text:#e6edf3; --muted:#9198a1;
-      --accent:#4493f8; --accent-soft:#121d2f; --green:#3fb950; --red:#f85149; --violet:#ab7df8;
+      --bg:#0d1117; --panel:#151b23; --border:#30363d; --text:#e6edf3; --muted:#9198a1;
+      --accent:#4493f8; --accent-soft:#121d2f; --green:#3fb950; --amber:#d29922; --violet:#ab7df8;
     }
-  }
-  :root[data-theme="dark"]{
-    --bg:#0d1117; --panel:#151b23; --border:#3d444d; --text:#e6edf3; --muted:#9198a1;
-    --accent:#4493f8; --accent-soft:#121d2f; --green:#3fb950; --red:#f85149; --violet:#ab7df8;
   }
   *{box-sizing:border-box}
   body{margin:0;background:var(--bg);color:var(--text);
        font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
-  .wrap{max-width:960px;margin:0 auto;padding:48px 20px 80px}
-  h1{font-size:32px;margin:0 0 4px;letter-spacing:-.5px}
-  .sub{color:var(--muted);margin:0 0 8px;font-size:17px}
-  .meta{color:var(--muted);font-size:13.5px;margin:0 0 36px}
-  code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.9em;
+  .wrap{max-width:960px;margin:0 auto;padding:44px 20px 80px}
+  header.top{display:flex;align-items:center;gap:14px;margin-bottom:6px}
+  h1{font-size:31px;margin:0;letter-spacing:-.5px}
+  .lead{color:var(--muted);font-size:17px;margin:0 0 6px}
+  .meta{color:var(--muted);font-size:13.5px;margin:0 0 30px}
+  code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.88em;
        background:var(--panel);border:1px solid var(--border);border-radius:5px;padding:1px 5px}
-  h2{font-size:15px;text-transform:uppercase;letter-spacing:1.6px;color:var(--muted);
-     margin:40px 0 14px;font-weight:600}
-  .grid{display:grid;grid-template-columns:1fr;gap:14px}
-  @media(min-width:720px){.grid{grid-template-columns:1fr 1fr}}
+  h2{font-size:15px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);
+     margin:38px 0 6px;font-weight:600}
+  h2 + p.hint{color:var(--muted);font-size:14px;margin:0 0 14px}
+  .grid{display:grid;grid-template-columns:1fr;gap:13px}
+  @media(min-width:720px){.grid.two{grid-template-columns:1fr 1fr}}
   a.card{display:block;text-decoration:none;color:inherit;background:var(--panel);
-         border:1px solid var(--border);border-radius:10px;padding:18px 20px;transition:.15s}
+         border:1px solid var(--border);border-radius:10px;padding:17px 19px;transition:.15s}
   a.card:hover{border-color:var(--accent);background:var(--accent-soft)}
-  a.card .t{font-weight:600;font-size:17px;margin-bottom:5px}
+  a.card .t{font-weight:650;font-size:17px;margin-bottom:5px;display:flex;
+            align-items:baseline;gap:9px;flex-wrap:wrap}
   a.card .d{color:var(--muted);font-size:14px;line-height:1.5}
-  .tag{display:inline-block;font-size:11.5px;font-weight:600;letter-spacing:.4px;
-       padding:2px 8px;border-radius:20px;margin-left:8px;vertical-align:2px}
-  .tag.ok{color:var(--green);border:1px solid var(--green)}
-  .tag.new{color:var(--violet);border:1px solid var(--violet)}
-  ul.plain{padding-left:20px;color:var(--muted);font-size:14.5px}
-  ul.plain li{margin:5px 0}
+
+  .badge{display:inline-flex;vertical-align:-5px}
+  .badge svg{display:block}
+  .tag{font-size:11px;font-weight:700;letter-spacing:.5px;padding:2px 8px;border-radius:20px}
+  .tag.reco{color:#fff;background:var(--accent)}
+  .tag.jacoco{color:var(--green);border:1px solid var(--green)}
+  .tag.async{color:var(--amber);border:1px solid var(--amber)}
+  .tag.arthas{color:var(--violet);border:1px solid var(--violet)}
+  .tag.jdk{color:var(--accent);border:1px solid var(--accent)}
+  .steps{display:grid;grid-template-columns:1fr;gap:10px;margin:0 0 8px;padding:0;list-style:none}
+  @media(min-width:720px){.steps{grid-template-columns:repeat(3,1fr)}}
+  .steps li{background:var(--panel);border:1px solid var(--border);border-radius:10px;
+            padding:14px 16px;font-size:14px;color:var(--muted)}
+  .steps b{color:var(--text);display:block;margin-bottom:3px;font-size:14.5px}
+  .steps .n{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;
+            border-radius:50%;background:var(--accent);color:#fff;font-size:11.5px;font-weight:700;
+            margin-right:7px;vertical-align:1px}
   .note{background:var(--panel);border:1px solid var(--border);border-left:3px solid var(--accent);
-        border-radius:6px;padding:14px 18px;color:var(--muted);font-size:14.5px;margin:14px 0 0}
+        border-radius:7px;padding:14px 18px;color:var(--muted);font-size:14px;margin:16px 0 0}
+  .note b{color:var(--text)}
   footer{margin-top:52px;padding-top:20px;border-top:1px solid var(--border);
          color:var(--muted);font-size:13.5px}
   footer a{color:var(--accent)}
@@ -52,94 +63,124 @@
 </head>
 <body>
 <div class="wrap">
-  <h1>Runtime X-Ray</h1>
-  <p class="sub">Rapports produits par l'analyse dynamique d'une exécution réelle.</p>
-  <p class="meta">Programme analysé : un calculateur de temps de trajet (22 classes, 8 packages).
-     Exécution de ~10 s, 16 000 000 d'appels de la fonction analysée, sous Java 21.
-     Tout ce qui suit est une sortie brute d'outil, pas une capture d'écran.</p>
 
-  <h2>La vue intégrée</h2>
-  <div class="grid">
-    <a class="card" href="demo/index.html" style="grid-column:1/-1">
-      <div class="t">Tout sous les yeux <span class="tag new">RECOMMANDÉ</span></div>
-      <div class="d">La liste de <b>tout le code exécuté</b>, du plus coûteux au moins coûteux.
-      On clique : le code apparaît, lignes exécutées en vert, avec sur chaque ligne les appels
-      qui en partent et leur coût, et en bas les valeurs réellement passées. Les trois outils,
-      une seule page.</div>
-    </a>
-    <a class="card" href="multi/index.html" style="grid-column:1/-1">
-      <div class="t">Trois exécutions dans un même rapport <span class="tag new">MULTI-RUN</span></div>
-      <div class="d">Le même outil, lancé trois fois avec des jeux de données différents.
-      Un sélecteur passe de l'une à l'autre, l'arbre d'appel prend les exécutions pour racines,
-      et la liste signale ce qui n'a tourné que dans l'une d'elles.</div>
-    </a>
-  </div>
+  <header class="top">
+    <svg viewBox="0 0 32 32" width="38" height="38" aria-hidden="true">
+      <rect width="32" height="32" rx="8" fill="#0d1117"/>
+      <rect width="32" height="32" rx="8" fill="#38bdf8" fill-opacity=".10"/>
+      <rect x="8" y="9" width="13" height="2.6" rx="1.3" fill="#3fb950"/>
+      <rect x="8" y="14" width="9" height="2.6" rx="1.3" fill="#3fb950"/>
+      <rect x="8" y="19" width="6" height="2.6" rx="1.3" fill="#f85149"/>
+      <rect x="5" y="15.6" width="22" height="1.2" rx=".6" fill="#7dd3fc" fill-opacity=".85"/>
+      <g fill="none" stroke="#7dd3fc" stroke-width="1.8" stroke-linecap="round">
+        <path d="M6 10.5V7.5a1.5 1.5 0 0 1 1.5-1.5h3"/><path d="M21.5 6h3A1.5 1.5 0 0 1 26 7.5v3"/>
+        <path d="M26 21.5v3a1.5 1.5 0 0 1-1.5 1.5h-3"/><path d="M10.5 26h-3A1.5 1.5 0 0 1 6 24.5v-3"/>
+      </g>
+    </svg>
+    <h1>Runtime X-Ray</h1>
+  </header>
+  <p class="lead">Voir ce qu'une exécution Java a réellement fait.</p>
 
-  <h2>Par où le code est passé</h2>
-  <div class="grid">
-    <a class="card" href="demo/jacoco-focused/html/index.html">
-      <div class="t">Vue nettoyée <span class="tag new">CIBLÉE</span></div>
-      <div class="d">Uniquement les classes réellement exécutées. Le code jamais atteint est retiré du rapport — on ne navigue que dans ce qui a servi.</div>
-    </a>
-    <a class="card" href="demo/jacoco/html/index.html">
-      <div class="t">Couverture complète <span class="tag ok">JaCoCo</span></div>
-      <div class="d">Tout le code, exécuté ou non. Source annotée ligne à ligne : vert exécuté, rouge jamais atteint, jaune branche partielle.</div>
-    </a>
-  </div>
-  <div class="note">Descendre jusqu'au code : cliquer un package, puis une classe.
-    Le fichier <code>WeatherPenalty.java</code> du package <code>lab.sample.weather</code>
-    montre le cas le plus parlant — une branche rouge à l'intérieur d'une méthode exécutée
-    des millions de fois.</div>
-
-  <h2>L'arbre d'appel</h2>
-  <div class="grid">
-    <a class="card" href="demo/async-profiler/tree.html">
-      <div class="t">Arbre d'appel <span class="tag ok">async-profiler</span></div>
-      <div class="d">Dépliable et cherchable, avec le pourcentage de temps par branche. Bouton « Expand All » pour tout ouvrir.</div>
-    </a>
-    <a class="card" href="demo/async-profiler/flamegraph.html">
-      <div class="t">Flame graph</div>
-      <div class="d">La largeur d'une barre est le temps passé. Cliquer pour zoomer sur une branche, taper pour chercher une méthode.</div>
-    </a>
-  </div>
-
-  <h2>Java 21 contre Java 25 — la mesure</h2>
-  <div class="grid">
-    <a class="card" href="jfr/java21-summary.txt">
-      <div class="t">Java 21 — échantillonnage</div>
-      <div class="d">Seulement <code>jdk.ExecutionSample</code> : quelques centaines de photos de la pile, dont on infère où le temps est passé.</div>
-    </a>
-    <a class="card" href="jfr/java25-method-timing.txt">
-      <div class="t">Java 25 — comptage exact</div>
-      <div class="d">16 000 000 d'invocations comptées, min/moyenne/max par appel. Et 594 877 piles d'appel exactes (<a href="jfr/java25-method-trace-extrait.txt">extrait</a>).</div>
-    </a>
-  </div>
-
-  <h2>Avec quelles valeurs — l'option</h2>
-  <div class="grid">
-    <a class="card" href="demo/arthas/watch-params.txt">
-      <div class="t">Valeurs des paramètres <span class="tag new">ARTHAS</span></div>
-      <div class="d">Les valeurs réellement passées : <code>@Mode[CAR] @Weather[SUNNY] @TimeOfDay[RUSH_HOUR]</code>, et la valeur de retour. Là où JFR n'affiche que la signature.</div>
-    </a>
-    <a class="card" href="demo/arthas/trace-calltree.txt">
-      <div class="t">L'arbre d'UN appel</div>
-      <div class="d">Le chemin réellement emprunté par un seul appel, avec les numéros de ligne — de quoi retourner droit dans le source.</div>
-    </a>
-  </div>
-
-  <h2>Ce qu'aucun de ces rapports ne montre</h2>
-  <ul class="plain">
-    <li><strong>Les trois données dans un seul rapport.</strong> Aucun format ne les porte
-        ensemble : il faut au minimum un fichier de couverture et un fichier de profil.</li>
-    <li><strong>Le masquage des lignes non exécutées à l'intérieur d'un fichier.</strong>
-        La vue ciblée retire les classes entières non touchées ; réduire un fichier à ses
-        seules lignes exécutées n'est proposé nativement par aucun outil recensé.</li>
+  <ul class="steps">
+    <li><b><span class="n">1</span>Il s'intègre à une exécution</b>
+        Sans toucher au code ni au build : les observateurs sont injectés au démarrage de la JVM,
+        quelle que soit la façon dont elle est lancée.</li>
+    <li><b><span class="n">2</span>Trois outils observent</b>
+        JaCoCo relève les lignes exécutées, async-profiler mesure le temps, Arthas capte les
+        valeurs reçues. Chacun produit son rapport, dans son format.</li>
+    <li><b><span class="n">3</span>Leurs sorties sont réunies</b>
+        Les trois rapports sont agrégés dans <b>une seule vue</b> : une page à lire plutôt que
+        trois formats à rapprocher soi-même.</li>
   </ul>
 
+  <p class="meta">Ce qui suit vient d'une exécution réelle : un calculateur de temps de trajet
+    (22 classes, 8 paquets), sous Java 21. Toutes les pages ci-dessous sont des sorties d'outils,
+    pas des captures d'écran.</p>
+
+  <h2>La vue agrégée</h2>
+  <p class="hint">C'est le livrable : les trois observations réunies, navigables ensemble.</p>
+  <div class="grid">
+    <a class="card" href="demo/index.html">
+      <div class="t">Une exécution <span class="tag reco">COMMENCER ICI</span></div>
+      <div class="d">À gauche, tout le code qui a tourné, du plus coûteux au moins coûteux.
+        Un clic ouvre la méthode : lignes exécutées en vert, jamais atteintes en rouge, les appels
+        qui partent de chaque ligne avec leur durée — et en bas les valeurs reçues, appel par appel.
+        Les noms de méthodes du code sont cliquables : on suit l'appel sans quitter le source.</div>
+    </a>
+    <a class="card" href="multi/index.html">
+      <div class="t">Trois exécutions comparées <span class="tag reco">MULTI-RUN</span></div>
+      <div class="d">Le même outil lancé trois fois, avec des jeux de données différents.
+        Un sélecteur passe de l'une à l'autre, l'arbre d'appel prend les exécutions pour racines,
+        et la liste signale ce qui n'a tourné que dans l'une d'elles.</div>
+    </a>
+  </div>
+
+  <h2>Les sorties brutes de chaque outil</h2>
+  <p class="hint">Ce que la vue agrège, dans le format natif de chaque outil.
+    <span class="badge" title="Produit par JaCoCo" role="img" aria-label="JaCoCo"><svg viewBox="0 0 32 32" width="22" height="22"><rect width="32" height="32" rx="8" fill="#1a7f37" fill-opacity=".14" stroke="#1a7f37" stroke-opacity=".5"/><rect x="8" y="9" width="16" height="3" rx="1.5" fill="#3fb950"/><rect x="8" y="14.5" width="11" height="3" rx="1.5" fill="#3fb950"/><rect x="8" y="20" width="7" height="3" rx="1.5" fill="#f85149"/></svg></span> JaCoCo &nbsp;·&nbsp; <span class="badge" title="Produit par async-profiler" role="img" aria-label="async-profiler"><svg viewBox="0 0 32 32" width="22" height="22"><rect width="32" height="32" rx="8" fill="#d29922" fill-opacity=".14" stroke="#d29922" stroke-opacity=".5"/><rect x="6" y="20" width="20" height="4" rx="1.5" fill="#e3a72c"/><rect x="9" y="14.5" width="14" height="4" rx="1.5" fill="#f0b849"/><rect x="12" y="9" width="8" height="4" rx="1.5" fill="#f8d477"/></svg></span> async-profiler &nbsp;·&nbsp;
+    <span class="badge" title="Produit par Arthas" role="img" aria-label="Arthas"><svg viewBox="0 0 32 32" width="22" height="22"><rect width="32" height="32" rx="8" fill="#8250df" fill-opacity=".14" stroke="#8250df" stroke-opacity=".5"/><circle cx="14.5" cy="14" r="6" fill="none" stroke="#ab7df8" stroke-width="2.4"/><path d="M19 18.5L24 23.5" stroke="#ab7df8" stroke-width="2.6" stroke-linecap="round"/><circle cx="14.5" cy="14" r="2" fill="#ab7df8"/></svg></span> Arthas</p>
+  <div class="grid two">
+    <a class="card" href="demo/jacoco-focused/html/index.html">
+      <div class="t">Couverture, vue nettoyée <span class="badge" title="Produit par JaCoCo" role="img" aria-label="JaCoCo"><svg viewBox="0 0 32 32" width="22" height="22"><rect width="32" height="32" rx="8" fill="#1a7f37" fill-opacity=".14" stroke="#1a7f37" stroke-opacity=".5"/><rect x="8" y="9" width="16" height="3" rx="1.5" fill="#3fb950"/><rect x="8" y="14.5" width="11" height="3" rx="1.5" fill="#3fb950"/><rect x="8" y="20" width="7" height="3" rx="1.5" fill="#f85149"/></svg></span></div>
+      <div class="d">Le même rapport que ci-contre, restreint aux classes réellement exécutées :
+        le code jamais atteint est retiré, on ne navigue que dans ce qui a servi.</div>
+    </a>
+    <a class="card" href="demo/jacoco/html/index.html">
+      <div class="t">Couverture complète <span class="badge" title="Produit par JaCoCo" role="img" aria-label="JaCoCo"><svg viewBox="0 0 32 32" width="22" height="22"><rect width="32" height="32" rx="8" fill="#1a7f37" fill-opacity=".14" stroke="#1a7f37" stroke-opacity=".5"/><rect x="8" y="9" width="16" height="3" rx="1.5" fill="#3fb950"/><rect x="8" y="14.5" width="11" height="3" rx="1.5" fill="#3fb950"/><rect x="8" y="20" width="7" height="3" rx="1.5" fill="#f85149"/></svg></span></div>
+      <div class="d">Tout le code, exécuté ou non. Source annotée ligne à ligne : vert exécuté,
+        rouge jamais atteint, jaune branche partiellement couverte.</div>
+    </a>
+    <a class="card" href="demo/async-profiler/tree.html">
+      <div class="t">Arbre d'appel <span class="badge" title="Produit par async-profiler" role="img" aria-label="async-profiler"><svg viewBox="0 0 32 32" width="22" height="22"><rect width="32" height="32" rx="8" fill="#d29922" fill-opacity=".14" stroke="#d29922" stroke-opacity=".5"/><rect x="6" y="20" width="20" height="4" rx="1.5" fill="#e3a72c"/><rect x="9" y="14.5" width="14" height="4" rx="1.5" fill="#f0b849"/><rect x="12" y="9" width="8" height="4" rx="1.5" fill="#f8d477"/></svg></span></div>
+      <div class="d">Qui appelle qui, dépliable et cherchable, avec la part de temps de chaque
+        branche. Le bouton « Expand All » ouvre tout d'un coup.</div>
+    </a>
+    <a class="card" href="demo/async-profiler/flamegraph.html">
+      <div class="t">Flame graph <span class="badge" title="Produit par async-profiler" role="img" aria-label="async-profiler"><svg viewBox="0 0 32 32" width="22" height="22"><rect width="32" height="32" rx="8" fill="#d29922" fill-opacity=".14" stroke="#d29922" stroke-opacity=".5"/><rect x="6" y="20" width="20" height="4" rx="1.5" fill="#e3a72c"/><rect x="9" y="14.5" width="14" height="4" rx="1.5" fill="#f0b849"/><rect x="12" y="9" width="8" height="4" rx="1.5" fill="#f8d477"/></svg></span></div>
+      <div class="d">La largeur d'une barre est le temps passé dessous. Cliquer zoome sur une
+        branche, taper cherche une méthode.</div>
+    </a>
+    <a class="card" href="demo/arthas/watch-params.txt">
+      <div class="t">Valeurs des paramètres <span class="badge" title="Produit par Arthas" role="img" aria-label="Arthas"><svg viewBox="0 0 32 32" width="22" height="22"><rect width="32" height="32" rx="8" fill="#8250df" fill-opacity=".14" stroke="#8250df" stroke-opacity=".5"/><circle cx="14.5" cy="14" r="6" fill="none" stroke="#ab7df8" stroke-width="2.4"/><path d="M19 18.5L24 23.5" stroke="#ab7df8" stroke-width="2.6" stroke-linecap="round"/><circle cx="14.5" cy="14" r="2" fill="#ab7df8"/></svg></span></div>
+      <div class="d">Les valeurs réellement reçues, appel par appel : <code>@Mode[CAR]</code>
+        <code>@Weather[SUNNY]</code>, et ce que la méthode a renvoyé. C'est précisément ce que ni
+        la couverture ni le profil ne savent donner.</div>
+    </a>
+    <a class="card" href="demo/arthas/trace-calltree.txt">
+      <div class="t">L'arbre d'UN appel <span class="badge" title="Produit par Arthas" role="img" aria-label="Arthas"><svg viewBox="0 0 32 32" width="22" height="22"><rect width="32" height="32" rx="8" fill="#8250df" fill-opacity=".14" stroke="#8250df" stroke-opacity=".5"/><circle cx="14.5" cy="14" r="6" fill="none" stroke="#ab7df8" stroke-width="2.4"/><path d="M19 18.5L24 23.5" stroke="#ab7df8" stroke-width="2.6" stroke-linecap="round"/><circle cx="14.5" cy="14" r="2" fill="#ab7df8"/></svg></span></div>
+      <div class="d">Le chemin réellement emprunté par une seule invocation, avec les numéros de
+        ligne — de quoi retourner droit dans le source. Là où le profil, lui, agrège.</div>
+    </a>
+  </div>
+
+  <div class="note">
+    <b>Aucun de ces trois outils ne répond seul.</b> La couverture ignore le temps et les valeurs ;
+    le profil échantillonne, donc il ne prouve jamais qu'un code n'a <i>pas</i> tourné ; l'inspection
+    des valeurs ne regarde qu'une méthode désignée. C'est leur combinaison qui répond — et c'est
+    ce que la vue agrégée assemble.
+  </div>
+
+  <h2>Le lancer sur votre projet</h2>
+  <div class="grid">
+    <a class="card" href="https://github.com/Beennnn/runtime-xray/blob/main/docs/OUTIL.md">
+      <div class="t">Mode d'emploi ↗</div>
+      <div class="d">Un seul fichier, lancé par le <code>java</code> déjà présent : aucune
+        contrainte sur la façon de démarrer l'application, aucune licence, et aucune connexion
+        pendant l'exécution. Paramètres, fichier de configuration, publication du résultat.</div>
+    </a>
+    <a class="card" href="https://github.com/Beennnn/runtime-xray">
+      <div class="t">Le dépôt ↗</div>
+      <div class="d">Le code de l'outil, l'application de démonstration, et l'évaluation des
+        dix-huit outils comparés avant d'aboutir à cette combinaison.</div>
+    </a>
+  </div>
+
   <footer>
-    Ces pages sont générées par les scripts du dépôt
-    (<code>tools/&lt;outil&gt;/collect.sh</code>) à partir d'une exécution réelle.
-    <br>Dépôt, méthode et arbitrages : <a href="https://github.com/Beennnn/runtime-xray">github.com/Beennnn/runtime-xray</a>
+    Produit par JaCoCo, async-profiler et Arthas — libres, gratuits, et fonctionnant sans
+    connexion.<br>
+    En marge : <a href="https://github.com/Beennnn/runtime-xray/blob/main/docs/RESULTS.md#gains-dun-portage-vers-java-25">Java 21 contre Java 25</a>,
+    mesuré sur le même programme — spectaculaire, mais sans effet sur la solution retenue.<br>
+    <a href="https://github.com/Beennnn/runtime-xray">github.com/Beennnn/runtime-xray</a>
   </footer>
 </div>
 </body>
