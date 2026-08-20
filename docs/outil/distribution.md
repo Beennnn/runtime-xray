@@ -81,10 +81,28 @@ souvent découvert trop tard :
 | Métadonnées du POM | ✅ | `name`, `description`, `url`, `licenses`, `developers`, `scm`, `issueManagement` |
 | Artefacts joints | ✅ | `sources` et `javadoc` produits par le profil `release`, avec `doclint` désactivé — la documentation est rédigée pour des lecteurs, pas pour un vérificateur HTML |
 | Plugin de publication | ✅ | `central-publishing-maven-plugin`, `autoPublish=false` : le dépôt est déposé mais **pas rendu définitif** sans relecture |
-| Module de démonstration exclu | ✅ | `maven.deploy.skip` sur `sample-app` : un exemple n'a pas à occuper un espace de noms permanent |
+| Module de démonstration exclu | ✅ | `maven.deploy.skip` **et** `skipPublishing` sur `sample-app` — voir l'avertissement ci-dessous |
 | Signature GPG | ⛔ | La clé est **la vôtre** : à générer, à publier sur un serveur de clés |
 | Espace de noms validé | ⛔ | À faire une fois sur le Central Portal, en prouvant le compte GitHub |
 | Identifiants | ⛔ | Le jeton du Portal, dans `~/.m2/settings.xml` sous `<id>central</id>` |
+
+### ⚠️ `maven.deploy.skip` ne suffit pas à exclure un module
+
+Constaté en vérifiant le paquet avant publication : `sample-app` s'y trouvait **malgré**
+`maven.deploy.skip=true`. Le plugin Central constitue son paquet de son côté, sans passer
+par le `deploy` standard ; la propriété qui l'en retire est **`skipPublishing`**.
+
+Les deux sont donc posées sur le module de démonstration. Le contrôle tient en une commande,
+et il vaut la peine d'être fait avant chaque première publication d'un projet :
+
+```bash
+mvn -Prelease deploy -DskipTests -Dgpg.skip=true    # échoue à l'envoi, faute de jeton
+unzip -l target/central-publishing/central-bundle.zip | grep -E '\.jar$|\.pom$'
+```
+
+Sans identifiants, l'envoi ne peut pas aboutir — mais le paquet, lui, est déjà constitué et
+inspectable. C'est le seul moment où l'on peut encore corriger : un artefact publié sur
+Central ne se retire pas.
 
 ### Les trois gestes qui restent
 

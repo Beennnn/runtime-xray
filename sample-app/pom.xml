@@ -32,8 +32,14 @@
     <exec.mainClass>lab.sample.Main</exec.mainClass>
     <!-- Ce module est le support de démonstration de l'étude. Il n'a d'intérêt que dans ce
          dépôt : le publier sous un espace de noms permanent ajouterait un artefact que
-         personne ne pourrait plus retirer. -->
+         personne ne pourrait plus retirer.
+
+         DEUX propriétés, et les deux sont nécessaires. maven.deploy.skip arrête le deploy
+         standard ; il ne suffit PAS, car le plugin de publication Central constitue son
+         paquet de son côté — vérifié : sample-app s'y trouvait malgré le skip. C'est
+         skipPublishing qui l'en retire. -->
     <maven.deploy.skip>true</maven.deploy.skip>
+    <skipPublishing>true</skipPublishing>
     <commons-lang3.version>3.17.0</commons-lang3.version>
     <slf4j.version>2.0.17</slf4j.version>
   </properties>
