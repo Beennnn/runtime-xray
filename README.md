@@ -94,32 +94,44 @@ Ces résultats valent dans le cadre décrit, et pas au-delà. En particulier :
 
 ## Se procurer l'outil
 
-> ⏳ **Pas encore publié.** L'espace de noms `io.github.beennnn` est validé et l'artefact
-> est prêt et signé ; il reste à lancer la publication. En attendant, la compilation depuis
-> les sources (plus bas) est la seule voie — les commandes ci-dessous seront exactes le jour
-> où la publication aboutira.
+[![Maven Central](https://img.shields.io/maven-central/v/io.github.beennnn/runtime-xray-cli?label=Maven%20Central)](https://central.sonatype.com/artifact/io.github.beennnn/runtime-xray-cli)
 
-L'outil se distribue comme un jar sur Maven Central, sous
-`io.github.beennnn:runtime-xray-cli`. Ce n'est pas une bibliothèque qu'on met en
-`<dependency>` : c'est un exécutable, et Maven Central sert ici de **canal de
-distribution** — souvent le seul ouvert derrière un pare-feu d'entreprise.
+L'outil est publié sur Maven Central :
+
+| | |
+|---|---|
+| Coordonnées | `io.github.beennnn:runtime-xray-cli:1.0.0` |
+| Fichier | [`runtime-xray-cli-1.0.0.jar`](https://repo1.maven.org/maven2/io/github/beennnn/runtime-xray-cli/1.0.0/runtime-xray-cli-1.0.0.jar) (~100 Ko) |
+| Dépendances | aucune, hors du JDK |
+| Java | 21 ou plus |
+| Licence | MIT |
+
+Ce n'est pas une bibliothèque qu'on met en `<dependency>` : c'est un exécutable. Maven
+Central sert ici de **canal de distribution**, et ce choix découle directement de la
+contrainte de l'étude — derrière un pare-feu d'entreprise, le miroir Maven est souvent le
+seul canal ouvert, et c'est déjà par lui que l'outil récupère ses composants d'analyse.
+
+### Le télécharger
 
 ```bash
-# Le jar seul, sans Maven
+# Sans Maven, un simple téléchargement
 curl -O https://repo1.maven.org/maven2/io/github/beennnn/runtime-xray-cli/1.0.0/runtime-xray-cli-1.0.0.jar
 java -jar runtime-xray-cli-1.0.0.jar --java "java -jar target/mon-appli.jar"
 ```
 
 ```bash
-# Ou par Maven, y compris depuis un miroir interne
+# Avec Maven — passe par le miroir interne s'il y en a un de configuré
 mvn dependency:copy -Dartifact=io.github.beennnn:runtime-xray-cli:1.0.0 -DoutputDirectory=.
 ```
 
+Les sources et la javadoc sont publiées à côté, sous les classificateurs habituels
+(`-sources.jar`, `-javadoc.jar`).
+
 ### Vérifier la signature
 
-Chaque artefact est signé. C'est ce qui permet de s'assurer que le jar téléchargé est bien
-celui qui a été publié — la vérification vaut surtout pour un binaire qu'on s'apprête à
-faire tourner à côté de son application.
+Chaque artefact est signé. La vérification a du sens ici plus qu'ailleurs : c'est un binaire
+qu'on s'apprête à faire tourner **à côté de son application**, avec des agents injectés dans
+sa JVM.
 
 ```bash
 curl -O https://repo1.maven.org/maven2/io/github/beennnn/runtime-xray-cli/1.0.0/runtime-xray-cli-1.0.0.jar.asc
@@ -128,9 +140,40 @@ gpg --verify runtime-xray-cli-1.0.0.jar.asc runtime-xray-cli-1.0.0.jar
 ```
 
 La réponse attendue contient `Good signature` (ou `Bonne signature`). Un avertissement sur
-la confiance accordée à la clé est normal : il dit que vous n'avez pas certifié cette clé
-comme étant celle de son propriétaire, ce qui est une question distincte de l'intégrité du
+la confiance accordée à la clé est normal et n'infirme rien : il dit que vous n'avez pas
+certifié que cette clé appartient bien à son porteur, question distincte de l'intégrité du
 fichier.
+
+### Préparer une machine sans réseau
+
+C'est le cas d'usage qui a motivé toute l'étude. L'outil télécharge ses trois composants
+d'analyse **une seule fois**, dans `~/.runtime-xray`. Ensuite, plus rien ne sort.
+
+```bash
+# Sur une machine qui a accès, une exécution quelconque suffit à remplir le cache
+java -jar runtime-xray-cli-1.0.0.jar --java "java -version"
+
+# Puis on transporte le répertoire, avec le jar
+tar czf runtime-xray-hors-ligne.tgz -C ~ .runtime-xray
+```
+
+Sur la machine isolée, décompresser dans `$HOME` : l'outil n'ouvrira aucune connexion.
+Si un miroir Maven interne est joignable, `--repo` ou `MAVEN_REPO` l'y envoie et le cache se
+remplit tout seul depuis l'intérieur du réseau.
+
+### Vérifier que la version publiée fonctionne
+
+[`bin/recette-central.sh`](bin/recette-central.sh) télécharge l'artefact depuis Maven
+Central dans un répertoire vierge, vérifie sa signature avec une clé récupérée d'un serveur
+public — comme le ferait un tiers — puis **l'exécute sur une application réelle** et
+contrôle que la page, le rapport Markdown, la couverture et le profil sont produits.
+
+```bash
+./bin/recette-central.sh          # ou : ./bin/recette-central.sh 1.1.0
+```
+
+Un HTTP 200 dit qu'un fichier existe ; il ne dit pas qu'il fonctionne. C'est la différence
+entre « publié » et « utilisable », et elle se vérifie en treize contrôles.
 
 ## L'outil
 

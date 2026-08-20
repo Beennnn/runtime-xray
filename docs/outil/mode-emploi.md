@@ -11,9 +11,14 @@
 **Java, et rien d'autre.** L'outil est un jar sans aucune dépendance : ni Python, ni shell,
 ni Maven, ni rien à installer au préalable.
 
-Il se récupère depuis Maven Central — ou depuis le miroir interne de l'entreprise, qui le
-sert de la même façon. Voir [Se procurer l'outil](../../README.md#se-procurer-loutil),
-y compris la vérification de sa signature.
+```bash
+curl -O https://repo1.maven.org/maven2/io/github/beennnn/runtime-xray-cli/1.0.0/runtime-xray-cli-1.0.0.jar
+```
+
+Il est publié sur Maven Central sous `io.github.beennnn:runtime-xray-cli` — donc servi de la
+même façon par le miroir interne d'une entreprise. Vérification de la signature et
+préparation d'une machine sans réseau : [Se procurer
+l'outil](../../README.md#se-procurer-loutil).
 
 Les trois outils d'observation (JaCoCo, async-profiler, Arthas) sont récupérés **une seule
 fois** depuis un dépôt Maven — celui de l'éditeur, ou le miroir interne de l'entreprise via

@@ -3,8 +3,8 @@
 > Question posée : *pourrait-on publier l'outil sous forme de jar sur Maven Central ?
 > Est-ce pertinent ?*
 
-**Réponse courte : ce n'était pas possible quand la question a été posée ; ça l'est
-devenu.**
+**Réponse courte : ce n'était pas possible quand la question a été posée ; ça l'est devenu,
+et c'est fait** — `io.github.beennnn:runtime-xray-cli:1.0.0` est sur Maven Central.
 
 ## Ce que l'outil est aujourd'hui
 
@@ -30,7 +30,7 @@ Arthas viennent de Maven Central. Publier l'outil au même endroit le rendrait i
 par le mécanisme que l'entreprise a déjà autorisé :
 
 ```bash
-mvn dependency:copy -Dartifact=io.github.beennnn:runtime-xray:1.0.0:zip:bin
+mvn dependency:copy -Dartifact=io.github.beennnn:runtime-xray-cli:1.0.0 -DoutputDirectory=.
 ```
 
 Autrement dit, l'intérêt n'est pas « être une bibliothèque », c'est **passer par le tuyau
@@ -86,7 +86,8 @@ souvent découvert trop tard :
 | Signatures vérifiées | ✅ | Les quatre `.asc` du paquet passent `gpg --verify` |
 | Configuration Maven | ✅ | `~/.m2/settings.xml`, jeton lu dans l'environnement et non écrit dans le fichier |
 | Espace de noms validé | ✅ | `io.github.beennnn` — **Verified**, prouvé par le dépôt public `Beennnn/q5h7vezbmz`, que le Portal a lui-même nommé |
-| Jeton du Portal | ⛔ | À générer, puis `export CENTRAL_USERNAME` / `CENTRAL_PASSWORD` |
+| Jeton du Portal | ✅ | Généré, lu dans l'environnement au moment du dépôt |
+| Publication | ✅ | `io.github.beennnn:runtime-xray-cli:1.0.0`, déposé, validé 3/3, puis publié |
 
 ### ⚠️ `maven.deploy.skip` ne suffit pas à exclure un module
 
@@ -134,10 +135,20 @@ donc du préfixe `io.github.beennnn`. Le dépôt n'a servi qu'à ça et peut êt
 Portal le dit lui-même — deux méthodes différentes sont deux comptes distincts, même avec
 la même adresse. Se reconnecter autrement ferait disparaître l'espace de noms de la liste.
 
-### Ce qui reste
+### Vérifier ce qui a été publié
 
-Un geste, et il exige votre compte : **le jeton**, généré depuis *Account → Generate User
-Token*, puis dans le shell — jamais dans un fichier :
+```bash
+./bin/recette-central.sh <version>
+```
+
+Treize contrôles : téléchargement des quatre artefacts, validité de la signature avec une
+clé récupérée d'un serveur public, puis **exécution réelle** de l'outil sur une application,
+dans un répertoire vierge et sans rien du dépôt. Un HTTP 200 prouve qu'un fichier existe, pas
+qu'il marche.
+
+### Publier une version suivante
+
+Le jeton se lit dans l'environnement, il n'est écrit nulle part :
 
 ```bash
 export CENTRAL_USERNAME='...' CENTRAL_PASSWORD='...'
