@@ -1,0 +1,1614 @@
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+<meta charset='utf-8'>
+<style>
+	:root      {--bg: #ffffff; --fg: #000000; --hl-bg: #ffffe0; --hl-border: #ffc000; --link: #0366d6; --legend-bg: #ffffe0; --legend-border: #666666}
+	:root.dark {--bg: #1e1e1e; --fg: #cccccc; --hl-bg: #3a3a00; --hl-border: #8a7000; --link: #58a6ff; --legend-bg: #333333; --legend-border: #888888}
+	body {margin: 0; padding: 10px 10px 22px 10px; background-color: var(--bg); color: var(--fg)}
+	h1 {margin: 5px 0 0 0; font-size: 18px; font-weight: normal; text-align: center}
+	header {margin: -22px 0 6px 0}
+	button {border: none; background: none; width: 24px; height: 24px; cursor: pointer; margin: 0; padding: 2px 0 0 0; text-align: center}
+	button:hover {background-color: var(--hl-bg); outline: 1px solid var(--hl-border); border-radius: 4px}
+	dl {margin: 0 4px 8px 4px}
+	dt {margin: 1px; padding: 2px 0; font-weight: bold}
+	dd {margin: 1px; padding: 2px 4px}
+	dl.frames {float: left; width: 160px}
+	dl.frames > dd {color: #000000}
+	dl.hotkeys {clear: left; border-top: 1px solid var(--legend-border)}
+	dl.hotkeys > dt {float: left; clear: left; width: 158px; margin-right: 4px; text-align: right}
+	dl.hotkeys > dd {float: left}
+	p {position: fixed; bottom: 0; margin: 0; padding: 2px 3px 2px 3px; outline: 1px solid var(--hl-border); display: none; overflow: hidden; white-space: nowrap; background-color: var(--hl-bg); color: var(--fg)}
+	a {color: var(--link)}
+	#legend {padding: 4px; border-radius: 4px; background: var(--legend-bg); border: 1px solid var(--legend-border); display: none}
+	#hl {position: absolute; display: none; overflow: hidden; white-space: nowrap; pointer-events: none; background-color: var(--hl-bg); outline: 1px solid var(--hl-border); height: 15px}
+	#hl span {padding: 0 3px 0 3px}
+	#status {left: 0}
+	#match {right: 0}
+	#reset {cursor: pointer}
+	#canvas {width: 100%; height: 1184px}
+</style>
+<script>
+{
+	let theme;
+	try { theme = localStorage.getItem('flame-theme'); } catch (ignored) {}
+	if (theme ? theme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches) {
+		document.documentElement.classList.add('dark');
+	}
+}
+</script>
+</head>
+<body style='font: 12px Verdana, sans-serif'>
+<h1>CPU profile</h1>
+<header style='float: left'>
+<button id='inverted' title='Invert (I)'><svg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 392 392'><path d='M196,36 L316,156 L76,156 Z' fill='#004d80'/><path d='M196,356 L76,236 L316,236 Z' fill='#004d80'/><path d='M196,54 L298,156 L94,156 Z' fill='#ff8d40'/><path d='M196,338 L94,236 L298,236 Z' fill='#40b2ff'/><rect x='94' y='188' width='204' height='16' fill='#004d80'/></svg></button>
+<button id='search' title='Search (Ctrl+F)'><svg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='-39.3 -39.3 471.1 471.1'><circle cx='147.7' cy='147.8' r='125.9' fill='#fff'/><path fill='#40b2ff' d='M370.7 348.7c0 1.4-1.6 6.3-7.2 12.3-6.2 6.7-12.5 9.8-14.7 9.8h-.1c-19.5-1.6-62-43.2-109.6-106.8 9.2-7.2 17.5-15.5 24.6-24.6 63.6 47.6 105.2 90.2 106.8 109.6z'/><path fill='#ff8d40' d='M208.7 86.9l-14.5 14.5c-17.1 17.1-46.5 5-46.5-19.3V61.6c-49 0-88.4 40.8-86.1 90.2 2 43.9 38.1 80 82 82 49.5 2.3 90.2-37.2 90.2-86.1 0-23.7-9.6-45.2-25.1-60.8z'/><path fill='#004d80' d='M276.1 221c12.3-21.5 19.5-46.5 19.5-73.2C295.6 66.3 229.2.1 147.7.1S0 66.3 0 147.9s66.3 147.7 147.7 147.7c26.6 0 51.5-7.1 73.2-19.5 39.8 53.3 91.9 113.5 126.1 116.4 12.3.5 22.9-6.7 32.8-16.7 5.2-5.6 13.8-16.9 12.8-28.8-2.9-34.1-63.1-86.2-116.4-126.1zM147.7 273.8c-69.5 0-125.9-56.5-125.9-125.9S78.3 21.9 147.7 21.9 273.6 78.4 273.6 147.8s-56.4 126-125.9 126zm215.9 87.2c-6.2 6.7-12.4 9.8-14.7 9.8h-.1c-19.5-1.6-62-43.2-109.6-106.8 9.2-7.2 17.5-15.5 24.6-24.6 63.6 47.6 105.2 90.2 106.8 109.6 0 1.4-1.6 6.3-7.2 12.4z'/></svg></button>
+<button id='darkmode' title='Toggle dark mode (D)'><svg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 20 20'><path d='M10 4a6 6 0 0 1 0 12z' fill='#ff8d40'/><path d='M10 4a6 6 0 0 0 0 12z' fill='#ffffff'/><circle cx='10' cy='10' r='8' fill='none' stroke='#004d80'/></svg></button>
+<button id='info'><svg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 20 20'><circle cx='10' cy='10' r='8' stroke='#004d80' fill='none'/><path d='M10 5.5c-1.25 0-2.25 1-2.25 2.25H9a1.25 1.25 0 0 1 2.5 0c0 .65-.55 1-1 1.2-.7.35-1.25.85-1.25 1.8V11h1.5v-.25c0-.37.29-.65.68-.83.73-.34 1.32-.87 1.32-2.17 0-1.25-1.5-2.25-2.75-2.25' fill='#ff8d40' stroke='#ff8d40' stroke-width='.6' stroke-linecap='round' stroke-linejoin='round'/><circle cx='10' cy='13.5' r='1.2' fill='#ff8d40'/></svg></button>
+</header>
+<header style='float: right'>Produced by <a href='https://github.com/async-profiler/async-profiler'>async-profiler</a></header>
+<div id='legend' style='position: absolute'>
+<dl class='frames'>
+	<dt>Frame types</dt>
+	<dd style='background-color: #e17d00'>Kernel</dd>
+	<dd style='background-color: #e15a5a'>Native</dd>
+	<dd style='background-color: #c8c83c'>C++ (VM)</dd>
+	<dd style='background-color: #50e150'>Java compiled</dd>
+	<dd style='background-color: #cce880'>Java compiled by C1</dd>
+	<dd style='background-color: #50cccc'>Inlined</dd>
+	<dd style='background-color: #b2e1b2'>Interpreted</dd>
+</dl>
+<dl class='frames'>
+	<dt>Allocation profile</dt>
+	<dd style='background-color: #50cccc'>Allocated class</dd>
+	<dd style='background-color: #e17d00'>Allocation outside TLAB</dd>
+	<dt>Lock profile</dt>
+	<dd style='background-color: #50cccc'>Lock class</dd>
+	<dt>&nbsp;</dt>
+	<dt>Search</dt>
+	<dd style='background-color: #ee00ee'>Matches regexp</dd>
+</dl>
+<dl class='hotkeys'>
+	<dt>Click frame</dt><dd>Zoom into frame</dd>
+	<dt>Ctrl/Alt+Click</dt><dd>Remove stack</dd>
+	<dt>0</dt><dd>Reset zoom</dd>
+	<dt>I</dt><dd>Invert graph</dd>
+	<dt>Ctrl+F</dt><dd>Search</dd>
+	<dt>N</dt><dd>Next match</dd>
+	<dt>Shift+N</dt><dd>Previous match</dd>
+	<dt>Esc</dt><dd>Cancel search</dd>
+</dl>
+</div>
+<canvas id='canvas'></canvas>
+<div id='hl'><span></span></div>
+<p id='status'></p>
+<p id='match'>Matched: <span id='matchval'></span> <span id='reset' title='Clear'>&#x274c;</span></p>
+<script>
+	// Copyright The async-profiler authors
+	// SPDX-License-Identifier: Apache-2.0
+	'use strict';
+	let root, px, pattern;
+	let level0 = 0, left0 = 0, width0 = 0, d = 0;
+	let nav = [], navIndex, matchval;
+	let inverted = false;
+	const U = undefined;
+	const maxdiff = /*maxdiff:*/-1;
+	const levels = Array(74);
+	for (let h = 0; h < levels.length; h++) {
+		levels[h] = [];
+	}
+
+	const canvas = document.getElementById('canvas');
+	const c = canvas.getContext('2d');
+	const hl = document.getElementById('hl');
+	const status = document.getElementById('status');
+
+	const canvasWidth = canvas.offsetWidth;
+	const canvasHeight = canvas.offsetHeight;
+	canvas.style.width = canvasWidth + 'px';
+	canvas.width = canvasWidth * (devicePixelRatio || 1);
+	canvas.height = canvasHeight * (devicePixelRatio || 1);
+	if (devicePixelRatio) c.scale(devicePixelRatio, devicePixelRatio);
+	c.font = document.body.style.font;
+
+	const palette = [
+		[0xb2e1b2, 20, 20, 20],
+		[0x50e150, 30, 30, 30],
+		[0x50cccc, 30, 30, 30],
+		[0xe15a5a, 30, 40, 40],
+		[0xc8c83c, 30, 30, 10],
+		[0xe17d00, 30, 30,  0],
+		[0xcce880, 20, 20, 20],
+	];
+
+	function getColor(p) {
+		const v = Math.random();
+		return '#' + (p[0] + ((p[1] * v) << 16 | (p[2] * v) << 8 | (p[3] * v))).toString(16);
+	}
+
+	function getDiffColor(diff) {
+		if (diff === U) return '#ffdd33';
+		if (diff === 0) return '#e0e0e0';
+		const v = Math.round(128 * (maxdiff - Math.abs(diff)) / maxdiff) + 96;
+		return diff > 0 ? 'rgb(255,' + v + ',' + v + ')' : 'rgb(' + v + ',' + v + ',255)';
+	}
+
+	function f(key, level, left, width, inln, c1, int) {
+		levels[level0 = level].push({level, left: left0 += left, width: width0 = width || width0,
+			color: maxdiff >= 0 ? getDiffColor(d) : getColor(palette[key & 7]),
+			title: cpool[key >>> 3],
+			details: (d ? (d > 0 ? ', +' : ', ') + d : '') + (int ? ', int=' + int : '') + (c1 ? ', c1=' + c1 : '') + (inln ? ', inln=' + inln : '')
+		});
+	}
+
+	function u(key, width, inln, c1, int) {
+		f(key, level0 + 1, 0, width, inln, c1, int)
+	}
+
+	function n(key, width, inln, c1, int) {
+		f(key, level0, width0, width, inln, c1, int)
+	}
+
+	function samples(n) {
+		return n === 1 ? '1 sample' : n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',') + ' samples';
+	}
+
+	function pct(a, b) {
+		return a >= b ? '100' : (100 * a / b).toFixed(2);
+	}
+
+	function findFrame(frames, x) {
+		let left = 0;
+		let right = frames.length - 1;
+
+		while (left <= right) {
+			const mid = (left + right) >>> 1;
+			const f = frames[mid];
+
+			if (f.left > x) {
+				right = mid - 1;
+			} else if (f.left + f.width <= x) {
+				left = mid + 1;
+			} else {
+				return f;
+			}
+		}
+
+		if (frames[left] && (frames[left].left - x) * px < 0.5) return frames[left];
+		if (frames[right] && (x - (frames[right].left + frames[right].width)) * px < 0.5) return frames[right];
+
+		return null;
+	}
+
+	function removeStack(left, width) {
+		for (let h = 0; h < levels.length; h++) {
+			const frames = levels[h], newFrames = [];
+			for (let i = 0; i < frames.length; i++) {
+				const f = frames[i];
+				if (f.left >= left + width) {
+					f.left -= width;
+				} else if (f.left + f.width > left) {
+					if ((f.width -= width) <= 0 && h) continue;
+				}
+				newFrames.push(f);
+			}
+			levels[h] = newFrames;
+		}
+	}
+
+	function search(r) {
+		if (r === true && (r = prompt('Enter regexp to search:', '')) === null) {
+			return;
+		}
+
+		pattern = r ? RegExp(r) : undefined;
+		const matched = render(root, nav = []);
+		navIndex = -1;
+		document.getElementById('matchval').textContent = matchval = pct(matched, root.width) + '%';
+		document.getElementById('match').style.display = r ? 'inline-block' : 'none';
+	}
+
+	function render(newRoot, nav) {
+		const bg = getComputedStyle(document.documentElement).getPropertyValue('--bg');
+
+		if (root) {
+			c.fillStyle = bg;
+			c.fillRect(0, 0, canvasWidth, canvasHeight);
+		}
+
+		root = newRoot || levels[0][0];
+		px = canvasWidth / root.width;
+
+		const x0 = root.left;
+		const x1 = x0 + root.width;
+		const marked = [];
+
+		function mark(f) {
+			return marked[f.left] || (marked[f.left] = f);
+		}
+
+		function totalMarked() {
+			let total = 0;
+			let left = 0;
+			Object.keys(marked).sort(function(a, b) { return a - b; }).forEach(function(x) {
+				if (+x >= left) {
+					const m = marked[x];
+					if (nav) nav.push(m);
+					total += m.width;
+					left = +x + m.width;
+				}
+			});
+			return total;
+		}
+
+		function drawFrame(f, y) {
+			if (f.left < x1 && f.left + f.width > x0) {
+				c.fillStyle = pattern && f.title.match(pattern) && mark(f) ? '#ee00ee' : f.color;
+				c.fillRect((f.left - x0) * px, y, f.width * px, 15);
+
+				if (f.width * px >= 21) {
+					const chars = Math.floor(f.width * px / 7);
+					const title = f.title.length <= chars ? f.title : f.title.substring(0, chars - 2) + '..';
+					c.fillStyle = '#000000';
+					c.fillText(title, Math.max(f.left - x0, 0) * px + 3, y + 12, f.width * px - 6);
+				}
+
+				if (f.level < root.level) {
+					c.fillStyle = bg + '80';
+					c.fillRect((f.left - x0) * px, y, f.width * px, 15);
+				}
+			}
+		}
+
+		for (let h = 0; h < levels.length; h++) {
+			const y = inverted ? h * 16 : canvasHeight - (h + 1) * 16;
+			const frames = levels[h];
+			for (let i = 0; i < frames.length; i++) {
+				drawFrame(frames[i], y);
+			}
+		}
+
+		return totalMarked();
+	}
+
+	function unpack(cpool) {
+		for (let i = 1; i < cpool.length; i++) {
+			cpool[i] = cpool[i - 1].substring(0, cpool[i].charCodeAt(0) - 32) + cpool[i].substring(1);
+		}
+	}
+
+	canvas.onmousemove = function() {
+		const h = Math.floor((inverted ? event.offsetY : (canvasHeight - event.offsetY)) / 16);
+		if (h >= 0 && h < levels.length) {
+			const f = findFrame(levels[h], event.offsetX / px + root.left);
+			if (f) {
+				if (f !== root) getSelection().removeAllRanges();
+				hl.style.left = (Math.max(f.left - root.left, 0) * px + canvas.offsetLeft) + 'px';
+				hl.style.width = (Math.min(f.width, root.width) * px) + 'px';
+				hl.style.top = ((inverted ? h * 16 : canvasHeight - (h + 1) * 16) + canvas.offsetTop) + 'px';
+				hl.firstChild.textContent = f.title;
+				hl.style.display = 'block';
+				canvas.title = f.title + '\n(' + samples(f.width) + f.details + ', ' + pct(f.width, levels[0][0].width) + '%)';
+				canvas.style.cursor = 'pointer';
+				canvas.onclick = function() {
+					if ((event.altKey || event.ctrlKey) && h >= root.level && h > 0) {
+						removeStack(f.left, f.width);
+						root.width > f.width ? render(root) : render();
+					} else if (f !== root) {
+						render(f);
+					}
+					canvas.onmousemove();
+				};
+				status.textContent = 'Function: ' + canvas.title;
+				status.style.display = 'inline-block';
+				return;
+			}
+		}
+		canvas.onmouseout();
+	}
+
+	canvas.onmouseout = function() {
+		hl.style.display = 'none';
+		status.style.display = 'none';
+		canvas.title = '';
+		canvas.style.cursor = '';
+		canvas.onclick = null;
+	}
+
+	canvas.ondblclick = function() {
+		getSelection().selectAllChildren(hl);
+	}
+
+	document.getElementById('inverted').onclick = function() {
+		inverted = !inverted;
+		render();
+	}
+
+	document.getElementById('search').onclick = function() {
+		search(true);
+	}
+
+	document.getElementById('reset').onclick = function() {
+		search(false);
+	}
+
+	document.getElementById('darkmode').onclick = function() {
+		const theme = document.documentElement.classList.toggle('dark') ? 'dark' : 'light';
+		try { localStorage.setItem('flame-theme', theme); } catch (ignored) {}
+		render(root);
+	}
+
+	const btnInfo = document.getElementById('info');
+	const legend = document.getElementById('legend');
+
+	btnInfo.onmouseover = function() {
+		legend.style.left = (btnInfo.offsetLeft + 24) + 'px';
+		legend.style.top = (btnInfo.offsetTop + 24) + 'px';
+		legend.style.display = 'block';
+	}
+
+	btnInfo.onmouseout = function() {
+		legend.style.display = 'none';
+	}
+
+	window.onkeydown = function(event) {
+		if ((event.ctrlKey || event.metaKey) && event.key === 'f') {
+			event.preventDefault();
+			search(true);
+			return false;
+		} else if (event.key === 'Escape') {
+			search(false);
+		} else if ((event.key === 'n' || event.key === 'N') && nav.length > 0) {
+			navIndex = (navIndex + (event.shiftKey ? nav.length - 1 : 1)) % nav.length;
+			render(nav[navIndex]);
+			document.getElementById('matchval').textContent = matchval + ' (' + (navIndex + 1) + ' of ' + nav.length + ')';
+			window.scroll(0, inverted ? root.level * 16 : canvasHeight - (root.level + 1) * 16);
+			canvas.onmousemove();
+			return false;
+		} else if (event.key === 'i') {
+			canvas.onmouseout();
+			document.getElementById('inverted').onclick();
+			return false;
+		} else if (event.key === 'd') {
+			document.getElementById('darkmode').onclick();
+			return false;
+		} else if (event.key === '0') {
+			canvas.onmouseout();
+			root = levels[0][0];
+			search(false);
+			return false;
+		}
+	}
+
+const cpool = [
+'all',
+' AdapterHandlerLibrary::get_adapter',
+'!llocTracer::send_allocation_in_new_tlab',
+' CardTableBarrierSet::on_slowpath_allocation_exit',
+'!lassLoader::load_class',
+'+Data::add_class',
+'%PathImageEntry::open_stream_for_loader',
+'%Verifier::verify_class',
+'6method',
+'!ollectedHeap::array_allocate',
+'"mpilationPolicy::create_mdo',
+'3event',
+'3method_invocation_event',
+'&eBroker::compile_method',
+'=_base',
+'"nstantPool::klass_at',
+'6_impl',
+'.resolve_cached_constant_at',
+'7onstant_at_impl',
+'.string_at_impl',
+' G1CollectedHeap::attempt_allocation_slow',
+'1do_collection_pause',
+'1mem_allocate',
+'1unsafe_max_tlab_alloc',
+' ImageLocation::ImageLocation',
+'!nstanceKlass::add_to_hierarchy_impl',
+'0llocate_instance',
+'8objArray',
+'/initialize_impl',
+'/link_class_impl',
+'4methods',
+'/restore_unshareable_info',
+'"terpreterRuntime::_new',
+'4anewarray',
+'4frequency_counter_overflow',
+'N_inner',
+'4ldc',
+'4newarray',
+'4resolve_from_cache',
+'<invoke',
+'<ldc',
+' JIMAGE_FindResource',
+'!VM_LoadLibrary',
+'!ava_jdk_internal_loader_NativeLibraries_load',
+'!vmtiExport::post_dynamic_code_generated',
+' Klass::check_array_allocation_length',
+'\'restore_unshareable_info',
+' LinkInfo::LinkInfo',
+'$Resolver::linktime_resolve_static_method',
+'/ookup_polymorphic_method',
+'.resolve_invokestatic',
+'6method',
+'6static_call',
+' MHN_resolve_Mem',
+'!emAllocator::Allocation::notify_allocation',
+':~Allocation',
+'.allocate',
+'.mem_allocate_inside_tlab_slow',
+';slow',
+'"taspace::allocate',
+'#hod::build_profiling_method_data',
+'(link_method',
+'(make_adapters',
+'-method_handle_intrinsic',
+'&Data::allocate',
+'&Handles::resolve_MemberName',
+'!utex::lock',
+'+_contended',
+' ObjAllocator::initialize',
+'$rrayAllocator::initialize',
+'#ectSampler::is_created',
+'!ptoRuntime::new_array_C',
+'1instance_C',
+' Profiler::dlopen_hook',
+' Runtime1::counter_overflow',
+'*new_instance',
+' ServiceThread::enqueue_deferred_event',
+'!haredRuntime::drem',
+'!tackMapTable::check_jump_target',
+'/match_stackmap',
+'"ringTable::do_lookup',
+'-intern',
+'!ystemDictionary::check_shared_class_super_type',
+'Os',
+'2define_instance_class',
+'2find_method_handle_intrinsic',
+'7or_define_helper',
+'Ainstance_class',
+'2load_instance_class',
+'E_impl',
+'7shared_class',
+'2resolve_instance_class_or_null',
+':or_fail',
+':super_or_fail',
+'0Shared::find_builtin_class',
+'=record',
+' TypeArrayKlass::allocate_common',
+' Unsafe_EnsureClassInitialized0',
+'\'GetByte',
+' VMThread::execute',
+'*wait_until_executed',
+'!erifier::verify',
+' [unknown]',
+' __mmap',
+'"psynch_cvbroad',
+')mutexdrop',
+'.wait',
+'!large_arrays_hashcode_boolean',
+'!new_array_Java',
+'%instance_Java',
+'!platform_memset',
+'"thread_mutex_firstfit_lock_slow',
+'8unlock_slow',
+' counter_overflow Runtime1 stub',
+' fast_new_instance Runtime1 stub',
+' itable stub',
+' java/io/BufferedOutputStream.flush',
+'BBuffer',
+'=implFlush',
+'(FileOutputStream.write',
+'>Bytes',
+'(OutputStreamWriter.flushBuffer',
+'(PrintStream.append',
+'4format',
+'4implFormat',
+'8Write',
+'4print',
+'9f',
+'4write',
+'%lang/Class.forName',
+'70',
+'/Loader.loadClass',
+':Library',
+'*Runtime.loadLibrary0',
+'*String.equals',
+'1getBytes',
+'1hashCode',
+'1replace',
+'1split',
+'0Builder.append',
+'0ConcatHelper.checkOverflow',
+'=lookupStatic',
+'=mix',
+'=newArray',
+'@String',
+'=prepend',
+'0Latin1.hashCode',
+'7replace',
+'+ystem$2.stringConcatHelper',
+'0.loadLibrary',
+'*invoke/BootstrapMethodInvoker.invoke',
+'3undMethodHandle$Specializer$Factory.chooseFieldName',
+'N.<init>',
+'HesData.extendWith',
+'J_L.copyWithExtendL',
+'LL.<init>',
+'NcopyWithExtendJ',
+'Nmake',
+'MJ.<init>',
+'Omake',
+'B.<clinit>',
+'Dinit>',
+'CbindArgumentJ',
+'1CallSite.makeSite',
+'2lassSpecializer$Factory.chooseFieldName',
+'JfindGetter',
+'Ts',
+'JlinkCodeToSpeciesData',
+'NSpeciesDataToCode',
+'KoadSpecies',
+'A.<init>',
+'BfindSpecies',
+'1DelegatingMethodHandle$Holder.delegate',
+'2irectMethodHandle$Holder.invokeStatic',
+'KnewInvokeSpecial',
+'C.<clinit>',
+'Dmake',
+'HPreparedLambdaForm',
+'DpreparedLambdaForm',
+'1InnerClassLambdaMetafactory.buildCallSite',
+'3vokerBytecodeGenerator.addMethod',
+'JclassFilePrologue',
+'JemitImplicitConversion',
+'NPushArgument',
+'Zs',
+'NReferenceCast',
+'NStaticInvoke',
+'JgenerateCustomizedCode',
+'`Bytes',
+'JmethodPrologue',
+'8s$Holder.invokeExact_MT',
+'AlinkToTargetMethod',
+'1LambdaForm$MH.0x0000007001005400.invoke',
+'Nc00.invoke',
+'M9000.invoke',
+'N800.invoke',
+';.compileToBytecode',
+'=reateFormsFor',
+'<identityForm',
+'<prepare',
+';Editor.bindArgumentJ',
+'BfilterRepeatedArgumentForm',
+'ColdArgumentsForm',
+'BmakeArgumentCombinationForm',
+'FRepeatedFilterForm',
+'BnewSpeciesData',
+'7Metafactory.metafactory',
+'1MemberName$Factory.resolve',
+'KOrFail',
+';.getMethodType',
+'?Type',
+'3thodHandle.<init>',
+'=Impl.makeIntrinsic',
+'=Natives.linkCallSite',
+'QImpl',
+'IMethodHandleConstant',
+'Eresolve',
+'=s$Lookup.findStatic',
+'FgetDirectMethod',
+'UCommon',
+'UForConstant',
+'UNoSecurityManager',
+'FlinkMethodHandleConstant',
+'FresolveOrFail',
+'>.argumentsWithCombiner',
+'?constant',
+'?dropArguments',
+'LTrusted',
+'?filterArguments',
+'NWithCombiner',
+'ERepeatedArgument',
+'@oldArgumentsWithCombiner',
+'?identity',
+'@nsertArgumentPrimitive',
+'Ms',
+'?makeIdentity',
+'7Type.makeImpl',
+'=ethodType',
+'<toMethodDescriptorString',
+'1SimpleMethodHandle.<init>',
+'DcopyWith',
+'Dmake',
+'2tringConcatFactory.filterAndFoldInMixers',
+'KInPrependers',
+'FoldInLastMixers',
+'EgenerateMHInlineCopy',
+'EmakeConcatWithConstants',
+'Fixer',
+'EnewString',
+'EprependBase',
+'Ler',
+'*reflect/Constructor.acquireConstructorAccessor',
+'>newInstance',
+'IWithCaller',
+'%nio/DirectByteBuffer.get',
+'%security/AccessController.doPrivileged',
+'?executePrivileged',
+'%text/DecimalFormatSymbols.<init>',
+'?getInstance',
+'?initialize',
+'%util/ArrayList.elementData',
+'4get',
+'*Formatter$FixedString.print',
+'5ormatSpecifier.appendJustified',
+'DlocalizedMagnitude',
+'Dprint',
+'IFloat',
+'IInteger',
+'IString',
+'3.<clinit>',
+'4format',
+'4getDecimalFormatSymbols',
+'7Zero',
+'*HashMap.newNode',
+'2put',
+'5Val',
+'*ImmutableCollections$AbstractImmutableList.iterator',
+'?List12.get',
+'Fsize',
+'CItr.hasNext',
+'CN.get',
+'Esize',
+'*ListResourceBundle.handleKeySet',
+'=loadLookup',
+'+ocale.forLanguageTag',
+'*Objects.checkIndex',
+'*ResourceBundle.containsKey',
+'*ServiceLoader$2.hasNext',
+'83.hasNext',
+':next',
+'8ModuleServicesLookupIterator.hasNext',
+'8ProviderImpl.get',
+'EnewInstance',
+'7.loadProvider',
+'*concurrent/ConcurrentHashMap.computeIfAbsent',
+'GputIfAbsent',
+'Gspread',
+'GtabAt',
+'*jar/JarFile.getInputStream',
+'*regex/CharPredicates.ASCII_DIGIT',
+'0Matcher.find',
+'8search',
+'0Pattern$$Lambda.0x800000029.is',
+'8BmpCharPropertyGreedy.match',
+'8Start.<init>',
+'>match',
+'7.<init>',
+'8Range',
+'8Single',
+'8atom',
+'8clazz',
+'9ompile',
+'8escape',
+'9xpr',
+'8group0',
+'8lambda$Single$14',
+'8range',
+'8sequence',
+'9ingle',
+'9plit',
+'*zip/InflaterInputStream.<init>',
+'.ZipFile$ZipFileInflaterInputStream.<init>',
+'5.getInputStream',
+'!byte_disjoint_arraycopy',
+'!dk/internal/jimage/BasicImageReader.<init>',
+'EfindLocation',
+'EgetAttributes',
+'4ImageLocation.decompress',
+'9Reader$SharedImageReader.<init>',
+'Ropen',
+'?.findLocation',
+'@open',
+'?Factory$1.apply',
+'F.get',
+'JImageReader',
+'4NativeImageBuffer$1.run',
+'E.<clinit>',
+'-loader/BuiltinClassLoader.defineClass',
+'GfindClass',
+'PInModuleOrNull',
+'POnClassPathOrNull',
+'GloadClass',
+'POrNull',
+'4ClassLoaders$AppClassLoader.loadClass',
+'4NativeLibraries$NativeLibraryImpl.open',
+'C.findFromPaths',
+'Dload',
+'HLibrary',
+'4Resource.cachedInputStream',
+'=getByteBuffer',
+'4URLClassPath$JarLoader$2.getInputStream',
+'-misc/ScopedMemoryAccess.getByte',
+'LInternal',
+'2Unsafe.allocateUninitializedArray',
+'S0',
+'9ensureClassInitialized',
+'O0',
+'9getByte',
+'.odule/SystemModuleFinders$SystemImage.<clinit>',
+'NModuleReader.findImageLocation',
+'[read',
+'-org/objectweb/asm/AnnotationWriter.create',
+'?ByteVector.<init>',
+'?ClassWriter.<init>',
+'?Frame.execute',
+'?MethodWriter.visitAnnotation',
+'QTypeInsn',
+'?SymbolTable.<init>',
+'-reflect/DirectConstructorHandleAccessor.invokeImpl',
+'UnewInstance',
+'5MethodHandleAccessorFactory.ensureClassInitialized',
+'QnewConstructorAccessor',
+'5ReflectionFactory.newConstructorAccessor',
+'-util/ReferencedKeyMap.intern',
+'IKey',
+'?Set.intern',
+' lab/sample/Main.main',
+',etrics.stage',
+'+RoutePlanner.legMinutes',
+'8travelTimeMinutes',
+'+Scenarios.at',
+'+comfort/Breaks.count',
+':totalMinutes',
+'+model/Leg.distanceKm',
+'1Trip.legs',
+'6weather',
+'+speed/BikeSpeed.kmPerHour',
+'1CarSpeed.kmPerHour',
+'1Speeds.forMode',
+'1TrainSpeed.kmPerHour',
+'1WalkSpeed.kmPerHour',
+'+terrain/Elevation.gradePercentAt',
+'3Terrain.applies',
+';penaltyFor',
+';slowdownFactor',
+',raffic/RushHourDelay.minutesFor',
+'3Traffic.applies',
+';delayMinutes',
+'.nsfer/Connections.transferMinutes',
+'@waitMinutes',
+'4Timetable.frequencyMinutes',
+'+weather/WeatherPenalty.applies',
+'BslowdownFactor',
+' metaspace::Metachunk::commit_up_to',
+'6ensure_committed',
+'/spaceArena::allocate',
+'C_inner',
+'+VirtualSpaceNode::commit_range',
+' os::Bsd::dlopen_helper',
+'$commit_memory',
+'$dll_load',
+'$pd_commit_memory',
+' post_adapter_creation',
+' stub:fmod',
+'!un/invoke/util/BytecodeDescriptor.unparseMethod',
+'JSig',
+'0Wrapper.basicTypeChar',
+'$nio/cs/StreamEncoder.flushBuffer',
+'9implFlushBuffer',
+'9lockedFlushBuffer',
+'9writeBytes',
+'$util/cldr/CLDRBaseLocaleDataMetaInfo.<clinit>',
+'2LocaleProviderAdapter$$Lambda.0x800000061.run',
+'G.<clinit>',
+'Iinit>',
+'HcreateLanguageTagSet',
+'Hlambda$new$0',
+')locale/provider/DecimalFormatSymbolsProviderImpl.getInstance',
+'9JRELocaleProviderAdapter$$Lambda.0x800000066.run',
+'Q.getDecimalFormatSymbolsProvider',
+'ULanguageTagSet',
+'VocaleServiceProvider',
+'Rlambda$getDecimalFormatSymbolsProvider$4',
+'9LocaleProviderAdapter.findAdapter',
+'PorType',
+'OgetAdapter',
+'?Resources.getDecimalFormatSymbolsData',
+'LNumberStrings',
+')resources/Bundles$2.run',
+':.findBundleOf',
+';loadBundleFromProviders',
+'EOf',
+';of',
+'3LocaleData$1.run',
+'=.getBundle',
+'ANumberFormatData',
+'3cldr/provider/CLDRLocaleDataMetaInfo.<clinit>',
+'3provider/LocaleDataProvider.getBundle',
+'OloadResourceBundle',
+' write',
+'%Bytes'
+];
+unpack(cpool);
+
+n(3,2294)
+u(3009,2294,0,17,62)
+f(1016,2,4,13)
+u(984)
+u(992)
+u(2152,6)
+u(2488)
+u(2448)
+u(2488)
+u(2432,1)
+u(260)
+u(124)
+u(132)
+u(740)
+u(732)
+u(708)
+u(716)
+u(724)
+u(252)
+u(372)
+u(44)
+u(899)
+u(843)
+f(2504,9,1,5)
+u(2536)
+u(2472,1)
+u(2544)
+u(2464)
+u(1720)
+u(1776)
+u(1760)
+u(1768)
+u(1752)
+u(1400)
+u(2840)
+u(2848)
+u(780)
+u(228)
+u(236)
+u(244)
+u(492)
+u(500)
+u(12)
+u(3300)
+u(356)
+u(612)
+u(835)
+f(2512,11,1,4)
+u(2504)
+u(2536)
+u(2472,3)
+u(2496)
+u(2392)
+u(1704)
+u(1712)
+u(1304)
+u(1200)
+u(1520)
+u(1384)
+u(1648)
+u(1432)
+u(1800)
+u(1856)
+u(1880)
+u(1584)
+u(1576)
+u(1696,1)
+u(1696)
+u(260)
+u(228)
+u(236)
+u(236)
+u(244)
+u(492)
+u(500)
+u(12)
+u(3300)
+u(356)
+u(612)
+u(835)
+f(2840,30,1,2)
+u(2848)
+u(1280)
+u(260,1)
+u(124)
+u(132)
+u(740)
+u(732)
+u(708)
+u(716)
+u(724)
+u(668)
+u(660)
+u(748)
+u(732)
+u(708)
+u(716)
+u(700)
+u(692)
+u(676)
+u(204)
+u(532)
+u(540)
+u(891)
+u(851)
+f(1216,33,1)
+u(1360)
+u(1368)
+u(1352)
+u(1336)
+u(1784)
+u(292)
+u(124)
+u(132)
+u(740)
+u(732)
+u(708)
+u(716)
+u(700)
+u(692)
+u(676)
+u(204)
+u(532)
+u(540)
+u(891)
+u(851)
+f(2480,14,1)
+u(2528)
+u(2456)
+u(1720)
+u(1776)
+u(1784)
+u(1680)
+u(1672)
+f(2160,5,1,7)
+u(2120)
+u(2136)
+u(2120)
+u(2120)
+u(2112)
+u(2176)
+u(2168)
+u(2064)
+u(3416,2)
+u(2056)
+u(2072)
+u(3488)
+u(3496,1)
+u(2288)
+u(2256)
+u(2264)
+u(2198,1,0,1,0)
+u(2206,1,0,1,0)
+u(2190,1,0,1,0)
+f(3560,18,1)
+u(3552)
+u(2040)
+u(2048)
+u(3544)
+u(3544)
+u(3536)
+u(3528)
+u(3512)
+u(3520)
+u(2040)
+u(2048)
+u(3504)
+u(3504)
+u(3576)
+u(3584)
+u(1032)
+u(1032)
+u(1048)
+u(2704)
+u(2712)
+u(2696)
+u(2880)
+u(2872)
+u(2640)
+u(2600)
+u(2608)
+u(2616)
+u(2032)
+u(2808)
+u(2816)
+u(2857)
+u(788)
+f(3480,14,1,5)
+u(3464)
+u(3448,1)
+u(3432)
+u(2040)
+u(2048)
+u(3424)
+u(3456)
+u(3440)
+u(3400)
+u(1104)
+u(1104)
+u(2552)
+u(2552)
+u(2400)
+u(2408)
+u(2440)
+u(2424)
+u(2416)
+u(2520)
+u(276)
+u(284)
+u(92)
+u(108)
+u(108)
+u(116)
+u(835)
+f(3472,16,1,4)
+u(1032,1)
+u(1032)
+u(1040)
+u(3384)
+u(3368)
+u(2272)
+u(308)
+u(316)
+u(404)
+u(380)
+u(124)
+u(132)
+u(740)
+u(732)
+u(708)
+u(716)
+u(724)
+u(252)
+f(2016,17,1,3)
+u(2024)
+u(2952)
+u(2944)
+u(1520)
+u(1392)
+u(3392)
+u(2040)
+u(2048)
+u(3376)
+u(3408)
+u(308,1)
+u(316)
+u(404)
+u(380)
+u(124)
+u(132)
+u(740)
+u(732)
+u(708)
+u(716)
+u(756)
+u(764)
+f(2304,28,1)
+u(2296)
+u(2320)
+u(2344)
+u(1032)
+u(1032)
+u(1048)
+u(2704)
+u(2712)
+u(2696)
+u(2880)
+u(2872)
+u(2864)
+u(2672)
+u(2664)
+u(2352)
+u(2656)
+u(2656)
+u(2648)
+u(2648)
+u(2632)
+u(2624)
+u(2592)
+u(2688)
+u(2040)
+u(2048)
+u(2680)
+u(2680)
+u(1192)
+u(1064)
+u(1056)
+u(2776)
+u(2760)
+u(2776)
+u(2776)
+u(2752)
+u(2768)
+u(347)
+u(339)
+u(3284)
+u(3268)
+u(588)
+u(819)
+u(819)
+u(819)
+u(819)
+f(2312,28,1)
+u(2328)
+u(2336)
+u(2016)
+u(2024)
+u(2008)
+u(2976)
+u(2968)
+u(2960)
+u(2840)
+u(2848)
+u(3568)
+u(324)
+u(140)
+u(148)
+u(156)
+u(652)
+u(652)
+u(644)
+f(2090,2,1,10)
+u(2082,6)
+n(2282,4)
+f(3016,2,4,3)
+u(1016)
+u(984)
+u(992)
+u(2160)
+u(2096,1)
+u(976)
+u(976)
+u(976)
+u(1008)
+u(1024)
+u(1000)
+u(968)
+u(3336)
+u(3352)
+u(3344)
+u(3360)
+u(1024)
+u(1000)
+u(928)
+u(944)
+u(936)
+u(952)
+u(960)
+u(3603)
+u(3595)
+f(2120,7,1,2)
+u(2128,1)
+u(2120)
+u(2120)
+u(308)
+u(316)
+u(404)
+u(380)
+u(124)
+u(132)
+u(740)
+u(732)
+u(708)
+u(716)
+u(36)
+u(52)
+u(331)
+u(196)
+f(2144,8,1)
+u(2120)
+u(2104)
+u(976)
+u(976)
+u(1008)
+u(1024)
+u(1000)
+u(968)
+u(3336)
+u(3352)
+u(3344)
+u(3360)
+u(1024)
+u(1000)
+u(928)
+u(944)
+u(936)
+u(952)
+u(960)
+u(3603)
+u(3595)
+f(3033,2,1,2260,0,14,10)
+f(2242,3,102,9)
+n(2250,1)
+n(3026,1518,1512,2,2)
+f(308,4,38,1)
+u(316)
+u(404)
+u(420)
+u(228)
+u(236)
+u(812)
+u(60)
+u(68)
+u(628)
+u(636)
+f(923,4,1,24)
+n(3089,6)
+n(3097,4)
+n(3113,7)
+f(3066,5,6,1)
+f(3126,4,1,7,0,7,0)
+n(3138,1)
+n(3154,1430,1427,0,3)
+f(3130,5,373,942,940,0,1)
+f(620,6,650,3)
+n(1090,17,16,1,0)
+f(907,7,9,1)
+u(596)
+u(92)
+u(108)
+u(108)
+u(116)
+u(835)
+f(1170,7,1,7)
+f(3307,6,7,272)
+f(3146,5,272,115)
+f(3058,3,115,3)
+u(3050)
+f(3074,3,3,22)
+n(3082,7)
+n(3106,6)
+n(3170,1)
+n(3182,8,0,5,1)
+f(2214,4,1,4,0,4,0)
+n(2238,2,0,1,1)
+u(276,1)
+u(284)
+u(92)
+u(100)
+u(84)
+u(484)
+u(516)
+u(476)
+u(476)
+u(3244)
+u(3252)
+u(3236)
+u(3228)
+u(3260)
+u(3276)
+u(3292)
+u(827)
+f(907,5,1)
+u(596)
+u(92)
+u(108)
+u(108)
+u(116)
+u(835)
+f(3162,4,1)
+f(3194,3,1,556,541,6,9)
+u(2218,2)
+n(2224,1)
+u(276)
+u(284)
+u(92)
+u(108)
+u(108)
+u(116)
+u(835)
+f(3186,4,1,553,539,5,9)
+u(1048,1)
+u(2744)
+u(2728)
+u(2736)
+u(2720)
+u(1096)
+u(1176)
+f(3202,5,1,552,544,0,8)
+f(276,6,2,1)
+u(284)
+u(92)
+u(108)
+u(108)
+u(116)
+u(835)
+f(1530,6,1,518,516,0,2)
+u(1562,518,516,0,2)
+u(1386,361,359,0,2)
+f(1146,9,1,166)
+f(2826,10,1,165,161,4,0)
+f(867,11,148,13)
+u(28,1)
+n(572,12)
+u(76,11)
+u(452)
+u(468,10)
+u(180,9)
+u(164)
+u(172)
+u(796)
+u(804)
+u(835)
+f(188,16,9,1)
+f(556,15,1)
+f(772,13,1)
+u(364)
+f(2838,11,1,4,0,4,0)
+f(1154,9,4,194,192,1,1)
+f(875,10,180,13)
+u(580)
+u(212)
+f(452,13,1,12)
+u(444,1)
+u(436)
+u(20)
+u(564)
+f(468,14,1,8)
+u(180,6)
+u(164)
+u(172)
+u(796)
+u(804)
+u(835)
+f(460,15,6,2)
+f(883,16,1,1)
+f(548,14,1,3)
+f(915,10,3,1)
+u(604)
+u(212)
+u(452)
+u(548)
+f(1546,8,1,156)
+u(1538)
+u(1386)
+u(1162)
+u(1162)
+u(1082)
+f(2587,14,4,152)
+f(1554,8,152,1)
+u(1386)
+u(1138)
+u(1122)
+f(1704,6,1,5)
+u(1712)
+u(1304)
+u(1200)
+u(1520)
+u(1376)
+u(1384)
+u(1968)
+u(1960)
+u(1824,1)
+u(1840)
+u(1608)
+u(1632)
+u(1640)
+u(1224)
+u(1368)
+u(1352)
+u(1344)
+u(1328)
+u(268)
+u(220)
+u(76)
+u(452)
+u(883)
+f(1936,15,1,2)
+u(1952)
+u(1872,1)
+u(1864)
+u(1296)
+u(1600)
+u(1248)
+u(1384)
+u(1272)
+u(1264)
+u(1288)
+u(1688)
+u(1592)
+u(1568)
+u(1496)
+u(1504)
+u(1448)
+u(2904)
+u(2904)
+u(2936)
+u(268)
+u(220)
+u(76)
+u(452)
+u(883)
+f(1976,17,1)
+u(1832)
+u(1792)
+u(1232)
+u(1384)
+u(1256)
+u(1240)
+u(1288)
+u(1688)
+u(1592)
+u(1568)
+u(1496)
+u(1504)
+u(1440)
+u(2920)
+u(2888)
+u(2896)
+u(300)
+u(76)
+u(452)
+u(883)
+f(1944,15,1,2)
+u(2000)
+u(2000)
+u(1832,1)
+u(1792)
+u(1232)
+u(1384)
+u(1256)
+u(1240)
+u(1288)
+u(1688)
+u(1592)
+u(1568)
+u(1496)
+u(1504)
+u(1440)
+u(1488)
+u(1472)
+u(1464)
+u(1456)
+u(1480)
+u(2928)
+u(2912)
+u(276)
+u(284)
+u(92)
+u(108)
+u(108)
+u(116)
+u(835)
+f(1992,18,1)
+u(1808)
+u(1816)
+u(1920)
+u(1928)
+u(1912)
+u(1288)
+u(1688)
+u(1592)
+u(1568)
+u(1496)
+u(1504)
+u(1440)
+u(1512)
+u(1904)
+u(3312)
+u(3320)
+u(3328)
+u(276)
+u(284)
+u(92)
+u(108)
+u(108)
+u(116)
+u(835)
+f(2353,6,1,26)
+f(1074,7,6,2)
+n(1090,14)
+f(1170,8,4,10)
+f(859,9,2,8)
+f(2370,7,8,2)
+n(2378)
+f(3210,3,2)
+n(3218,25,24,0,0)
+f(3040,2,25,4)
+u(1048,1)
+u(2744)
+u(2728)
+u(2736)
+u(2720)
+u(2696)
+u(2792)
+u(2784)
+u(2800)
+u(2384)
+u(2576)
+u(2568)
+u(2568)
+u(2560)
+u(300)
+u(76)
+u(452)
+u(883)
+f(1704,3,1,3)
+u(1712)
+u(1304)
+u(1200)
+u(1520)
+u(1376)
+u(1384)
+u(1968)
+u(1960)
+u(1936,1)
+u(1952)
+u(1848)
+u(1792)
+u(1616)
+u(1624)
+u(1640)
+u(1224)
+u(1368)
+u(1352)
+u(1344)
+u(1328)
+u(1320)
+u(1208)
+u(1312)
+u(1112)
+u(276)
+u(284)
+u(92)
+u(108)
+u(108)
+u(116)
+u(835)
+f(1944,12,1)
+u(2000)
+u(2000)
+u(2000)
+u(1184)
+u(1128)
+u(1736)
+u(1744)
+u(1752)
+u(1408)
+u(1424)
+u(1424)
+u(1424)
+u(1416)
+u(1664)
+u(1656)
+u(1728)
+u(427)
+u(524)
+u(420)
+u(388)
+u(412)
+u(396)
+u(684)
+u(508)
+u(492)
+u(500)
+u(12)
+u(3300)
+u(356)
+u(612)
+u(835)
+f(1984,12,1)
+u(1896)
+u(1888)
+u(3000)
+u(2984)
+u(2992)
+u(2360)
+u(276)
+u(284)
+u(92)
+u(108)
+u(108)
+u(116)
+u(835)
+
+search();
+</script></body></html>

@@ -1,0 +1,54 @@
+[INFO] JAVA_HOME: /Users/benoitbesson/.sdkman/candidates/java/25.0.2-tem
+[INFO] arthas-boot version: 4.3.4
+[INFO] arthas home: /Users/benoitbesson/.runtime-xray/arthas-4.3.4
+[INFO] Try to attach process 94533
+Picked up JAVA_TOOL_OPTIONS: 
+[ERROR] Start arthas failed, exception stack trace: 
+com.sun.tools.attach.AttachNotSupportedException: pid: 94533, state is not ready to participate in attach handshake!
+	at jdk.attach/sun.tools.attach.VirtualMachineImpl.checkCatchesAndSendQuitTo(Native Method)
+	at jdk.attach/sun.tools.attach.VirtualMachineImpl.<init>(VirtualMachineImpl.java:95)
+	at jdk.attach/sun.tools.attach.AttachProviderImpl.attachVirtualMachine(AttachProviderImpl.java:56)
+	at jdk.attach/com.sun.tools.attach.VirtualMachine.attach(VirtualMachine.java:201)
+	at com.taobao.arthas.core.Arthas.attachAgent(Arthas.java:124)
+	at com.taobao.arthas.core.Arthas.<init>(Arthas.java:37)
+	at com.taobao.arthas.core.Arthas.main(Arthas.java:491)
+[INFO] Attach process 94533 success.
+[INFO] arthas-client connect 127.0.0.1 3658
+Connect to telnet server error: 127.0.0.1 3658
+java.net.ConnectException: Connection refused
+	at java.base/sun.nio.ch.Net.pollConnect(Native Method)
+	at java.base/sun.nio.ch.Net.pollConnectNow(Net.java:639)
+	at java.base/sun.nio.ch.NioSocketImpl.timedFinishConnect(NioSocketImpl.java:550)
+	at java.base/sun.nio.ch.NioSocketImpl.connect(NioSocketImpl.java:594)
+	at java.base/java.net.SocksSocketImpl.connect(SocksSocketImpl.java:284)
+	at java.base/java.net.Socket.connect(Socket.java:659)
+	at org.apache.commons.net.SocketClient.connect(SocketClient.java:188)
+	at org.apache.commons.net.SocketClient.connect(SocketClient.java:209)
+	at com.taobao.arthas.client.TelnetConsole.process(TelnetConsole.java:326)
+	at com.taobao.arthas.client.TelnetConsole.main(TelnetConsole.java:176)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:104)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:565)
+	at com.taobao.arthas.boot.Bootstrap.main(Bootstrap.java:628)
+Usage: arthas-client [-t <value>] [-h <value>] [--quiet] [--help] [-c <value>]
+       [-f <value>] [-w <value>] [target-ip] [port]
+
+Arthas Telnet Client
+
+EXAMPLES:
+  java -jar arthas-client.jar 127.0.0.1 3658
+  java -jar arthas-client.jar -c 'dashboard -n 1'
+  java -jar arthas-client.jar -f batch.as 127.0.0.1
+
+Options and Arguments:
+ -t,--execution-timeout <value>   The timeout (ms) of execute commands or batch
+                                  file
+ -h,--height <value>              The terminal height
+    --quiet                       Suppress connection welcome output
+    --help                        Print usage
+ -c,--command <value>             Command to execute, multiple commands
+                                  separated by ;
+ -f,--batch-file <value>          The batch file to execute
+ -w,--width <value>               The terminal width
+ <target-ip>                      Target ip
+ <port>                           The remote server port
+

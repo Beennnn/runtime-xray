@@ -1,0 +1,187 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <!--
+    io.github.<compte> : c'est le seul espace de noms qu'on peut prouver posséder sans
+    posséder un domaine — la validation se fait en prouvant le compte GitHub. C'est le
+    chemin le plus court vers Maven Central, et il est définitif : un artefact publié ne
+    se retire pas, donc le groupId ne se corrige pas non plus.
+  -->
+  <groupId>io.github.beennnn</groupId>
+  <artifactId>runtime-xray</artifactId>
+  <version>1.0.0</version>
+  <packaging>pom</packaging>
+
+  <name>Runtime X-Ray</name>
+  <description>
+    Analyse dynamique d'une exécution Java : les lignes exécutées, l'arbre des appels et
+    les valeurs des paramètres, réunis dans une page unique. Sans licence, et sans accès
+    réseau pendant l'exécution.
+  </description>
+  <url>https://github.com/Beennnn/runtime-xray</url>
+  <inceptionYear>2026</inceptionYear>
+
+  <licenses>
+    <license>
+      <name>BSD Zero Clause License</name>
+      <url>https://spdx.org/licenses/0BSD.html</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+
+  <developers>
+    <developer>
+      <id>beennnn</id>
+      <name>Benoît Besson</name>
+      <url>https://github.com/Beennnn</url>
+    </developer>
+  </developers>
+
+  <scm>
+    <connection>scm:git:https://github.com/Beennnn/runtime-xray.git</connection>
+    <developerConnection>scm:git:ssh://git@github.com/Beennnn/runtime-xray.git</developerConnection>
+    <url>https://github.com/Beennnn/runtime-xray</url>
+    <tag>HEAD</tag>
+  </scm>
+
+  <issueManagement>
+    <system>GitHub Issues</system>
+    <url>https://github.com/Beennnn/runtime-xray/issues</url>
+  </issueManagement>
+
+  <properties>
+    <!-- 21 et non 25 : l'outil doit tourner là où l'application tourne, et une machine
+         de production est rarement sur la dernière version. Le code n'utilise rien
+         au-delà. -->
+    <maven.compiler.release>21</maven.compiler.release>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
+    <!-- Versions épinglées : un tag flottant transforme une rupture amont en panne de
+         build inexpliquée. -->
+    <surefire.version>3.5.2</surefire.version>
+    <jar.plugin.version>3.4.2</jar.plugin.version>
+    <source.plugin.version>3.3.1</source.plugin.version>
+    <javadoc.plugin.version>3.12.0</javadoc.plugin.version>
+    <gpg.plugin.version>3.2.8</gpg.plugin.version>
+    <central.plugin.version>0.11.0</central.plugin.version>
+
+    <!-- La clé de signature. Une seule clé sur le poste rend ce réglage inutile, mais le
+         nommer évite qu'une seconde clé, ajoutée un jour pour autre chose, soit choisie
+         sans qu'on s'en aperçoive. -->
+    <gpg.keyname>8D181AA1F3545E3C43804355D7D3E62B52C66FCA</gpg.keyname>
+  </properties>
+
+  <modules>
+    <module>orchestrator</module>
+    <module>sample-app</module>
+    <!-- Les collecteurs par outil ne sont PAS des modules Maven : voir tools/README.md -->
+  </modules>
+
+  <build>
+    <pluginManagement>
+      <plugins>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-surefire-plugin</artifactId>
+          <version>${surefire.version}</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-jar-plugin</artifactId>
+          <version>${jar.plugin.version}</version>
+        </plugin>
+      </plugins>
+    </pluginManagement>
+  </build>
+  <profiles>
+    <!--
+      Publication sur Maven Central. Isolée dans un profil parce qu'elle exige une clé de
+      signature et des identifiants que personne n'a en clonant le dépôt : `mvn verify`
+      doit rester possible sans rien configurer.
+
+          mvn -Prelease deploy
+
+      Les prérequis humains — validation de l'espace de noms, clé GPG, identifiants —
+      sont décrits dans docs/outil/distribution.md.
+    -->
+    <profile>
+      <id>release</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-source-plugin</artifactId>
+            <version>${source.plugin.version}</version>
+            <executions>
+              <execution>
+                <id>attacher-les-sources</id>
+                <goals><goal>jar-no-fork</goal></goals>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-javadoc-plugin</artifactId>
+            <version>${javadoc.plugin.version}</version>
+            <configuration>
+              <!-- La documentation est rédigée en français, pour être lue par des humains
+                   plutôt que validée par un vérificateur HTML. doclint bloquerait la
+                   publication sur des détails de balisage sans conséquence. -->
+              <doclint>none</doclint>
+              <quiet>true</quiet>
+            </configuration>
+            <executions>
+              <execution>
+                <id>attacher-la-javadoc</id>
+                <goals><goal>jar</goal></goals>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-gpg-plugin</artifactId>
+            <version>${gpg.plugin.version}</version>
+            <executions>
+              <execution>
+                <id>signer-les-artefacts</id>
+                <phase>verify</phase>
+                <goals><goal>sign</goal></goals>
+                <configuration>
+                  <!--
+                    Ni phrase de passe, ni mode « loopback » forcé : sur un poste, c'est
+                    l'agent GPG qui la demande, et elle ne transite alors ni par Maven ni
+                    par une variable. Forcer le loopback revient à couper l'agent et à
+                    exiger que la phrase soit fournie autrement, c'est-à-dire à la faire
+                    entrer là où elle n'a pas besoin d'aller.
+
+                    En intégration continue, où aucun agent ne peut afficher de fenêtre,
+                    le plugin lit MAVEN_GPG_PASSPHRASE dans l'environnement
+                    (paramètre passphraseEnvName). C'est le chemin prévu pour ça.
+                  -->
+                  <keyname>${gpg.keyname}</keyname>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <groupId>org.sonatype.central</groupId>
+            <artifactId>central-publishing-maven-plugin</artifactId>
+            <version>${central.plugin.version}</version>
+            <extensions>true</extensions>
+            <configuration>
+              <publishingServerId>central</publishingServerId>
+              <!-- Le dépôt est déposé mais PAS publié automatiquement : on relit ce qui
+                   part avant de le rendre définitif. Une version publiée ne se retire
+                   pas. -->
+              <autoPublish>false</autoPublish>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
+
+</project>

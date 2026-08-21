@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="fr"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>WeatherPenalty.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Runtime X-Ray</a> &gt; <a href="index.source.html" class="el_package">lab.sample.weather</a> &gt; <span class="el_source">WeatherPenalty.java</span></div><h1>WeatherPenalty.java</h1><pre class="source lang-java linenums">package lab.sample.weather;
+
+import lab.sample.model.Mode;
+import lab.sample.model.Weather;
+
+/**
+ * Ralentissement dû à la météo.
+ *
+ * &lt;p&gt;Ne concerne que les modes exposés — vélo et marche. La branche {@code SNOW} n'est
+ * jamais empruntée : c'est un trou de couverture &lt;em&gt;à l'intérieur&lt;/em&gt; d'une méthode
+ * par ailleurs exécutée des milliers de fois. Un rapport qui n'affiche qu'un
+ * pourcentage par classe le masque ; un rapport qui colorie les lignes le montre.
+ */
+public final class WeatherPenalty {
+
+    private WeatherPenalty() {}
+
+    public static boolean applies(Mode mode) {
+<span class="fc bfc" id="L19" title="All 4 branches covered.">        return mode == Mode.BIKE || mode == Mode.WALK;</span>
+    }
+
+    public static double slowdownFactor(Weather weather) {
+<span class="pc bpc" id="L23" title="1 of 3 branches missed.">        return switch (weather) {</span>
+<span class="fc" id="L24">            case SUNNY -&gt; 1.00;</span>
+<span class="fc" id="L25">            case RAIN -&gt; 1.15;</span>
+<span class="nc" id="L26">            case SNOW -&gt; 1.60;</span>
+        };
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>
