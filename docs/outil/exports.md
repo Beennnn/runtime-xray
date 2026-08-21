@@ -51,7 +51,9 @@ runs/20260821-004121-recette/
     └── valeurs.json         ← valeurs capturées
 ```
 
-La page les liste sous **« Pour un autre outil »**, à côté des sorties brutes.
+La page les nomme à deux endroits : dans la **barre du haut**, sous *exports*, où ils
+restent visibles mais éteints tant qu'ils n'ont pas été produits — un clic donne alors la
+commande — et dans la liste des sorties brutes, sous *« Pour un autre outil »*.
 
 ## Les formats retenus
 
