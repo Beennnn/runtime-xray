@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="fr"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Speeds.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Code réellement exécuté</a> &gt; <a href="index.source.html" class="el_package">lab.sample.speed</a> &gt; <span class="el_source">Speeds.java</span></div><h1>Speeds.java</h1><pre class="source lang-java linenums">package lab.sample.speed;
+
+import lab.sample.model.Mode;
+
+/** Fabrique : associe un mode de transport à son modèle de vitesse. */
+public final class Speeds {
+
+    // Instances partagées : les modèles de vitesse sont sans état. Les allouer à chaque
+    // appel captait ~25 % des échantillons — du bruit d'allocation qui masquait le calcul.
+<span class="fc" id="L10">    private static final SpeedModel CAR = new CarSpeed();</span>
+<span class="fc" id="L11">    private static final SpeedModel TRAIN = new TrainSpeed();</span>
+<span class="fc" id="L12">    private static final SpeedModel BIKE = new BikeSpeed();</span>
+<span class="fc" id="L13">    private static final SpeedModel WALK = new WalkSpeed();</span>
+
+    private Speeds() {}
+
+    public static SpeedModel forMode(Mode mode) {
+<span class="pc bpc" id="L18" title="2 of 5 branches missed.">        return switch (mode) {</span>
+<span class="fc" id="L19">            case CAR -&gt; CAR;</span>
+<span class="fc" id="L20">            case TRAIN -&gt; TRAIN;</span>
+<span class="fc" id="L21">            case BIKE -&gt; BIKE;</span>
+<span class="nc" id="L22">            case WALK -&gt; WALK;</span>
+            // Instancié ici et non partagé comme les autres : ainsi PlaneSpeed n'est
+            // JAMAIS chargée ni exécutée, et reste à 0 % dans le rapport de couverture.
+            // Un champ static final l'aurait fait construire au chargement de Speeds.
+<span class="nc" id="L26">            case PLANE -&gt; new PlaneSpeed();</span>
+        };
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

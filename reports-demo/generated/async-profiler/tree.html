@@ -1,0 +1,3011 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Tree view</title>
+    <meta charset="utf-8" />
+    <style>
+      html,
+      body,
+      div,
+      span,
+      a,
+      code,
+      ul,
+      li {
+        margin: 0;
+        padding: 0;
+        border: 0;
+        font: inherit;
+        vertical-align: baseline;
+      }
+      body {
+        line-height: 140%;
+        font-family: Arial;
+        background: white;
+        font-size: 15px;
+      }
+      ul {
+        list-style: none;
+      }
+
+      .tree li {
+        list-style-type: none;
+        position: relative;
+        white-space: nowrap;
+      }
+      .tree ul {
+        margin-left: 20px;
+        padding-left: 0;
+      }
+      .tree li ul {
+        display: none;
+      }
+      .tree li.open > ul {
+        display: block;
+      }
+      .tree li div:before,
+      .tree li div:after {
+        position: absolute;
+        content: "";
+        top: 0;
+        bottom: 0;
+        margin: auto;
+        background: #252527;
+      }
+      .tree li div:before {
+        width: 10px;
+        height: 2px;
+        left: -1px;
+      }
+      .tree li div:after {
+        width: 2px;
+        height: 10px;
+        left: 3px;
+      }
+      .tree li div:hover:after,
+      .tree li div:hover:before {
+        background: #00ac4f;
+      }
+      .tree li.open > div:after {
+        display: none;
+      }
+      .tree li > div {
+        padding-left: 17px;
+        position: relative;
+        display: inline;
+        cursor: pointer;
+        color: black;
+        text-decoration: none;
+      }
+      .tree li > div:first-word {
+        font-weight: bold;
+      }
+      /* no children ul */
+      .o:after,
+      .o:before {
+        display: none !important;
+      }
+      .sc {
+        text-decoration-color: black;
+        font-weight: bold;
+        background-color: #d9d9d9;
+      }
+      input {
+        height: 36px;
+        padding: 0 14px;
+        border-radius: 4px;
+        background: white;
+        font-size: 16px;
+        border: 1px solid #2023281a;
+      }
+      button {
+        height: 36px;
+        border: none;
+        background: none;
+        border-radius: 4px;
+        cursor: pointer;
+        white-space: nowrap;
+      }
+      button:hover {
+        color: #00ac4f;
+      }
+      .button_outlined {
+        color: black;
+        font-size: 15px;
+        padding: 0 12px;
+        background: white;
+        border: 1px solid #2023281a;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .total-count {
+        color: #5e5e5e;
+        font-weight: bold;
+        font-size: 14px;
+      }
+      .p {
+        font-weight: bold;
+      }
+      .header {
+        display: flex;
+        position: fixed;
+        top: 0;
+        left: 0;
+        gap: 16px;
+        flex-direction: row;
+        z-index: 100;
+        padding: 8px 20px;
+        background: #f5f5f5;
+        align-items: center;
+        box-sizing: border-box;
+        width: 100%;
+      }
+      .icon_gray {
+        color: #b7b7b7;
+      }
+      .header-actions {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        gap: 8px;
+        flex: 1;
+      }
+      .header-item {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        gap: 8px;
+      }
+      .view-type {
+        display: flex;
+        gap: 8px;
+        flex-direction: row;
+        font-weight: bold;
+        margin-top: 4px;
+        align-items: center;
+      }
+      .view-type__decoration {
+        display: flex;
+        gap: 8px;
+      }
+      .header-item_search {
+        gap: 8px;
+        flex: 1;
+      }
+      .search-input {
+        flex: 1;
+      }
+      .title {
+        font-size: 16px;
+      }
+      .wrapper {
+        padding: 70px 20px 10px;
+        background: white;
+        border-top: 1px solid #e9e9e9;
+      }
+
+      .child-count {
+        border: 1px solid #abb1c1;
+        border-radius: 3px;
+        padding: 0 5px;
+        color: #7d8089;
+      }
+
+      .t0,
+      .t1,
+      .t2,
+      .t3,
+      .t4,
+      .t5,
+      .t6 {
+        font-family: SFMono-Regular,Consolas,Liberation Mono,Menlo,Courier,monospace;
+      }
+      .t0 {color: #3A6F38;}
+      .t1 {color: #05B505;}
+      .t2 {color: #006A7C;}
+      .t3 {color: #9B0000;}
+      .t4 {color: #A7A718;}
+      .t5 {color: #CC5200;}
+      .t6 {color: #7C8F45;}
+      @media only screen and (max-width: 968px) {
+        .only-desktop {
+          display: none;
+        }
+      }
+    </style>
+<script>
+function treeView(opt) {
+	var tree = document.querySelectorAll('ul.tree div:not(:last-child)');
+	for(var i = 0; i < tree.length; i++){
+		var parent = tree[i].parentElement;
+		var classList = parent.classList;
+		if(opt == 0) {
+			classList.add('open');
+		} else {
+			classList.remove('open');
+		}
+	}
+}
+function openParent(p,t) {
+	if(p.parentElement.classList.contains('tree')) {
+		return;
+	}
+	p.parentElement.classList.add('open');
+	openParent(p.parentElement,t);
+}
+function search() {
+	var tree = document.querySelectorAll('ul.tree span');
+	var check = document.getElementById('check');
+	for(var i = 0; i < tree.length; i++){
+		tree[i].classList.remove('sc');
+		if(tree[i].innerHTML.includes(document.getElementById('search').value)) {
+			tree[i].classList.add('sc');
+			openParent(tree[i].parentElement,tree);
+		}
+	}
+}
+function openUL(n) {
+	var children = n.children;
+	if(children.length == 1) {
+		openNode(children[0]);
+	}
+}
+function openNode(n) {
+	var children = n.children;
+	for(var i = 0; i < children.length; i++){
+		if(children[i].nodeName == 'UL') {
+			n.classList.add('open');
+			openUL(children[i]);
+		}
+	}
+}
+function addClickActions() {
+var tree = document.querySelectorAll('ul.tree div:not(:last-child)');
+for(var i = 0; i < tree.length; i++){
+	tree[i].addEventListener('click', function(e) {
+		var parent = e.target.parentElement;
+		var classList = parent.classList;
+		if(classList.contains('open')) {
+			classList.remove('open');
+			var opensubs = parent.querySelectorAll(':scope .open');
+			for(var i = 0; i < opensubs.length; i++){
+				opensubs[i].classList.remove('open');
+			}
+		} else {
+			if(e.altKey) {
+				classList.add('open');
+				var opensubs = parent.querySelectorAll('li');
+				for(var i = 0; i < opensubs.length; i++){
+					opensubs[i].classList.add('open');
+				}
+			} else {
+				openNode(parent);
+			}
+		}
+	});
+}
+}
+</script>
+  </head>
+  <body>
+    <div class="header">
+      <div class="title">
+        <div class="view-type">
+          <span class="view-type__decoration only-desktop">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M9 17H5C3.89543 17 3 16.1046 3 15V3" stroke="#A2A2A2" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M9 7H3" stroke="#A2A2A2" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+              <path fill-rule="evenodd" clip-rule="evenodd" d="M21 8.5V5C21 4.17157 20.3284 3.5 19.5 3.5H17.4381C17.1071 3.5 16.7975 3.33616 16.6113 3.06243L16.1863 2.43757C16.0001 2.16383 15.6905 1.99999 15.3594 2H13.5C12.6716 2 12 2.67157 12 3.5V8.5C12 9.32843 12.6716 10 13.5 10H19.5C20.3284 10 21 9.32843 21 8.5Z" stroke="#A2A2A2" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+              <path fill-rule="evenodd" clip-rule="evenodd" d="M21 19.5V16C21 15.1716 20.3284 14.5 19.5 14.5H17.4381C17.1071 14.5 16.7975 14.3362 16.6113 14.0624L16.1863 13.4376C16.0001 13.1638 15.6905 13 15.3594 13H13.5C12.6716 13 12 13.6716 12 14.5V19.5C12 20.3284 12.6716 21 13.5 21H19.5C20.3284 21 21 20.3284 21 19.5Z" stroke="#A2A2A2" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+            <span>Call tree view</span>
+          </span>
+          <span class="total-count">total samples: 1,986</span>
+        </div>
+      </div>
+      <div class="header-actions">
+        <div class="header-item">
+          <button alt="Collapse All" type="button" onclick="treeView(0)" class="button_outlined">Expand All</button>
+          <button alt="Expand All" type="button" onclick="treeView(1)" class="button_outlined">Collapse All</button>
+        </div>
+        <div class="header-item header-item_search">
+          <input class="search-input" type="text" id="search" value="" placeholder="Search..." size="35" onkeypress="if(event.keyCode == 13) search()"/>
+        </div>
+      </div>
+    </div>
+    <div class="wrapper">
+      <ul class="tree">
+        <li><div>99.95% [1,985] &#8226; self: 0.35% [7]</div> <span class="t1">lab/sample/Main.main</span>
+<ul>
+<li><div>97.58% [1,938] &#8226; self: 5.09% [101]</div> <span class="t1">lab/sample/RoutePlanner.travelTimeMinutes</span>
+<ul>
+<li><div>71.60% [1,422] &#8226; self: 2.06% [41]</div> <span class="t2">lab/sample/RoutePlanner.legMinutes</span>
+<ul>
+<li><div>67.47% [1,340] &#8226; self: 19.54% [388]</div> <span class="t2">lab/sample/terrain/Terrain.slowdownFactor</span>
+<ul>
+<li><div>42.30% [840] &#8226; self: 29.20% [580]</div> <span class="t2">lab/sample/terrain/Elevation.gradePercentAt</span>
+<ul>
+<li><div class="o">12.19% [242] &#8226; self: 12.19% [242]</div> <span class="t3">stub:fmod</span>
+<li><div>0.50% [10] &#8226; self: 0.40% [8]</div> <span class="t2">java/lang/String.hashCode</span>
+<ul>
+<li><div class="o">0.10% [2] &#8226; self: 0.10% [2]</div> <span class="t2">java/lang/StringLatin1.hashCode</span>
+</ul>
+<li><div class="o">0.35% [7] &#8226; self: 0.35% [7]</div> <span class="t4">SharedRuntime::drem</span>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">lab/sample/model/Leg.from</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">InterpreterRuntime::frequency_counter_overflow</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">InterpreterRuntime::frequency_counter_overflow_inner</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">CompilationPolicy::event</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">CompileBroker::compile_method</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">CompileBroker::compile_method</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">CompileBroker::compile_method_base</span>
+<ul>
+<li><div class="o">0.05% [1] &#8226; self: 0.05% [1]</div> <span class="t3">__psynch_cvbroad</span>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+<li><div class="o">5.54% [110] &#8226; self: 5.54% [110]</div> <span class="t2">lab/sample/terrain/Terrain.penaltyFor</span>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t3">UncommonTrapBlob</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">Deoptimization::uncommon_trap</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">Deoptimization::uncommon_trap_inner</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">vframe::new_vframe</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">Arena::grow</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">Chunk::operator new</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">ChunkPool::allocate</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">ThreadCritical::~ThreadCritical</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t3">_pthread_mutex_firstfit_unlock_slow</span>
+<ul>
+<li><div class="o">0.05% [1] &#8226; self: 0.05% [1]</div> <span class="t3">__psynch_mutexdrop</span>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">InterpreterRuntime::frequency_counter_overflow</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">InterpreterRuntime::frequency_counter_overflow_inner</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">CompilationPolicy::event</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">CompileBroker::compile_method</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">CompileBroker::compile_method</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">CompileBroker::compile_method_base</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">Mutex::lock</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">Mutex::lock_contended</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t3">_pthread_mutex_firstfit_lock_slow</span>
+<ul>
+<li><div class="o">0.05% [1] &#8226; self: 0.05% [1]</div> <span class="t3">__psynch_mutexwait</span>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+<li><div class="o">0.96% [19] &#8226; self: 0.96% [19]</div> <span class="t3">itable stub</span>
+<li><div class="o">0.45% [9] &#8226; self: 0.45% [9]</div> <span class="t1">lab/sample/speed/BikeSpeed.kmPerHour</span>
+<li><div class="o">0.25% [5] &#8226; self: 0.25% [5]</div> <span class="t1">lab/sample/speed/CarSpeed.kmPerHour</span>
+<li><div class="o">0.20% [4] &#8226; self: 0.20% [4]</div> <span class="t6">lab/sample/speed/WalkSpeed.kmPerHour</span>
+<li><div>0.15% [3] &#8226; self: 0.10% [2]</div> <span class="t1">lab/sample/speed/TrainSpeed.kmPerHour</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">InterpreterRuntime::frequency_counter_overflow</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">InterpreterRuntime::frequency_counter_overflow_inner</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">CompilationPolicy::event</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">CompileBroker::compile_method</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">CompileBroker::compile_method</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">CompileBroker::compile_method_base</span>
+<ul>
+<li><div class="o">0.05% [1] &#8226; self: 0.05% [1]</div> <span class="t3">__psynch_cvbroad</span>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t3">counter_overflow Runtime1 stub</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">Runtime1::counter_overflow</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">CompilationPolicy::event</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">CompileBroker::compile_method</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">CompileBroker::compile_method</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">CompileBroker::compile_method_base</span>
+<ul>
+<li><div class="o">0.05% [1] &#8226; self: 0.05% [1]</div> <span class="t3">__psynch_cvbroad</span>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+<li><div>16.57% [329] &#8226; self: 0.00% [0]</div> <span class="t2">lab/sample/transfer/Connections.waitMinutes</span>
+<ul>
+<li><div>16.41% [326] &#8226; self: 0.00% [0]</div> <span class="t2">lab/sample/transfer/Connections.transferMinutes</span>
+<ul>
+<li><div>16.36% [325] &#8226; self: 0.00% [0]</div> <span class="t2">lab/sample/transfer/Timetable.frequencyMinutes</span>
+<ul>
+<li><div>14.85% [295] &#8226; self: 0.00% [0]</div> <span class="t2">java/lang/invoke/Invokers$Holder.linkToTargetMethod</span>
+<ul>
+<li><div>14.85% [295] &#8226; self: 0.00% [0]</div> <span class="t2">java/lang/invoke/LambdaForm$MH.0x0000007001009800.invoke</span>
+<ul>
+<li><div>10.73% [213] &#8226; self: 0.00% [0]</div> <span class="t2">java/lang/invoke/DirectMethodHandle$Holder.invokeStatic</span>
+<ul>
+<li><div>5.69% [113] &#8226; self: 5.34% [106]</div> <span class="t2">java/lang/StringConcatHelper.newString</span>
+<ul>
+<li><div>0.30% [6] &#8226; self: 0.00% [0]</div> <span class="t3">_new_instance_Java</span>
+<ul>
+<li><div>0.30% [6] &#8226; self: 0.00% [0]</div> <span class="t4">OptoRuntime::new_instance_C</span>
+<ul>
+<li><div>0.30% [6] &#8226; self: 0.00% [0]</div> <span class="t4">InstanceKlass::allocate_instance</span>
+<ul>
+<li><div>0.30% [6] &#8226; self: 0.00% [0]</div> <span class="t4">MemAllocator::allocate</span>
+<ul>
+<li><div>0.25% [5] &#8226; self: 0.00% [0]</div> <span class="t4">MemAllocator::mem_allocate_slow</span>
+<ul>
+<li><div>0.25% [5] &#8226; self: 0.00% [0]</div> <span class="t4">G1CollectedHeap::mem_allocate</span>
+<ul>
+<li><div>0.25% [5] &#8226; self: 0.00% [0]</div> <span class="t4">G1CollectedHeap::attempt_allocation_slow</span>
+<ul>
+<li><div>0.25% [5] &#8226; self: 0.00% [0]</div> <span class="t4">G1CollectedHeap::do_collection_pause</span>
+<ul>
+<li><div>0.25% [5] &#8226; self: 0.00% [0]</div> <span class="t4">VMThread::execute</span>
+<ul>
+<li><div>0.25% [5] &#8226; self: 0.00% [0]</div> <span class="t4">VMThread::wait_until_executed</span>
+<ul>
+<li><div class="o">0.25% [5] &#8226; self: 0.25% [5]</div> <span class="t3">__psynch_cvbroad</span>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+<li><div class="o">0.05% [1] &#8226; self: 0.05% [1]</div> <span class="t4">ObjAllocator::initialize</span>
+</ul>
+</ul>
+</ul>
+</ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t3">fast_new_instance Runtime1 stub</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">Runtime1::new_instance</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">InstanceKlass::allocate_instance</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">MemAllocator::allocate</span>
+<ul>
+<li><div class="o">0.05% [1] &#8226; self: 0.05% [1]</div> <span class="t4">ObjAllocator::initialize</span>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+<li><div>5.04% [100] &#8226; self: 0.00% [0]</div> <span class="t2">java/lang/StringConcatHelper.newArray</span>
+<ul>
+<li><div>5.04% [100] &#8226; self: 3.47% [69]</div> <span class="t2">jdk/internal/misc/Unsafe.allocateUninitializedArray</span>
+<ul>
+<li><div>1.21% [24] &#8226; self: 0.00% [0]</div> <span class="t3">_new_array_Java</span>
+<ul>
+<li><div>0.96% [19] &#8226; self: 0.00% [0]</div> <span class="t4">OptoRuntime::new_array_C</span>
+<ul>
+<li><div>0.96% [19] &#8226; self: 0.00% [0]</div> <span class="t4">CollectedHeap::array_allocate</span>
+<ul>
+<li><div>0.96% [19] &#8226; self: 0.00% [0]</div> <span class="t4">MemAllocator::allocate</span>
+<ul>
+<li><div>0.91% [18] &#8226; self: 0.00% [0]</div> <span class="t4">MemAllocator::mem_allocate_slow</span>
+<ul>
+<li><div>0.81% [16] &#8226; self: 0.00% [0]</div> <span class="t4">G1CollectedHeap::mem_allocate</span>
+<ul>
+<li><div>0.81% [16] &#8226; self: 0.00% [0]</div> <span class="t4">G1CollectedHeap::attempt_allocation_slow</span>
+<ul>
+<li><div>0.81% [16] &#8226; self: 0.00% [0]</div> <span class="t4">G1CollectedHeap::do_collection_pause</span>
+<ul>
+<li><div>0.81% [16] &#8226; self: 0.00% [0]</div> <span class="t4">VMThread::execute</span>
+<ul>
+<li><div>0.81% [16] &#8226; self: 0.00% [0]</div> <span class="t4">VMThread::wait_until_executed</span>
+<ul>
+<li><div class="o">0.81% [16] &#8226; self: 0.81% [16]</div> <span class="t3">__psynch_cvbroad</span>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+<li><div class="o">0.05% [1] &#8226; self: 0.05% [1]</div> <span class="t4">ThreadLocalAllocBuffer::fill</span>
+<li><div class="o">0.05% [1] &#8226; self: 0.05% [1]</div> <span class="t4">MemAllocator::mem_allocate_inside_tlab_slow</span>
+</ul>
+<li><div class="o">0.05% [1] &#8226; self: 0.05% [1]</div> <span class="t4">ObjArrayAllocator::initialize</span>
+</ul>
+</ul>
+</ul>
+<li><div class="o">0.10% [2] &#8226; self: 0.10% [2]</div> <span class="t4">CollectedHeap::array_allocate</span>
+<li><div class="o">0.05% [1] &#8226; self: 0.05% [1]</div> <span class="t3">pthread_jit_write_protect_np</span>
+<li><div class="o">0.05% [1] &#8226; self: 0.05% [1]</div> <span class="t4">CardTableBarrierSet::on_slowpath_allocation_exit</span>
+<li><div class="o">0.05% [1] &#8226; self: 0.05% [1]</div> <span class="t4">oopFactory::new_typeArray</span>
+</ul>
+<li><div class="o">0.35% [7] &#8226; self: 0.35% [7]</div> <span class="t6">jdk/internal/misc/Unsafe.allocateUninitializedArray0</span>
+</ul>
+</ul>
+</ul>
+<li><div>3.98% [79] &#8226; self: 0.00% [0]</div> <span class="t2">java/lang/invoke/LambdaForm$MH.0x0000007001005c00.invoke</span>
+<ul>
+<li><div>3.98% [79] &#8226; self: 0.00% [0]</div> <span class="t2">java/lang/invoke/LambdaForm$MH.0x0000007001005400.invoke</span>
+<ul>
+<li><div>3.93% [78] &#8226; self: 0.00% [0]</div> <span class="t2">java/lang/invoke/DirectMethodHandle$Holder.invokeStatic</span>
+<ul>
+<li><div>3.93% [78] &#8226; self: 0.00% [0]</div> <span class="t2">java/lang/StringConcatHelper.prepend</span>
+<ul>
+<li><div>3.93% [78] &#8226; self: 0.00% [0]</div> <span class="t2">java/lang/StringConcatHelper.prepend</span>
+<ul>
+<li><div>3.73% [74] &#8226; self: 0.10% [2]</div> <span class="t2">java/lang/String.getBytes</span>
+<ul>
+<li><div class="o">3.63% [72] &#8226; self: 3.63% [72]</div> <span class="t3">jbyte_disjoint_arraycopy</span>
+</ul>
+<li><div class="o">0.15% [3] &#8226; self: 0.15% [3]</div> <span class="t2">java/lang/String.length</span>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">InterpreterRuntime::frequency_counter_overflow</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">InterpreterRuntime::frequency_counter_overflow_inner</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">CompilationPolicy::event</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">CompileBroker::compile_method</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">CompileBroker::compile_method</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">CompileBroker::compile_method_base</span>
+<ul>
+<li><div class="o">0.05% [1] &#8226; self: 0.05% [1]</div> <span class="t3">__psynch_cvbroad</span>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">InterpreterRuntime::frequency_counter_overflow</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">InterpreterRuntime::frequency_counter_overflow_inner</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">CompilationPolicy::event</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">CompileBroker::compile_method</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">CompileBroker::compile_method</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">CompileBroker::compile_method_base</span>
+<ul>
+<li><div class="o">0.05% [1] &#8226; self: 0.05% [1]</div> <span class="t3">__psynch_cvbroad</span>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+<li><div>0.15% [3] &#8226; self: 0.00% [0]</div> <span class="t2">java/lang/invoke/LambdaForm$MH.0x0000007001009000.invoke</span>
+<ul>
+<li><div>0.10% [2] &#8226; self: 0.00% [0]</div> <span class="t2">java/lang/invoke/DirectMethodHandle$Holder.invokeStatic</span>
+<ul>
+<li><div>0.10% [2] &#8226; self: 0.05% [1]</div> <span class="t2">java/lang/StringConcatHelper.mix</span>
+<ul>
+<li><div class="o">0.05% [1] &#8226; self: 0.05% [1]</div> <span class="t2">java/lang/StringConcatHelper.checkOverflow</span>
+</ul>
+</ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t2">java/lang/invoke/DelegatingMethodHandle$Holder.reinvoke_L</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t2">java/lang/invoke/DirectMethodHandle$Holder.invokeStatic</span>
+<ul>
+<li><div class="o">0.05% [1] &#8226; self: 0.05% [1]</div> <span class="t2">java/lang/StringConcatHelper.mix</span>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+<li><div>1.26% [25] &#8226; self: 0.50% [10]</div> <span class="t1">java/util/concurrent/ConcurrentHashMap.computeIfAbsent</span>
+<ul>
+<li><div>0.35% [7] &#8226; self: 0.05% [1]</div> <span class="t2">java/lang/String.hashCode</span>
+<ul>
+<li><div>0.30% [6] &#8226; self: 0.05% [1]</div> <span class="t2">java/lang/StringLatin1.hashCode</span>
+<ul>
+<li><div class="o">0.25% [5] &#8226; self: 0.25% [5]</div> <span class="t3">_large_arrays_hashcode_boolean</span>
+</ul>
+</ul>
+<li><div class="o">0.35% [7] &#8226; self: 0.35% [7]</div> <span class="t2">java/lang/String.equals</span>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t6">java/util/concurrent/ConcurrentHashMap.spread</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t3">counter_overflow Runtime1 stub</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">Runtime1::counter_overflow</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">CompilationPolicy::event</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">CompileBroker::compile_method</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">CompileBroker::compile_method</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">CompileBroker::compile_method_base</span>
+<ul>
+<li><div class="o">0.05% [1] &#8226; self: 0.05% [1]</div> <span class="t3">__psynch_cvbroad</span>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+<li><div>0.25% [5] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/MethodHandleNatives.linkCallSite</span>
+<ul>
+<li><div>0.25% [5] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/MethodHandleNatives.linkCallSiteImpl</span>
+<ul>
+<li><div>0.25% [5] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/CallSite.makeSite</span>
+<ul>
+<li><div>0.25% [5] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/BootstrapMethodInvoker.invoke</span>
+<ul>
+<li><div>0.25% [5] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/Invokers$Holder.invokeExact_MT</span>
+<ul>
+<li><div>0.20% [4] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/DelegatingMethodHandle$Holder.delegate</span>
+<ul>
+<li><div>0.20% [4] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/DirectMethodHandle$Holder.invokeStatic</span>
+<ul>
+<li><div>0.20% [4] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/StringConcatFactory.makeConcatWithConstants</span>
+<ul>
+<li><div>0.20% [4] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/StringConcatFactory.generateMHInlineCopy</span>
+<ul>
+<li><div>0.10% [2] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/StringConcatFactory.filterAndFoldInMixers</span>
+<ul>
+<li><div>0.10% [2] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/StringConcatFactory.foldInLastMixers</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/MethodHandles.insertArguments</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/MethodHandles.insertArgumentPrimitive</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/BoundMethodHandle.bindArgumentJ</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/LambdaFormEditor.bindArgumentJ</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/BoundMethodHandle$Species_LL.copyWithExtendJ</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/DirectMethodHandle$Holder.invokeStatic</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/BoundMethodHandle$Species_LLJ.make</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/BoundMethodHandle$Species_LLJ.&lt;init&gt;</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/BoundMethodHandle.&lt;init&gt;</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/MethodHandle.&lt;init&gt;</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/LambdaForm.prepare</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/LambdaForm.compileToBytecode</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/InvokerBytecodeGenerator.generateCustomizedCode</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/InvokerBytecodeGenerator.generateCustomizedCodeBytes</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/InvokerBytecodeGenerator.classFilePrologue</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">jdk/internal/org/objectweb/asm/ClassWriter.&lt;init&gt;</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">jdk/internal/org/objectweb/asm/ClassWriter.&lt;init&gt;</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">jdk/internal/org/objectweb/asm/SymbolTable.&lt;init&gt;</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">InterpreterRuntime::anewarray</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">InstanceKlass::allocate_objArray</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">CollectedHeap::array_allocate</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">MemAllocator::allocate</span>
+<ul>
+<li><div class="o">0.05% [1] &#8226; self: 0.05% [1]</div> <span class="t3">_platform_memset</span>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/StringConcatFactory.mixer</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/MethodHandles.filterArgumentsWithCombiner</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/MethodHandles.argumentsWithCombiner</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/BoundMethodHandle$Species_L.copyWithExtendL</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/DirectMethodHandle$Holder.invokeStatic</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/BoundMethodHandle$Species_LL.make</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/BoundMethodHandle$Species_LL.&lt;init&gt;</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/BoundMethodHandle.&lt;init&gt;</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/MethodHandle.&lt;init&gt;</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/LambdaForm.prepare</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/LambdaForm.compileToBytecode</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/InvokerBytecodeGenerator.generateCustomizedCode</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/InvokerBytecodeGenerator.generateCustomizedCodeBytes</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/InvokerBytecodeGenerator.addMethod</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">jdk/internal/org/objectweb/asm/MethodWriter.visitAnnotation</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">jdk/internal/org/objectweb/asm/AnnotationWriter.create</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">jdk/internal/org/objectweb/asm/ByteVector.&lt;init&gt;</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">InterpreterRuntime::newarray</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">CollectedHeap::array_allocate</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">MemAllocator::allocate</span>
+<ul>
+<li><div class="o">0.05% [1] &#8226; self: 0.05% [1]</div> <span class="t3">_platform_memset</span>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/StringConcatFactory.filterInPrependers</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/StringConcatFactory.prepender</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/StringConcatFactory.prepender</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/StringConcatFactory.prepender</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/MethodHandles.insertArguments</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/BoundMethodHandle.bindArgumentL</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/LambdaFormEditor.bindArgumentL</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/BoundMethodHandle$Species_L.copyWithExtendL</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/DirectMethodHandle$Holder.invokeStatic</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/BoundMethodHandle$Species_LL.make</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/BoundMethodHandle$Species_LL.&lt;init&gt;</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/BoundMethodHandle.&lt;init&gt;</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/MethodHandle.&lt;init&gt;</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/LambdaForm.prepare</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/LambdaForm.compileToBytecode</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/InvokerBytecodeGenerator.generateCustomizedCode</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/InvokerBytecodeGenerator.generateCustomizedCodeBytes</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/InvokerBytecodeGenerator.toByteArray</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">jdk/internal/org/objectweb/asm/ClassWriter.toByteArray</span>
+<ul>
+<li><div class="o">0.05% [1] &#8226; self: 0.05% [1]</div> <span class="t6">jdk/internal/org/objectweb/asm/SymbolTable.addConstantUtf8</span>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/MethodHandles.filterArguments</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/MethodHandles.filterRepeatedArgument</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/BoundMethodHandle$Species_LLLL.copyWithExtendL</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/DirectMethodHandle$Holder.invokeStatic</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/BoundMethodHandle$Species_LLLLL.make</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/BoundMethodHandle$Species_LLLLL.&lt;init&gt;</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/BoundMethodHandle.&lt;init&gt;</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/MethodHandle.&lt;init&gt;</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/LambdaForm.prepare</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/LambdaForm.compileToBytecode</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/InvokerBytecodeGenerator.generateCustomizedCode</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/InvokerBytecodeGenerator.generateCustomizedCodeBytes</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/InvokerBytecodeGenerator.addMethod</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/InvokerBytecodeGenerator.emitStaticInvoke</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">jdk/internal/org/objectweb/asm/MethodWriter.visitMethodInsn</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">jdk/internal/org/objectweb/asm/Frame.execute</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">jdk/internal/org/objectweb/asm/Frame.pop</span>
+<ul>
+<li><div class="o">0.05% [1] &#8226; self: 0.05% [1]</div> <span class="t0">jdk/internal/org/objectweb/asm/Type.getArgumentsAndReturnSizes</span>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/DirectMethodHandle$Holder.invokeStatic</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/LambdaMetafactory.metafactory</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/InnerClassLambdaMetafactory.buildCallSite</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/InnerClassLambdaMetafactory.spinInnerClass</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/InnerClassLambdaMetafactory.generateInnerClass</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/InnerClassLambdaMetafactory$ForwardingMethodGenerator.generate</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/InnerClassLambdaMetafactory$ForwardingMethodGenerator.convertArgumentTypes</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/TypeConvertingMethodAdapter.convertType</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">sun/invoke/util/BytecodeDescriptor.unparse</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/Class.descriptorString</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/StringBuilder.append</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">InterpreterRuntime::frequency_counter_overflow</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">InterpreterRuntime::frequency_counter_overflow_inner</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">CompilationPolicy::event</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">CompileBroker::compile_method</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">CompileBroker::compile_method</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">CompileBroker::compile_method_base</span>
+<ul>
+<li><div class="o">0.05% [1] &#8226; self: 0.05% [1]</div> <span class="t3">__psynch_cvbroad</span>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+<li><div class="o">0.05% [1] &#8226; self: 0.05% [1]</div> <span class="t2">lab/sample/model/Leg.to</span>
+</ul>
+<li><div>0.15% [3] &#8226; self: 0.10% [2]</div> <span class="t2">java/util/ImmutableCollections$List12.get</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t3">counter_overflow Runtime1 stub</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">Runtime1::counter_overflow</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">CompilationPolicy::event</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">CompileBroker::compile_method</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">CompileBroker::compile_method</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">CompileBroker::compile_method_base</span>
+<ul>
+<li><div class="o">0.05% [1] &#8226; self: 0.05% [1]</div> <span class="t3">__psynch_cvbroad</span>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+<li><div class="o">1.21% [24] &#8226; self: 1.21% [24]</div> <span class="t2">lab/sample/model/Trip.legs</span>
+<li><div class="o">1.06% [21] &#8226; self: 1.06% [21]</div> <span class="t2">lab/sample/weather/WeatherPenalty.slowdownFactor</span>
+<li><div>0.40% [8] &#8226; self: 0.35% [7]</div> <span class="t2">lab/sample/speed/Speeds.forMode</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t3">counter_overflow Runtime1 stub</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">Runtime1::counter_overflow</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">CompilationPolicy::event</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">CompileBroker::compile_method</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">CompileBroker::compile_method</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">CompileBroker::compile_method_base</span>
+<ul>
+<li><div class="o">0.05% [1] &#8226; self: 0.05% [1]</div> <span class="t3">__psynch_cvbroad</span>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+<li><div>0.40% [8] &#8226; self: 0.00% [0]</div> <span class="t6">lab/sample/traffic/Traffic.delayMinutes</span>
+<ul>
+<li><div>0.20% [4] &#8226; self: 0.15% [3]</div> <span class="t6">java/util/ImmutableCollections$AbstractImmutableList.iterator</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">InterpreterRuntime::frequency_counter_overflow</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">InterpreterRuntime::frequency_counter_overflow_inner</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">CompilationPolicy::event</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">CompileBroker::compile_method</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">CompileBroker::compile_method</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">CompileBroker::compile_method_base</span>
+<ul>
+<li><div class="o">0.05% [1] &#8226; self: 0.05% [1]</div> <span class="t3">__psynch_cvbroad</span>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+<li><div>0.10% [2] &#8226; self: 0.00% [0]</div> <span class="t6">java/util/ImmutableCollections$ListItr.hasNext</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t3">counter_overflow Runtime1 stub</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">Runtime1::counter_overflow</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">CompilationPolicy::event</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">CompileBroker::compile_method</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">CompileBroker::compile_method</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">CompileBroker::compile_method_base</span>
+<ul>
+<li><div class="o">0.05% [1] &#8226; self: 0.05% [1]</div> <span class="t3">__psynch_cvbroad</span>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">InterpreterRuntime::frequency_counter_overflow</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">InterpreterRuntime::frequency_counter_overflow_inner</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">CompilationPolicy::event</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">CompileBroker::compile_method</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">CompileBroker::compile_method</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">CompileBroker::compile_method_base</span>
+<ul>
+<li><div class="o">0.05% [1] &#8226; self: 0.05% [1]</div> <span class="t3">__psynch_cvbroad</span>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/ClassLoader.loadClass</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">jdk/internal/loader/ClassLoaders$AppClassLoader.loadClass</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">jdk/internal/loader/BuiltinClassLoader.loadClass</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">jdk/internal/loader/BuiltinClassLoader.loadClassOrNull</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">jdk/internal/loader/BuiltinClassLoader.findClassOnClassPathOrNull</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">jdk/internal/loader/BuiltinClassLoader.defineClass</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">jdk/internal/loader/URLClassPath$JarLoader$2.getBytes</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">jdk/internal/loader/Resource.getBytes</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/util/zip/InflaterInputStream.read</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/util/zip/ZipFile$ZipFileInflaterInputStream.fill</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/util/zip/ZipFile$ZipFileInputStream.read</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/util/zip/ZipFile$ZipFileInputStream.initDataOffset</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/util/zip/ZipFile$Source.readFullyAt</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/io/RandomAccessFile.seek</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/io/RandomAccessFile.seek0</span>
+<ul>
+<li><div class="o">0.05% [1] &#8226; self: 0.05% [1]</div> <span class="t3">__lseek</span>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+<li><div class="o">0.05% [1] &#8226; self: 0.05% [1]</div> <span class="t2">lab/sample/traffic/RushHourDelay.minutesFor</span>
+</ul>
+<li><div class="o">0.40% [8] &#8226; self: 0.40% [8]</div> <span class="t2">lab/sample/traffic/Traffic.applies</span>
+<li><div class="o">0.25% [5] &#8226; self: 0.25% [5]</div> <span class="t2">lab/sample/model/Trip.weather</span>
+<li><div class="o">0.20% [4] &#8226; self: 0.20% [4]</div> <span class="t2">java/util/ImmutableCollections$ListN.get</span>
+<li><div class="o">0.10% [2] &#8226; self: 0.10% [2]</div> <span class="t2">lab/sample/weather/WeatherPenalty.applies</span>
+<li><div class="o">0.10% [2] &#8226; self: 0.10% [2]</div> <span class="t2">java/util/ImmutableCollections$ListN.size</span>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/ClassLoader.loadClass</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">jdk/internal/loader/ClassLoaders$AppClassLoader.loadClass</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">jdk/internal/loader/BuiltinClassLoader.loadClass</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">jdk/internal/loader/BuiltinClassLoader.loadClassOrNull</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">jdk/internal/loader/BuiltinClassLoader.findClassOnClassPathOrNull</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">jdk/internal/loader/BuiltinClassLoader.defineClass</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">jdk/internal/loader/URLClassPath$JarLoader$2.getBytes</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">jdk/internal/loader/Resource.getBytes</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/util/zip/InflaterInputStream.read</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/util/zip/ZipFile$ZipFileInflaterInputStream.fill</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/util/zip/ZipFile$ZipFileInputStream.read</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/util/zip/ZipFile$ZipFileInputStream.initDataOffset</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/util/zip/ZipFile$Source.readFullyAt</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/io/RandomAccessFile.seek</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/io/RandomAccessFile.seek0</span>
+<ul>
+<li><div class="o">0.05% [1] &#8226; self: 0.05% [1]</div> <span class="t3">__lseek</span>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">lab/sample/speed/Speeds.&lt;clinit&gt;</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/ClassLoader.loadClass</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">jdk/internal/loader/ClassLoaders$AppClassLoader.loadClass</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">jdk/internal/loader/BuiltinClassLoader.loadClass</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">jdk/internal/loader/BuiltinClassLoader.loadClassOrNull</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">jdk/internal/loader/BuiltinClassLoader.findClassOnClassPathOrNull</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">jdk/internal/loader/BuiltinClassLoader.defineClass</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">jdk/internal/loader/Resource.getByteBuffer</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">jdk/internal/loader/Resource.cachedInputStream</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">jdk/internal/loader/URLClassPath$JarLoader$2.getInputStream</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/util/jar/JarFile.getInputStream</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/util/zip/ZipFile.getInputStream</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/util/Collections$SetFromMap.add</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/util/WeakHashMap.put</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/util/WeakHashMap$Entry.&lt;init&gt;</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/ref/WeakReference.&lt;init&gt;</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/ref/Reference.&lt;init&gt;</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">InterpreterRuntime::frequency_counter_overflow</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">InterpreterRuntime::frequency_counter_overflow_inner</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">CompilationPolicy::event</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">CompileBroker::compile_method</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">CompileBroker::compile_method</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">CompileBroker::compile_method_base</span>
+<ul>
+<li><div class="o">0.05% [1] &#8226; self: 0.05% [1]</div> <span class="t3">__psynch_cvbroad</span>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t2">lab/sample/comfort/Breaks.totalMinutes</span>
+<ul>
+<li><div class="o">0.05% [1] &#8226; self: 0.05% [1]</div> <span class="t2">lab/sample/comfort/Breaks.count</span>
+</ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t3">ic_miss_stub</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">SharedRuntime::handle_wrong_method_ic_miss</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">SharedRuntime::handle_ic_miss_helper</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">JvmtiDynamicCodeEventCollector::~JvmtiDynamicCodeEventCollector</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">JvmtiExport::post_dynamic_code_generated</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">ServiceThread::enqueue_deferred_event</span>
+<ul>
+<li><div class="o">0.05% [1] &#8226; self: 0.05% [1]</div> <span class="t3">__psynch_cvbroad</span>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+<li><div>1.01% [20] &#8226; self: 0.00% [0]</div> <span class="t0">java/io/PrintStream.printf</span>
+<ul>
+<li><div>1.01% [20] &#8226; self: 0.00% [0]</div> <span class="t0">java/io/PrintStream.format</span>
+<ul>
+<li><div>1.01% [20] &#8226; self: 0.00% [0]</div> <span class="t0">java/io/PrintStream.implFormat</span>
+<ul>
+<li><div>0.70% [14] &#8226; self: 0.00% [0]</div> <span class="t0">java/util/Formatter.format</span>
+<ul>
+<li><div>0.65% [13] &#8226; self: 0.00% [0]</div> <span class="t0">java/util/Formatter$FormatSpecifier.print</span>
+<ul>
+<li><div>0.60% [12] &#8226; self: 0.00% [0]</div> <span class="t0">java/util/Formatter$FormatSpecifier.printInteger</span>
+<ul>
+<li><div>0.60% [12] &#8226; self: 0.00% [0]</div> <span class="t0">java/util/Formatter$FormatSpecifier.print</span>
+<ul>
+<li><div>0.60% [12] &#8226; self: 0.00% [0]</div> <span class="t0">java/util/Formatter$FormatSpecifier.print</span>
+<ul>
+<li><div>0.60% [12] &#8226; self: 0.00% [0]</div> <span class="t0">java/util/Formatter$FormatSpecifier.localizedMagnitude</span>
+<ul>
+<li><div>0.60% [12] &#8226; self: 0.00% [0]</div> <span class="t0">java/util/Formatter.getZero</span>
+<ul>
+<li><div>0.60% [12] &#8226; self: 0.00% [0]</div> <span class="t0">java/util/Formatter.getDecimalFormatSymbols</span>
+<ul>
+<li><div>0.60% [12] &#8226; self: 0.00% [0]</div> <span class="t0">java/text/DecimalFormatSymbols.getInstance</span>
+<ul>
+<li><div>0.35% [7] &#8226; self: 0.00% [0]</div> <span class="t0">sun/util/locale/provider/LocaleProviderAdapter.getAdapter</span>
+<ul>
+<li><div>0.35% [7] &#8226; self: 0.00% [0]</div> <span class="t0">sun/util/locale/provider/LocaleProviderAdapter.findAdapter</span>
+<ul>
+<li><div>0.20% [4] &#8226; self: 0.00% [0]</div> <span class="t0">sun/util/locale/provider/LocaleProviderAdapter.forType</span>
+<ul>
+<li><div>0.15% [3] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/reflect/Constructor.newInstance</span>
+<ul>
+<li><div>0.15% [3] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/reflect/Constructor.newInstanceWithCaller</span>
+<ul>
+<li><div>0.15% [3] &#8226; self: 0.00% [0]</div> <span class="t0">jdk/internal/reflect/DirectConstructorHandleAccessor.newInstance</span>
+<ul>
+<li><div>0.15% [3] &#8226; self: 0.00% [0]</div> <span class="t0">jdk/internal/reflect/DirectConstructorHandleAccessor.invokeImpl</span>
+<ul>
+<li><div>0.15% [3] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/Invokers$Holder.invokeExact_MT</span>
+<ul>
+<li><div>0.15% [3] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/DirectMethodHandle$Holder.newInvokeSpecial</span>
+<ul>
+<li><div>0.15% [3] &#8226; self: 0.00% [0]</div> <span class="t0">sun/util/cldr/CLDRLocaleProviderAdapter.&lt;init&gt;</span>
+<ul>
+<li><div>0.10% [2] &#8226; self: 0.00% [0]</div> <span class="t0">java/security/AccessController.doPrivileged</span>
+<ul>
+<li><div>0.10% [2] &#8226; self: 0.00% [0]</div> <span class="t0">java/security/AccessController.executePrivileged</span>
+<ul>
+<li><div>0.10% [2] &#8226; self: 0.00% [0]</div> <span class="t0">sun/util/cldr/CLDRLocaleProviderAdapter$$Lambda.0x800000061.run</span>
+<ul>
+<li><div>0.10% [2] &#8226; self: 0.00% [0]</div> <span class="t0">sun/util/cldr/CLDRLocaleProviderAdapter.lambda$new$0</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/util/ServiceLoader$3.hasNext</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/util/ServiceLoader$2.hasNext</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/util/ServiceLoader$ModuleServicesLookupIterator.hasNext</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/util/ServiceLoader.loadProvider</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/Class.forName</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/Class.forName</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/ClassLoader.loadClass</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">jdk/internal/loader/BuiltinClassLoader.findClass</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">jdk/internal/loader/BuiltinClassLoader.findClassInModuleOrNull</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">jdk/internal/loader/BuiltinClassLoader.defineClass</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">jdk/internal/module/SystemModuleFinders$SystemModuleReader.read</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">jdk/internal/module/SystemModuleFinders$SystemModuleReader.findImageLocation</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">jdk/internal/module/SystemModuleFinders$SystemImage.&lt;clinit&gt;</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">jdk/internal/jimage/ImageReaderFactory.getImageReader</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">jdk/internal/jimage/ImageReaderFactory.get</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/util/concurrent/ConcurrentHashMap.computeIfAbsent</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">jdk/internal/jimage/ImageReaderFactory$1.apply</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">jdk/internal/jimage/ImageReaderFactory$1.apply</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">jdk/internal/jimage/ImageReader.open</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">jdk/internal/jimage/ImageReader.open</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">jdk/internal/jimage/ImageReader$SharedImageReader.open</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">jdk/internal/jimage/ImageReader$SharedImageReader.&lt;init&gt;</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">jdk/internal/jimage/BasicImageReader.&lt;init&gt;</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">jdk/internal/jimage/NativeImageBuffer.getNativeMap</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">InterpreterRuntime::prepare_native_call</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">NativeLookup::lookup</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">NativeLookup::lookup_base</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">NativeLookup::lookup_entry</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">NativeLookup::lookup_style</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t3">[unknown]</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t3">[unknown]</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t3">[unknown]</span>
+<ul>
+<li><div class="o">0.05% [1] &#8226; self: 0.05% [1]</div> <span class="t3">[unknown]</span>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/util/ServiceLoader.iterator</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/util/ServiceLoader.newLookupIterator</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">InterpreterRuntime::_new</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">InstanceKlass::initialize_impl</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">InstanceKlass::link_class_impl</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">InstanceKlass::link_methods</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">Method::link_method</span>
+<ul>
+<li><div class="o">0.05% [1] &#8226; self: 0.05% [1]</div> <span class="t4">AbstractInterpreter::method_kind</span>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/MethodHandleNatives.linkMethodHandleConstant</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/MethodHandles$Lookup.linkMethodHandleConstant</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/MethodHandles$Lookup.resolveOrFail</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/MemberName$Factory.resolveOrFail</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/MemberName$Factory.resolve</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/MethodHandleNatives.resolve</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t3">MHN_resolve_Mem</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">MethodHandles::resolve_MemberName</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">CallInfo::set_resolved_method_name</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">java_lang_invoke_ResolvedMethodName::find_resolved_method</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">ResolvedMethodTable::find_method</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">ConcurrentHashTable&lt;ResolvedMethodTableConfig, (MEMFLAGS)1&gt;::Node* ConcurrentHashTable&lt;ResolvedMethodTableConfig, (MEMFLAGS)1&gt;::get_node&lt;ResolvedMethodTableLookup&gt;</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">ResolvedMethodTableLookup::equals</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">Arena::grow</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">Chunk::operator new</span>
+<ul>
+<li><div class="o">0.05% [1] &#8226; self: 0.05% [1]</div> <span class="t4">ChunkPool::allocate</span>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/Class.forName</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/Class.forName</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/Class.forName0</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">sun/util/cldr/CLDRLocaleProviderAdapter.&lt;clinit&gt;</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">sun/util/cldr/CLDRBaseLocaleDataMetaInfo.&lt;clinit&gt;</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/util/Locale.forLanguageTag</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">sun/util/locale/InternalLocaleBuilder.getBaseLocale</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">sun/util/locale/BaseLocale.getInstance</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/String.equals</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">InterpreterRuntime::frequency_counter_overflow</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">InterpreterRuntime::frequency_counter_overflow_inner</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">CompilationPolicy::event</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">CompileBroker::compile_method</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">CompileBroker::compile_method</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">CompileBroker::compile_method_base</span>
+<ul>
+<li><div class="o">0.05% [1] &#8226; self: 0.05% [1]</div> <span class="t3">__psynch_cvbroad</span>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+<li><div>0.15% [3] &#8226; self: 0.00% [0]</div> <span class="t0">sun/util/locale/provider/JRELocaleProviderAdapter.getLocaleServiceProvider</span>
+<ul>
+<li><div>0.15% [3] &#8226; self: 0.00% [0]</div> <span class="t0">sun/util/locale/provider/JRELocaleProviderAdapter.getDecimalFormatSymbolsProvider</span>
+<ul>
+<li><div>0.10% [2] &#8226; self: 0.00% [0]</div> <span class="t0">java/security/AccessController.doPrivileged</span>
+<ul>
+<li><div>0.10% [2] &#8226; self: 0.00% [0]</div> <span class="t0">java/security/AccessController.executePrivileged</span>
+<ul>
+<li><div>0.10% [2] &#8226; self: 0.00% [0]</div> <span class="t0">sun/util/locale/provider/JRELocaleProviderAdapter$$Lambda.0x800000066.run</span>
+<ul>
+<li><div>0.10% [2] &#8226; self: 0.00% [0]</div> <span class="t0">sun/util/locale/provider/JRELocaleProviderAdapter.lambda$getDecimalFormatSymbolsProvider$4</span>
+<ul>
+<li><div>0.10% [2] &#8226; self: 0.00% [0]</div> <span class="t0">sun/util/locale/provider/JRELocaleProviderAdapter.getLanguageTagSet</span>
+<ul>
+<li><div>0.10% [2] &#8226; self: 0.00% [0]</div> <span class="t0">sun/util/cldr/CLDRLocaleProviderAdapter.createLanguageTagSet</span>
+<ul>
+<li><div>0.10% [2] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/String.split</span>
+<ul>
+<li><div>0.10% [2] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/String.split</span>
+<ul>
+<li><div>0.10% [2] &#8226; self: 0.00% [0]</div> <span class="t0">java/util/regex/Pattern.split</span>
+<ul>
+<li><div>0.10% [2] &#8226; self: 0.00% [0]</div> <span class="t0">java/util/regex/Pattern.split</span>
+<ul>
+<li><div>0.10% [2] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/String.subSequence</span>
+<ul>
+<li><div>0.10% [2] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/String.substring</span>
+<ul>
+<li><div>0.10% [2] &#8226; self: 0.05% [1]</div> <span class="t0">java/lang/StringLatin1.newString</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t6">java/util/Arrays.copyOfRange</span>
+<ul>
+<li><div class="o">0.05% [1] &#8226; self: 0.05% [1]</div> <span class="t2">java/util/Arrays.copyOfRangeByte</span>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/MethodHandleNatives.linkCallSite</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/MethodHandleNatives.linkCallSiteImpl</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/CallSite.makeSite</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/BootstrapMethodInvoker.invoke</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/Invokers$Holder.invokeExact_MT</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/DirectMethodHandle$Holder.invokeStatic</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/LambdaMetafactory.metafactory</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/InnerClassLambdaMetafactory.&lt;init&gt;</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/InnerClassLambdaMetafactory.lambdaClassName</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/String.replace</span>
+<ul>
+<li><div class="o">0.05% [1] &#8226; self: 0.05% [1]</div> <span class="t0">java/lang/StringLatin1.replace</span>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+<li><div>0.25% [5] &#8226; self: 0.00% [0]</div> <span class="t0">sun/util/locale/provider/DecimalFormatSymbolsProviderImpl.getInstance</span>
+<ul>
+<li><div>0.25% [5] &#8226; self: 0.00% [0]</div> <span class="t0">java/text/DecimalFormatSymbols.&lt;init&gt;</span>
+<ul>
+<li><div>0.25% [5] &#8226; self: 0.00% [0]</div> <span class="t0">java/text/DecimalFormatSymbols.initialize</span>
+<ul>
+<li><div>0.15% [3] &#8226; self: 0.00% [0]</div> <span class="t0">sun/util/locale/provider/LocaleResources.getDecimalFormatSymbolsData</span>
+<ul>
+<li><div>0.10% [2] &#8226; self: 0.00% [0]</div> <span class="t0">sun/util/resources/LocaleData.getNumberFormatData</span>
+<ul>
+<li><div>0.10% [2] &#8226; self: 0.00% [0]</div> <span class="t0">sun/util/resources/LocaleData.getBundle</span>
+<ul>
+<li><div>0.10% [2] &#8226; self: 0.00% [0]</div> <span class="t0">java/security/AccessController.doPrivileged</span>
+<ul>
+<li><div>0.10% [2] &#8226; self: 0.00% [0]</div> <span class="t0">java/security/AccessController.executePrivileged</span>
+<ul>
+<li><div>0.10% [2] &#8226; self: 0.00% [0]</div> <span class="t0">sun/util/resources/LocaleData$1.run</span>
+<ul>
+<li><div>0.10% [2] &#8226; self: 0.00% [0]</div> <span class="t0">sun/util/resources/LocaleData$1.run</span>
+<ul>
+<li><div>0.10% [2] &#8226; self: 0.00% [0]</div> <span class="t0">sun/util/resources/Bundles.of</span>
+<ul>
+<li><div>0.10% [2] &#8226; self: 0.00% [0]</div> <span class="t0">sun/util/resources/Bundles.loadBundleOf</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">sun/util/resources/Bundles.findBundleOf</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">sun/util/resources/Bundles.loadBundleFromProviders</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/security/AccessController.doPrivileged</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/security/AccessController.executePrivileged</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">sun/util/resources/Bundles$2.run</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">sun/util/resources/Bundles$2.run</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">sun/util/resources/provider/LocaleDataProvider.getBundle</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">sun/util/resources/provider/LocaleDataProvider.loadResourceBundle</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/Class.forName</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/Class.forName</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/ClassLoader.loadClass</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">jdk/internal/loader/BuiltinClassLoader.findClass</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">jdk/internal/loader/BuiltinClassLoader.findClassInModuleOrNull</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">jdk/internal/loader/BuiltinClassLoader.defineClass</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">jdk/internal/module/SystemModuleFinders$SystemModuleReader.read</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">jdk/internal/module/SystemModuleFinders$SystemModuleReader.findImageLocation</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">jdk/internal/jimage/ImageReader.findLocation</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">jdk/internal/jimage/BasicImageReader.findLocation</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">jdk/internal/jimage/BasicImageReader.getAttributes</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">jdk/internal/jimage/ImageLocation.decompress</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/nio/DirectByteBuffer.get</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">jdk/internal/misc/ScopedMemoryAccess.getByte</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">jdk/internal/misc/ScopedMemoryAccess.getByteInternal</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t1">jdk/internal/misc/Unsafe.getByte</span>
+<ul>
+<li><div class="o">0.05% [1] &#8226; self: 0.05% [1]</div> <span class="t4">Unsafe_GetByte</span>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">sun/util/resources/LocaleData$LocaleDataStrategy.getCandidateLocales</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">sun/util/cldr/CLDRLocaleProviderAdapter.getCandidateLocales</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">sun/util/cldr/CLDRLocaleProviderAdapter.applyAliases</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/MethodHandleNatives.linkCallSite</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/MethodHandleNatives.linkCallSiteImpl</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/CallSite.makeSite</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/BootstrapMethodInvoker.invoke</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/Invokers$Holder.invokeExact_MT</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/DirectMethodHandle$Holder.invokeStatic</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/LambdaMetafactory.metafactory</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/InnerClassLambdaMetafactory.&lt;init&gt;</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">jdk/internal/org/objectweb/asm/ClassWriter.&lt;init&gt;</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">jdk/internal/org/objectweb/asm/ClassWriter.&lt;init&gt;</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">jdk/internal/org/objectweb/asm/SymbolTable.&lt;init&gt;</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">InterpreterRuntime::anewarray</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">InstanceKlass::allocate_objArray</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">CollectedHeap::array_allocate</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">MemAllocator::allocate</span>
+<ul>
+<li><div class="o">0.05% [1] &#8226; self: 0.05% [1]</div> <span class="t3">_platform_memset</span>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">sun/util/locale/provider/LocaleResources.getNumberStrings</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/util/ResourceBundle.containsKey</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/util/ListResourceBundle.handleKeySet</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/util/ListResourceBundle.loadLookup</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/util/HashMap.put</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t6">java/util/HashMap.putVal</span>
+<ul>
+<li><div class="o">0.05% [1] &#8226; self: 0.05% [1]</div> <span class="t0">java/util/HashMap.newNode</span>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/text/DecimalFormatSymbols.findNonFormatChar</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/Character.getType</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/Character.getType</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/CharacterData.of</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/CharacterData00.&lt;clinit&gt;</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/String.toCharArray</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/StringUTF16.toChars</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/StringUTF16.getChars</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t6">java/lang/StringUTF16.getChar</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t3">counter_overflow Runtime1 stub</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">Runtime1::counter_overflow</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">CompilationPolicy::event</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">CompileBroker::compile_method</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">CompileBroker::compile_method</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">CompileBroker::compile_method_base</span>
+<ul>
+<li><div class="o">0.05% [1] &#8226; self: 0.05% [1]</div> <span class="t3">__psynch_cvbroad</span>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">sun/util/locale/provider/JRELocaleProviderAdapter.getLocaleResources</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">sun/util/locale/provider/LocaleResources.&lt;init&gt;</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">sun/util/locale/provider/JRELocaleProviderAdapter.getLocaleData</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">sun/util/resources/LocaleData.&lt;clinit&gt;</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/util/ResourceBundle$Control.&lt;clinit&gt;</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">InterpreterRuntime::ldc</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">ConstantPool::klass_at</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">ConstantPool::klass_at_impl</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">SystemDictionary::resolve_or_fail</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">SystemDictionary::resolve_instance_class_or_null</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">SystemDictionary::load_instance_class</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">SystemDictionary::load_instance_class_impl</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">SystemDictionary::load_shared_class</span>
+<ul>
+<li><div class="o">0.05% [1] &#8226; self: 0.05% [1]</div> <span class="t4">InstanceKlass::restore_unshareable_info</span>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/util/Formatter$FormatSpecifier.printFloat</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/util/Formatter$FormatSpecifier.print</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/util/Formatter$FormatSpecifier.appendJustified</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/io/PrintStream.append</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/io/PrintStream.append</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/io/PrintStream.print</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/io/PrintStream.write</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/io/PrintStream.implWrite</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/io/OutputStreamWriter.flushBuffer</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">sun/nio/cs/StreamEncoder.flushBuffer</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">sun/nio/cs/StreamEncoder.lockedFlushBuffer</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">sun/nio/cs/StreamEncoder.implFlushBuffer</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">sun/nio/cs/StreamEncoder.writeBytes</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/io/PrintStream.write</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/io/PrintStream.implWrite</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/io/BufferedOutputStream.flush</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/io/BufferedOutputStream.implFlush</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/io/BufferedOutputStream.flushBuffer</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/io/FileOutputStream.write</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/io/FileOutputStream.writeBytes</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t3">writeBytes</span>
+<ul>
+<li><div class="o">0.05% [1] &#8226; self: 0.05% [1]</div> <span class="t3">write</span>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/util/Formatter.parse</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">InterpreterRuntime::_new</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">ConstantPool::klass_at</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">ConstantPool::klass_at_impl</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">SystemDictionary::resolve_or_fail</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">SystemDictionary::resolve_instance_class_or_null</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">SystemDictionary::load_instance_class</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">SystemDictionary::load_instance_class_impl</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">ClassLoader::load_class</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">ClassPathImageEntry::open_stream_for_loader</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t3">JIMAGE_FindResource</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">ImageFileReader::find_location_index</span>
+<ul>
+<li><div class="o">0.05% [1] &#8226; self: 0.05% [1]</div> <span class="t4">ImageStrings::find</span>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+<li><div>0.30% [6] &#8226; self: 0.00% [0]</div> <span class="t0">java/util/Formatter.&lt;clinit&gt;</span>
+<ul>
+<li><div>0.30% [6] &#8226; self: 0.00% [0]</div> <span class="t0">java/util/regex/Pattern.compile</span>
+<ul>
+<li><div>0.30% [6] &#8226; self: 0.00% [0]</div> <span class="t0">java/util/regex/Pattern.&lt;init&gt;</span>
+<ul>
+<li><div>0.30% [6] &#8226; self: 0.00% [0]</div> <span class="t0">java/util/regex/Pattern.compile</span>
+<ul>
+<li><div>0.30% [6] &#8226; self: 0.00% [0]</div> <span class="t0">java/util/regex/Pattern.expr</span>
+<ul>
+<li><div>0.30% [6] &#8226; self: 0.00% [0]</div> <span class="t0">java/util/regex/Pattern.sequence</span>
+<ul>
+<li><div>0.20% [4] &#8226; self: 0.00% [0]</div> <span class="t0">java/util/regex/Pattern.atom</span>
+<ul>
+<li><div>0.20% [4] &#8226; self: 0.00% [0]</div> <span class="t0">java/util/regex/Pattern.single</span>
+<ul>
+<li><div>0.20% [4] &#8226; self: 0.00% [0]</div> <span class="t0">java/util/regex/Pattern.Single</span>
+<ul>
+<li><div>0.10% [2] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/MethodHandleNatives.linkCallSite</span>
+<ul>
+<li><div>0.10% [2] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/MethodHandleNatives.linkCallSiteImpl</span>
+<ul>
+<li><div>0.10% [2] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/CallSite.makeSite</span>
+<ul>
+<li><div>0.10% [2] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/BootstrapMethodInvoker.invoke</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/Invokers$Holder.invokeExact_MT</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/DirectMethodHandle$Holder.invokeStatic</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/LambdaMetafactory.metafactory</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/InnerClassLambdaMetafactory.buildCallSite</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/MethodHandles$Lookup.findConstructor</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/MethodHandles$Lookup.getDirectConstructor</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/MethodHandles$Lookup.getDirectConstructorCommon</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/DirectMethodHandle.make</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/DirectMethodHandle.makeAllocator</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/DirectMethodHandle.preparedLambdaForm</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/DirectMethodHandle.preparedLambdaForm</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/DirectMethodHandle.preparedLambdaForm</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/DirectMethodHandle.makePreparedLambdaForm</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/MemberName$Factory.resolveOrFail</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/MemberName$Factory.resolve</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/MethodHandleNatives.resolve</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t3">MHN_resolve_Mem</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">MethodHandles::resolve_MemberName</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">LinkResolver::resolve_static_call</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">LinkResolver::linktime_resolve_static_method</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">LinkResolver::resolve_method</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">LinkResolver::lookup_polymorphic_method</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">SystemDictionary::find_method_handle_intrinsic</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">AdapterHandlerLibrary::create_native_wrapper</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">SharedRuntime::generate_native_wrapper</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">nmethod::new_native_nmethod</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">Mutex::lock_without_safepoint_check</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t3">_pthread_mutex_firstfit_lock_slow</span>
+<ul>
+<li><div class="o">0.05% [1] &#8226; self: 0.05% [1]</div> <span class="t3">__psynch_mutexwait</span>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/MethodHandleNatives.linkMethod</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/MethodHandleNatives.linkMethodImpl</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/Invokers.methodHandleInvokeLinkerMethod</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/Invokers.invokeHandleForm</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/LambdaForm.create</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/LambdaForm.create</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/LambdaForm.normalizeNames</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/LambdaForm.internArgument</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/LambdaForm.argument</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/Enum.ordinal</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">InterpreterRuntime::frequency_counter_overflow</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">InterpreterRuntime::frequency_counter_overflow_inner</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">CompilationPolicy::event</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">CompileBroker::compile_method</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">CompileBroker::compile_method</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">CompileBroker::compile_method_base</span>
+<ul>
+<li><div class="o">0.05% [1] &#8226; self: 0.05% [1]</div> <span class="t3">__psynch_cvbroad</span>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/MethodHandleNatives.linkMethodHandleConstant</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/MethodHandles$Lookup.linkMethodHandleConstant</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/MethodHandles$Lookup.getDirectMethodForConstant</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/MethodHandles$Lookup.getDirectMethodNoSecurityManager</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/MethodHandles$Lookup.getDirectMethodCommon</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/DirectMethodHandle.make</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/DirectMethodHandle.preparedLambdaForm</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/DirectMethodHandle.preparedLambdaForm</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/DirectMethodHandle.preparedLambdaForm</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/DirectMethodHandle.makePreparedLambdaForm</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/LambdaForm.compileToBytecode</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">InterpreterRuntime::resolve_from_cache</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">InterpreterRuntime::resolve_invoke</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">LinkResolver::resolve_invokestatic</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">LinkInfo::LinkInfo</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">ConstantPool::klass_at</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">ConstantPool::klass_at_impl</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">SystemDictionary::resolve_or_fail</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">SystemDictionary::resolve_instance_class_or_null</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">SystemDictionary::load_instance_class</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">SystemDictionary::load_instance_class_impl</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">SystemDictionary::load_shared_class</span>
+<ul>
+<li><div class="o">0.05% [1] &#8226; self: 0.05% [1]</div> <span class="t4">InstanceKlass::restore_unshareable_info</span>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/MethodHandleNatives.findMethodHandleType</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/MethodType.&lt;clinit&gt;</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">InterpreterRuntime::resolve_from_cache</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">InterpreterRuntime::resolve_invoke</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">LinkResolver::resolve_invokestatic</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">LinkInfo::LinkInfo</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">ConstantPool::klass_at</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">ConstantPool::klass_at_impl</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">SystemDictionary::resolve_or_fail</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">SystemDictionary::resolve_instance_class_or_null</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">SystemDictionary::load_instance_class</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">SystemDictionary::load_instance_class_impl</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">SystemDictionary::load_shared_class</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">InstanceKlass::restore_unshareable_info</span>
+<ul>
+<li><div class="o">0.05% [1] &#8226; self: 0.05% [1]</div> <span class="t4">ConstantPool::restore_unshareable_info</span>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+<li><div>0.10% [2] &#8226; self: 0.00% [0]</div> <span class="t0">java/util/regex/Pattern.group0</span>
+<ul>
+<li><div>0.10% [2] &#8226; self: 0.00% [0]</div> <span class="t0">java/util/regex/Pattern.expr</span>
+<ul>
+<li><div>0.10% [2] &#8226; self: 0.00% [0]</div> <span class="t0">java/util/regex/Pattern.sequence</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/util/regex/Pattern.atom</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/util/regex/Pattern.escape</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/util/regex/CharPredicates.ASCII_DIGIT</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/MethodHandleNatives.linkCallSite</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/MethodHandleNatives.linkCallSiteImpl</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/CallSite.makeSite</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/BootstrapMethodInvoker.invoke</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/Invokers$Holder.invokeExact_MT</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/DirectMethodHandle$Holder.invokeStatic</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/LambdaMetafactory.metafactory</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/InnerClassLambdaMetafactory.buildCallSite</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/MethodHandles.constant</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/MethodHandle.bindTo</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/MethodHandle.bindArgumentL</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/BoundMethodHandle.bindArgumentL</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/LambdaFormEditor.bindArgumentL</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/SimpleMethodHandle.copyWithExtendL</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/BoundMethodHandle.bindSingle</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/BoundMethodHandle$Species_L.make</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/BoundMethodHandle$Species_L.&lt;init&gt;</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/BoundMethodHandle.&lt;init&gt;</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/MethodHandle.&lt;init&gt;</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/LambdaForm.prepare</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/LambdaForm.compileToBytecode</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/InvokerBytecodeGenerator.generateCustomizedCode</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/InvokerBytecodeGenerator.generateCustomizedCodeBytes</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/InvokerBytecodeGenerator.addMethod</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/InvokerBytecodeGenerator.emitReturn</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/InvokerBytecodeGenerator.emitReturnInsn</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">InterpreterRuntime::build_method_counters</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">Method::build_method_counters</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">MethodCounters::allocate_with_exception</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">Metaspace::allocate</span>
+<ul>
+<li><div class="o">0.05% [1] &#8226; self: 0.05% [1]</div> <span class="t3">_platform_memset</span>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/util/regex/Pattern.clazz</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/util/regex/Pattern.range</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/util/regex/Pattern.Range</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/MethodHandleNatives.linkCallSite</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/MethodHandleNatives.linkCallSiteImpl</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/Invokers.linkToTargetMethod</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/Invokers.callSiteForm</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/LambdaForm$Name.&lt;init&gt;</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/LambdaForm$NamedFunction.&lt;init&gt;</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/Invokers.basicInvoker</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/DirectMethodHandle.make</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/DirectMethodHandle.make</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/DirectMethodHandle.make</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/DirectMethodHandle.preparedLambdaForm</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/DirectMethodHandle.preparedLambdaForm</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/DirectMethodHandle.preparedLambdaForm</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/DirectMethodHandle.makePreparedLambdaForm</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/MethodType.invokerType</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/MethodType.insertParameterTypes</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/MethodType.checkSlotCount</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">InterpreterRuntime::frequency_counter_overflow</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">InterpreterRuntime::frequency_counter_overflow_inner</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">CompilationPolicy::event</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">CompileBroker::compile_method</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">CompileBroker::compile_method</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">CompileBroker::compile_method_base</span>
+<ul>
+<li><div class="o">0.05% [1] &#8226; self: 0.05% [1]</div> <span class="t3">__psynch_cvbroad</span>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+<li><div>0.60% [12] &#8226; self: 0.00% [0]</div> <span class="t2">java/util/ArrayList.get</span>
+<ul>
+<li><div class="o">0.60% [12] &#8226; self: 0.60% [12]</div> <span class="t2">java/util/ArrayList.elementData</span>
+</ul>
+<li><div>0.20% [4] &#8226; self: 0.00% [0]</div> <span class="t0">lab/sample/Scenarios.at</span>
+<ul>
+<li><div>0.20% [4] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/MethodHandleNatives.linkCallSite</span>
+<ul>
+<li><div>0.20% [4] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/MethodHandleNatives.linkCallSiteImpl</span>
+<ul>
+<li><div>0.20% [4] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/CallSite.makeSite</span>
+<ul>
+<li><div>0.20% [4] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/BootstrapMethodInvoker.invoke</span>
+<ul>
+<li><div>0.20% [4] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/Invokers$Holder.invokeExact_MT</span>
+<ul>
+<li><div>0.20% [4] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/DelegatingMethodHandle$Holder.delegate</span>
+<ul>
+<li><div>0.20% [4] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/DirectMethodHandle$Holder.invokeStatic</span>
+<ul>
+<li><div>0.20% [4] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/StringConcatFactory.makeConcatWithConstants</span>
+<ul>
+<li><div>0.15% [3] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/StringConcatFactory.generateMHInlineCopy</span>
+<ul>
+<li><div>0.10% [2] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/StringConcatFactory.filterInPrependers</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/MethodHandles.filterArgumentsWithCombiner</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/MethodHandles.argumentsWithCombiner</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/BoundMethodHandle$Species_L.copyWithExtendL</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/DirectMethodHandle$Holder.invokeStatic</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/BoundMethodHandle$Species_LL.make</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/BoundMethodHandle$Species_LL.&lt;init&gt;</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/BoundMethodHandle.&lt;init&gt;</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/MethodHandle.&lt;init&gt;</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/LambdaForm.prepare</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/LambdaForm.compileToBytecode</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/InvokerBytecodeGenerator.generateCustomizedCode</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/InvokerBytecodeGenerator.generateCustomizedCodeBytes</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/InvokerBytecodeGenerator.addMethod</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/InvokerBytecodeGenerator.emitStaticInvoke</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/MemberName.isMethod</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/MemberName.allFlagsSet</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">InterpreterRuntime::frequency_counter_overflow</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">InterpreterRuntime::frequency_counter_overflow_inner</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">CompilationPolicy::event</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">CompileBroker::compile_method</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">CompileBroker::compile_method</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">CompileBroker::compile_method_base</span>
+<ul>
+<li><div class="o">0.05% [1] &#8226; self: 0.05% [1]</div> <span class="t3">__psynch_cvbroad</span>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/StringConcatFactory.prepender</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/StringConcatFactory.prepender</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/StringConcatFactory.prepender</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/System$2.stringConcatHelper</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/StringConcatHelper.lookupStatic</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/MethodHandles$Lookup.findStatic</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/MethodHandles$Lookup.getDirectMethod</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/MethodHandles$Lookup.getDirectMethodCommon</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/DirectMethodHandle.make</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/DirectMethodHandle.preparedLambdaForm</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/DirectMethodHandle.preparedLambdaForm</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/DirectMethodHandle.preparedLambdaForm</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/DirectMethodHandle.makePreparedLambdaForm</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/MemberName$Factory.resolveOrFail</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/MemberName$Factory.resolve</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/MethodHandleNatives.resolve</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t3">MHN_resolve_Mem</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">MethodHandles::resolve_MemberName</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">LinkResolver::resolve_static_call</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">LinkResolver::linktime_resolve_static_method</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">LinkResolver::resolve_method</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">LinkResolver::lookup_polymorphic_method</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">SystemDictionary::find_method_handle_intrinsic</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">Method::make_method_handle_intrinsic</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">Method::link_method</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">Method::make_adapters</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">AdapterHandlerLibrary::get_adapter</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">post_adapter_creation</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">JvmtiExport::post_dynamic_code_generated</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">ServiceThread::enqueue_deferred_event</span>
+<ul>
+<li><div class="o">0.05% [1] &#8226; self: 0.05% [1]</div> <span class="t3">__psynch_cvbroad</span>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/StringConcatFactory.filterAndFoldInMixers</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/StringConcatFactory.foldInLastMixers</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/StringConcatFactory.mixer</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/System$2.stringConcatHelper</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/StringConcatHelper.lookupStatic</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/MethodHandles$Lookup.findStatic</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/MethodHandles$Lookup.getDirectMethod</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/MethodHandles$Lookup.getDirectMethodCommon</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/DirectMethodHandle.make</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/DirectMethodHandle.preparedLambdaForm</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/DirectMethodHandle.preparedLambdaForm</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/DirectMethodHandle.preparedLambdaForm</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/DirectMethodHandle.makePreparedLambdaForm</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/MethodType.appendParameterTypes</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/MethodType.insertParameterTypes</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t6">java/lang/invoke/MethodType.makeImpl</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t2">java/lang/invoke/MethodTypeForm.findForm</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/MethodTypeForm.canonicalize</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/MethodType.methodType</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">InterpreterRuntime::frequency_counter_overflow</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">InterpreterRuntime::frequency_counter_overflow_inner</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">CompilationPolicy::event</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">CompileBroker::compile_method</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">CompileBroker::compile_method</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">CompileBroker::compile_method_base</span>
+<ul>
+<li><div class="o">0.05% [1] &#8226; self: 0.05% [1]</div> <span class="t3">__psynch_cvbroad</span>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/invoke/StringConcatFactory.parseRecipe</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">InterpreterRuntime::resolve_from_cache</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">InterpreterRuntime::resolve_invoke</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">LinkResolver::resolve_invokespecial</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">LinkResolver::resolve_special_call</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">LinkResolver::linktime_resolve_special_method</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">LinkResolver::resolve_method</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">LinkResolver::lookup_method_in_klasses</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">InstanceKlass::uncached_lookup_method</span>
+<ul>
+<li><div class="o">0.05% [1] &#8226; self: 0.05% [1]</div> <span class="t4">InstanceKlass::find_method_index</span>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+<li><div>0.15% [3] &#8226; self: 0.00% [0]</div> <span class="t0">lab/sample/Metrics.stage</span>
+<ul>
+<li><div>0.10% [2] &#8226; self: 0.00% [0]</div> <span class="t0">java/io/PrintStream.printf</span>
+<ul>
+<li><div>0.10% [2] &#8226; self: 0.00% [0]</div> <span class="t0">java/io/PrintStream.format</span>
+<ul>
+<li><div>0.10% [2] &#8226; self: 0.00% [0]</div> <span class="t0">java/io/PrintStream.implFormat</span>
+<ul>
+<li><div>0.10% [2] &#8226; self: 0.00% [0]</div> <span class="t0">java/util/Formatter.format</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/util/Formatter$FormatSpecifier.print</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/util/Formatter$FormatSpecifier.printString</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/util/Formatter$FormatSpecifier.print</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/util/Formatter$FormatSpecifier.appendJustified</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/io/PrintStream.append</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/io/PrintStream.append</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/io/PrintStream.print</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/io/PrintStream.write</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/io/PrintStream.implWrite</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/io/OutputStreamWriter.flushBuffer</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">sun/nio/cs/StreamEncoder.flushBuffer</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">sun/nio/cs/StreamEncoder.lockedFlushBuffer</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">sun/nio/cs/StreamEncoder.implFlushBuffer</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">sun/nio/cs/StreamEncoder.writeBytes</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/io/PrintStream.write</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/io/PrintStream.implWrite</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/io/BufferedOutputStream.flush</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/io/BufferedOutputStream.implFlush</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/io/BufferedOutputStream.flushBuffer</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/io/FileOutputStream.write</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/io/FileOutputStream.writeBytes</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t3">writeBytes</span>
+<ul>
+<li><div class="o">0.05% [1] &#8226; self: 0.05% [1]</div> <span class="t3">write</span>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/util/Formatter$FixedString.print</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/io/PrintStream.append</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/io/PrintStream.append</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/io/PrintStream.append</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/io/PrintStream.print</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/io/PrintStream.write</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/io/PrintStream.implWrite</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/io/OutputStreamWriter.flushBuffer</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">sun/nio/cs/StreamEncoder.flushBuffer</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">sun/nio/cs/StreamEncoder.lockedFlushBuffer</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">sun/nio/cs/StreamEncoder.implFlushBuffer</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">sun/nio/cs/StreamEncoder.writeBytes</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/io/PrintStream.write</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/io/PrintStream.implWrite</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/io/BufferedOutputStream.flush</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/io/BufferedOutputStream.implFlush</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/io/BufferedOutputStream.flushBuffer</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/io/FileOutputStream.write</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/io/FileOutputStream.writeBytes</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t3">writeBytes</span>
+<ul>
+<li><div class="o">0.05% [1] &#8226; self: 0.05% [1]</div> <span class="t3">write</span>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">java/lang/ClassLoader.loadClass</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">jdk/internal/loader/ClassLoaders$AppClassLoader.loadClass</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">jdk/internal/loader/BuiltinClassLoader.loadClass</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t0">jdk/internal/loader/BuiltinClassLoader.loadClassOrNull</span>
+<ul>
+<li><div class="o">0.05% [1] &#8226; self: 0.05% [1]</div> <span class="t0">jdk/internal/loader/BuiltinClassLoader.findLoadedModule</span>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">InterpreterRuntime::frequency_counter_overflow</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">InterpreterRuntime::frequency_counter_overflow_inner</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">CompilationPolicy::event</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">CompilationPolicy::method_back_branch_event</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">CompileBroker::compile_method</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">CompileBroker::compile_method</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t4">CompileBroker::compile_method_base</span>
+<ul>
+<li><div class="o">0.05% [1] &#8226; self: 0.05% [1]</div> <span class="t3">__psynch_cvbroad</span>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+</ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t3">[unknown]</span>
+<ul>
+<li><div>0.05% [1] &#8226; self: 0.00% [0]</div> <span class="t6">lab/sample/RoutePlanner.legMinutes</span>
+<ul>
+<li><div class="o">0.05% [1] &#8226; self: 0.05% [1]</div> <span class="t3">fmod</span>
+</ul>
+</ul>
+
+        <script>
+          addClickActions();
+        </script>
+      </ul>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>io.github.beennnn</groupId>
+    <artifactId>runtime-xray</artifactId>
+    <version>1.0.0</version>
+    <relativePath>../pom.xml</relativePath>
+  </parent>
+
+  <artifactId>sample-app</artifactId>
+  <packaging>jar</packaging>
+
+  <name>sample-app</name>
+  <description>
+    Application-cible analysée par tous les outils. Le code metier n'a aucune
+    dependance : ce qu'un profiler affiche doit venir de CE code, pas du bruit
+    d'un framework.
+
+    Trois dependances existent neanmoins, chacune pour montrer un cas que le
+    code local ne peut pas produire :
+      - commons-lang3 : du code a analyser qui ne vient PAS d'un repertoire de
+        classes mais d'un jar, comme une dependance interne livree compilee ;
+      - slf4j-api + slf4j-simple : une bibliotheque hors JDK, visible dans
+        l'arbre d'appel, et que l'on veut pouvoir masquer par configuration.
+  </description>
+
+  <properties>
+    <exec.mainClass>lab.sample.Main</exec.mainClass>
+    <!-- Ce module est le support de démonstration de l'étude. Il n'a d'intérêt que dans ce
+         dépôt : le publier sous un espace de noms permanent ajouterait un artefact que
+         personne ne pourrait plus retirer.
+
+         DEUX propriétés, et les deux sont nécessaires. maven.deploy.skip arrête le deploy
+         standard ; il ne suffit PAS, car le plugin de publication Central constitue son
+         paquet de son côté — vérifié : sample-app s'y trouvait malgré le skip. C'est
+         skipPublishing qui l'en retire. -->
+    <maven.deploy.skip>true</maven.deploy.skip>
+    <skipPublishing>true</skipPublishing>
+    <commons-lang3.version>3.17.0</commons-lang3.version>
+    <slf4j.version>2.0.17</slf4j.version>
+  </properties>
+
+  <dependencies>
+    <dependency>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-lang3</artifactId>
+      <version>${commons-lang3.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-api</artifactId>
+      <version>${slf4j.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-simple</artifactId>
+      <version>${slf4j.version}</version>
+      <scope>runtime</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <finalName>sample-app</finalName>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-jar-plugin</artifactId>
+        <configuration>
+          <archive>
+            <manifest>
+              <mainClass>${exec.mainClass}</mainClass>
+              <!-- Les dependances restent des jar SEPARES, a cote du notre, plutot que
+                   fondues dans un jar unique. C'est deliberé : l'etude a besoin d'un
+                   chemin stable vers le jar d'une dependance pour le donner a analyser
+                   (CLASSES_DIR="target/classes:target/libs/commons-lang3-x.y.z.jar").
+                   Un jar-uber effacerait justement la distinction qu'on veut montrer. -->
+              <addClasspath>true</addClasspath>
+              <classpathPrefix>libs/</classpathPrefix>
+            </manifest>
+          </archive>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>copier-les-dependances</id>
+            <phase>package</phase>
+            <goals><goal>copy-dependencies</goal></goals>
+            <configuration>
+              <outputDirectory>${project.build.directory}/libs</outputDirectory>
+              <includeScope>runtime</includeScope>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+
+</project>
