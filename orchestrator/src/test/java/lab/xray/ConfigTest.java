@@ -117,6 +117,41 @@ class ConfigTest {
     }
 
     @Test
+    @DisplayName("Le niveau d'observation décide de ce qu'on paie")
+    void levelDecidesWhatIsMeasured() {
+        Config c = new Config();
+        assertTrue(c.profileWanted(), "par défaut, on va jusqu'aux valeurs");
+        assertTrue(c.valuesWanted());
+
+        c.level = "arbre";
+        assertTrue(c.profileWanted(), "l'arbre suppose l'échantillonnage");
+        assertFalse(c.valuesWanted(), "mais pas la capture des valeurs");
+
+        c.level = "couverture";
+        assertFalse(c.profileWanted());
+        assertFalse(c.valuesWanted());
+
+        // --no-values reste un veto, quel que soit le niveau demandé.
+        c.level = "complet";
+        c.captureValues = false;
+        assertFalse(c.valuesWanted());
+    }
+
+    @Test
+    @DisplayName("Le niveau et ses réglages voyagent avec l'exécution")
+    void levelIsRecorded() {
+        Config c = new Config();
+        c.level = "arbre";
+        c.coverIncludes = "com.exemple.*";
+        c.sampleIntervalMs = 10;
+        var described = c.describe();
+        assertEquals("arbre", described.get("niveau"));
+        assertEquals("com.exemple.*", described.get("classesInstrumentees"));
+        assertEquals(10, described.get("intervalleMs"));
+        assertEquals(Boolean.FALSE, described.get("valeursInspectees"));
+    }
+
+    @Test
     @DisplayName("Le contexte décrit reflète les réglages effectifs")
     void describeReflectsSettings() {
         Config c = new Config();

@@ -2011,6 +2011,22 @@ function rawBlock(){
         "Les paramètres et retours relevés, dans la forme où l\'outil les a imprimés."),
       f(a.traceBrute, "arthas/trace-calltree.txt", "Trace d\'invocation",
         "Les arbres d\'appel réels, un par invocation, avec les numéros de ligne.")]) +
+    (a.exportPerf || a.exportCpuprofile || a.exportLcov || a.exportValeurs
+      ? '<h3 class="rawh">Pour un autre outil</h3>' +
+        '<p class="rawnote">Les mêmes mesures réécrites dans des formats publics, pour les ' +
+        'reprendre ailleurs — un profileur, un éditeur, un script. Produits par ' +
+        '<code>--export</code>, sans repli ni masquage : c\'est la mesure, pas la synthèse.</p>' +
+        '<div class="links2">' +
+        f(a.exportPerf, "exports/profil.perf.txt", "Profil au format perf",
+          "La sortie texte de perf script. C\'est ce que Firefox Profiler sait ouvrir.") +
+        f(a.exportCpuprofile, "exports/profil.cpuprofile", "Profil au format cpuprofile",
+          "Le profil échantillonné de Chrome DevTools — bien plus compact, lu par speedscope.") +
+        f(a.exportLcov, "exports/couverture.lcov", "Couverture au format LCOV",
+          "Le format que lisent les éditeurs et les services de suivi de couverture.") +
+        f(a.exportValeurs, "exports/valeurs.json", "Valeurs capturées en JSON",
+          "Les appels observés et leurs valeurs, pour un script qui les compare.") +
+        '</div>'
+      : "") +
     (a.journal || a.contexte
       ? '<h3 class="rawh">Cette exécution</h3><div class="links2">' +
         f(a.journal, "execution.log", "Journal de l\'exécution",
@@ -2061,6 +2077,17 @@ function contextBlock(){
     row("Programme lancé", '<code>'+esc(c.commande||"")+'</code>') +
     row("Méthode racine inspectée", c.methodeRacine ? '<code>'+esc(c.methodeRacine)+'</code>' : "") +
     row("Filtre de profil", c.filtreClasses ? '<code>'+esc(c.filtreClasses)+'</code>' : "") +
+    // Un rapport moins fourni qu'un autre se lit comme une mesure ratée tant qu'on ne voit
+    // pas le niveau demandé : il dit que c'était un choix, et lequel.
+    row("Niveau d'observation", c.niveau && c.niveau !== "complet"
+        ? '<code>'+esc(c.niveau)+'</code> <span style="opacity:.7">— '
+          + (c.niveau === "couverture" ? 'couverture seule, sans échantillonnage ni valeurs'
+                                       : 'couverture et arbre d\'appel, sans les valeurs')
+          + '</span>' : "") +
+    row("Classes instrumentées", c.classesInstrumentees
+        ? '<code>'+esc(c.classesInstrumentees)+'</code>' : "") +
+    row("Intervalle d'échantillonnage", c.intervalleMs && c.intervalleMs !== 1
+        ? c.intervalleMs + ' ms' : "") +
     row("Début", esc(c.debut)) +
     row("Fin", esc(c.fin) + (c.dureeSecondes ? ' <span style="opacity:.7">— '+c.dureeSecondes+' s</span>' : "")) +
     row("Statut", esc(c.statut)) +

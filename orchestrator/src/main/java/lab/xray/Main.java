@@ -3,6 +3,7 @@ package lab.xray;
 import lab.xray.json.Json;
 import lab.xray.report.Coverage;
 import lab.xray.report.Dashboard;
+import lab.xray.report.Exports;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -17,6 +18,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 import java.util.UUID;
@@ -68,6 +70,10 @@ public final class Main {
                 case "--no-values" -> config.captureValues = false;
                 case "--print-options" -> printOptionsOnly = true;
                 case "--report-only" -> reportOnly = true;
+                case "--export" -> config.exportFormats = args[++i];
+                case "--niveau" -> config.level = args[++i];
+                case "--cover" -> config.coverIncludes = args[++i];
+                case "--interval" -> config.sampleIntervalMs = Integer.parseInt(args[++i]);
                 default -> {
                     System.err.println("Option inconnue : " + a);
                     usage();
@@ -113,6 +119,8 @@ public final class Main {
         }
 
         require(!config.javaCommand.isBlank() || reportOnly, "--java est obligatoire");
+        require(List.of("couverture", "arbre", "complet").contains(config.level.trim()),
+                "--niveau attend couverture, arbre ou complet (reçu : " + config.level + ")");
         // Les classes servent à MESURER. Réassembler une vue depuis des mesures existantes
         // n'en a aucun besoin.
         // --classes n'est plus exigé ici : le bytecode se déduit de la JVM observée, une
@@ -127,6 +135,10 @@ public final class Main {
 
         if (!reportOnly) {
             collect(config, tools, outDir);
+        }
+
+        if (!config.exportFormats.isBlank()) {
+            exportRuns(config, outDir);
         }
 
         System.out.println("▶ Assemblage de la vue");
@@ -425,6 +437,29 @@ public final class Main {
         Files.writeString(runDir.resolve("run-context.json"), Json.write(ctx), StandardCharsets.UTF_8);
     }
 
+    /**
+     * Réécrit chaque exécution dans les formats demandés, pour qu'un autre outil la lise.
+     *
+     * <p>L'export porte sur <b>toutes</b> les exécutions présentes, y compris celles d'hier :
+     * c'est le même geste que l'assemblage de la vue, et rien ne justifierait de servir un
+     * format à une exécution et pas à sa voisine.
+     */
+    private static void exportRuns(Config config, Path outDir) throws Exception {
+        Set<Exports.Format> formats = Exports.Format.parse(config.exportFormats);
+        System.out.println("▶ Export vers " + formats.stream().map(f -> f.option).sorted()
+                .collect(java.util.stream.Collectors.joining(", ")));
+        Path runs = outDir.resolve("runs");
+        if (!Files.isDirectory(runs)) return;
+        try (var dirs = Files.list(runs)) {
+            for (Path run : dirs.filter(Files::isDirectory).sorted().toList()) {
+                for (Path written : Exports.write(run, formats, 1, config.watchCount)) {
+                    System.out.println("   " + written + " ("
+                            + Files.size(written) / 1024 + " Ko)");
+                }
+            }
+        }
+    }
+
     // ------------------------------------------------------------------- divers
 
     private static void printAgentOptions(Config config, Toolbox tools) throws Exception {
@@ -550,10 +585,19 @@ public final class Main {
                   --attach-after <s>   Délai avant l'inspection des valeurs (défaut : 8).
                   --max-seconds <s>    Garde-fou sur la durée (défaut : 600).
                   --no-values          N'inspecte pas les valeurs : mesures de temps exactes.
+                  --niveau <n>         Jusqu'où observer : couverture (JaCoCo seul), arbre
+                                       (+ échantillonnage), complet (+ valeurs). Défaut :
+                                       complet. Le levier à baisser sur un gros code.
+                  --cover "<motifs>"   Classes que JaCoCo instrumente, ex. "com.exemple.*".
+                                       Sans lui, tout ce que la JVM charge est instrumenté.
+                  --interval <ms>      Intervalle d'échantillonnage des piles (défaut : 1).
                   --print-options      N'exécute rien : affiche les options JVM à ajouter à une
                                        ligne de commande quelconque, puis sortez par --report-only.
                   --repo <url>         Dépôt Maven d'où tirer les composants (miroir interne).
                   --report-only        Assemble la vue depuis des mesures déjà collectées.
+                  --export <formats>   Réécrit les mesures pour d'autres outils : perf,
+                                       cpuprofile, lcov, valeurs — ou « tout ». Les fichiers
+                                       vont dans <exécution>/exports/.
                 """);
     }
 }

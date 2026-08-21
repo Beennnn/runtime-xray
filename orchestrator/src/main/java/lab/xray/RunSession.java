@@ -67,7 +67,7 @@ public final class RunSession {
             // Relevé pendant que la JVM vit : après, ses arguments ne sont plus lisibles.
             // C'est ce qui permet de ne pas réclamer --classes — voir ClassSources.
             observeJvmArguments(process);
-            if (config.captureValues && !config.rootMethod.isBlank()) {
+            if (config.valuesWanted() && !config.rootMethod.isBlank()) {
                 inspectValues(process);
             }
             System.out.println("▶ Attente de la fin de l'exécution");
@@ -115,9 +115,18 @@ public final class RunSession {
         StringBuilder sb = new StringBuilder();
         sb.append("-javaagent:").append(tools.jacocoAgent().toAbsolutePath())
           .append("=destfile=").append(runDir.resolve("jacoco/jacoco.exec").toAbsolutePath());
+        // Restreindre l'instrumentation est le premier levier sur un gros code : sans cela,
+        // JaCoCo instrumente chaque classe chargée, dépendances comprises.
+        if (!config.coverIncludes.isBlank()) {
+            sb.append(",includes=").append(config.coverIncludes.trim());
+        }
 
-        if (tools.asyncProfilerAvailable()) {
-            StringBuilder async = new StringBuilder("start,event=itimer,interval=1ms,collapsed,file=")
+        if (!config.profileWanted()) {
+            System.out.println("   niveau « couverture » : pas d'échantillonnage des piles");
+        } else if (tools.asyncProfilerAvailable()) {
+            StringBuilder async = new StringBuilder("start,event=itimer,interval=")
+                    .append(Math.max(1, config.sampleIntervalMs))
+                    .append("ms,collapsed,file=")
                     .append(runDir.resolve("async-profiler/profil.collapsed").toAbsolutePath());
             if (!config.effectiveFilter().isBlank()) {
                 async.append(",include=").append(config.effectiveFilter());

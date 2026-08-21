@@ -169,6 +169,10 @@ public final class Dashboard {
         m.put("collapsed", Files.isRegularFile(base.resolve("async-profiler/profil.collapsed")));
         m.put("valeurs", Files.isRegularFile(base.resolve("arthas/watch-params.txt")));
         m.put("traceBrute", Files.isRegularFile(base.resolve("arthas/trace-calltree.txt")));
+        m.put("exportPerf", Files.isRegularFile(base.resolve("exports/profil.perf.txt")));
+        m.put("exportCpuprofile", Files.isRegularFile(base.resolve("exports/profil.cpuprofile")));
+        m.put("exportLcov", Files.isRegularFile(base.resolve("exports/couverture.lcov")));
+        m.put("exportValeurs", Files.isRegularFile(base.resolve("exports/valeurs.json")));
         m.put("journal", Files.isRegularFile(base.resolve("execution.log")));
         m.put("contexte", Files.isRegularFile(base.resolve("run-context.json")));
         return m;
