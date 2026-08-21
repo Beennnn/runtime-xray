@@ -12,13 +12,11 @@
 ni Maven, ni rien à installer au préalable.
 
 ```bash
-curl -O https://repo1.maven.org/maven2/io/github/beennnn/runtime-xray-cli/1.0.0/runtime-xray-cli-1.0.0.jar
+curl -LO https://github.com/Beennnn/runtime-xray/releases/download/v1.0.0/runtime-xray-cli-1.0.0.jar
 ```
 
-Publié sur Maven Central sous `io.github.beennnn:runtime-xray-cli` — donc servi de la même
-façon par un miroir Maven interne. Aucun clone n'est nécessaire. Vérification de la
-signature et préparation d'une machine sans réseau : [Se procurer
-l'outil](../../README.md#se-procurer-loutil).
+Un jar déjà construit, à télécharger et lancer. Aucun clone n'est nécessaire. Préparation
+d'une machine sans réseau : [Se procurer l'outil](../../README.md#se-procurer-loutil).
 
 Les trois outils d'observation (JaCoCo, async-profiler, Arthas) sont récupérés **une seule
 fois** depuis un dépôt Maven — celui de l'éditeur, ou le miroir interne de l'entreprise via

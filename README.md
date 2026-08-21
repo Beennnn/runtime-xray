@@ -199,61 +199,24 @@ Ces résultats valent dans le cadre décrit, et pas au-delà. En particulier :
 
 ## Se procurer l'outil
 
-**Un jar, rien d'autre.** Pas de clone, pas de build, pas de compte : l'outil est publié
-sur Maven Central et se télécharge directement. C'est le mode d'emploi recommandé — c'est
-aussi le seul qui n'expose personne au dépôt.
+**Un jar déjà construit, rien d'autre.** Pas de clone, pas de build, pas de compte :
+[**télécharger `runtime-xray-cli-1.0.0.jar`**](https://github.com/Beennnn/runtime-xray/releases/latest)
+et le lancer.
 
 ```bash
-curl -O https://repo1.maven.org/maven2/io/github/beennnn/runtime-xray-cli/1.0.0/runtime-xray-cli-1.0.0.jar
+curl -LO https://github.com/Beennnn/runtime-xray/releases/download/v1.0.0/runtime-xray-cli-1.0.0.jar
 java -jar runtime-xray-cli-1.0.0.jar --java "java -jar target/mon-appli.jar"
-```
-
-Derrière un pare-feu d'entreprise, le miroir Maven interne sert le même artefact :
-
-```bash
-mvn dependency:copy -Dartifact=io.github.beennnn:runtime-xray-cli:1.0.0 -DoutputDirectory=.
 ```
 
 | | |
 |---|---|
-| Coordonnées | `io.github.beennnn:runtime-xray-cli:1.0.0` |
+| Version | `1.0.0` |
 | Taille | ~100 Ko |
 | Dépendances | aucune, hors du JDK |
 | Java | 21 ou plus |
 | Licence | 0BSD pour le dépôt, MIT pour ce jar `1.0.0` |
 
-Les sources et la javadoc sont publiées à côté, sous les classificateurs habituels
-(`-sources.jar`, `-javadoc.jar`).
-
-> ⚠️ **Le rapport produit ne doit pas atterrir dans un dépôt.** Il contient les noms de
-> classes, les numéros de ligne et les **valeurs de paramètres** du code analysé. Lancez
-> l'outil depuis un répertoire de travail quelconque, pas depuis un clone de ce dépôt — le
-> jar téléchargé n'a de toute façon aucun lien avec lui.
-
-### Vérifier la signature
-
-Chaque artefact est signé. La vérification a du sens ici plus qu'ailleurs : c'est un binaire
-qu'on s'apprête à faire tourner **à côté de son application**, avec des agents injectés dans
-sa JVM.
-
-```bash
-curl -O https://repo1.maven.org/maven2/io/github/beennnn/runtime-xray-cli/1.0.0/runtime-xray-cli-1.0.0.jar.asc
-gpg --keyserver keys.openpgp.org --recv-keys 8D181AA1F3545E3C43804355D7D3E62B52C66FCA
-gpg --verify runtime-xray-cli-1.0.0.jar.asc runtime-xray-cli-1.0.0.jar
-```
-
-La réponse attendue contient `Good signature`. Un avertissement sur la confiance accordée à
-la clé est normal : il dit que vous n'avez pas certifié que cette clé appartient bien à son
-porteur, question distincte de l'intégrité du fichier.
-
-### Construire depuis les sources
-
-Utile seulement pour modifier l'outil. Rien d'autre à installer que Maven et un JDK 21.
-
-```bash
-git clone https://github.com/Beennnn/runtime-xray && cd runtime-xray
-mvn -q clean package        # produit orchestrator/target/runtime-xray.jar
-```
+Les sources et la javadoc sont jointes au même téléchargement.
 
 ### Préparer une machine sans réseau
 
@@ -274,10 +237,10 @@ remplit tout seul depuis l'intérieur du réseau.
 
 ### Vérifier que la version publiée fonctionne
 
-[`bin/recette-central.sh`](bin/recette-central.sh) télécharge l'artefact depuis Maven
-Central dans un répertoire vierge, vérifie sa signature avec une clé récupérée d'un serveur
-public — comme le ferait un tiers — puis **l'exécute sur une application réelle** et
-contrôle que la page, le rapport Markdown, la couverture et le profil sont produits.
+[`bin/recette-central.sh`](bin/recette-central.sh) récupère l'artefact publié dans un
+répertoire vierge, vérifie sa signature avec une clé récupérée d'un serveur public — comme
+le ferait un tiers — puis **l'exécute sur une application réelle** et contrôle que la page,
+le rapport Markdown, la couverture et le profil sont produits.
 
 ```bash
 ./bin/recette-central.sh          # ou : ./bin/recette-central.sh 1.1.0
@@ -406,4 +369,4 @@ non-garantie est conservée : l'outil injecte des agents dans la JVM d'une appli
 n'est pas la sienne.
 
 Le code tiers présent dans le dépôt garde sa propre licence — voir
-[THIRD-PARTY.md](THIRD-PARTY.md). La version `1.0.0` publiée sur Maven Central est sous MIT.
+[THIRD-PARTY.md](THIRD-PARTY.md). La version `1.0.0` déjà publiée est sous MIT.
