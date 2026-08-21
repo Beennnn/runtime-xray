@@ -1,6 +1,6 @@
 # Publier le rapport — quels canaux, et lesquels marchent vraiment
 
-> Question posée : *« ça peut se faire dans git ? un fichier GitHub, ou un espace sous
+> Question de départ : *« ça peut se faire dans git ? un fichier GitHub, ou un espace sous
 > GitHub ? »* — Réponse : **oui, de quatre façons différentes**, dont trois testées ici.
 > Elles ne se valent pas.
 
@@ -21,7 +21,7 @@ contourne pas par un réglage. Quatre réponses, de la meilleure à la plus banc
 
 | Réponse | Ce que ça donne | Statut |
 |---|---|---|
-| **Un résumé en Markdown** — [`runtime-xray-out/rapport.md`](../../runtime-xray-out/rapport.md) | GitHub le rend **nativement**, y compris sur un dépôt privé, sans Pages, sans service tiers. Tableaux de couverture, méthodes les plus coûteuses, valeurs capturées | ✅ en place |
+| **Un résumé en Markdown** — [`runtime-xray-out/rapport.md`](../../reports-demo/executions/rapport.md) | GitHub le rend **nativement**, y compris sur un dépôt privé, sans Pages, sans service tiers. Tableaux de couverture, méthodes les plus coûteuses, valeurs capturées | ✅ en place |
 | **GitHub Pages** | Le vrai rapport, rendu, à une URL | ✅ en place |
 | **Le zip d'une release** | Le rapport complet, hors ligne | ✅ en place |
 | `htmlpreview.github.io` | Un proxy qui rend le HTML brut d'un dépôt | ⚠️ service tiers, en ligne, casse souvent sur les ressources liées — **non retenu** |

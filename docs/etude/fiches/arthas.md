@@ -65,7 +65,7 @@ au sens médical, pas un outil de mesure globale.
 | Décompilation à chaud, rechargement de classe | ✅ |
 
 C'est **le seul outil gratuit recensé qui réponde directement au troisième besoin du
-brief** — voir les valeurs passées — sans écrire de script d'instrumentation.
+l'étude** — voir les valeurs passées — sans écrire de script d'instrumentation.
 
 ## Son interface
 
@@ -160,7 +160,7 @@ En environnement réellement coupé : on transporte le zip une fois, et c'est to
 ## Ce qu'on peut en espérer
 
 **Il comble le trou laissé par JaCoCo et async-profiler, et c'est vérifié.** Avec lui,
-le socle gratuit couvre les trois besoins du brief :
+le socle gratuit couvre les trois besoins de l'étude :
 
 | Besoin | Outil | |
 |---|---|---|

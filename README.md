@@ -1,15 +1,34 @@
 # Runtime X-Ray
 
-Étude comparative d'outils d'analyse dynamique pour Java, et l'outil qui en découle.
+Un banc d'essai. La consigne de départ, donnée à [Claude](https://claude.com/claude-code)
+et tenue jusqu'au bout :
 
-**→ [Consulter un rapport produit sur une exécution réelle](https://beennnn.github.io/runtime-xray/multi/)**
+> *Fais l'état de l'art de l'analyse dynamique de code en Java, dans un environnement
+> purement open source.*
 
-C'est le livrable ; tout ce qui suit explique comment on y est arrivé, et
-[comment le lire](docs/outil/lire-le-rapport.md).
+Tout ce dépôt en découle. Le recensement des outils, la comparaison, le choix de la
+combinaison retenue, le code qui les assemble et la page produite : c'est le déroulé d'une
+seule consigne, tenue sans budget, sans licence à acquérir et sans rien à déployer.
+
+Le résultat est [un rapport produit sur une exécution
+réelle](https://beennnn.github.io/runtime-xray/multi/) — [comment le
+lire](docs/outil/lire-le-rapport.md).
+
+**Deux bancs d'essai, donc, et le second est assumé.** L'exercice mesure autant l'état de
+l'art de l'analyse dynamique que ce qu'un assistant de code sait produire quand on lui
+confie une question ouverte, sans spécification et sans domaine métier — voir [Le second
+banc d'essai](#le-second-banc-dessai--lassistant).
 
 ## Objet
 
-Disposer, à l'exécution d'une fonction Java, de trois informations :
+Reprendre du code Java existant qu'on n'a pas écrit est un problème d'ingénierie ordinaire,
+et la lecture seule y répond mal : elle montre tous les chemins possibles, jamais celui qui
+a été pris. L'analyse dynamique répond à la question réelle — *qu'est-ce qui s'exécute,
+vraiment ?*
+
+L'étude porte donc sur une question générale, posée sans cas d'application particulier :
+**quels outils permettent d'observer une exécution Java récente, et que valent-ils ?** Les
+trois informations recherchées :
 
 1. les lignes exécutées ;
 2. l'arbre des appels ;
@@ -18,13 +37,99 @@ Disposer, à l'exécution d'une fonction Java, de trois informations :
 Finalité : disposer d'une base factuelle pour analyser, restructurer et redéfinir un code
 existant — plutôt que de s'en remettre à la lecture seule.
 
-## Contraintes
+## L'analyse dynamique, en deux mots
 
-| Contrainte | Conséquence sur la sélection |
+L'analyse **statique** examine le code sans l'exécuter : elle voit tous les chemins
+possibles, y compris ceux que personne n'emprunte jamais. L'analyse **dynamique** examine
+les propriétés d'un programme *en cours d'exécution* : elle ne voit qu'un chemin, mais elle
+le voit vraiment. Les deux sont complémentaires — l'une est exhaustive et imprécise,
+l'autre précise et partielle.
+
+La définition de référence est celle de Thomas Ball, [*The Concept of Dynamic
+Analysis*](https://doi.org/10.1007/3-540-48166-4_14) (ESEC/FSE 1999, LNCS 1687) —
+[PDF libre](https://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.89.7736&rep=rep1&type=pdf).
+Pour l'usage qui nous intéresse ici — comprendre un programme existant — l'état de l'art est
+recensé par Cornelissen *et al.*, [*A Systematic Survey of Program Comprehension through
+Dynamic Analysis*](https://repository.tudelft.nl/file/File_088913b9-c238-4671-b35f-c87e4b037a04)
+(IEEE TSE 35(5), 2009), qui classe 176 travaux du domaine.
+Une entrée plus courte : [Dynamic program
+analysis](https://en.wikipedia.org/wiki/Dynamic_program_analysis) sur Wikipédia.
+
+## Ce qu'on cherche à en tirer
+
+Les situations ci-dessous sont celles qui ont servi à cadrer l'étude. Elles sont
+volontairement banales — ce sont les cas où la lecture du code coûte plus cher que
+l'exécution.
+
+| Situation | Ce que l'exécution montre, et pas la lecture |
+|---|---|
+| **Reprendre un code dont l'auteur est parti** | Quelles branches vivent réellement. Un `if` sur un drapeau de configuration a deux moitiés dans le source ; à l'exécution, une seule est prise |
+| **Trouver le code mort avant un remaniement** | La couverture d'une **exécution réelle**, qui n'est pas la couverture des tests : du code couvert par un test peut n'être jamais atteint en production, et l'inverse arrive tout autant |
+| **Comprendre pourquoi deux exécutions divergent** | Les valeurs passées aux mêmes méthodes, mises en regard. C'est le paramètre qui change, pas le code, qui explique presque toujours l'écart |
+| **Cartographier une dépendance livrée sans sources** | L'arbre d'appel se reconstruit depuis le bytecode : un jar interne opaque devient lisible sans en avoir le dépôt |
+| **Préparer un découpage ou une extraction** | Qui appelle qui **en vrai**. Le graphe d'appel statique surestime toujours le couplage, parce qu'il compte des arêtes que personne n'emprunte |
+| **Vérifier qu'un chemin d'erreur sert** | Si un `catch` n'est jamais atteint sur aucun scénario, c'est soit du code mort, soit un test manquant. La lecture ne tranche pas |
+| **Figer un comportement avant de le réécrire** | Une trace d'exécution datée fait office de test de caractérisation : on saura si la réécriture change quelque chose |
+
+Ce sont des besoins d'ingénierie logicielle ordinaires, indépendants de tout domaine
+métier : ils se posent de la même façon sur un back-office bancaire, un moteur de calcul
+ou un traitement par lots.
+
+## Ce que l'outil est, et ce qu'il n'est pas
+
+L'orchestrateur **n'analyse rien lui-même**. Il n'instrumente pas, ne profile pas, ne lit
+pas de bytecode. Il lance l'application, laisse trois outils libres et publics faire tout
+le travail d'observation, puis **agrège leurs sorties** en une page unique :
+
+| Outil | Licence | Ce qu'il produit |
+|---|---|---|
+| [JaCoCo](https://www.jacoco.org/) | EPL 2.0 | Le XML de couverture — les lignes exécutées |
+| [async-profiler](https://github.com/async-profiler/async-profiler) | Apache 2.0 | Les piles échantillonnées — l'arbre agrégé |
+| [Arthas](https://arthas.aliyun.com/) | Apache 2.0 | Les traces d'appel et les valeurs observées |
+
+Toute la valeur d'analyse vient de ces trois projets. Ce dépôt n'apporte que la colle : lire
+trois formats hétérogènes, les rapprocher par classe et par ligne, et en faire une page qui
+se lit d'un coup. C'est un travail de présentation, pas de mesure.
+
+## Le second banc d'essai : l'assistant
+
+Le dépôt a une deuxième raison d'être, aussi assumée que la première. La consigne — *fais
+l'état de l'art de l'analyse dynamique de code en Java, dans un environnement purement open
+source* — est un bon calibre pour évaluer ce qu'un assistant de code sait faire aujourd'hui :
+elle est ouverte, sans spécification, sans domaine métier, elle impose de recenser puis de
+trancher, et elle a une sortie qu'on peut juger d'un coup d'œil — soit la page se lit, soit
+elle ne se lit pas.
+
+Elle contraint aussi le résultat d'une façon utile : **purement open source** interdit
+d'esquiver la difficulté en achetant un outil qui fait tout. C'est cette contrainte qui a
+forcé la réponse à trois outils plutôt qu'un, et donc tout le travail d'assemblage.
+
+Le code de ce dépôt a donc été écrit avec [Claude Code](https://claude.com/claude-code),
+et l'exercice consistait autant à obtenir l'outil qu'à observer comment on l'obtient. Ce
+qui est mesurable depuis l'historique :
+
+| | |
+|---|---|
+| Volume produit | 2 623 lignes de code, 1 640 lignes de test, 98 tests, en 34 commits |
+| Réécriture complète | La première version était un script shell + un script Python ; elle a été refaite en Java sans dépendance, d'un bloc, en conservant le comportement |
+| Ce qui a demandé le plus d'allers-retours | La page HTML — pas la logique. Rapprocher trois formats est mécanique ; décider *ce qu'on montre et ce qu'on replie* ne l'est pas, et ça s'est fait par itérations successives sur le rendu |
+| Ce qui n'a pas marché seul | Les affirmations du comparatif. Un assistant produit volontiers une phrase plausible sur un outil qu'il n'a pas lancé — d'où le **statut de vérification** porté par chaque ligne du [comparatif](docs/etude/comparatif.md), qui distingue ce qui a été exécuté de ce qui vient de la documentation |
+
+Ce dernier point est le plus intéressant des deux bancs d'essai, et il a façonné la
+méthode : la règle « aucune affirmation sans son statut » n'est pas une précaution
+d'auteur, c'est la contre-mesure directe au défaut observé.
+
+## Paramètres de l'étude
+
+Les critères ci-dessous sont ceux que je me suis fixés pour départager les outils. Ils sont
+volontairement banals : ce sont les contraintes courantes d'un poste de développement en
+entreprise, sans référence à un environnement particulier.
+
+| Paramètre | Conséquence sur la sélection |
 |---|---|
 | Exécution hors ligne | Écarte les services hébergés. Le téléchargement préalable des composants reste possible |
-| Java 21 et Java 25 | Les deux plateformes sont évaluées ; l'écart mesuré est reporté dans les [résultats](docs/resultat/resultats.md#gains-dun-portage-vers-java-25) |
-| IntelliJ comme environnement cible | Sans en dépendre : l'édition payante n'est pas supposée disponible |
+| Java 21 au minimum | Java 21 est le standard industriel actuel, après Java 8 puis Java 11 ces dernières années : c'est le socle visé. Java 25 est évalué en plus, et l'écart mesuré est reporté dans les [résultats](docs/resultat/resultats.md#gains-dun-portage-vers-java-25) |
+| Un IDE courant | IntelliJ comme référence, sans en dépendre : l'édition payante n'est pas supposée disponible |
 | Deux publics | Un développeur dans son environnement, et un lecteur non technicien devant un document transmis |
 | Diagnostic ponctuel | Aucun serveur à déployer ni à maintenir |
 
@@ -94,38 +199,36 @@ Ces résultats valent dans le cadre décrit, et pas au-delà. En particulier :
 
 ## Se procurer l'outil
 
-[![Maven Central](https://img.shields.io/maven-central/v/io.github.beennnn/runtime-xray-cli?label=Maven%20Central)](https://central.sonatype.com/artifact/io.github.beennnn/runtime-xray-cli)
-
-L'outil est publié sur Maven Central :
-
-| | |
-|---|---|
-| Coordonnées | `io.github.beennnn:runtime-xray-cli:1.0.0` |
-| Fichier | [`runtime-xray-cli-1.0.0.jar`](https://repo1.maven.org/maven2/io/github/beennnn/runtime-xray-cli/1.0.0/runtime-xray-cli-1.0.0.jar) (~100 Ko) |
-| Dépendances | aucune, hors du JDK |
-| Java | 21 ou plus |
-| Licence | MIT |
-
-Ce n'est pas une bibliothèque qu'on met en `<dependency>` : c'est un exécutable. Maven
-Central sert ici de **canal de distribution**, et ce choix découle directement de la
-contrainte de l'étude — derrière un pare-feu d'entreprise, le miroir Maven est souvent le
-seul canal ouvert, et c'est déjà par lui que l'outil récupère ses composants d'analyse.
-
-### Le télécharger
+**Un jar, rien d'autre.** Pas de clone, pas de build, pas de compte : l'outil est publié
+sur Maven Central et se télécharge directement. C'est le mode d'emploi recommandé — c'est
+aussi le seul qui n'expose personne au dépôt.
 
 ```bash
-# Sans Maven, un simple téléchargement
 curl -O https://repo1.maven.org/maven2/io/github/beennnn/runtime-xray-cli/1.0.0/runtime-xray-cli-1.0.0.jar
 java -jar runtime-xray-cli-1.0.0.jar --java "java -jar target/mon-appli.jar"
 ```
 
+Derrière un pare-feu d'entreprise, le miroir Maven interne sert le même artefact :
+
 ```bash
-# Avec Maven — passe par le miroir interne s'il y en a un de configuré
 mvn dependency:copy -Dartifact=io.github.beennnn:runtime-xray-cli:1.0.0 -DoutputDirectory=.
 ```
 
+| | |
+|---|---|
+| Coordonnées | `io.github.beennnn:runtime-xray-cli:1.0.0` |
+| Taille | ~100 Ko |
+| Dépendances | aucune, hors du JDK |
+| Java | 21 ou plus |
+| Licence | 0BSD |
+
 Les sources et la javadoc sont publiées à côté, sous les classificateurs habituels
 (`-sources.jar`, `-javadoc.jar`).
+
+> ⚠️ **Le rapport produit ne doit pas atterrir dans un dépôt.** Il contient les noms de
+> classes, les numéros de ligne et les **valeurs de paramètres** du code analysé. Lancez
+> l'outil depuis un répertoire de travail quelconque, pas depuis un clone de ce dépôt — le
+> jar téléchargé n'a de toute façon aucun lien avec lui.
 
 ### Vérifier la signature
 
@@ -139,10 +242,18 @@ gpg --keyserver keys.openpgp.org --recv-keys 8D181AA1F3545E3C43804355D7D3E62B52C
 gpg --verify runtime-xray-cli-1.0.0.jar.asc runtime-xray-cli-1.0.0.jar
 ```
 
-La réponse attendue contient `Good signature` (ou `Bonne signature`). Un avertissement sur
-la confiance accordée à la clé est normal et n'infirme rien : il dit que vous n'avez pas
-certifié que cette clé appartient bien à son porteur, question distincte de l'intégrité du
-fichier.
+La réponse attendue contient `Good signature`. Un avertissement sur la confiance accordée à
+la clé est normal : il dit que vous n'avez pas certifié que cette clé appartient bien à son
+porteur, question distincte de l'intégrité du fichier.
+
+### Construire depuis les sources
+
+Utile seulement pour modifier l'outil. Rien d'autre à installer que Maven et un JDK 21.
+
+```bash
+git clone https://github.com/Beennnn/runtime-xray && cd runtime-xray
+mvn -q clean package        # produit orchestrator/target/runtime-xray.jar
+```
 
 ### Préparer une machine sans réseau
 
@@ -239,7 +350,7 @@ Trois dossiers, selon la question traitée.
 | [Mode d'emploi](docs/outil/mode-emploi.md) | Paramètres, configuration, méthode racine |
 | [Lire le rapport](docs/outil/lire-le-rapport.md) | Ce que la page montre, ce qu'elle replie, et ce qu'on peut lui demander |
 | [Détails techniques](docs/outil/technique.md) | Programme de démonstration et difficultés rencontrées |
-| [Diffusion](docs/outil/distribution.md) | Dépôt interne, Maven Central, et ce qu'a apporté la réécriture |
+| [Diffusion](docs/outil/distribution.md) | Comment on met l'outil dans les mains de quelqu'un d'autre |
 
 ## Organisation du dépôt
 
@@ -261,6 +372,38 @@ java -jar orchestrator/target/runtime-xray.jar \
   --sources sample-app/src/main/java
 ```
 
+## Origine
+
+Projet personnel, mené sur mon temps libre et sur mon matériel, sur une question que se
+pose n'importe quel développeur Java confronté à du code existant : *comment observer ce
+qui s'exécute réellement ?*
+
+### La suite d'un projet antérieur
+
+Ce dépôt prolonge [**Iris**](https://github.com/iris7-app/iris-service-java), commencé en
+mai 2026 : un démonstrateur Java public dont l'axe central est l'**observabilité** — traces,
+journaux et métriques d'un système en fonctionnement, avec ses SLO et ses tableaux de bord.
+
+Même démarche, sujet voisin. Iris répond à *que fait mon système en production ?* Il laisse
+entière la question d'un cran en dessous : *que fait ce code-là, ligne par ligne, quand je
+le reprends sans l'avoir écrit ?* L'observabilité applicative ne descend pas jusque-là — elle
+instrumente ce qu'on a décidé d'instrumenter, et c'est précisément le code qu'on ne connaît
+pas encore qu'on n'a pas su instrumenter. `runtime-xray` traite ce cran-là.
+
+Les deux projets partagent leurs partis pris, arrêtés dans le premier et repris tels quels :
+
+| | Iris | runtime-xray |
+|---|---|---|
+| Socle Java | 21 LTS visé, 25 évalué en compatibilité | 21 LTS visé, 25 évalué |
+| Couverture | JaCoCo, seuil bloquant | JaCoCo, comme source de vérité de l'exécution |
+| Traçabilité des affirmations | 60+ ADR, audits datés | statut de vérification sur chaque ligne du comparatif |
+| Licence | BSD 3-Clause, titulaire nommé | 0BSD, titulaire nommé |
+
 ## Licence
 
-MIT — voir [LICENSE](LICENSE).
+[0BSD](https://spdx.org/licenses/0BSD.html) — voir [LICENSE](LICENSE). La clause de
+non-garantie est conservée : l'outil injecte des agents dans la JVM d'une application qui
+n'est pas la sienne.
+
+Le code tiers présent dans le dépôt garde sa propre licence — voir
+[THIRD-PARTY.md](THIRD-PARTY.md). La version `1.0.0` publiée sur Maven Central est sous MIT.

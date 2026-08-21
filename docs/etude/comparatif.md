@@ -41,7 +41,7 @@
 | XRebel (Perforce) | ⛔ Bloqué par licence | Licence commerciale |
 | Dynatrace / Datadog / New Relic | ⛔ Bloqué par licence | SaaS, compte + agent |
 
-## 1. Couverture fonctionnelle — les trois données du brief
+## 1. Couverture fonctionnelle — les trois données recherchées
 
 Les trois colonnes reprennent mot pour mot la demande : lignes exécutées, arbre d'appel,
 valeurs des paramètres.
@@ -73,7 +73,7 @@ valeurs des paramètres.
 
 ## 2. Où se regarde le résultat — IDE, page web, plateforme
 
-C'est l'axe décisif du brief : *voir par où le code est passé et naviguer dedans*, pour
+C'est l'axe décisif de l'étude : *voir par où le code est passé et naviguer dedans*, pour
 un développeur **comme** pour un non-développeur.
 
 | Outil | Page web autonome (hors IDE) | Dans l'IDE | Dans GitHub / GitLab | GUI desktop |
@@ -139,13 +139,13 @@ un développeur **comme** pour un non-développeur.
 | OpenTelemetry | Apache 2.0 | open source | 0 € + coût du backend |
 | IntelliJ IDEA Community | Apache 2.0 | gratuit | 0 € — **mais le profiler intégré est réservé à Ultimate** |
 | IntelliJ IDEA Ultimate | commerciale | abonnement | ordre de grandeur : quelques centaines €/an *(à vérifier sur la grille JetBrains)* |
-| JProfiler | commerciale | licence perpétuelle + maintenance | ~500 $ / licence, ~200 $ académique *(chiffres du brief, à confirmer)* |
+| JProfiler | commerciale | licence perpétuelle + maintenance | ~500 $ / licence, ~200 $ académique *(ordre de grandeur, à confirmer)* |
 | YourKit | commerciale | licence | équivalent ; **gratuit pour l'open source**, tarif réduit académique *(à confirmer)* |
 | XRebel | commerciale | abonnement | à chiffrer |
 | Dynatrace / Datadog / New Relic | commerciale | SaaS à l'usage | le plus cher ; hors sujet pour un diagnostic ponctuel |
 
 > ⚠️ **Aucun tarif de cette table n'a été relevé sur la page tarifaire du fournisseur au
-> cours de cette session.** Ils viennent du brief ou de connaissances générales et doivent
+> cours de cette session.** Ils viennent de connaissances générales et doivent
 > être confirmés avant toute décision d'achat.
 
 ## 5. Synthèse provisoire

@@ -26,8 +26,8 @@
 
   <licenses>
     <license>
-      <name>MIT License</name>
-      <url>https://github.com/Beennnn/runtime-xray/blob/main/LICENSE</url>
+      <name>BSD Zero Clause License</name>
+      <url>https://spdx.org/licenses/0BSD.html</url>
       <distribution>repo</distribution>
     </license>
   </licenses>
@@ -96,7 +96,6 @@
       </plugins>
     </pluginManagement>
   </build>
-
   <profiles>
     <!--
       Publication sur Maven Central. Isolée dans un profil parce qu'elle exige une clé de

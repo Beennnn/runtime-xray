@@ -18,7 +18,7 @@ et **fonctionnent hors ligne** une fois installés.
 
 ### 1. « Par où le code est passé » → **JaCoCo**. Question réglée.
 
-C'est le point le plus important du brief, et c'est le mieux résolu.
+C'est le point le plus important de l'étude, et c'est le mieux résolu.
 
 - Sortie : un **site HTML** où l'on descend de la vue d'ensemble jusqu'au **code source
   colorié ligne par ligne** — vert exécuté, rouge jamais atteint, jaune branche partielle.
@@ -135,7 +135,7 @@ paramètre. **Payer pour l'option, alors que l'objectif est déjà atteint.**
 **Savoir par où le code est passé** est un problème résolu. Un flag JVM, un dossier HTML,
 et n'importe qui ouvre le rapport et voit le code colorié ligne à ligne. Aucune
 configuration, aucun serveur, aucun compte, aucune connexion. C'est le besoin n° 1 du
-brief et il ne demande aucune décision.
+l'étude et il ne demande aucune décision.
 
 **Voir l'arbre d'appel** est presque aussi simple : une installation, un flag, un fichier
 HTML unique qu'on déplie et qu'on envoie par mail.
@@ -269,7 +269,7 @@ qu'on n'en a pas besoin.
 
 ### Un argument en sens inverse
 
-[Kieker](../etude/fiches/kieker.md), le seul outil qui viserait le *but final* du brief, annonce le
+[Kieker](../etude/fiches/kieker.md), le seul outil qui viserait le *but final* de l'étude, annonce le
 support **jusqu'à Java 23**. Porter vers 25 **retirerait** cette option tant qu'il n'aura
 pas suivi. Du point de vue de l'outillage, le portage coûterait plutôt qu'il ne rapporterait.
 

@@ -77,7 +77,7 @@ Puis un seul flag JVM. **Aucune modification du code analysé.**
 **Seul** : la meilleure réponse gratuite à « montre-moi l'arbre d'appel », dans un format
 qu'on partage sans rien installer chez le destinataire.
 
-**Combiné** : avec JaCoCo, on couvre deux des trois besoins du brief pour 0 €, hors ligne.
+**Combiné** : avec JaCoCo, on couvre deux des trois besoins de l'étude pour 0 €, hors ligne.
 Il sait aussi écrire au format JFR, donc alimenter Mission Control.
 
 ## Mesuré ici
