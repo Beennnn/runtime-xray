@@ -14,8 +14,14 @@ BASE="https://repo1.maven.org/maven2/io/github/beennnn/runtime-xray-cli/$VERSION
 JAR="runtime-xray-cli-$VERSION.jar"
 BAC="$(mktemp -d)"
 APP="$DEPOT/sample-app/target/sample-app.jar"
-ok=0 ko=0
+ok=0 ko=0 na=0
 etape(){ if [ "$1" = 0 ]; then echo "  ✅ $2"; ok=$((ok+1)); else echo "  ❌ $2"; ko=$((ko+1)); fi; }
+# Une version publiée avant une fonctionnalité ne peut pas la porter : la compter en échec
+# ferait passer une recette juste pour une recette ratée. On le dit, sans compter contre.
+horsSujet(){ echo "  ○ $1 — ${2:-pas dans la version $VERSION}"; na=$((na+1)); }
+# Ce que le jar téléchargé sait faire, lu sur son aide plutôt que déduit du numéro de
+# version : c'est la seule source qui ne se trompe pas.
+sait(){ grep -q -- "$1" aide.txt; }
 
 cd "$BAC" || exit 1
 echo "Répertoire vierge : $BAC"
@@ -29,13 +35,21 @@ curl -sf -O "$BASE/runtime-xray-cli-$VERSION-javadoc.jar"; etape $? "la javadoc 
 echo
 
 echo "2. Signature — la clé est récupérée depuis un serveur public, comme le ferait un tiers"
-gpg --keyserver keys.openpgp.org --recv-keys 8D181AA1F3545E3C43804355D7D3E62B52C66FCA >/dev/null 2>&1
-gpg --status-fd 1 --verify "$JAR.asc" "$JAR" 2>/dev/null | grep -q GOODSIG
-etape $? "la signature du jar est valide"
+# Sans la clé, on ne peut RIEN conclure : ni que la signature est bonne, ni qu'elle est
+# mauvaise. Un réseau qui bloque les serveurs de clés — c'est courant en entreprise — ne
+# doit pas faire passer un artefact valide pour un artefact douteux.
+if gpg --keyserver keys.openpgp.org --recv-keys 8D181AA1F3545E3C43804355D7D3E62B52C66FCA >/dev/null 2>&1
+then
+  gpg --status-fd 1 --verify "$JAR.asc" "$JAR" 2>/dev/null | grep -q GOODSIG
+  etape $? "la signature du jar est valide"
+else
+  horsSujet "vérification de signature" "clé introuvable depuis ce réseau : on ne peut \
+rien conclure, ni dans un sens ni dans l'autre"
+fi
 echo
 
 echo "3. Le jar est exécutable"
-java -jar "$JAR" --help >/dev/null 2>&1
+java -jar "$JAR" --help > aide.txt 2>&1
 etape $? "l'aide s'affiche"
 echo
 
@@ -47,7 +61,10 @@ java -jar "$JAR" \
   --name "Recette Central" --out sortie > analyse.log 2>&1
 etape $? "l'analyse se termine sans erreur"
 
-grep -q "Classes analysées" analyse.log
+# Sans accent : ce contrôle lit la sortie d'une AUTRE version, produite sur une machine dont
+# on ne choisit pas l'encodage. Chercher « analysées » ferait échouer une version correcte
+# dont la console est en ASCII.
+grep -q "Classes analys" analyse.log
 etape $? "le bytecode est déduit tout seul (aucun --classes)"
 
 [ -s sortie/index.html ];        etape $? "la page est produite"
@@ -68,8 +85,43 @@ PY
 etape $? "la page contient les données de l'exécution, pas un gabarit vide"
 echo
 
+echo "5. Ce que cette version sait faire en plus"
+if sait "--export"; then
+  java -jar "$JAR" --report-only --out sortie --export tout >> analyse.log 2>&1
+  etape $? "les exports se produisent"
+  ls sortie/runs/*/exports/couverture.lcov >/dev/null 2>&1
+  etape $? "la couverture est réécrite en LCOV"
+  ls sortie/runs/*/exports/profil.cpuprofile >/dev/null 2>&1
+  etape $? "le profil est réécrit en cpuprofile"
+else
+  horsSujet "réécriture des mesures pour d'autres outils (--export)"
+fi
+
+if sait "--niveau"; then
+  java -jar "$JAR" --java "java -jar $APP --iterations 200000" --niveau couverture \
+    --out leger > leger.log 2>&1
+  etape $? "une mesure au niveau « couverture » se termine"
+  [ ! -s "$(ls leger/runs/*/async-profiler/profil.collapsed 2>/dev/null | head -1)" ]
+  etape $? "elle n'écrit aucun profil, comme annoncé"
+else
+  horsSujet "niveaux d'observation (--niveau)"
+fi
+
+if sait "--serve"; then
+  PORT="$(python3 -c 'import socket;s=socket.socket();s.bind(("127.0.0.1",0));print(s.getsockname()[1]);s.close()')"
+  java -jar "$JAR" --report-only --out sortie --serve "$PORT" > serveur.log 2>&1 &
+  pid=$!
+  for _ in $(seq 1 40); do curl -sf "http://127.0.0.1:$PORT/__xray/ping" >/dev/null && break; sleep 0.25; done
+  curl -sf "http://127.0.0.1:$PORT/__xray/ping" | grep -q '"peutEcrire":true'
+  etape $? "le rapport se sert, et la page peut y écrire"
+  kill "$pid" 2>/dev/null
+else
+  horsSujet "rapport servi et annotations écrites (--serve)"
+fi
+echo
+
 echo "────────────────────────────────────"
-echo "  $ok réussis · $ko échoués"
+echo "  $ok réussis · $ko échoués · $na hors sujet pour cette version"
 echo "  sortie conservée : $BAC"
 [ "$ko" = 0 ] || tail -20 analyse.log
 exit "$ko"

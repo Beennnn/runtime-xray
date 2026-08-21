@@ -225,6 +225,36 @@ class LocalServerTest {
     }
 
     @Test
+    @DisplayName("Une exécution déposée pendant que le serveur tourne est prise en compte")
+    void droppedRunIsPickedUp(@TempDir Path dir) throws Exception {
+        run(dir, "premiere", "UUID-1");
+        String base = base(dir);
+        String avant = String.valueOf(json(get(base + "/__xray/noms")).get("revision"));
+        assertEquals(1.0, json(get(base + "/__xray/noms")).get("executions"));
+
+        // Le scénario du serveur partagé : quelqu'un dépose des résultats à côté.
+        run(dir, "deposee", "UUID-2");
+
+        Map<String, Object> apres = json(get(base + "/__xray/noms"));
+        assertNotEquals(avant, apres.get("revision"),
+                "sans révision, la page ne saurait jamais qu'il y a du nouveau");
+        assertEquals(2.0, apres.get("executions"));
+
+        // La veille sonde toutes les dix secondes : on ne l'attend pas ici, on vérifie
+        // seulement que la révision, elle, a bien suivi le disque.
+        assertNotEquals(LocalServer.revision(dir.toAbsolutePath().normalize()), avant);
+    }
+
+    @Test
+    @DisplayName("La révision ne bouge pas quand rien ne bouge")
+    void revisionIsStableWhenNothingChanges(@TempDir Path dir) throws Exception {
+        run(dir, "essai", "UUID-1");
+        Path racine = dir.toAbsolutePath().normalize();
+        assertEquals(LocalServer.revision(racine), LocalServer.revision(racine),
+                "une relecture ne doit pas passer pour un dépôt");
+    }
+
+    @Test
     @DisplayName("L'empreinte ne change que si le contenu change")
     void fingerprintFollowsContent() {
         String a = LocalServer.fingerprint(Map.of("nom", "x"));

@@ -37,7 +37,8 @@ import java.util.concurrent.locks.ReentrantLock;
  *       rapport est régénéré, pour que l'annotation y soit acquise même hors serveur ;</li>
  *   <li><b>déployé quelque part</b> — {@code --serve --serve-host 0.0.0.0} : on y dépose
  *       les résultats, tout le monde y accède par un navigateur, et <b>plusieurs
- *       personnes annotent en parallèle</b>.</li>
+ *       personnes annotent en parallèle</b>. Les exécutions déposées pendant qu'il tourne
+ *       sont prises en compte toutes seules : voir la veille, plus bas.</li>
  * </ul>
  *
  * <p>Le parallélisme est la seule difficulté réelle, et elle est traitée là où elle se
@@ -119,6 +120,10 @@ public final class LocalServer {
 
                 if (method.equals("GET")) {
                     Map<String, Object> tout = annotationsEffectives(root);
+                    // La révision dit à la page si le rapport a changé sous ses pieds —
+                    // une exécution déposée, une autre retirée. Elle la relit à intervalle
+                    // régulier de toute façon : autant qu'elle l'apprenne là.
+                    String revision = revision(root);
                     // Une empreinte pour CHAQUE exécution, y compris celles qui n'ont pas
                     // encore d'annotation : sans elle, la première écriture n'aurait rien à
                     // comparer, et deux personnes qui créent la même annotation en même
@@ -126,7 +131,8 @@ public final class LocalServer {
                     Map<String, Object> empreintes = new LinkedHashMap<>();
                     Annotations.runsByUuid(root).forEach(
                             (uuidRun, dir) -> empreintes.put(uuidRun, fingerprint(tout.get(uuidRun))));
-                    json(ex, 200, Map.of("annotations", tout, "empreintes", empreintes));
+                    json(ex, 200, Map.of("annotations", tout, "empreintes", empreintes,
+                            "revision", revision, "executions", empreintes.size()));
                     return;
                 }
                 if (!method.equals("POST") && !method.equals("PUT")) {
@@ -173,7 +179,61 @@ public final class LocalServer {
 
         server.setExecutor(java.util.concurrent.Executors.newFixedThreadPool(4));
         server.start();
+        veiller(root, rebuilder);
         return server;
+    }
+
+    /**
+     * Surveille l'arrivée d'exécutions déposées pendant que le serveur tourne.
+     *
+     * <p>C'est le scénario même du serveur partagé : on y dépose des résultats, et tout le
+     * monde les lit. Sans cette veille, il faudrait redémarrer le serveur à chaque dépôt —
+     * autant dire que personne ne le ferait, et que le répertoire et la page finiraient par
+     * dire deux choses différentes.
+     *
+     * <p>Par sondage, et non par surveillance du système de fichiers : les résultats
+     * arrivent souvent par un partage réseau, où les notifications de modification sont au
+     * mieux irrégulières. Dix secondes suffisent — on ne dépose pas une exécution dix fois
+     * par minute.
+     */
+    private static void veiller(Path root, Rebuilder rebuilder) {
+        Thread.ofPlatform().daemon().name("runtime-xray-veille").start(() -> {
+            String connu = revision(root);
+            while (true) {
+                try {
+                    Thread.sleep(10_000);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    return;
+                }
+                String maintenant = revision(root);
+                if (!maintenant.equals(connu)) {
+                    connu = maintenant;
+                    System.out.println("   exécutions modifiées sur le disque — la page est "
+                            + "réassemblée");
+                    rebuilder.demander();
+                }
+            }
+        });
+    }
+
+    /**
+     * Ce qui distingue un état du répertoire d'un autre : les exécutions présentes et la
+     * date de leur contexte. Deux dépôts successifs donnent deux révisions différentes ;
+     * une simple relecture, non.
+     */
+    static String revision(Path root) {
+        StringBuilder sb = new StringBuilder();
+        for (Path run : Annotations.runDirs(root)) {
+            sb.append(run.getFileName()).append(':');
+            try {
+                sb.append(Files.getLastModifiedTime(run.resolve("run-context.json")).toMillis());
+            } catch (IOException e) {
+                sb.append('?');
+            }
+            sb.append(';');
+        }
+        return fingerprint(sb.toString());
     }
 
     /**
