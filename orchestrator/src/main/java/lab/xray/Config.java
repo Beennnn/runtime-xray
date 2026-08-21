@@ -328,6 +328,11 @@ public final class Config {
             # ou « tout ». Les fichiers vont dans <exécution>/exports/.
             #EXPORT="cpuprofile,lcov"
 
+            # Servir le rapport ne se règle pas ici : c'est un mode de lancement, pas une
+            # propriété du projet. « --serve » sert le répertoire de sortie et laisse la page
+            # écrire ses annotations à côté des exécutions ; « --serve-host 0.0.0.0 » en fait
+            # un serveur partagé, où plusieurs personnes annotent en parallèle.
+
             # Dépôt d'où récupérer les composants d'analyse, une seule fois. Sur un réseau
             # fermé, indiquer le miroir interne : c'est le seul réglage qui compte pour
             # fonctionner sans accès à Internet.
