@@ -20,6 +20,13 @@
     }
   }
   *{box-sizing:border-box} html,body{height:100%}
+  /* Une cible qu'on atteint au clavier doit se voir. Le contour ne s'affiche qu'au clavier
+     — :focus-visible — pour ne pas cerner ce qu'on vient de cliquer à la souris. */
+  :focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+  /* Aller au contenu sans traverser toute la barre d'outils à la tabulation. */
+  .saut{position:absolute;left:-9999px;top:0;z-index:100;background:var(--accent);color:#fff;
+        padding:8px 14px;border-radius:0 0 8px 0;font-weight:600;text-decoration:none}
+  .saut:focus{left:0}
   body{margin:0;background:var(--bg);color:var(--text);
        font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
   a{color:var(--accent)}
@@ -63,6 +70,10 @@
                  letter-spacing:.3px;color:var(--muted);text-transform:uppercase}
   .links a{margin:0}
   .toolgrp .sep{color:var(--border)}
+  /* Un export absent reste nommé : la capacité doit se voir même quand le fichier n'est
+     pas là. Éteint, mais cliquable — le clic dit comment l'obtenir. */
+  .links a.off{color:var(--muted);text-decoration-style:dotted}
+  .links a.off:hover{color:var(--accent);opacity:1}
   .helpbtn{font:inherit;font-size:12px;font-weight:600;padding:4px 11px;border-radius:15px;
            cursor:pointer;border:1px solid var(--border);background:var(--bg);color:var(--muted)}
   .helpbtn:hover{border-color:var(--accent);color:var(--accent)}
@@ -426,6 +437,47 @@
   .uid{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:10px;
        color:var(--muted);border:1px solid var(--border);border-radius:8px;padding:0 4px;
        margin-left:6px;vertical-align:1px}
+  /* Ce qui se modifie ne vit pas dans le corps de la page : le rapport se lit, il ne se
+     remplit pas. L'identité de l'exécution tient donc sur un bandeau dense, juste sous son
+     nom, et les actions montent dans la barre du haut avec les autres boutons. */
+  .identbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+            padding:6px 16px;border-bottom:1px solid var(--border);background:var(--panel2)}
+  .identbar[hidden]{display:none}
+  .identbar .uid{margin-left:0;cursor:default}
+  .identbar input{font:inherit;font-size:12.5px;color:var(--text);background:var(--bg);
+                  border:1px solid transparent;border-radius:6px;padding:3px 7px}
+  .identbar input:hover{border-color:var(--border)}
+  .identbar input:focus{border-color:var(--accent);outline:none}
+  .identbar input::placeholder{color:var(--muted);opacity:.75}
+  /* Le nom EST le titre de la vue : il en a la taille, et il se modifie sur place — un
+     titre qu'on ne peut pas corriger oblige à le chercher ailleurs. */
+  .identbar .inom{font-weight:650;font-size:15px;min-width:150px;flex:0 1 260px}
+  .identbar .idesc{flex:1 1 260px;min-width:160px}
+  .identbar .sep{width:1px;align-self:stretch;background:var(--border);margin:0 2px}
+  .identbar .mini{font:inherit;font-size:11px;font-weight:600;padding:2px 8px;border-radius:11px;
+                  border:1px solid var(--border);background:var(--bg);color:var(--muted);
+                  cursor:pointer;white-space:nowrap}
+  .identbar .mini:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
+  .identbar .tag{display:inline-flex;align-items:center;gap:4px;font-size:11.5px;
+                 border:1px solid var(--violet);color:var(--violet);border-radius:11px;
+                 padding:1px 4px 1px 8px;white-space:nowrap}
+  .identbar .tag b{font-weight:650}
+  .identbar .tag button{font:inherit;border:0;background:none;color:inherit;cursor:pointer;
+                        padding:0 3px;border-radius:8px;opacity:.7}
+  .identbar .tag button:hover{opacity:1;color:#fff;background:var(--missbar)}
+  .identbar .tagedit{display:inline-flex;gap:4px;align-items:center}
+  .identbar .tagedit input{border-color:var(--border);font-size:11.5px;padding:2px 6px}
+  .identbar .tagedit .k{width:96px} .identbar .tagedit .v{width:110px}
+  .identbar .etat{font-size:11px;color:var(--muted);margin-left:auto;white-space:nowrap}
+  .identbar .etat.modifie{color:var(--partbar);font-weight:600}
+  /* Le JSON s'affiche par-dessus, pas dans le flux : il sert à copier, pas à lire. */
+  #annotout{position:fixed;top:52px;right:16px;z-index:60;max-width:520px;max-height:60vh;
+            overflow:auto;background:var(--bg);border:1px solid var(--border);border-radius:10px;
+            box-shadow:0 12px 34px rgba(0,0,0,.22);padding:12px 14px;font-size:11.5px;
+            white-space:pre-wrap;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+  #annotout[hidden]{display:none}
+  #annotout .fermer{position:absolute;top:6px;right:9px;background:none;border:0;
+                    color:var(--muted);font-size:15px;cursor:pointer}
   .annot input,.annot textarea{font:inherit;font-size:12.5px;color:var(--text);
        background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:4px 8px}
   .annot input[type=text]{width:100%;max-width:420px}
@@ -454,6 +506,7 @@
 </style>
 </head>
 <body>
+<a class="saut" href="#list">Aller à la liste du code</a>
 <header>
   <span class="applogo" aria-hidden="true">
     <svg viewBox="0 0 32 32" width="26" height="26">
@@ -472,20 +525,24 @@
   <h1><a href="#" id="home" title="Revenir à la vue d'ensemble">Runtime X-Ray</a></h1>
   <span class="spacer"></span>
   <span class="links" id="links"></span>
+  <span class="links" id="annotbar"></span>
   <button id="helpbtn" class="helpbtn" title="Comment lire et utiliser cette page">? Aide</button>
   <a class="helpbtn" href="https://github.com/Beennnn/runtime-xray" target="_blank" rel="noopener"
      title="Le code, les scripts, et comment lancer cet outil sur un autre projet"
      style="text-decoration:none">Dépôt ↗</a>
 </header>
+<pre id="annotout" hidden></pre>
 <div id="help" hidden><div class="helpbox">
   <button id="helpclose" class="helpclose" title="Fermer">✕</button>
   <div id="helpbody"></div>
 </div></div>
 <main>
   <div id="nav">
-    <div class="tabs">
-      <button id="tab-cls" class="on" title="Le code, par paquet et par classe, filtré sur ce qui a tourné">Code</button>
-      <button id="tab-tree" title="Ce que les exécutions ont fait : l'arbre d'appel, avec les exécutions pour racines">Exécutions</button>
+    <div class="tabs" role="tablist" aria-label="Deux entrées vers le même code">
+      <button id="tab-cls" class="on" role="tab" aria-selected="true" aria-controls="list"
+              title="Le code, par paquet et par classe, filtré sur ce qui a tourné">Code</button>
+      <button id="tab-tree" role="tab" aria-selected="false" aria-controls="list"
+              title="Ce que les exécutions ont fait : l'arbre d'appel, avec les exécutions pour racines">Exécutions</button>
     </div>
     <div class="maskbar" id="maskbar" hidden></div>
     <div class="runpick" id="runpick" hidden>
@@ -496,7 +553,8 @@
       Pour ne plus voir une classe ou un paquet, cliquer <b>filtrer</b> au bout de sa ligne.
     </div>
     <div class="listbar">
-      <input id="search" placeholder="Chercher…" title="Filtrer la liste par nom de classe ou de méthode" autocomplete="off">
+      <input id="search" placeholder="Chercher…" title="Filtrer la liste par nom de classe ou de méthode"
+             aria-label="Filtrer la liste par nom de classe ou de méthode" autocomplete="off">
       <button id="unitbtn" class="unitbtn"
               title="Part du temps total — cliquer pour voir un temps estimé"><span class="ic"></span><span class="lab">part du temps</span></button>
       <button id="pkgbtn" class="unitbtn" aria-pressed="true"
@@ -510,7 +568,8 @@
     </div>
     <div id="scope"></div>
     <div class="prunebar" id="prunebar" hidden></div>
-    <div class="list" id="list"></div>
+    <div class="list" id="list" role="tree" tabindex="0"
+         aria-label="Code et exécutions — flèches pour parcourir, Entrée pour ouvrir"></div>
   </div>
   <div class="split" id="vsplit" title="Glisser pour redimensionner">
     <button class="splitbtn" id="vtoggle" title="Replier / déplier le panneau de gauche">‹</button>
@@ -524,6 +583,7 @@
       </button>
       <span class="altlabel" id="cleanalt">cliquer pour afficher le fichier entier</span>
     </div>
+    <div class="identbar" id="ident" hidden></div>
     <div id="context"></div>
     <div id="code"></div>
     <div class="split h" id="hsplit" title="Glisser pour redimensionner">
@@ -774,6 +834,7 @@ function annotationModifiee(run){
  */
 function enregistrerAnnotations(bouton){
   const run = R;
+  const dire = t => { bouton.textContent = t; };
   const a = annotationOf(run);
   const tags = a.etiquettes && Object.keys(a.etiquettes).length ? a.etiquettes : undefined;
   const el = elagageActif(run) ? elagageOf(run) : undefined;
@@ -781,8 +842,7 @@ function enregistrerAnnotations(bouton){
     ? {}
     : {nom: a.nom || undefined, description: a.description || undefined,
        etiquettes: tags, elagage: el};
-  const dire = t => { bouton.textContent = t; };
-  const rendre = () => setTimeout(() => { dire("Enregistrer"); renderIdentity(); }, 2500);
+  const rendre = () => setTimeout(renderIdentity, 2500);
 
   dire("enregistrement…");
   fetch("__xray/noms/" + encodeURIComponent(run.uuid), {
@@ -801,13 +861,11 @@ function enregistrerAnnotations(bouton){
         annotationsServeur[run.uuid] = body.valeur;
         empreintesServeur[run.uuid] = body.empreinte;
         dire("modifiée entre-temps");
-        const out = document.getElementById("annotOut");
-        out.hidden = false;
-        out.textContent = "Cette exécution a été annotée par quelqu'un d'autre pendant que "
-          + "vous la modifiiez. Version enregistrée :\n\n"
+        montrer("Cette exécution a été annotée par quelqu'un d'autre pendant que vous la "
+          + "modifiiez. Version enregistrée :\n\n"
           + JSON.stringify(body.valeur, null, 2)
-          + "\n\nCliquer « Enregistrer » à nouveau remplacera la sienne par la vôtre ; "
-          + "« reprendre la version enregistrée » abandonnera vos modifications.";
+          + "\n\nCliquer « enregistrer » à nouveau remplacera la sienne par la vôtre ; "
+          + "recharger la page reprendra la sienne et abandonnera vos modifications.");
         rendre();
         return;
       }
@@ -965,6 +1023,8 @@ function refreshRunLabels(){
   });
   const c = document.getElementById("crumbname");
   if (c) c.textContent = runLabel(R);
+  const titre = document.getElementById("identNom");
+  if (titre && document.activeElement !== titre) titre.value = annotationOf(R).nom;
 }
 
 (function initRuns(){
@@ -1034,6 +1094,32 @@ const TOOLMARK = {
     '<path d="M9 9l4 4" stroke-linecap="round"/></svg>',
 };
 
+/**
+ * Les exports, dans la barre du haut — présents ou non.
+ *
+ * <p>Une capacité qui ne vit que dans une option de ligne de commande n'existe pas pour qui
+ * lit la page : personne ne devine qu'un profil se relit dans Firefox Profiler ou dans
+ * speedscope. Les quatre formats sont donc toujours nommés ici ; quand les fichiers ne sont
+ * pas là, ils restent visibles mais éteints, et un clic donne la commande qui les produit —
+ * plutôt qu'un lien qui mènerait à une erreur.
+ */
+function exportsGroup(a, b){
+  const formats = [
+    [a.exportPerf, "exports/profil.perf.txt", "perf", "Sortie perf script — ce que Firefox Profiler importe"],
+    [a.exportCpuprofile, "exports/profil.cpuprofile", "cpuprofile", "Profil Chrome DevTools — lu par speedscope"],
+    [a.exportLcov, "exports/couverture.lcov", "lcov", "Couverture au format LCOV — éditeurs et suivi de couverture"],
+    [a.exportValeurs, "exports/valeurs.json", "valeurs.json", "Les appels observés et leurs valeurs, pour un script"]
+  ];
+  return '<span class="toolgrp"><span class="mark" title="Les mêmes mesures réécrites pour ' +
+    'd\'autres outils">exports</span>' +
+    formats.map(f => f[0]
+      ? '<a href="' + b + f[1] + '" target="_blank" rel="noopener" title="' + esc(f[3]) + '">'
+        + f[2] + '</a>'
+      : '<a href="#" class="off" data-export="' + f[2] + '" title="' + esc(f[3])
+        + ' — pas encore produit pour ce rapport">' + f[2] + '</a>')
+      .join('<span class="sep">·</span>') + '</span>';
+}
+
 function refreshLinks(){
   // On n'affiche un lien que si le fichier a réellement été produit : un lien mort est
   // pire que pas de lien. Le générateur nous dit ce qui existe.
@@ -1057,9 +1143,19 @@ function refreshLinks(){
       [a.flamegraphInverse, "async-profiler/flamegraph-inverse.html", "profil inversé"]]) +
     grp("arthas", "Arthas", [
       [a.valeurs, "arthas/watch-params.txt", "valeurs"],
-      [a.traceBrute, "arthas/trace-calltree.txt", "trace"]]);
+      [a.traceBrute, "arthas/trace-calltree.txt", "trace"]]) +
+    exportsGroup(a, b);
 }
 refreshLinks();
+document.getElementById("links").addEventListener("click", e => {
+  const a = e.target.closest("a.off");
+  if (!a) return;
+  e.preventDefault();
+  montrer("« " + a.dataset.export + " » n'a pas été produit pour ce rapport.\n\n"
+    + "Pour l'obtenir, sans relancer la moindre mesure :\n\n"
+    + "    java -jar runtime-xray.jar --report-only --out <ce dossier> --export tout\n\n"
+    + "Les fichiers sont écrits dans <exécution>/exports/, et cette barre les liera.");
+});
 renderMaskBar();
 document.getElementById("legend").innerHTML =
   '<span class="sw" style="background:var(--full);border-color:var(--fullbar)"></span>exécutée' +
@@ -1280,7 +1376,13 @@ document.addEventListener("keydown", e => {
   }
 });
 
-function tab(id){ document.querySelectorAll(".tabs button").forEach(b=>b.classList.remove("on"));
+function tab(id){
+  // aria-selected suit ce que la classe « on » montre : sans lui, un lecteur d'écran
+  // annonce deux onglets identiques.
+  ["tab-cls", "tab-tree"].forEach(t => {
+    const b = document.getElementById(t);
+    if (b) b.setAttribute("aria-selected", String(t === id));
+  }); document.querySelectorAll(".tabs button").forEach(b=>b.classList.remove("on"));
                   document.getElementById(id).classList.add("on"); }
 
 
@@ -2104,6 +2206,7 @@ function draw(){
   const lv = document.getElementById("lineValues");
   if (lv) lv.onclick = e => { e.preventDefault();
     document.getElementById("values").scrollIntoView({block:"nearest"}); };
+  renderIdentity();   // le bandeau d'identité s'efface : on lit une méthode, pas l'exécution
   const bh = document.getElementById("backHome");
   if (bh) bh.onclick = e => { e.preventDefault(); goHome(); };
   renderContexts(info);
@@ -2642,11 +2745,9 @@ function flameColour(propre, known){
 
 function drawHome(){
   document.getElementById("crumb").innerHTML =
-    '<b id="crumbname">' + esc(runLabel(R)) + '</b>' +
-    (R.uuid ? '<span class="uid" title="Identifiant permanent de cette exécution">'
-              + esc(shortId(R)) + '</span>' : '') +
-    ' <span class="pill">vue d\'ensemble</span>' +
-    (D.runs.length > 1 ? ' <span class="pill">' + D.runs.length + ' exécutions dans ce rapport</span>' : '');
+    '<span class="pill">vue d\'ensemble</span>' +
+    (D.runs.length > 1 ? ' <span class="pill">' + D.runs.length
+                         + ' exécutions dans ce rapport</span>' : '');
   document.getElementById("values").innerHTML = "";
   const hot = executedMethods().slice(0, 6);
   const observees = Object.keys(R.values || {});
@@ -2660,7 +2761,6 @@ function drawHome(){
    '</div>'+
    '<div class="bar"><span style="width:'+AGG.pct.toFixed(1)+'%"></span></div>'+
    flameBlock()+
-   '<div id="identity"></div>'+
    contextBlock()+
    (AGG.dead.length ? '<h2>Jamais exécuté</h2><p>'+AGG.dead.map(d=>'<span class="chip dead">'+esc(d)+'</span>').join("")+'</p>' : '')+
    '<h2>Les plus coûteuses</h2><p>'+hot.map(h=>
@@ -2690,179 +2790,188 @@ function drawHome(){
 }
 
 /**
- * Fiche d'identité de l'exécution regardée, et de quoi la compléter.
+ * L'identité de l'exécution, en bandeau dense sous son nom.
  *
- * <p>La saisie reste dans le navigateur — la page est un fichier, elle n'écrit nulle part.
- * Le bouton du bas rend le {@code noms.json} correspondant : déposé à côté des exécutions,
- * il fait entrer ces annotations dans le rapport lui-même, pour tout le monde.
+ * <p>Elle vivait dans le corps de la page, en tableau : le rapport se lit, il ne se remplit
+ * pas, et un formulaire posé au milieu d'une lecture n'est ni à sa place ni facile à
+ * retrouver. Tout ce qui se modifie tient donc sur une ligne, contre le nom affiché, et les
+ * actions montent dans la barre du haut avec les autres boutons.
+ *
+ * <p>Ce qui n'est pas modifiable ne prend pas de place : le nom du lancement et
+ * l'identifiant complet vivent dans l'infobulle du champ qu'ils expliquent.
  */
 function renderIdentity(){
-  const box = document.getElementById("identity");
-  if (!box) return;
-  const a = annotationOf(R);
-  const row = (k, v) => '<tr><td class="ck">' + k + '</td><td class="cv">' + v + '</td></tr>';
-  const tags = Object.entries(a.etiquettes || {});
-  const tagLines = tags.map(([k, v], i) =>
-      '<div class="tagline" data-tag="' + i + '">' +
-      '<input type="text" class="k" value="' + esc(k) + '" placeholder="étiquette">' +
-      '<input type="text" class="v" value="' + esc(v == null ? "" : String(v)) + '" placeholder="texte (facultatif)">' +
-      '<button class="mini drop" title="Retirer cette étiquette">✕</button></div>').join("");
-
-  box.innerHTML = '<h2>Identité de cette exécution</h2><div class="annot"><table class="ctx">' +
-    row("Identifiant", '<code>' + esc(R.uuid || "—") + '</code>'
-        + '<span class="hint">permanent : il ne change jamais, même renommée</span>') +
-    row("Nom au lancement", R.nomOrigine
-        ? '<code>' + esc(R.nomOrigine) + '</code><span class="hint">donné par <code>--name</code></span>'
-        : '<span class="hint">aucun — <code>--name</code> n\'a pas été donné, '
-          + 'c\'est l\'identifiant qui sert de nom</span>') +
-    row("Nom dans l\'outil",
-        '<input type="text" id="annotName" value="' + esc(a.nom) + '" placeholder="' +
-        esc(R.nomOrigine || shortId(R)) + '"> ' +
-        '<button class="mini" id="annotNameReset">valeur par défaut</button>' +
-        '<span class="hint sous">c\'est ce nom qui s\'affiche partout</span>') +
-    row("Description", '<textarea id="annotDesc" placeholder="ce qu\'on cherchait, ce qu\'on a vu, ce qu\'il reste à vérifier">'
-        + esc(a.description) + '</textarea>') +
-    row("Étiquettes", '<div id="annotTags">' + tagLines + '</div>' +
-        '<button class="mini" id="annotTagAdd">+ étiquette</button>' +
-        '<span class="hint">une clé, et un texte si besoin</span>') +
-    row("Élagage de l\'arbre", elagageActif(R)
-        ? (elagageOf(R).racine
-             ? 'racine ramenée à <code>' + esc(dot(elagageOf(R).racine.split(";").pop())) + '</code>'
-             : '') +
-          (elagageOf(R).coupes.length
-             ? (elagageOf(R).racine ? ', ' : '') + elagageOf(R).coupes.length +
-               ' branche' + (elagageOf(R).coupes.length > 1 ? 's' : '') + ' coupée' +
-               (elagageOf(R).coupes.length > 1 ? 's' : '')
-             : '') +
-          ' <button class="mini" id="annotPruneReset">tout rétablir</button>' +
-          '<span class="hint sous">se règle dans l\'onglet Exécutions, au bout de chaque ligne</span>'
-        : '<span class="hint" style="margin-left:0">aucun — dans l\'onglet <b>Exécutions</b>, ' +
-          '« élaguer » au bout d\'une ligne coupe la branche ou repart de ce nœud</span>') +
-    '</table>' +
-    '<p class="annotacts" id="annotActs"></p>' +
-    '<pre id="annotOut" hidden></pre></div>';
   renderAnnotActs();
+  const bar = document.getElementById("ident");
+  if (!bar) return;
+  // La fiche décrit l'exécution entière : elle s'affiche avec sa vue d'ensemble, pas
+  // par-dessus la lecture d'une méthode.
+  if (selected){ bar.hidden = true; return; }
+  bar.hidden = false;
 
-  const name = document.getElementById("annotName");
-  name.oninput = () => {
-    annotationPatch(R, "nom", name.value.trim() || null);
+  const a = annotationOf(R);
+  const tags = Object.entries(a.etiquettes || {});
+  const origine = R.nomOrigine
+    ? "Nom au lancement : " + R.nomOrigine
+    : "Aucun nom donné au lancement (--name)";
+  const etat = peutEnregistrer
+    ? (annotationModifiee(R) ? "non enregistré" : "à jour")
+    : "gardé dans ce navigateur";
+
+  bar.innerHTML =
+    (R.uuid ? '<span class="uid" title="Identifiant permanent, il ne change jamais : '
+              + esc(R.uuid) + '">' + esc(shortId(R)) + '</span>' : '') +
+    '<input class="inom" id="identNom" type="text" value="' + esc(a.nom) +
+      '" placeholder="' + esc(R.nomOrigine || shortId(R)) + '" title="' + esc(origine) +
+      ' · Identifiant : ' + esc(R.uuid || "—") + '" aria-label="Nom de cette exécution. '
+      + esc(origine) + '">' +
+    (a.nom ? '<button class="mini" id="identReset" title="Revenir au nom du lancement"'
+             + ' aria-label="Revenir au nom du lancement">↺</button>' : '') +
+    '<span class="sep"></span>' +
+    '<input class="idesc" id="identDesc" type="text" value="' + esc(a.description) +
+      '" placeholder="décrire cette exécution — ce qu\'on cherchait, ce qu\'on a vu"' +
+      ' title="Description libre, gardée avec l\'exécution"' +
+      ' aria-label="Description de cette exécution">' +
+    '<span class="sep"></span>' +
+    tags.map(([k, v], i) =>
+      '<span class="tag" title="Étiquette"><b>' + esc(k) + '</b>' +
+      (v ? ' = ' + esc(String(v)) : '') +
+      '<button data-tag="' + i + '" title="Retirer" aria-label="Retirer l\'étiquette '
+      + esc(k) + '">✕</button></span>').join("") +
+    '<button class="mini" id="identTagAdd" title="Une clé, et un texte si besoin">+ étiquette</button>' +
+    '<span class="etat' + (peutEnregistrer && annotationModifiee(R) ? " modifie" : "") +
+      '" id="identEtat">' + esc(etat) + '</span>';
+
+  const nom = document.getElementById("identNom");
+  nom.oninput = () => {
+    annotationPatch(R, "nom", nom.value.trim() || null);
     refreshRunLabels();
-    renderAnnotActs();
+    majEtat();
   };
-  document.getElementById("annotNameReset").onclick = () => {
-    // Vide, et non « absent » : une clé effacée laisserait revenir le nom enregistré dans
-    // le rapport, et le retour à la valeur par défaut ne tiendrait pas une régénération.
+  const reset = document.getElementById("identReset");
+  if (reset) reset.onclick = () => {
+    // Vide, et non « absent » : une clé effacée laisserait revenir le nom enregistré, et le
+    // retour au nom du lancement ne tiendrait pas une régénération.
     annotationPatch(R, "nom", "");
-    name.value = "";
     refreshRunLabels();
+    renderIdentity();
   };
-  const desc = document.getElementById("annotDesc");
-  desc.oninput = () => { annotationPatch(R, "description", desc.value.trim()); renderAnnotActs(); };
-  const pruneReset = document.getElementById("annotPruneReset");
-  if (pruneReset) pruneReset.onclick = () => {
-    poseElagage(R, {racine: "", coupes: []});
-    mode === "tree" ? renderTree() : renderClasses();
-    drawHome();
+  const desc = document.getElementById("identDesc");
+  desc.oninput = () => { annotationPatch(R, "description", desc.value.trim()); majEtat(); };
+
+  bar.querySelectorAll(".tag button").forEach(b => b.onclick = () => {
+    const restantes = {};
+    tags.forEach(([k, v], i) => { if (i !== +b.dataset.tag) restantes[k] = v; });
+    annotationPatch(R, "etiquettes", restantes);
+    renderIdentity();
+  });
+  document.getElementById("identTagAdd").onclick = e => {
+    const zone = document.createElement("span");
+    zone.className = "tagedit";
+    zone.innerHTML = '<input class="k" type="text" placeholder="étiquette" '
+                   + 'aria-label="Clé de la nouvelle étiquette">' +
+                     '<input class="v" type="text" placeholder="texte (facultatif)" '
+                   + 'aria-label="Texte de la nouvelle étiquette, facultatif">';
+    e.currentTarget.replaceWith(zone);
+    const k = zone.querySelector(".k"), v = zone.querySelector(".v");
+    const poser = () => {
+      const cle = k.value.trim();
+      if (!cle){ renderIdentity(); return; }
+      const suite = Object.fromEntries(tags);
+      suite[cle] = v.value.trim();
+      annotationPatch(R, "etiquettes", suite);
+      renderIdentity();
+    };
+    // Entrée valide, Échap abandonne, et sortir du champ vaut validation : les trois gestes
+    // qu'on essaie devant deux petits champs sans bouton.
+    [k, v].forEach(champ => {
+      champ.onkeydown = ev => {
+        if (ev.key === "Enter"){ ev.preventDefault(); poser(); }
+        if (ev.key === "Escape"){ ev.preventDefault(); renderIdentity(); }
+      };
+      champ.onblur = () => setTimeout(() => {
+        if (!zone.contains(document.activeElement)) poser();
+      }, 120);
+    });
+    k.focus();
   };
 
-  const collectTags = () => {
-    const out = {};
-    document.querySelectorAll("#annotTags .tagline").forEach(line => {
-      const k = line.querySelector(".k").value.trim();
-      if (k) out[k] = line.querySelector(".v").value.trim();
-    });
-    annotationPatch(R, "etiquettes", out);
+  function majEtat(){
+    const e = document.getElementById("identEtat");
+    if (!e) return;
+    const modifie = peutEnregistrer && annotationModifiee(R);
+    e.textContent = peutEnregistrer ? (modifie ? "non enregistré" : "à jour")
+                                    : "gardé dans ce navigateur";
+    e.classList.toggle("modifie", modifie);
     renderAnnotActs();
-  };
-  document.querySelectorAll("#annotTags .tagline").forEach(line => {
-    line.querySelectorAll("input").forEach(i => i.oninput = collectTags);
-    line.querySelector(".drop").onclick = () => { line.remove(); collectTags(); };
-  });
-  document.getElementById("annotTagAdd").onclick = () => {
-    const line = document.createElement("div");
-    line.className = "tagline";
-    line.innerHTML = '<input type="text" class="k" placeholder="étiquette">' +
-                     '<input type="text" class="v" placeholder="texte (facultatif)">' +
-                     '<button class="mini drop" title="Retirer cette étiquette">✕</button>';
-    document.getElementById("annotTags").appendChild(line);
-    line.querySelectorAll("input").forEach(i => i.oninput = collectTags);
-    line.querySelector(".drop").onclick = () => { line.remove(); collectTags(); };
-    line.querySelector(".k").focus();
-  };
+  }
 }
 
 /**
- * Les actions et l'état de la fiche, redessinés seuls.
+ * Les actions sur les annotations, dans la barre du haut.
  *
- * <p>Ils changent à chaque frappe — « non enregistré » apparaît dès la première lettre —
- * alors que refaire toute la fiche ferait perdre le curseur du champ qu'on est en train de
- * remplir. D'où ce bloc à part.
+ * <p>Enregistrer, exporter, importer, voir le JSON : ce sont des gestes, pas du contenu.
+ * Ils rejoignent donc les boutons de l'application plutôt que de s'intercaler dans le
+ * rapport, et « Enregistrer » n'apparaît que là où il veut dire quelque chose — quand la
+ * page est servie par l'outil.
  */
 function renderAnnotActs(){
-  const box = document.getElementById("annotActs");
+  const box = document.getElementById("annotbar");
   if (!box) return;
-  const modifie = annotationModifiee(R);
+  const modifie = peutEnregistrer && annotationModifiee(R);
   box.innerHTML =
+    '<span class="toolgrp"><span class="mark" title="Nom, description et étiquettes de ' +
+    'cette exécution">annotations</span>' +
     (peutEnregistrer
-      ? '<button class="mini fort" id="annotSave">Enregistrer</button>' +
-        (modifie ? '<button class="mini" id="annotRevert">reprendre la version enregistrée</button>' : '')
+      ? '<a href="#" id="annotSave"' + (modifie ? ' style="font-weight:700"' : '') +
+        ' title="Écrire l\'annotation de cette exécution à côté de ses résultats">' +
+        (modifie ? "enregistrer •" : "enregistrer") + '</a><span class="sep">·</span>'
       : '') +
-    '<button class="mini" id="annotExport">exporter le fichier</button>' +
-    '<button class="mini" id="annotImport">importer un fichier…</button>' +
-    '<button class="mini" id="annotDump">voir le JSON</button>' +
-    '<input type="file" id="annotFile" accept=".json,application/json" hidden>' +
-    '<span class="hint sous">' +
-    (peutEnregistrer
-      ? (modifie
-           ? '<b>Modifications non enregistrées</b> — elles ne sont, pour l\'instant, que '
-             + 'dans ce navigateur. '
-           : 'À jour avec le serveur. ') +
-        '« Enregistrer » écrit l\'annotation de <b>cette exécution</b> à côté de ses '
-        + 'résultats : plusieurs personnes peuvent donc annoter en même temps, chacune la '
-        + 'sienne, sans s\'écraser.'
-      : 'Ces annotations vivent dans ce navigateur, et y restent d\'une visite à l\'autre. ' +
-        'Les <b>exporter</b> donne un fichier à déposer à côté des exécutions ; ' +
-        'servir le rapport avec <code>--serve</code> laisse la page l\'écrire elle-même.') +
-    '</span>';
+    '<a href="#" id="annotExport" title="Télécharger le fichier d\'annotations de tout le rapport">exporter</a>' +
+    '<span class="sep">·</span>' +
+    '<a href="#" id="annotImport" title="Reprendre un fichier d\'annotations, entier ou d\'une seule exécution">importer</a>' +
+    '<span class="sep">·</span>' +
+    '<a href="#" id="annotDump" title="Voir ce qui serait écrit">JSON</a>' +
+    '<input type="file" id="annotFile" accept=".json,application/json" hidden></span>';
 
   const save = document.getElementById("annotSave");
-  if (save) save.onclick = () => enregistrerAnnotations(save);
-  const revert = document.getElementById("annotRevert");
-  if (revert) revert.onclick = () => reprendreEnregistree(R);
-  document.getElementById("annotExport").onclick = exporterAnnotations;
+  if (save) save.onclick = e => { e.preventDefault(); enregistrerAnnotations(save); };
+  document.getElementById("annotExport").onclick = e => { e.preventDefault(); exporterAnnotations(); };
   const fichier = document.getElementById("annotFile");
-  document.getElementById("annotImport").onclick = () => fichier.click();
+  document.getElementById("annotImport").onclick = e => { e.preventDefault(); fichier.click(); };
   fichier.onchange = () => {
     const f = fichier.files && fichier.files[0];
     if (!f) return;
-    const out = document.getElementById("annotOut");
     f.text().then(t => {
       const n = importerAnnotations(t);
       renderIdentity();
       refreshRunLabels();
       mode === "tree" ? renderTree() : renderClasses();
       drawHome();
-      const dit = document.getElementById("annotOut");
-      dit.hidden = false;
-      dit.textContent = n + " exécution" + (n > 1 ? "s" : "") + " reprise"
-                        + (n > 1 ? "s" : "") + " de « " + f.name + " »"
-                        + (peutEnregistrer ? " — « Enregistrer » les posera sur le serveur." : ".");
-    }).catch(e => {
-      out.hidden = false;
-      out.textContent = "import refusé : " + e.message;
-    });
+      montrer(n + " exécution" + (n > 1 ? "s" : "") + " reprise" + (n > 1 ? "s" : "")
+              + " de « " + f.name + " »"
+              + (peutEnregistrer ? " — « enregistrer » les posera sur le serveur." : "."));
+    }).catch(e => montrer("import refusé : " + e.message));
     fichier.value = "";
   };
-  document.getElementById("annotDump").onclick = () => {
-    const out = document.getElementById("annotOut");
-    out.hidden = false;
-    out.textContent = JSON.stringify(annotationsFile(), null, 2);
-    const r = document.createRange();
-    r.selectNodeContents(out);
-    const sel = getSelection();
-    sel.removeAllRanges();
-    sel.addRange(r);
+  document.getElementById("annotDump").onclick = e => {
+    e.preventDefault();
+    montrer(JSON.stringify(annotationsFile(), null, 2));
   };
+}
+
+/** Affiche un texte par-dessus la page — il sert à copier, pas à être lu dans le flux. */
+function montrer(texte){
+  const out = document.getElementById("annotout");
+  if (!out) return;
+  out.hidden = false;
+  out.textContent = texte;
+  const fermer = document.createElement("button");
+  fermer.className = "fermer";
+  fermer.textContent = "✕";
+  fermer.title = "Fermer";
+  fermer.onclick = () => { out.hidden = true; };
+  out.appendChild(fermer);
 }
 
 /** Les annotations de toutes les exécutions du rapport, dans la forme attendue par l'outil. */
