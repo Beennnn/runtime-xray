@@ -3,6 +3,10 @@
 > Une mesure sans nom ne se retrouve pas. Ce document décrit ce qu'on peut ajouter à une
 > exécution après l'avoir mesurée, où ça s'écrit, et les trois façons de faire vivre ces
 > annotations — du navigateur seul au serveur partagé.
+>
+> **Dans la page, tout cela s'appelle la « fiche » d'une exécution** : c'est le mot lisible
+> pour ce que ce document nomme ses annotations. La fiche est ce qui vient d'un humain ;
+> tout le reste de la page vient de la mesure, et les deux ne se mélangent jamais.
 
 ## Le problème
 
@@ -67,9 +71,14 @@ java -jar runtime-xray.jar --report-only --out /srv/runtime-xray --serve 8080 \
 ```
 
 La page reconnaît d'elle-même le mode où elle se trouve : servie par l'outil, elle propose
-**enregistrer** dans sa barre du haut ; ouverte comme fichier ou depuis un hébergement
-statique, elle s'en tient à **exporter** et **importer**, et le bandeau d'identité annonce
+**enregistrer** dans sa barre du haut, sous **fiche** ; ouverte comme fichier ou depuis un
+hébergement statique, elle s'en tient à **exporter** et **importer**, et le bandeau annonce
 alors *gardé dans ce navigateur*.
+
+Où trouver quoi dans la page : le bandeau **fiche**, sous le fil d'Ariane en vue d'ensemble,
+porte ce qui se saisit — nom, description, étiquettes ; le groupe **fiche** de la barre du
+haut porte ce qui s'en fait — enregistrer, exporter, importer, voir le JSON. Rien de
+modifiable ne vit dans le corps de la page : un rapport se lit, il ne se remplit pas.
 
 ### Annoter à plusieurs
 

@@ -385,4 +385,25 @@ class DashboardTest {
         Map<String, Object> first = (Map<String, Object>) ((List<Object>) data.get("runs")).get(0);
         assertEquals("essai \"guillemets\" et </script> et \\ antislash", first.get("nom"));
     }
+
+    @Test
+    @DisplayName("Les fichiers de l'exécution sont décrits à un seul endroit")
+    void theFileTableIsNotDuplicated(@TempDir Path dir) throws Exception {
+        // Le menu du haut et le bloc « sorties brutes » de la vue d'ensemble montrent la même
+        // liste. Tant qu'ils la portaient chacun, ajouter un export à l'un l'oubliait dans
+        // l'autre — c'est arrivé, perf a manqué au menu pendant que le bloc l'annonçait.
+        Path out = dir.resolve("out");
+        Files.createDirectories(out);
+        fixtureRun(out.resolve("runs"), "essai", "UUID-F", true);
+        String page = Files.readString(Dashboard.build(out, List.of(sources(dir)), 8),
+                StandardCharsets.UTF_8);
+
+        for (String chemin : List.of("exports/profil.perf.txt", "exports/profil.cpuprofile",
+                "exports/couverture.lcov", "exports/valeurs.json",
+                "async-profiler/profil.collapsed", "execution.log")) {
+            assertEquals(1, page.split(java.util.regex.Pattern.quote(chemin), -1).length - 1,
+                    "« " + chemin + " » est écrit plus d'une fois : les deux listes vont diverger");
+        }
+        assertTrue(page.contains("id=\"dlmenu\""), "le menu des exports doit être là");
+    }
 }
