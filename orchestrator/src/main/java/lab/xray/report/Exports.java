@@ -43,11 +43,22 @@ import java.util.Set;
 public final class Exports {
 
     /**
-     * Un relevé pesant {@code n} donne {@code n} échantillons : c'est ce que ces formats
-     * attendent. Au-delà de ce plafond, le fichier cesse d'être exploitable par les outils
-     * qui le liront — on s'arrête, et on le dit.
+     * Ce qu'un export {@code perf} pèse au plus.
+     *
+     * <p>Le plafond porte sur les <b>octets</b>, et pas sur le nombre de relevés : ce format
+     * réécrit la pile entière à chaque échantillon, si bien que sa taille dépend d'abord de
+     * la <b>profondeur</b> des piles. Quatre-vingt mille relevés de quarante frames pèsent
+     * plus que huit cent mille relevés de deux — compter les relevés serait compter la
+     * mauvaise chose.
+     *
+     * <p>Au-delà, on <b>allège proportionnellement</b> plutôt que de s'arrêter en route.
+     * S'arrêter coupait la fin de l'exécution : tout ce qui s'était passé après le plafond
+     * disparaissait sans laisser de trace, et le profil mentait sur la forme du programme.
+     * Alléger garde cette forme — c'est exactement ce que fait un profileur échantillonné
+     * quand on espace ses relevés, et la même réserve s'applique : ce qui pèse très peu peut
+     * disparaître. Le facteur retenu est annoncé sur la sortie standard.
      */
-    private static final long MAX_SAMPLES = 4_000_000L;
+    private static final long MAX_OCTETS = 32L * 1024 * 1024;
 
     /** Formats disponibles. Le nom est celui qu'on écrit sur la ligne de commande. */
     public enum Format {
@@ -127,26 +138,71 @@ public final class Exports {
      * que le symbole est là.
      */
     private static Path perf(Path collapsed, Path out, int intervalMs) throws IOException {
+        List<String> lignes = Files.readAllLines(collapsed, StandardCharsets.UTF_8);
+        Allegement allegement = Allegement.pour(lignes);
         long emitted = 0;
+        double reste = 0;
         try (BufferedWriter w = Files.newBufferedWriter(out, StandardCharsets.UTF_8)) {
-            for (String line : Files.readAllLines(collapsed, StandardCharsets.UTF_8)) {
+            for (String line : lignes) {
                 Sample sample = Sample.of(line);
                 if (sample == null) continue;
-                for (long i = 0; i < sample.count && emitted < MAX_SAMPLES; i++, emitted++) {
-                    double when = emitted * (intervalMs / 1000.0);
+                // Le reliquat se reporte d'une pile à l'autre : sans lui, tout ce qui pèse
+                // moins que le facteur disparaîtrait, et le total s'effondrerait.
+                double du = sample.count * allegement.facteur + reste;
+                long combien = (long) Math.floor(du);
+                reste = du - combien;
+                for (long i = 0; i < combien; i++, emitted++) {
+                    double when = emitted * (intervalMs / 1000.0) / allegement.facteur;
                     w.write(String.format(Locale.ROOT, "java 1/1 %.6f: 1 cpu-clock:%n", when));
                     for (int f = sample.frames.length - 1; f >= 0; f--) {
-                        w.write("\t                0 " + sample.frames[f] + " ([jit])\n");
+                        w.write("\t0 " + sample.frames[f] + " ([jit])\n");
                     }
                     w.write("\n");
                 }
             }
-            if (emitted >= MAX_SAMPLES) {
-                System.out.println("   export perf arrêté à " + MAX_SAMPLES
-                        + " échantillons — le reste du profil n'y figure pas");
-            }
+        }
+        if (allegement.allege()) {
+            System.out.println("   export perf allégé : " + emitted + " échantillons sur "
+                    + allegement.total + " (" + Math.round(allegement.facteur * 100)
+                    + " %) — ce format réécrit la pile entière à chaque relevé, et il ferait "
+                    + allegement.octets / (1024 * 1024) + " Mo autrement.");
+            System.out.println("      La forme du profil est gardée ; les parts très faibles "
+                    + "peuvent disparaître. Le cpuprofile, lui, porte tout.");
         }
         return out;
+    }
+
+    /**
+     * De combien alléger, et de quoi le dire.
+     *
+     * <p>Le facteur vaut 1 tant que le fichier tient sous le plafond : la grande majorité des
+     * mesures ne sont pas concernées, et un export qui ne change rien ne doit rien annoncer.
+     */
+    private record Allegement(long total, long octets, double facteur) {
+
+        /** Ce qu'écrit une ligne d'échantillon, en-tête comprise, mesuré sur les données. */
+        static Allegement pour(List<String> lignes) {
+            long total = 0, octets = 0;
+            for (String line : lignes) {
+                Sample sample = Sample.of(line);
+                if (sample == null) continue;
+                total += sample.count;
+                long parEchantillon = ENTETE;
+                for (String frame : sample.frames) {
+                    parEchantillon += frame.length() + DECOR;
+                }
+                octets += sample.count * parEchantillon;
+            }
+            return new Allegement(total, octets,
+                    octets <= MAX_OCTETS ? 1.0 : (double) MAX_OCTETS / octets);
+        }
+
+        boolean allege() { return facteur < 1.0; }
+
+        /** « java 1/1 12.345678: 1 cpu-clock: » plus la ligne vide de fin. */
+        private static final int ENTETE = 34;
+        /** La tabulation, l'adresse, l'espace, « ([jit]) » et le retour à la ligne. */
+        private static final int DECOR = 13;
     }
 
     // ------------------------------------------------------------------ cpuprofile
@@ -157,7 +213,7 @@ public final class Exports {
      * <p>Bien plus compact que {@code perf script} : les piles y sont partagées dans un
      * arbre, et l'échantillon n'est qu'un renvoi vers un nœud. Un profil d'une minute tient
      * en quelques centaines de kilo-octets là où le texte en occupe des dizaines de
-     * méga-octets.
+     * méga-octets. Il n'a donc pas besoin d'être allégé : il porte tous les relevés.
      */
     private static Path cpuprofile(Path collapsed, Path out, int intervalMs) throws IOException {
         Node root = new Node(1, "(root)");
@@ -170,7 +226,7 @@ public final class Exports {
             if (sample == null) continue;
             Node node = root;
             for (String frame : sample.frames) node = node.child(frame, nodes);
-            for (long i = 0; i < sample.count && samples.size() < MAX_SAMPLES; i++) {
+            for (long i = 0; i < sample.count; i++) {
                 samples.add(node.id);
             }
         }
