@@ -60,18 +60,39 @@
   .cleanbtn[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
   /* Ce que fait l'autre position du bouton, écrit à côté : un interrupteur qui change
      d'intitulé quand on l'actionne ne dit jamais ce qu'on obtiendra en cliquant. */
-  .altlabel{font-size:11.5px;color:var(--muted);margin-left:9px}
+  .altlabel{font-size:11.5px;color:var(--muted);margin-left:0}
   /* Les liens sont groupés PAR OUTIL : « couverture détaillée » et « couverture ciblée »
      viennent du même outil et le répéter sur chacun était du bruit. La marque porte le nom
      une fois, les liens suivent. */
-  .links{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:14px;flex-wrap:wrap}
-  .toolgrp{display:inline-flex;align-items:center;gap:6px}
-  .toolgrp .mark{display:inline-flex;align-items:center;gap:4px;font-size:9.5px;font-weight:700;
-                 letter-spacing:.3px;color:var(--muted);text-transform:uppercase}
+  .links{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .toolgrp{display:inline-flex;align-items:center;gap:7px;background:var(--bg);
+           border:1px solid var(--border);border-radius:16px;padding:3px 11px}
+  .toolgrp .mark{display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:700;
+                 letter-spacing:.4px;color:var(--text);text-transform:uppercase;
+                 border-right:1px solid var(--border);padding-right:8px}
   .links a{margin:0}
   .toolgrp .sep{color:var(--border)}
+  /* Une douzaine de liens de téléchargement alignés à plat dans la barre du haut : on ne
+     voyait plus quel fichier venait de quel outil, et ils occupaient la largeur entière
+     pour un usage occasionnel. Repliés dans un menu, les catégories redeviennent des
+     titres, chaque fichier gagne la phrase qui dit ce qu'il contient, et la barre respire. */
+  .dl{position:relative;display:inline-flex}
+  .dlmenu{position:absolute;top:calc(100% + 7px);left:0;z-index:45;width:min(94vw,430px);
+          max-height:min(70vh,540px);overflow:auto;background:var(--bg);
+          border:1px solid var(--border);border-radius:11px;padding:7px;
+          box-shadow:0 10px 30px rgba(0,0,0,.18)}
+  .dlmenu[hidden]{display:none}
+  .dlmenu h4{display:flex;align-items:center;gap:6px;margin:9px 8px 4px;font-size:10px;
+             font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:var(--text)}
+  .dlmenu h4:first-child{margin-top:3px}
+  .dlmenu .note{margin:0 8px 5px;font-size:11px;color:var(--muted);line-height:1.4}
+  .dlmenu a{display:block;padding:6px 9px;border-radius:7px;text-decoration:none}
+  .dlmenu a:hover,.dlmenu a:focus-visible{background:var(--accent-soft)}
+  .dlmenu a .t{display:block;font-size:12.5px;font-weight:600;color:var(--accent)}
+  .dlmenu a .d{display:block;font-size:11.5px;color:var(--muted);line-height:1.35}
   /* Un export absent reste nommé : la capacité doit se voir même quand le fichier n'est
      pas là. Éteint, mais cliquable — le clic dit comment l'obtenir. */
+  .dlmenu a.off .t{color:var(--muted);text-decoration:underline;text-decoration-style:dotted}
   .links a.off{color:var(--muted);text-decoration-style:dotted}
   .links a.off:hover{color:var(--accent);opacity:1}
   .helpbtn{font:inherit;font-size:12px;font-weight:600;padding:4px 11px;border-radius:15px;
@@ -294,8 +315,12 @@
   .node.sel .vkey, .node.sel .vval, .node.sel .veq{color:#fff}
   .grouphead{padding:6px 8px 2px;color:var(--muted);font-size:11px;letter-spacing:.6px;text-transform:uppercase}
   #detail{display:flex;flex-direction:column;min-height:0}
-  .crumb{padding:9px 16px;font-size:13px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-  .viewbar{padding:0 16px 9px;border-bottom:1px solid var(--border);display:flex;gap:8px}
+  /* Où l'on est, et comment le code est montré : deux réglages d'une même vue, donc une
+     seule ligne. Empilés, ils repoussaient le contenu de deux rangs sans rien dire de plus. */
+  .topline{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:8px 16px;
+           border-bottom:1px solid var(--border)}
+  .crumb{font-size:13px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .viewbar{display:flex;align-items:center;gap:8px;margin-left:auto}
   .crumb b{font-weight:650} .crumb span{color:var(--muted)}
   .crumb a.pkgseg{color:var(--muted);text-decoration:none;border-radius:4px;padding:0 2px}
   .crumb a.pkgseg:hover{color:#fff;background:var(--missbar)}
@@ -441,21 +466,29 @@
      remplit pas. L'identité de l'exécution tient donc sur un bandeau dense, juste sous son
      nom, et les actions montent dans la barre du haut avec les autres boutons. */
   .identbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;
-            padding:6px 16px;border-bottom:1px solid var(--border);background:var(--panel2)}
+            padding:8px 16px;border-bottom:1px solid var(--border);background:var(--panel2)}
   .identbar[hidden]{display:none}
-  .identbar .uid{margin-left:0;cursor:default}
+  /* Le même mot et la même icône qu'en haut : c'est bien la fiche que ce bandeau remplit. */
+  .identbar .mark{display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:700;
+                  letter-spacing:.4px;color:var(--text);text-transform:uppercase;
+                  border-right:1px solid var(--border);padding-right:9px}
+  .identbar .uid{margin-left:0;cursor:default;font-size:10.5px;color:var(--text);
+                 background:var(--bg);padding:2px 6px}
+  /* Un champ qui n'a pas l'air d'un champ ne s'utilise pas : le contour est là avant le
+     survol, et le texte d'appel se lit — il porte la seule consigne du bandeau. */
   .identbar input{font:inherit;font-size:12.5px;color:var(--text);background:var(--bg);
-                  border:1px solid transparent;border-radius:6px;padding:3px 7px}
-  .identbar input:hover{border-color:var(--border)}
-  .identbar input:focus{border-color:var(--accent);outline:none}
-  .identbar input::placeholder{color:var(--muted);opacity:.75}
+                  border:1px solid var(--border);border-radius:6px;padding:4px 8px}
+  .identbar input:hover{border-color:var(--muted)}
+  .identbar input:focus{border-color:var(--accent);outline:none;
+                        box-shadow:0 0 0 2px var(--accent-soft)}
+  .identbar input::placeholder{color:var(--muted);opacity:1}
   /* Le nom EST le titre de la vue : il en a la taille, et il se modifie sur place — un
      titre qu'on ne peut pas corriger oblige à le chercher ailleurs. */
   .identbar .inom{font-weight:650;font-size:15px;min-width:150px;flex:0 1 260px}
   .identbar .idesc{flex:1 1 260px;min-width:160px}
   .identbar .sep{width:1px;align-self:stretch;background:var(--border);margin:0 2px}
-  .identbar .mini{font:inherit;font-size:11px;font-weight:600;padding:2px 8px;border-radius:11px;
-                  border:1px solid var(--border);background:var(--bg);color:var(--muted);
+  .identbar .mini{font:inherit;font-size:11.5px;font-weight:600;padding:3px 10px;border-radius:11px;
+                  border:1px solid var(--border);background:var(--bg);color:var(--text);
                   cursor:pointer;white-space:nowrap}
   .identbar .mini:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
   .identbar .tag{display:inline-flex;align-items:center;gap:4px;font-size:11.5px;
@@ -468,8 +501,10 @@
   .identbar .tagedit{display:inline-flex;gap:4px;align-items:center}
   .identbar .tagedit input{border-color:var(--border);font-size:11.5px;padding:2px 6px}
   .identbar .tagedit .k{width:96px} .identbar .tagedit .v{width:110px}
-  .identbar .etat{font-size:11px;color:var(--muted);margin-left:auto;white-space:nowrap}
-  .identbar .etat.modifie{color:var(--partbar);font-weight:600}
+  .identbar .etat{font-size:11px;color:var(--muted);margin-left:auto;white-space:nowrap;
+                  border:1px solid var(--border);border-radius:11px;padding:2px 9px;
+                  background:var(--bg)}
+  .identbar .etat.modifie{color:var(--partbar);font-weight:600;border-color:var(--partbar)}
   /* Le JSON s'affiche par-dessus, pas dans le flux : il sert à copier, pas à lire. */
   #annotout{position:fixed;top:52px;right:16px;z-index:60;max-width:520px;max-height:60vh;
             overflow:auto;background:var(--bg);border:1px solid var(--border);border-radius:10px;
@@ -583,13 +618,15 @@
     <button class="splitbtn" id="vtoggle" title="Replier / déplier le panneau de gauche">‹</button>
   </div>
   <div id="detail">
-    <div class="crumb" id="crumb"></div>
-    <div class="viewbar">
-      <button id="clean" class="cleanbtn" aria-pressed="true"
-              title="Resserré : seule la méthode sélectionnée est affichée, sans ses lignes mortes">
-        <span class="ic"></span><span class="lab">Resserré sur la méthode</span>
-      </button>
-      <span class="altlabel" id="cleanalt">cliquer pour afficher le fichier entier</span>
+    <div class="topline">
+      <div class="crumb" id="crumb"></div>
+      <div class="viewbar">
+        <button id="clean" class="cleanbtn" aria-pressed="true"
+                title="Resserré : seule la méthode sélectionnée est affichée, sans ses lignes mortes">
+          <span class="ic"></span><span class="lab">Resserré sur la méthode</span>
+        </button>
+        <span class="altlabel" id="cleanalt">cliquer pour afficher le fichier entier</span>
+      </div>
     </div>
     <div class="identbar" id="ident" hidden></div>
     <div id="context"></div>
@@ -920,7 +957,7 @@ function enregistrerAnnotations(bouton){
         annotationsServeur[run.uuid] = body.valeur;
         empreintesServeur[run.uuid] = body.empreinte;
         dire("modifiée entre-temps");
-        montrer("Cette exécution a été annotée par quelqu'un d'autre pendant que vous la "
+        montrer("La fiche de cette exécution a été modifiée par quelqu'un d'autre pendant que vous la "
           + "modifiiez. Version enregistrée :\n\n"
           + JSON.stringify(body.valeur, null, 2)
           + "\n\nCliquer « enregistrer » à nouveau remplacera la sienne par la vôtre ; "
@@ -977,7 +1014,7 @@ function exporterAnnotations(){
 function importerAnnotations(texte){
   const lu = JSON.parse(texte);
   if (!lu || typeof lu !== "object" || Array.isArray(lu)) {
-    throw new Error("ce fichier ne porte pas d'annotations");
+    throw new Error("ce fichier ne porte aucune fiche d'exécution");
   }
   // Un fichier d'exécution — nom, description, étiquettes — n'est pas indexé par
   // identifiant : il vaut pour l'exécution regardée, et c'est la seule lecture possible.
@@ -1160,70 +1197,179 @@ const TOOLMARK = {
     '<svg viewBox="0 0 14 14" width="13" height="13" aria-hidden="true" fill="none"' +
     ' stroke="#6b46c1" stroke-width="1.8"><circle cx="5.8" cy="5.8" r="4.2"/>' +
     '<path d="M9 9l4 4" stroke-linecap="round"/></svg>',
+  // Une étiquette qu'on accroche : ce que cette page ajoute à la mesure, et qui n'en
+  // change rien. « Annotations » ne disait rien à qui n'avait pas lu la documentation.
+  fiche:
+    '<svg viewBox="0 0 14 14" width="12" height="12" aria-hidden="true" fill="none"' +
+    ' stroke="#2f855a" stroke-width="1.5" stroke-linejoin="round">' +
+    '<path d="M7.4 1.4H2.4a1 1 0 0 0-1 1v5a1 1 0 0 0 .3.7l4.9 4.9a1 1 0 0 0 1.4 0l4.3-4.3' +
+    'a1 1 0 0 0 0-1.4L8.1 1.7a1 1 0 0 0-.7-.3Z"/>' +
+    '<circle cx="4.3" cy="4.3" r=".85" fill="#2f855a" stroke="none"/></svg>',
+  // Les formats publics : une flèche qui sort de la boîte. Ce ne sont plus les fichiers
+  // d'un outil, mais la même mesure réécrite pour un autre.
+  ouvert:
+    '<svg viewBox="0 0 14 14" width="12" height="12" aria-hidden="true" fill="none"' +
+    ' stroke="#0969da" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">' +
+    '<path d="M7 9.2V1.6"/><path d="M4.4 4.2 7 1.6l2.6 2.6"/>' +
+    '<path d="M2.2 9v2.4a1 1 0 0 0 1 1h7.6a1 1 0 0 0 1-1V9"/></svg>',
+  // Ce que l'exécution elle-même a laissé : une feuille.
+  run:
+    '<svg viewBox="0 0 14 14" width="12" height="12" aria-hidden="true" fill="none"' +
+    ' stroke="#59636e" stroke-width="1.5" stroke-linejoin="round">' +
+    '<path d="M3 1.6h5l3 3v7.8a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V2.6a1 1 0 0 1 1-1Z"/>' +
+    '<path d="M8 1.6v3h3"/></svg>',
 };
 
+/** La flèche du bouton : définie ici parce que la barre se monte avant le reste. */
+const ICONE_EXPORT =
+  '<svg viewBox="0 0 14 14" width="13" height="13" aria-hidden="true" fill="none"' +
+  ' stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">' +
+  '<path d="M7 1.8v7.4"/><path d="M4.2 6.6 7 9.4l2.8-2.8"/>' +
+  '<path d="M2.2 10.4v1.2a1 1 0 0 0 1 1h7.6a1 1 0 0 0 1-1v-1.2"/></svg>';
+
 /**
- * Les exports, dans la barre du haut — présents ou non.
+ * Tous les fichiers d'une exécution, dans un seul endroit.
  *
- * <p>Une capacité qui ne vit que dans une option de ligne de commande n'existe pas pour qui
- * lit la page : personne ne devine qu'un profil se relit dans Firefox Profiler ou dans
- * speedscope. Les quatre formats sont donc toujours nommés ici ; quand les fichiers ne sont
- * pas là, ils restent visibles mais éteints, et un clic donne la commande qui les produit —
- * plutôt qu'un lien qui mènerait à une erreur.
+ * <p>Une seule table, lue à deux endroits : le menu de la barre du haut et le bloc « sorties
+ * brutes » de la vue d'ensemble. Ils disaient la même chose à deux endroits ; le jour où
+ * l'un gagnait une entrée, l'autre l'oubliait.
+ *
+ * <p>Chaque entrée porte la phrase qui dit ce que le fichier contient. C'est ce qui manquait
+ * dans la barre : « perf », « lcov », « cpuprofile » alignés côte à côte ne disent pas à qui
+ * ne les connaît pas déjà lequel s'ouvre dans quoi.
+ *
+ * <p><b>toujours</b> marque le groupe dont les entrées restent nommées même absentes : une
+ * capacité qui ne vit que dans une option de ligne de commande n'existe pas pour qui lit la
+ * page. Éteintes, elles restent cliquables, et le clic donne la commande qui les produit.
  */
-function exportsGroup(a, b){
-  const formats = [
-    [a.exportPerf, "exports/profil.perf.txt", "perf", "Sortie perf script — ce que Firefox Profiler importe"],
-    [a.exportCpuprofile, "exports/profil.cpuprofile", "cpuprofile", "Profil Chrome DevTools — lu par speedscope"],
-    [a.exportLcov, "exports/couverture.lcov", "lcov", "Couverture au format LCOV — éditeurs et suivi de couverture"],
-    [a.exportValeurs, "exports/valeurs.json", "valeurs.json", "Les appels observés et leurs valeurs, pour un script"]
+function fichiersDuRun(){
+  const b = R.chemin || "", a = R.rapports || {};
+  return [
+    {mark: "jacoco", nom: "JaCoCo", items: [
+      [a.couverture, b + "jacoco/html/index.html", "Couverture détaillée",
+       "Le rapport complet, fichier par fichier, avec le code annoté ligne à ligne."],
+      [a.ciblee, b + "jacoco-focused/html/index.html", "Couverture ciblée",
+       "Le même, restreint aux classes qui ont réellement tourné."],
+      [a.jacocoXml, b + "jacoco/html/jacoco.xml", "Données XML",
+       "La source que cette page lit. Exploitable par un autre outil, ou à la main."],
+      [a.jacocoCsv, b + "jacoco/html/jacoco.csv", "Données CSV",
+       "Le même contenu, une ligne par classe — pour un tableur."]]},
+    {mark: "async", nom: "async-profiler", items: [
+      [a.flamegraph, b + "async-profiler/flamegraph.html", "Profil brut",
+       "Le rendu de l'outil lui-même, sans aucun de nos replis ni agrégations."],
+      [a.flamegraphInverse, b + "async-profiler/flamegraph-inverse.html", "Profil inversé",
+       "Le même retourné : part d'une méthode coûteuse et remonte vers ses appelants."],
+      [a.collapsed, b + "async-profiler/profil.collapsed", "Piles repliées",
+       "La mesure elle-même : une pile d'appels par ligne, suivie de son nombre de relevés."]]},
+    {mark: "arthas", nom: "Arthas", items: [
+      [a.valeurs, b + "arthas/watch-params.txt", "Valeurs capturées",
+       "Les paramètres et retours relevés, dans la forme où l'outil les a imprimés."],
+      [a.traceBrute, b + "arthas/trace-calltree.txt", "Trace d'invocation",
+       "Les arbres d'appel réels, un par invocation, avec les numéros de ligne."]]},
+    {mark: "ouvert", nom: "Formats ouverts", toujours: true,
+     note: "Les mêmes mesures réécrites pour être reprises ailleurs — un profileur, un "
+         + "éditeur, un script. Sans repli ni masquage : c'est la mesure, pas la synthèse.",
+     items: [
+      [a.exportPerf, b + "exports/profil.perf.txt", "Profil au format perf", "perf",
+       "La sortie texte de perf script. C'est ce que Firefox Profiler sait ouvrir."],
+      [a.exportCpuprofile, b + "exports/profil.cpuprofile", "Profil au format cpuprofile",
+       "cpuprofile",
+       "Le profil échantillonné de Chrome DevTools — plus compact, lu par speedscope."],
+      [a.exportLcov, b + "exports/couverture.lcov", "Couverture au format LCOV", "lcov",
+       "Le format que lisent les éditeurs et les services de suivi de couverture."],
+      [a.exportValeurs, b + "exports/valeurs.json", "Valeurs capturées en JSON",
+       "valeurs.json",
+       "Les appels observés et leurs valeurs, pour un script qui les compare."]]},
+    {mark: "run", nom: "Cette exécution", items: [
+      [a.journal, b + "execution.log", "Journal de l'exécution",
+       "Ce que l'application a écrit sur sa sortie, et ce que l'outil a fait autour."],
+      [a.contexte, b + "run-context.json", "Contexte",
+       "Commande lancée, méthode racine, filtres, machine, version de Java, durée."]]}
   ];
-  return '<span class="toolgrp"><span class="mark" title="Les mêmes mesures réécrites pour ' +
-    'd\'autres outils">exports</span>' +
-    formats.map(f => f[0]
-      ? '<a href="' + b + f[1] + '" target="_blank" rel="noopener" title="' + esc(f[3]) + '">'
-        + f[2] + '</a>'
-      : '<a href="#" class="off" data-export="' + f[2] + '" title="' + esc(f[3])
-        + ' — pas encore produit pour ce rapport">' + f[2] + '</a>')
-      .join('<span class="sep">·</span>') + '</span>';
+}
+
+/** Le nombre de fichiers réellement présents : c'est lui qu'annonce le bouton. */
+function combienDeFichiers(){
+  return fichiersDuRun().reduce((n, g) => n + g.items.filter(i => i[0]).length, 0);
 }
 
 function refreshLinks(){
-  // On n'affiche un lien que si le fichier a réellement été produit : un lien mort est
-  // pire que pas de lien. Le générateur nous dit ce qui existe.
-  const b = R.chemin || "", a = R.rapports || {};
-  // Un groupe par outil, la marque écrite une seule fois : « couverture détaillée » et
-  // « couverture ciblée » sortent toutes deux de JaCoCo, le répéter n'apprenait rien.
-  const grp = (mark, nom, liens) => {
-    const ok = liens.filter(x => x[0]);
-    if (!ok.length) return "";
-    return '<span class="toolgrp"><span class="mark" title="Rapports produits par '+nom+'">' +
-      TOOLMARK[mark] + nom + '</span>' +
-      ok.map(x => '<a href="'+b+x[1]+'" target="_blank" rel="noopener">'+x[2]+'</a>')
-        .join('<span class="sep">·</span>') + '</span>';
+  const groupes = fichiersDuRun().filter(g => g.toujours || g.items.some(i => i[0]));
+  const entree = (g, it) => {
+    const [ok, href, titre] = it;
+    const court = g.toujours ? it[3] : null;
+    const quoi = g.toujours ? it[4] : it[3];
+    return ok
+      ? '<a role="menuitem" href="' + href + '" target="_blank" rel="noopener">' +
+        '<span class="t">' + esc(titre) + '</span><span class="d">' + esc(quoi) + '</span></a>'
+      : '<a role="menuitem" class="off" href="#" data-export="' + esc(court || titre) + '">' +
+        '<span class="t">' + esc(titre) + '</span>' +
+        '<span class="d">' + esc(quoi) + ' — pas encore produit pour ce rapport.</span></a>';
   };
   document.getElementById("links").innerHTML =
-    grp("jacoco", "JaCoCo", [
-      [a.couverture, "jacoco/html/index.html", "couverture détaillée"],
-      [a.ciblee, "jacoco-focused/html/index.html", "couverture ciblée"]]) +
-    grp("async", "async-profiler", [
-      [a.flamegraph, "async-profiler/flamegraph.html", "profil brut"],
-      [a.flamegraphInverse, "async-profiler/flamegraph-inverse.html", "profil inversé"]]) +
-    grp("arthas", "Arthas", [
-      [a.valeurs, "arthas/watch-params.txt", "valeurs"],
-      [a.traceBrute, "arthas/trace-calltree.txt", "trace"]]) +
-    exportsGroup(a, b);
+    '<span class="dl">' +
+    '<button id="dlbtn" class="cleanbtn" aria-haspopup="true" aria-expanded="false"' +
+    ' aria-controls="dlmenu" title="Les fichiers écrits par cette exécution : sorties brutes' +
+    ' des outils, formats ouverts, journal">' +
+    '<span class="ic">' + ICONE_EXPORT + '</span><span class="lab">Exports</span>' +
+    '<span aria-hidden="true" style="opacity:.7">▾</span></button>' +
+    '<div class="dlmenu" id="dlmenu" hidden role="menu" aria-label="Fichiers de cette exécution">' +
+    groupes.map(g =>
+      '<h4>' + (TOOLMARK[g.mark] || "") + esc(g.nom) + '</h4>' +
+      (g.note ? '<p class="note">' + esc(g.note) + '</p>' : '') +
+      g.items.filter(it => g.toujours || it[0]).map(it => entree(g, it)).join("")).join("") +
+    '</div></span>';
+  poserMenuExports();
 }
+
+/**
+ * Ouvrir, fermer, et parcourir au clavier.
+ *
+ * <p>Un menu qui ne se ferme qu'en cliquant sur son bouton piège la souris, et un menu qu'on
+ * ne parcourt pas aux flèches n'est pas un menu pour qui n'utilise pas de souris.
+ */
+function poserMenuExports(){
+  const bouton = document.getElementById("dlbtn");
+  const menu = document.getElementById("dlmenu");
+  if (!bouton || !menu) return;
+  const items = () => [...menu.querySelectorAll("a")];
+  const fermer = (rendreLeFocus) => {
+    menu.hidden = true;
+    bouton.setAttribute("aria-expanded", "false");
+    if (rendreLeFocus) bouton.focus();
+  };
+  bouton.onclick = e => {
+    e.preventDefault();
+    const ouvert = menu.hidden;
+    menu.hidden = !ouvert;
+    bouton.setAttribute("aria-expanded", String(ouvert));
+    if (ouvert) { const l = items()[0]; if (l) l.focus(); }
+  };
+  menu.onkeydown = e => {
+    const l = items(), i = l.indexOf(document.activeElement);
+    if (e.key === "Escape") { e.preventDefault(); fermer(true); }
+    else if (e.key === "ArrowDown") { e.preventDefault(); l[Math.min(l.length - 1, i + 1)].focus(); }
+    else if (e.key === "ArrowUp") { e.preventDefault(); (i <= 0 ? bouton : l[i - 1]).focus(); }
+  };
+  bouton.onkeydown = e => { if (e.key === "Escape" && !menu.hidden) fermer(true); };
+  // Un clic ailleurs ferme : c'est ce que fait tout menu, et ne pas le faire donne
+  // l'impression que la page est bloquée.
+  document.addEventListener("click", e => {
+    if (!menu.hidden && !menu.contains(e.target) && !bouton.contains(e.target)) fermer(false);
+  });
+  menu.addEventListener("click", e => {
+    const a = e.target.closest("a.off");
+    if (!a) { if (e.target.closest("a")) fermer(false); return; }
+    e.preventDefault();
+    fermer(false);
+    montrer("« " + a.dataset.export + " » n'a pas été produit pour ce rapport.\n\n"
+      + "Pour l'obtenir, sans relancer la moindre mesure :\n\n"
+      + "    java -jar runtime-xray.jar --report-only --out <ce dossier> --export tout\n\n"
+      + "Les fichiers sont écrits dans <exécution>/exports/, et ce menu les liera.");
+  });
+}
+
 refreshLinks();
-document.getElementById("links").addEventListener("click", e => {
-  const a = e.target.closest("a.off");
-  if (!a) return;
-  e.preventDefault();
-  montrer("« " + a.dataset.export + " » n'a pas été produit pour ce rapport.\n\n"
-    + "Pour l'obtenir, sans relancer la moindre mesure :\n\n"
-    + "    java -jar runtime-xray.jar --report-only --out <ce dossier> --export tout\n\n"
-    + "Les fichiers sont écrits dans <exécution>/exports/, et cette barre les liera.");
-});
 renderMaskBar();
 document.getElementById("legend").innerHTML =
   '<span class="sw" style="background:var(--full);border-color:var(--fullbar)"></span>exécutée' +
@@ -2546,63 +2692,27 @@ function valuesHelp(){
  * croire sur parole.
  */
 function rawBlock(){
-  const b = R.chemin || "", a = R.rapports || {};
-  const f = (ok, href, titre, quoi) => ok
-    ? '<a class="lk" href="'+b+href+'" target="_blank" rel="noopener">' +
-      '<span class="lkt">'+titre+'</span><span class="lkd">'+quoi+'</span></a>' : "";
-  const group = (mark, nom, items) => {
-    const body = items.join("");
-    return body ? '<h3 class="rawh">'+TOOLMARK[mark]+' '+nom+'</h3><div class="links2">'+body+'</div>' : "";
+  // La même table que le menu de la barre du haut : ce qui s'y ajoute apparaît ici sans
+  // qu'on y pense, et les deux ne peuvent plus se contredire.
+  const groupes = fichiersDuRun();
+  const lien = (g, it) => {
+    const [ok, href, titre] = it;
+    const quoi = g.toujours ? it[4] : it[3];
+    return ok ? '<a class="lk" href="' + href + '" target="_blank" rel="noopener">' +
+      '<span class="lkt">' + esc(titre) + '</span>' +
+      '<span class="lkd">' + esc(quoi) + '</span></a>' : "";
   };
   return '<h2>Les sorties brutes des outils</h2>' +
     '<p class="rawnote">Ce qui suit n\'est pas produit par cette page : ce sont les fichiers ' +
     'que chaque outil a écrits, tels quels. À consulter quand la synthèse surprend — ou ' +
-    'si elle ne s\'ouvre plus.</p>' +
-    group("jacoco", "JaCoCo", [
-      f(a.couverture, "jacoco/html/index.html", "Couverture détaillée",
-        "Le rapport complet, fichier par fichier, avec le code annoté ligne à ligne."),
-      f(a.ciblee, "jacoco-focused/html/index.html", "Couverture ciblée",
-        "Le même, restreint aux classes qui ont réellement tourné."),
-      f(a.jacocoXml, "jacoco/html/jacoco.xml", "Données XML",
-        "La source que cette page lit. Exploitable par un autre outil, ou à la main."),
-      f(a.jacocoCsv, "jacoco/html/jacoco.csv", "Données CSV",
-        "Le même contenu, une ligne par classe — pour un tableur.")]) +
-    group("async", "async-profiler", [
-      f(a.flamegraph, "async-profiler/flamegraph.html", "Profil brut",
-        "Le rendu de l\'outil lui-même, sans aucun de nos replis ni agrégations."),
-      f(a.flamegraphInverse, "async-profiler/flamegraph-inverse.html", "Profil inversé",
-        "Le même retourné : part d\'une méthode coûteuse et remonte vers ses appelants."),
-      f(a.collapsed, "async-profiler/profil.collapsed", "Piles repliées",
-        "La mesure elle-même : une pile d\'appels par ligne, suivie de son nombre de relevés.")]) +
-    group("arthas", "Arthas", [
-      f(a.valeurs, "arthas/watch-params.txt", "Valeurs capturées",
-        "Les paramètres et retours relevés, dans la forme où l\'outil les a imprimés."),
-      f(a.traceBrute, "arthas/trace-calltree.txt", "Trace d\'invocation",
-        "Les arbres d\'appel réels, un par invocation, avec les numéros de ligne.")]) +
-    (a.exportPerf || a.exportCpuprofile || a.exportLcov || a.exportValeurs
-      ? '<h3 class="rawh">Pour un autre outil</h3>' +
-        '<p class="rawnote">Les mêmes mesures réécrites dans des formats publics, pour les ' +
-        'reprendre ailleurs — un profileur, un éditeur, un script. Produits par ' +
-        '<code>--export</code>, sans repli ni masquage : c\'est la mesure, pas la synthèse.</p>' +
-        '<div class="links2">' +
-        f(a.exportPerf, "exports/profil.perf.txt", "Profil au format perf",
-          "La sortie texte de perf script. C\'est ce que Firefox Profiler sait ouvrir.") +
-        f(a.exportCpuprofile, "exports/profil.cpuprofile", "Profil au format cpuprofile",
-          "Le profil échantillonné de Chrome DevTools — bien plus compact, lu par speedscope.") +
-        f(a.exportLcov, "exports/couverture.lcov", "Couverture au format LCOV",
-          "Le format que lisent les éditeurs et les services de suivi de couverture.") +
-        f(a.exportValeurs, "exports/valeurs.json", "Valeurs capturées en JSON",
-          "Les appels observés et leurs valeurs, pour un script qui les compare.") +
-        '</div>'
-      : "") +
-    (a.journal || a.contexte
-      ? '<h3 class="rawh">Cette exécution</h3><div class="links2">' +
-        f(a.journal, "execution.log", "Journal de l\'exécution",
-          "Ce que l\'application a écrit sur sa sortie, et ce que l\'outil a fait autour.") +
-        f(a.contexte, "run-context.json", "Contexte",
-          "Commande lancée, méthode racine, filtres, machine, version de Java, durée.") +
-        '</div>'
-      : "");
+    'si elle ne s\'ouvre plus. Ils sont aussi dans le menu <b>Exports</b>, en haut.</p>' +
+    groupes.map(g => {
+      const corps = g.items.map(it => lien(g, it)).join("");
+      if (!corps) return "";
+      return '<h3 class="rawh">' + (TOOLMARK[g.mark] || "") + ' ' + esc(g.nom) + '</h3>' +
+        (g.note ? '<p class="rawnote">' + esc(g.note) + '</p>' : '') +
+        '<div class="links2">' + corps + '</div>';
+    }).join("");
 }
 
 function linksBlock(){
@@ -2887,6 +2997,9 @@ function renderIdentity(){
     : "gardé dans ce navigateur";
 
   bar.innerHTML =
+    '<span class="mark" title="Ce que vous ajoutez à cette exécution : un nom, une ' +
+    'description, des étiquettes. Rien ici ne touche aux mesures.">'
+    + TOOLMARK.fiche + 'fiche</span>' +
     (R.uuid ? '<span class="uid" title="Identifiant permanent, il ne change jamais : '
               + esc(R.uuid) + '">' + esc(shortId(R)) + '</span>' : '') +
     '<input class="inom" id="identNom" type="text" value="' + esc(a.nom) +
@@ -2988,8 +3101,9 @@ function renderAnnotActs(){
   if (!box) return;
   const modifie = peutEnregistrer && annotationModifiee(R);
   box.innerHTML =
-    '<span class="toolgrp"><span class="mark" title="Nom, description et étiquettes de ' +
-    'cette exécution">annotations</span>' +
+    '<span class="toolgrp"><span class="mark" title="La fiche de cette exécution : le nom, ' +
+    'la description et les étiquettes que VOUS lui donnez — le bandeau juste en dessous. ' +
+    'Aucune mesure n\'en est modifiée.">' + TOOLMARK.fiche + 'fiche</span>' +
     (peutEnregistrer && serveurGarde
       ? '<span class="mark" title="Ce serveur est gardé par un secret partagé : seules les ' +
         'personnes qui l\'ont peuvent lire et annoter" aria-label="Serveur gardé par un ' +
@@ -2997,12 +3111,12 @@ function renderAnnotActs(){
       : '') +
     (peutEnregistrer
       ? '<a href="#" id="annotSave"' + (modifie ? ' style="font-weight:700"' : '') +
-        ' title="Écrire l\'annotation de cette exécution à côté de ses résultats">' +
+        ' title="Écrire la fiche de cette exécution à côté de ses résultats">' +
         (modifie ? "enregistrer •" : "enregistrer") + '</a><span class="sep">·</span>'
       : '') +
-    '<a href="#" id="annotExport" title="Télécharger le fichier d\'annotations de tout le rapport">exporter</a>' +
+    '<a href="#" id="annotExport" title="Télécharger les fiches de toutes les exécutions de ce rapport, en un fichier">exporter</a>' +
     '<span class="sep">·</span>' +
-    '<a href="#" id="annotImport" title="Reprendre un fichier d\'annotations, entier ou d\'une seule exécution">importer</a>' +
+    '<a href="#" id="annotImport" title="Reprendre un fichier de fiches, entier ou pour une seule exécution">importer</a>' +
     '<span class="sep">·</span>' +
     '<a href="#" id="annotDump" title="Voir ce qui serait écrit">JSON</a>' +
     '<input type="file" id="annotFile" accept=".json,application/json" hidden></span>';
@@ -3120,6 +3234,27 @@ function helpContent(){
         '<i>Runtime X-Ray</i>, ou la ligne d\'une exécution dans l\'arbre d\'appel.</li>' +
     '</ol>' +
     valuesHelp() +
+    // Deux choses de la barre du haut que rien n'expliquait, et qu'on ne devine pas :
+    // le mot « fiche », et le fait que les mesures se rejouent ailleurs.
+    '<h2>La fiche d\'une exécution</h2>' +
+    '<p>Le bandeau sous le fil d\'Ariane est <b>la fiche</b> : ce que <i>vous</i> ajoutez à ' +
+    'une exécution pour la reconnaître plus tard — un <b>nom</b>, une <b>description</b>, des ' +
+    '<b>étiquettes</b> (une clé, et un texte si besoin). <b>Aucune mesure n\'en est ' +
+    'modifiée</b> : la fiche se pose à côté, et se retire sans rien perdre.</p>' +
+    '<p>Sans nom, une exécution s\'affiche sous celui de son lancement (<code>--name</code>), ' +
+    'ou à défaut sous son identifiant. Le <b>↺</b> à côté du nom revient à celui du lancement.</p>' +
+    '<p>Où elle est gardée dépend de la façon dont cette page est ouverte, et elle le dit à ' +
+    'droite du bandeau : <b>gardé dans ce navigateur</b> — la fiche ne quitte pas ce poste, ' +
+    '<i>exporter</i> en rend le fichier et <i>importer</i> reprend celui d\'un collègue ; ' +
+    '<b>à jour</b> ou <b>non enregistré</b> — la page est servie par l\'outil, et ' +
+    '<i>enregistrer</i> écrit la fiche à côté des mesures, pour tout le monde.</p>' +
+    '<h2>Le menu Exports</h2>' +
+    '<p>En haut à gauche, <b>Exports</b> réunit tous les fichiers de l\'exécution regardée : ' +
+    'les sorties brutes de chaque outil, le journal, et les <b>formats ouverts</b> — ' +
+    '<code>perf</code> que Firefox Profiler importe, <code>cpuprofile</code> que speedscope ' +
+    'lit, <code>lcov</code> pour un éditeur, <code>valeurs.json</code> pour un script. ' +
+    'Un format qui n\'a pas été produit reste nommé, en grisé : cliquer dit comment ' +
+    'l\'obtenir, sans relancer la moindre mesure.</p>' +
     '<h2>Comment ce rapport est produit</h2>' +
     '<p>Trois outils libres et gratuits ont observé la même exécution :</p>' +
     '<ul class="tools">' +
