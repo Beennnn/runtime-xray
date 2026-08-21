@@ -132,10 +132,21 @@ ne l'a pas été, et le motif.
 
 Les points ci-dessous sont des limites connues, pas des défauts à découvrir.
 
-- **Le format `perf` est volumineux.** Un relevé pesant *n* donne *n* blocs : un profil de
-  82 000 relevés produit environ 55 Mo de texte, là où le `.cpuprofile` équivalent en fait
-  moins d'un. Au-delà de 4 millions d'échantillons, l'écriture s'arrête et le dit sur la
-  sortie standard — un fichier tronqué en silence serait pire.
+- **Le format `perf` est volumineux, et il est allégé au-delà de 32 Mo.** Il réécrit la
+  pile entière à chaque relevé : sa taille dépend donc d'abord de la **profondeur** des
+  piles, pas du nombre d'échantillons — 82 000 relevés de quarante frames pèsent plus que
+  800 000 relevés de deux. Au-delà du plafond, les relevés sont **éclaircis
+  proportionnellement**, et le facteur est annoncé sur la sortie standard.
+
+  C'est exactement ce que fait un profileur échantillonné quand on espace ses relevés : la
+  forme du profil est gardée, mais **ce qui pèse très peu peut disparaître**. Le
+  `.cpuprofile`, lui, n'est jamais allégé : il partage les piles dans un arbre et tient en
+  quelques centaines de kilo-octets. Pour une lecture fine d'un gros profil, c'est celui-là
+  qu'il faut prendre.
+
+  L'export ne **tronque** plus, ce qu'il faisait avant : s'arrêter en route coupait la fin
+  de l'exécution, et le profil mentait alors sur la forme du programme — un défaut plus
+  grave qu'un fichier gros.
 - **Les adresses mémoire sont nulles** dans l'export `perf`. Elles n'ont aucun sens pour du
   code compilé à la volée, et aucun lecteur ne s'en sert dès lors que le symbole est là.
 - **LCOV compte 0 ou 1 passage par ligne.** JaCoCo dit *si* une ligne a été exécutée, jamais
