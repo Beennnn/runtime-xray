@@ -50,6 +50,9 @@ public final class Main {
         Path configFile = null;
         boolean printOptionsOnly = false;
         boolean reportOnly = false;
+        boolean serve = false;
+        int servePort = 8787;
+        String serveHost = "127.0.0.1";
 
         for (int i = 0; i < args.length; i++) {
             String a = args[i];
@@ -74,6 +77,15 @@ public final class Main {
                 case "--niveau" -> config.level = args[++i];
                 case "--cover" -> config.coverIncludes = args[++i];
                 case "--interval" -> config.sampleIntervalMs = Integer.parseInt(args[++i]);
+                case "--serve-host" -> serveHost = args[++i];
+                case "--serve" -> {
+                    serve = true;
+                    // Le port se colle à l'option quand on le donne, et se tait sinon :
+                    // « --serve 9000 » et « --serve --report-only » doivent marcher tous les deux.
+                    if (i + 1 < args.length && args[i + 1].matches("\\d+")) {
+                        servePort = Integer.parseInt(args[++i]);
+                    }
+                }
                 default -> {
                     System.err.println("Option inconnue : " + a);
                     usage();
@@ -145,6 +157,16 @@ public final class Main {
         Path page = Dashboard.build(outDir, sourceRoots(config), config.watchCount, config.hidden());
         System.out.println();
         System.out.println("Terminé — ouvrir : " + page);
+
+        if (serve) {
+            Config servi = config;
+            LocalServer.serve(outDir, serveHost, servePort, () -> {
+                // Après une écriture, la page est reconstruite : l'annotation devient celle
+                // du rapport, et pas seulement celle de ce navigateur.
+                Dashboard.build(outDir, sourceRoots(servi), servi.watchCount, servi.hidden());
+                return null;
+            });
+        }
         return 0;
     }
 
@@ -595,6 +617,12 @@ public final class Main {
                                        ligne de commande quelconque, puis sortez par --report-only.
                   --repo <url>         Dépôt Maven d'où tirer les composants (miroir interne).
                   --report-only        Assemble la vue depuis des mesures déjà collectées.
+                  --serve [port]       Sert le rapport (défaut : 8787) et laisse la page
+                                       écrire ses annotations à côté des exécutions, puis la
+                                       régénère. Plusieurs personnes peuvent annoter à la fois.
+                  --serve-host <hôte>  Interface d'écoute (défaut : 127.0.0.1). Mettre
+                                       0.0.0.0 pour un serveur partagé — sans
+                                       authentification : à placer derrière un filtrage.
                   --export <formats>   Réécrit les mesures pour d'autres outils : perf,
                                        cpuprofile, lcov, valeurs — ou « tout ». Les fichiers
                                        vont dans <exécution>/exports/.

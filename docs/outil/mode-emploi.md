@@ -306,6 +306,65 @@ Les chemins s'écrivent comme dans le fichier de piles repliées — les frames 
 nœud, séparées par `;`. Un chemin devenu introuvable, parce que la mesure a changé, est
 ignoré plutôt qu'appliqué de travers.
 
+### Où vivent les annotations : trois modes, et ils coexistent
+
+Une page ouverte comme fichier ne peut rien écrire sur le disque — c'est une règle du
+navigateur, et c'est aussi ce qui la rend transmissible telle quelle. D'où trois façons de
+faire vivre les annotations, du plus simple au plus partagé. **Aucune n'exclut les
+autres** : c'est le même format, et on passe de l'une à l'autre sans rien convertir.
+
+| | Ce qu'on fait | Ce que ça donne |
+|---|---|---|
+| **1. Chacun dans son navigateur** | Ouvrir la page, annoter | Immédiat, sans rien installer. Les annotations restent dans ce navigateur, d'une visite à l'autre. **Exporter** donne un fichier ; **importer** reprend celui d'un collègue |
+| **2. Sur son poste** | `--serve`, puis annoter | La page écrit à côté des exécutions, et le rapport est régénéré : l'annotation est acquise, y compris pour qui rouvrira le fichier sans serveur |
+| **3. Un serveur partagé** | `--serve --serve-host 0.0.0.0` sur une machine où l'on dépose les résultats | Tout le monde y accède par un navigateur et **annote en parallèle**, chacun ses exécutions, sans s'écraser |
+
+```bash
+# 2. sur son poste — http://localhost:8787
+java -jar runtime-xray.jar --report-only --out runtime-xray-out --serve
+
+# 3. serveur partagé — on y dépose des répertoires d'exécution, tout le monde lit et annote
+java -jar runtime-xray.jar --report-only --out /srv/runtime-xray --serve 8080 --serve-host 0.0.0.0
+```
+
+Le mode 3 n'authentifie personne et le dit au démarrage : quiconque atteint le port peut
+lire les rapports et les annoter. Il se place derrière ce qui filtre déjà les accès —
+réseau interne, mandataire, portail d'entreprise.
+
+**Annoter à plusieurs.** L'écriture porte sur **une exécution**, jamais sur le fichier
+entier : deux personnes qui annotent deux exécutions ne se croisent pas. Sur la *même*
+exécution, la seconde est prévenue — « modifiée entre-temps », avec la version enregistrée
+sous les yeux — et choisit entre garder la sienne ou reprendre celle du serveur. Personne
+n'écrase personne en silence. La page relit le serveur toutes les quinze secondes, ce qui
+suffit pour voir arriver les noms posés par les autres.
+
+### Où le fichier est écrit
+
+En vision fichier, **une exécution est un répertoire**. Son annotation peut vivre à trois
+endroits, et l'ordre de priorité est celui-ci :
+
+| Emplacement | Ce que ça implique |
+|---|---|
+| `runs/<exécution>/config.json` | **Prioritaire.** L'annotation est *dans* l'exécution : elle la suit partout — copie, archive, envoi à un collègue |
+| `runs/<exécution>-config.json` | À côté du répertoire, même nom suffixé. L'exécution reste intacte : utile si elle est en lecture seule, signée, ou produite par quelqu'un d'autre |
+| `noms.json` | Un seul fichier pour tout le rapport, indexé par identifiant. C'est le **format d'échange** : celui qu'exporte la page |
+
+Le plus proche de l'exécution l'emporte, et il est pris **entier** — pas de mélange entre
+un nom d'un fichier et une description d'un autre, qui donnerait une annotation que
+personne n'a écrite. Le serveur, lui, écrit **là où l'annotation vit déjà**, et dans le
+répertoire de l'exécution si elle n'existait pas encore.
+
+Un fichier d'exécution ne porte pas d'identifiant — il est déjà dans le bon répertoire :
+
+```json
+{
+  "nom": "Recette du 21/08 — nuit",
+  "description": "24 M d'itérations. Vérifier la branche météo.",
+  "etiquettes": { "ticket": "RX-142" },
+  "elagage": { "racine": "lab/sample/Main.main", "coupes": [] }
+}
+```
+
 **Depuis la page, sans éditer de fichier.** La vue d'ensemble porte une fiche **Identité de
 cette exécution** : elle montre l'identifiant, le nom du lancement et le nom posé dans
 l'outil, et elle laisse saisir ce dernier, la description et les étiquettes — l'élagage
