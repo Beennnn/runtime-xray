@@ -385,6 +385,28 @@
             margin:0 3px;border:1px solid var(--border);
             background:linear-gradient(to right,#dbe7f3,#f3e2b4,#f5cf7a,#ef9f45,#e2662c,#c8341b)}
   .home code{background:var(--panel);border:1px solid var(--border);border-radius:4px;padding:1px 5px;font-size:12px}
+  /* Identité : l'identifiant suit l'exécution partout où son nom s'affiche, parce que le
+     nom peut avoir été changé et que lui ne change jamais. */
+  .uid{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:10px;
+       color:var(--muted);border:1px solid var(--border);border-radius:8px;padding:0 4px;
+       margin-left:6px;vertical-align:1px}
+  .annot input,.annot textarea{font:inherit;font-size:12.5px;color:var(--text);
+       background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:4px 8px}
+  .annot input[type=text]{width:100%;max-width:420px}
+  .annot textarea{width:100%;max-width:560px;min-height:52px;resize:vertical}
+  .annot .tagline{display:flex;gap:6px;align-items:center;margin-bottom:4px;flex-wrap:wrap}
+  .annot .tagline .k{width:150px} .annot .tagline .v{flex:1;min-width:160px;max-width:340px}
+  .annot .mini{font:inherit;font-size:11.5px;font-weight:600;padding:3px 9px;border-radius:12px;
+       border:1px solid var(--border);background:var(--bg);color:var(--muted);cursor:pointer}
+  .annot .mini:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
+  .annot .hint{color:var(--muted);font-size:11.5px;margin-left:8px}
+  /* Coincée entre un champ large et un bouton, l'explication se coupait en deux morceaux
+     illisibles : elle prend sa propre ligne. */
+  .annot .hint.sous{display:block;margin:4px 0 0}
+  .annot .drop{color:var(--muted);border-color:transparent;padding:3px 7px}
+  .annot .drop:hover{border-color:var(--missbar);color:var(--missbar);background:transparent}
+  .annot pre{background:var(--panel);border:1px solid var(--border);border-radius:8px;
+       padding:10px 12px;font-size:11.5px;overflow:auto;max-height:180px;margin:8px 0 0}
   table.ctx{border-collapse:collapse;width:100%;margin-bottom:20px}
   table.ctx td{padding:5px 10px;border-bottom:1px solid var(--border);vertical-align:top;font-size:13px}
   td.ck{color:var(--muted);white-space:nowrap;width:1%}
@@ -598,13 +620,58 @@ function computeAgg(){
 }
 let AGG = computeAgg();
 
+/* ------------------------------------------------------- identité des exécutions
+ * Une exécution porte trois choses distinctes, et les confondre fait perdre la trace de ce
+ * qu'on regarde : un identifiant, qui ne change jamais ; le nom donné au lancement, qui dit
+ * ce qu'on croyait mesurer ; le nom posé après coup, qui dit ce qu'on a compris. La page
+ * sait saisir les deux derniers, plus une description et des étiquettes ; elle les garde
+ * dans le navigateur et sait rendre le « noms.json » qui les rendra définitifs.
+ */
+const ANNOT_KEY = "runtime-xray-annotations";
+let annotations = {};
+try { annotations = JSON.parse(localStorage.getItem(ANNOT_KEY) || "{}"); } catch(e){ annotations = {}; }
+function saveAnnotations(){
+  try { localStorage.setItem(ANNOT_KEY, JSON.stringify(annotations)); } catch(e){}
+}
+/** Ce qui a été saisi dans la page l'emporte sur ce que le rapport portait déjà. */
+function annotationOf(run){
+  const local = annotations[run.uuid] || {};
+  return {
+    nom: local.nom !== undefined ? local.nom : (run.nomOutil || ""),
+    description: local.description !== undefined ? local.description : (run.description || ""),
+    etiquettes: local.etiquettes !== undefined ? local.etiquettes : (run.etiquettes || {})
+  };
+}
+function annotationPatch(run, champ, valeur){
+  const a = annotations[run.uuid] || (annotations[run.uuid] = {});
+  if (valeur === null) delete a[champ]; else a[champ] = valeur;
+  if (!Object.keys(a).length) delete annotations[run.uuid];
+  saveAnnotations();
+}
+function shortId(run){ return (run.uuid || "").slice(0, 8); }
+/** Nom posé dans l'outil, sinon nom du lancement, sinon l'identifiant : jamais rien d'inventé. */
+function runLabel(run){
+  return annotationOf(run).nom || run.nomOrigine || shortId(run) || run.chemin || "exécution";
+}
+/** Repose les libellés partout où ils s'affichent, sans reconstruire la vue. */
+function refreshRunLabels(){
+  document.querySelectorAll("[data-runname]").forEach(el => {
+    el.textContent = runLabel(D.runs[+el.dataset.runname]);
+  });
+  const c = document.getElementById("crumbname");
+  if (c) c.textContent = runLabel(R);
+}
+
 (function initRuns(){
   if (D.runs.length < 2) return;
   document.getElementById("runpick").hidden = false;
   const box = document.getElementById("runboxes");
   box.innerHTML = D.runs.map((r, i) =>
     '<label><input type="checkbox" data-run="' + i + '" checked> ' +
-    esc(r.nom) + '<span class="cnt">' + methodCount(r) + ' méthodes</span></label>').join("");
+    '<span data-runname="' + i + '">' + esc(runLabel(r)) + '</span>' +
+    (r.uuid ? '<span class="uid" title="Identifiant permanent : ' + esc(r.uuid) + '">'
+              + esc(shortId(r)) + '</span>' : '') +
+    '<span class="cnt">' + methodCount(r) + ' méthodes</span></label>').join("");
   box.querySelectorAll("input[data-run]").forEach(cb => cb.onchange = () => {
     const i = +cb.dataset.run;
     cb.checked ? shownRuns.add(i) : shownRuns.delete(i);
@@ -994,7 +1061,10 @@ function renderTree(){
     const head = document.createElement("div");
     head.className = "node runroot" + (idx === runIndex ? " on" : "");
     head.innerHTML = '<span class="tw">' + (idx === runIndex ? "▾" : "▸") + '</span>' +
-                     '<span class="runbadge">exécution</span> ' + esc(run.nom) +
+                     '<span class="runbadge">exécution</span> ' +
+                     '<span data-runname="' + idx + '">' + esc(runLabel(run)) + '</span>' +
+                     (run.uuid ? '<span class="uid" title="Identifiant permanent : '
+                                 + esc(run.uuid) + '">' + esc(shortId(run)) + '</span>' : '') +
                      ' <span class="pct2">' + total.toLocaleString("fr") + ' mesures</span>';
     box.appendChild(head);
     const holder = document.createElement("div");
@@ -1555,7 +1625,7 @@ function draw(){
   document.getElementById("crumb").innerHTML =
     '<a class="back" id="backHome" title="Revenir à la vue d\'ensemble">← Vue d\'ensemble</a> <span>›</span> ' +
     (D.runs.length > 1 ? '<span class="pill" title="Exécution dont proviennent la couverture et les valeurs affichées">'
-        + esc(R.nom) + '</span> <span>›</span> ' : '') +
+        + '<span id="crumbname">' + esc(runLabel(R)) + '</span></span> <span>›</span> ' : '') +
     crumbPackage(info.cls) + ' <b>'+
     esc(info.cls.split("/").pop())+'.java</b>'+
     (info.name ? ' <span>›</span> <b>'+esc(info.name)+'()</b>' : '') +
@@ -2145,7 +2215,10 @@ function flameColour(propre, known){
 
 function drawHome(){
   document.getElementById("crumb").innerHTML =
-    '<b>' + esc(R.nom) + '</b> <span class="pill">vue d\'ensemble</span>' +
+    '<b id="crumbname">' + esc(runLabel(R)) + '</b>' +
+    (R.uuid ? '<span class="uid" title="Identifiant permanent de cette exécution">'
+              + esc(shortId(R)) + '</span>' : '') +
+    ' <span class="pill">vue d\'ensemble</span>' +
     (D.runs.length > 1 ? ' <span class="pill">' + D.runs.length + ' exécutions dans ce rapport</span>' : '');
   document.getElementById("values").innerHTML = "";
   const hot = executedMethods().slice(0, 6);
@@ -2160,6 +2233,7 @@ function drawHome(){
    '</div>'+
    '<div class="bar"><span style="width:'+AGG.pct.toFixed(1)+'%"></span></div>'+
    flameBlock()+
+   '<div id="identity"></div>'+
    contextBlock()+
    (AGG.dead.length ? '<h2>Jamais exécuté</h2><p>'+AGG.dead.map(d=>'<span class="chip dead">'+esc(d)+'</span>').join("")+'</p>' : '')+
    '<h2>Les plus coûteuses</h2><p>'+hot.map(h=>
@@ -2185,6 +2259,111 @@ function drawHome(){
   });
   const oh = document.getElementById("openhelp");
   if (oh) oh.onclick = e => { e.preventDefault(); openHelp(); };
+  renderIdentity();
+}
+
+/**
+ * Fiche d'identité de l'exécution regardée, et de quoi la compléter.
+ *
+ * <p>La saisie reste dans le navigateur — la page est un fichier, elle n'écrit nulle part.
+ * Le bouton du bas rend le {@code noms.json} correspondant : déposé à côté des exécutions,
+ * il fait entrer ces annotations dans le rapport lui-même, pour tout le monde.
+ */
+function renderIdentity(){
+  const box = document.getElementById("identity");
+  if (!box) return;
+  const a = annotationOf(R);
+  const row = (k, v) => '<tr><td class="ck">' + k + '</td><td class="cv">' + v + '</td></tr>';
+  const tags = Object.entries(a.etiquettes || {});
+  const tagLines = tags.map(([k, v], i) =>
+      '<div class="tagline" data-tag="' + i + '">' +
+      '<input type="text" class="k" value="' + esc(k) + '" placeholder="étiquette">' +
+      '<input type="text" class="v" value="' + esc(v == null ? "" : String(v)) + '" placeholder="texte (facultatif)">' +
+      '<button class="mini drop" title="Retirer cette étiquette">✕</button></div>').join("");
+
+  box.innerHTML = '<h2>Identité de cette exécution</h2><div class="annot"><table class="ctx">' +
+    row("Identifiant", '<code>' + esc(R.uuid || "—") + '</code>'
+        + '<span class="hint">permanent : il ne change jamais, même renommée</span>') +
+    row("Nom au lancement", R.nomOrigine
+        ? '<code>' + esc(R.nomOrigine) + '</code><span class="hint">donné par <code>--name</code></span>'
+        : '<span class="hint">aucun — <code>--name</code> n\'a pas été donné, '
+          + 'c\'est l\'identifiant qui sert de nom</span>') +
+    row("Nom dans l\'outil",
+        '<input type="text" id="annotName" value="' + esc(a.nom) + '" placeholder="' +
+        esc(R.nomOrigine || shortId(R)) + '"> ' +
+        '<button class="mini" id="annotNameReset">valeur par défaut</button>' +
+        '<span class="hint sous">c\'est ce nom qui s\'affiche partout</span>') +
+    row("Description", '<textarea id="annotDesc" placeholder="ce qu\'on cherchait, ce qu\'on a vu, ce qu\'il reste à vérifier">'
+        + esc(a.description) + '</textarea>') +
+    row("Étiquettes", '<div id="annotTags">' + tagLines + '</div>' +
+        '<button class="mini" id="annotTagAdd">+ étiquette</button>' +
+        '<span class="hint">une clé, et un texte si besoin</span>') +
+    '</table>' +
+    '<p><button class="mini" id="annotDump">rendre le noms.json</button>' +
+    '<span class="hint">à déposer à côté des exécutions pour que ces annotations '
+    + 'entrent dans le rapport</span></p><pre id="annotOut" hidden></pre></div>';
+
+  const name = document.getElementById("annotName");
+  name.oninput = () => {
+    annotationPatch(R, "nom", name.value.trim() || null);
+    refreshRunLabels();
+  };
+  document.getElementById("annotNameReset").onclick = () => {
+    annotationPatch(R, "nom", null);
+    name.value = "";
+    refreshRunLabels();
+  };
+  const desc = document.getElementById("annotDesc");
+  desc.oninput = () => annotationPatch(R, "description", desc.value.trim() || null);
+
+  const collectTags = () => {
+    const out = {};
+    document.querySelectorAll("#annotTags .tagline").forEach(line => {
+      const k = line.querySelector(".k").value.trim();
+      if (k) out[k] = line.querySelector(".v").value.trim();
+    });
+    annotationPatch(R, "etiquettes", Object.keys(out).length ? out : null);
+  };
+  document.querySelectorAll("#annotTags .tagline").forEach(line => {
+    line.querySelectorAll("input").forEach(i => i.oninput = collectTags);
+    line.querySelector(".drop").onclick = () => { line.remove(); collectTags(); };
+  });
+  document.getElementById("annotTagAdd").onclick = () => {
+    const line = document.createElement("div");
+    line.className = "tagline";
+    line.innerHTML = '<input type="text" class="k" placeholder="étiquette">' +
+                     '<input type="text" class="v" placeholder="texte (facultatif)">' +
+                     '<button class="mini drop" title="Retirer cette étiquette">✕</button>';
+    document.getElementById("annotTags").appendChild(line);
+    line.querySelectorAll("input").forEach(i => i.oninput = collectTags);
+    line.querySelector(".drop").onclick = () => { line.remove(); collectTags(); };
+    line.querySelector(".k").focus();
+  };
+  document.getElementById("annotDump").onclick = () => {
+    const out = document.getElementById("annotOut");
+    out.hidden = false;
+    out.textContent = JSON.stringify(annotationsFile(), null, 2);
+    const r = document.createRange();
+    r.selectNodeContents(out);
+    const sel = getSelection();
+    sel.removeAllRanges();
+    sel.addRange(r);
+  };
+}
+
+/** Les annotations de toutes les exécutions du rapport, dans la forme attendue par l'outil. */
+function annotationsFile(){
+  const out = {};
+  D.runs.forEach(run => {
+    const a = annotationOf(run);
+    const tags = a.etiquettes && Object.keys(a.etiquettes).length ? a.etiquettes : null;
+    if (!a.nom && !a.description && !tags) return;
+    // Un nom seul garde la forme courte, celle qui circulait déjà.
+    out[run.uuid] = (!a.description && !tags)
+      ? a.nom
+      : {nom: a.nom || undefined, description: a.description || undefined, etiquettes: tags || undefined};
+  });
+  return out;
 }
 
 /** Revenir à la vue d'ensemble : on déselectionne la méthode en cours pour repartir du

@@ -164,9 +164,13 @@ public final class Main {
         writeContext(config, runDir, uuid, name, session);
 
         System.out.println();
-        System.out.println("   Pour renommer cette exécution plus tard, ajouter dans "
-                + outDir.resolve("noms.json") + " :");
+        System.out.println("   Pour nommer, décrire ou étiqueter cette exécution plus tard, "
+                + "ajouter dans " + outDir.resolve("noms.json") + " :");
         System.out.println("     { \"" + uuid + "\": \"un nom plus parlant\" }");
+        System.out.println("   ou, pour tout renseigner :");
+        System.out.println("     { \"" + uuid + "\": { \"nom\": \"…\", \"description\": \"…\","
+                + " \"etiquettes\": { \"ticket\": \"ABC-123\", \"recette\": \"\" } } }");
+        System.out.println("   La vue sait aussi les saisir et rendre ce fichier.");
     }
 
     /**
@@ -400,7 +404,11 @@ public final class Main {
                                      RunSession session) throws IOException {
         Map<String, Object> ctx = new LinkedHashMap<>();
         ctx.put("uuid", uuid);
-        ctx.put("nomOrigine", name);
+        // Le nom n'est enregistré que s'il a été DONNÉ. Écrire ici le libellé de repli
+        // — « exécution du 21/08 à 00:41 » — reviendrait à faire passer une commodité
+        // d'affichage pour une intention de l'opérateur, et la vue ne pourrait plus dire
+        // laquelle des deux elle montre.
+        ctx.put("nomOrigine", config.runName.isBlank() ? null : config.runName);
         ctx.putAll(config.describe());
         ctx.put("debut", session.startedAt);
         ctx.put("fin", session.endedAt);

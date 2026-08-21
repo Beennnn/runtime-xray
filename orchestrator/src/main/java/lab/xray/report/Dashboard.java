@@ -22,7 +22,13 @@ import java.util.Map;
  */
 public final class Dashboard {
 
-    /** Renommage après coup : associe l'identifiant permanent d'une exécution à un nom. */
+    /**
+     * Annotations posées après coup, indexées par l'identifiant permanent d'une exécution.
+     *
+     * <p>Deux formes sont acceptées, parce que la première a circulé :
+     * {@code {"<uuid>": "un nom"}} et
+     * {@code {"<uuid>": {"nom": "…", "description": "…", "etiquettes": {"ticket": "ABC-123"}}}}.
+     */
     private static final String NAMES_FILE = "noms.json";
 
     private Dashboard() {}
@@ -87,15 +93,25 @@ public final class Dashboard {
                 valuesPerMethod);
 
         String uuid = String.valueOf(context.getOrDefault("uuid", ""));
-        String origin = String.valueOf(context.getOrDefault("nomOrigine",
-                base.getFileName().toString()));
-        Object renamed = overrides.get(uuid);
+        Object recordedName = context.get("nomOrigine");
+        String origin = recordedName == null || String.valueOf(recordedName).isBlank()
+                ? null
+                : String.valueOf(recordedName);
+        Annotation annotation = Annotation.of(overrides.get(uuid));
 
         Map<String, Object> run = new LinkedHashMap<>();
         run.put("uuid", uuid);
         run.put("nomOrigine", origin);
-        run.put("renomme", renamed != null);
-        run.put("nom", renamed != null ? renamed : origin);
+        run.put("nomOutil", annotation.name);
+        run.put("description", annotation.description);
+        run.put("etiquettes", annotation.tags);
+        run.put("renomme", annotation.name != null);
+        // Trois sources, dans cet ordre : le nom posé dans l'outil, celui donné au
+        // lancement, et à défaut l'identifiant. Aucun libellé inventé : sans nom, ce qui
+        // s'affiche désigne quand même l'exécution, et une seule.
+        run.put("nom", annotation.name != null ? annotation.name
+                : origin != null ? origin
+                : shortId(uuid, base));
         run.put("chemin", relative(commonDir, base));
         run.put("rapports", reportsPresent(base));
         // La vue doit pouvoir dire ce qui a été écarté AVANT la mesure : ce code-là n'est
@@ -197,6 +213,38 @@ public final class Dashboard {
         } catch (Exception e) {
             System.err.println("   contexte illisible : " + file + " (" + e.getMessage() + ")");
             return new LinkedHashMap<>();
+        }
+    }
+
+    /** Faute de nom, l'identifiant abrégé : assez court pour tenir, assez long pour trier. */
+    private static String shortId(String uuid, Path base) {
+        if (uuid == null || uuid.isBlank()) return base.getFileName().toString();
+        return uuid.length() > 8 ? uuid.substring(0, 8) : uuid;
+    }
+
+    /** Nom, description et étiquettes posés sur une exécution après sa mesure. */
+    private record Annotation(String name, String description, Map<String, Object> tags) {
+
+        static final Annotation EMPTY = new Annotation(null, null, Map.of());
+
+        @SuppressWarnings("unchecked")
+        static Annotation of(Object recorded) {
+            if (recorded == null) return EMPTY;
+            if (recorded instanceof Map<?, ?> map) {
+                Map<String, Object> m = (Map<String, Object>) map;
+                Object tags = m.get("etiquettes");
+                return new Annotation(
+                        text(m.get("nom")),
+                        text(m.get("description")),
+                        tags instanceof Map<?, ?> t ? (Map<String, Object>) t : Map.of());
+            }
+            return new Annotation(text(recorded), null, Map.of());
+        }
+
+        private static String text(Object value) {
+            if (value == null) return null;
+            String s = String.valueOf(value).trim();
+            return s.isEmpty() ? null : s;
         }
     }
 
