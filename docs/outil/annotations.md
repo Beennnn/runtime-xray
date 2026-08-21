@@ -52,7 +52,7 @@ les autres** : c'est le même format, et on passe de l'une à l'autre sans rien 
 |---|---|---|---|
 | **1. Chacun dans son navigateur** | Ouvrir la page, annoter | Immédiat. Les annotations restent dans ce navigateur d'une visite à l'autre. **Exporter** rend un fichier, **importer** reprend celui d'un collègue | Rien |
 | **2. Sur son poste** | `--serve`, puis annoter | La page écrit à côté des exécutions et le rapport est régénéré : l'annotation est acquise, y compris pour qui rouvrira le fichier sans serveur | Lancer l'outil |
-| **3. Un serveur partagé** | `--serve --serve-host 0.0.0.0` sur une machine où l'on dépose les résultats | Tout le monde y accède par un navigateur et **annote en parallèle**, sans s'écraser | Une machine, et un filtrage d'accès |
+| **3. Un serveur partagé** | `--serve --serve-host 0.0.0.0` sur une machine où l'on dépose les résultats | Tout le monde y accède par un navigateur et **annote en parallèle**, sans s'écraser | Une machine, et un accès filtré ou un secret partagé |
 
 ```bash
 # 2. sur son poste — http://localhost:8787
@@ -60,6 +60,10 @@ java -jar runtime-xray.jar --report-only --out runtime-xray-out --serve
 
 # 3. serveur partagé — on y dépose des répertoires d'exécution, tout le monde lit et annote
 java -jar runtime-xray.jar --report-only --out /srv/runtime-xray --serve 8080 --serve-host 0.0.0.0
+
+# 3 bis. le même, gardé par un secret partagé (tiré au sort et affiché une fois)
+java -jar runtime-xray.jar --report-only --out /srv/runtime-xray --serve 8080 \
+  --serve-host 0.0.0.0 --serve-token
 ```
 
 La page reconnaît d'elle-même le mode où elle se trouve : servie par l'outil, elle propose
@@ -97,21 +101,59 @@ Le sondage est délibéré, plutôt qu'une surveillance du système de fichiers 
 arrivent souvent par un partage réseau, où les notifications de modification sont au mieux
 irrégulières. Dix secondes suffisent — on ne dépose pas une exécution dix fois par minute.
 
-### Ce que le serveur n'est pas
+### Fermer la porte : `--serve-token`
 
-Il n'authentifie personne. Par défaut il n'écoute que la boucle locale ; au-delà, il
-l'écrit au démarrage :
+Les modes 1 et 2 n'ont rien à garder — la boucle locale ne laisse entrer que la machine
+elle-même. Le mode 3 change la question : quiconque atteint le port lit les rapports et
+annote. D'où un secret partagé, **facultatif** :
+
+```bash
+--serve-token "phrase choisie"   # celui-ci, et pas un autre
+--serve-token                    # sans valeur : tiré au sort et affiché une fois
+XRAY_SERVE_TOKEN=... --serve     # même effet, sans l'exposer dans « ps »
+```
+
+Ce que cela donne :
+
+- un visiteur tombe sur une page d'entrée, saisit le secret, et **la session dure douze
+  heures** — il ne le retape pas à chaque page ;
+- la session est un cookie `HttpOnly`, `SameSite=Strict`, qui **ne contient pas le secret** ;
+- un script ou un `curl` passe par `Authorization: Bearer <secret>`, sans formulaire ;
+- après cinq essais ratés depuis la même adresse, on cesse de répondre pendant une
+  trentaine de secondes ;
+- si la session expire pendant qu'on annote, **rien n'est perdu** : la page le dit, ce qui
+  n'était pas encore enregistré reste dans le navigateur, et il suffit de se reconnecter.
+
+Sans l'option, rien ne change : le serveur reste ouvert, et le dit au démarrage.
 
 ```
 ⚠️ Écoute au-delà de la boucle locale, SANS authentification :
    quiconque atteint ce port peut lire les rapports et annoter.
-   À placer derrière ce qui filtre déjà les accès.
+   À placer derrière ce qui filtre déjà les accès, ou à garder
+   par --serve-token.
 ```
 
-C'est un outil de diagnostic, pas un service : on le met derrière ce qui filtre déjà les
-accès de l'entreprise — réseau interne, mandataire, portail. La seule écriture qu'il
-accepte est l'annotation d'une exécution, dans un fichier dont il choisit lui-même le nom ;
-et le service de fichiers refuse tout chemin qui sortirait du répertoire servi.
+### Ce que ce secret vaut, et ce qu'il ne vaut pas
+
+Un secret partagé, ce ne sont pas des comptes. **L'outil ne sait pas qui annote** — il ne
+l'a jamais su, et les fichiers d'annotation ne portent aucun auteur. Le prétendre serait
+mentir sur ce qu'ils contiennent.
+
+Trois réserves, à lire avant de déployer :
+
+- **En HTTP simple, le secret circule en clair.** Pour qu'il protège vraiment, il faut du
+  TLS devant, terminé par un mandataire. Sur un réseau interne de confiance il arrête un
+  passant ; il n'arrête pas quelqu'un qui écoute le réseau.
+- **Un secret sur la ligne de commande se lit dans `ps`** par les autres comptes de la
+  machine. `XRAY_SERVE_TOKEN` existe pour cela.
+- **Il doit tenir en ASCII imprimable.** Un accent ne traverse ni l'en-tête
+  `Authorization` ni certaines variables d'environnement : l'outil le refuse au démarrage,
+  avec sa raison, plutôt que de laisser un 401 inexplicable une fois déployé.
+
+Autrement dit il **complète** un filtrage réseau, il ne le remplace pas. C'est un outil de
+diagnostic, pas un service : la seule écriture qu'il accepte est l'annotation d'une
+exécution, dans un fichier dont il choisit lui-même le nom, et le service de fichiers
+refuse tout chemin qui sortirait du répertoire servi.
 
 ## Où le fichier est écrit
 
@@ -223,6 +265,10 @@ la commande qui les produit — voir [Reprendre le résultat dans un autre outil
 - **Les annotations ne sont pas dans les exports.** [Ce qui part vers un autre
   outil](exports.md) est la mesure, pas ce qu'on en a dit — un profil `perf` n'a pas
   d'endroit où loger une description.
+- **Le secret partagé n'identifie personne.** Il dit qui peut entrer, pas qui a écrit
+  quoi : deux personnes derrière le même secret sont indiscernables dans les fichiers
+  d'annotation. C'est suffisant pour un outil de diagnostic ; ce ne l'est pas pour un
+  registre de décisions.
 - **Le serveur régénère la page après chaque écriture.** Sur un rapport très gros, cela
   prend quelques secondes ; c'est fait en arrière-plan, et plusieurs écritures rapprochées
   ne déclenchent qu'un assemblage de plus, à la fin.

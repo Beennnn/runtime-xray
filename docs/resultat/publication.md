@@ -116,6 +116,10 @@ java -jar runtime-xray.jar --report-only --out runtime-xray-out --serve
 
 # sur une machine interne où l'on dépose les résultats
 java -jar runtime-xray.jar --report-only --out /srv/runtime-xray --serve 8080 --serve-host 0.0.0.0
+
+# le même, fermé par un secret partagé tiré au sort et affiché une fois
+java -jar runtime-xray.jar --report-only --out /srv/runtime-xray --serve 8080 \
+  --serve-host 0.0.0.0 --serve-token
 ```
 
 **Ce que ça donne** : le seul canal à la fois **rendu, hors ligne et partagé**. Pas de
@@ -124,9 +128,13 @@ page peut **écrire** : les noms, descriptions, étiquettes et élagages saisis 
 sont vus par les autres, chacun annotant ses exécutions en parallèle. Voir [Annoter les
 exécutions](../outil/annotations.md).
 
-**Les limites** : il n'authentifie personne — il l'écrit au démarrage dès qu'il écoute
-au-delà de la boucle locale, et se place donc derrière ce qui filtre déjà les accès. Et
-c'est un processus à garder vivant, là où un zip ne demande rien à personne.
+**Les limites** : ouvert, il n'authentifie personne — il l'écrit au démarrage dès qu'il
+écoute au-delà de la boucle locale. `--serve-token` pose un secret partagé, avec une page
+d'entrée et une session de douze heures ; mais un secret partagé **dit qui peut entrer, pas
+qui a écrit quoi**, et en HTTP simple il circule en clair. Il complète le filtrage d'accès
+de l'entreprise, il ne le remplace pas — voir [ce que ce secret
+vaut](../outil/annotations.md#ce-que-ce-secret-vaut-et-ce-quil-ne-vaut-pas). Et c'est un
+processus à garder vivant, là où un zip ne demande rien à personne.
 
 ## Ce que GitHub ne sait pas faire
 
