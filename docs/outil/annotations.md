@@ -24,8 +24,8 @@ l'exécution. C'est tout l'objet de ce qui suit.
 | **Étiquettes** | Des clés, chacune avec un texte **facultatif** | Rattacher à un ticket, un environnement, une version ; marquer « à rejouer » sans autre commentaire |
 | **Élagage** | Des branches coupées, une racine ramenée | Ne montrer que la branche qui compte — voir plus bas |
 
-Tout cela se saisit dans la page, dans la fiche **Identité de cette exécution** de la vue
-d'ensemble, ou s'écrit à la main dans un fichier. Les deux chemins mènent au même endroit.
+Tout cela se saisit dans la page, sur le **bandeau d'identité** posé sous le nom de
+l'exécution, ou s'écrit à la main dans un fichier. Les deux chemins mènent au même endroit.
 
 ## Trois identités, et pourquoi il en faut trois
 
@@ -63,8 +63,9 @@ java -jar runtime-xray.jar --report-only --out /srv/runtime-xray --serve 8080 --
 ```
 
 La page reconnaît d'elle-même le mode où elle se trouve : servie par l'outil, elle propose
-**Enregistrer** ; ouverte comme fichier ou depuis un hébergement statique, elle s'en tient
-à **exporter** et **importer**.
+**enregistrer** dans sa barre du haut ; ouverte comme fichier ou depuis un hébergement
+statique, elle s'en tient à **exporter** et **importer**, et le bandeau d'identité annonce
+alors *gardé dans ce navigateur*.
 
 ### Annoter à plusieurs
 
@@ -78,8 +79,8 @@ C'est la seule difficulté réelle du mode 3, et elle est traitée là où elle 
   enregistrée*. Personne n'écrase personne en silence.
 - La page **relit le serveur toutes les quinze secondes** : les noms posés par les autres
   arrivent tout seuls, sans recharger.
-- Tant qu'une saisie n'est pas envoyée, la fiche l'annonce : *modifications non
-  enregistrées*.
+- Tant qu'une saisie n'est pas envoyée, le bandeau l'annonce — *non enregistré* — et le
+  bouton **enregistrer** se marque d'un point.
 
 ### Ce que le serveur n'est pas
 
@@ -177,15 +178,27 @@ raconter deux histoires.
 
 ## Depuis la page
 
-La fiche **Identité de cette exécution**, dans la vue d'ensemble, montre les trois
-identités et laisse tout saisir. En bas, quatre gestes :
+Le **bandeau d'identité**, sous le nom de l'exécution en vue d'ensemble, tient sur une
+ligne : l'identifiant abrégé, le nom — modifiable sur place, c'est le titre de la vue —, la
+description, les étiquettes, et l'état de la saisie. Ce qui ne se modifie pas ne prend pas
+de place : le nom du lancement et l'identifiant complet vivent dans l'infobulle du champ
+qu'ils expliquent.
+
+Rien d'éditable n'est posé dans le corps de la page : **le rapport se lit, il ne se remplit
+pas**. Les gestes, eux, rejoignent les autres boutons dans la barre du haut, sous
+**annotations** :
 
 | Bouton | Ce qu'il fait |
 |---|---|
-| **Enregistrer** | Écrit l'annotation de cette exécution à côté de ses résultats. N'apparaît que si la page est servie par l'outil |
-| **exporter le fichier** | Télécharge le `noms.json` de tout le rapport — à déposer à côté des exécutions, ou à envoyer |
-| **importer un fichier…** | Reprend un fichier existant : un `noms.json` entier, ou le `config.json` d'une seule exécution |
-| **voir le JSON** | Affiche ce qui serait écrit, pour le relire ou le copier à la main |
+| **enregistrer** | Écrit l'annotation de cette exécution à côté de ses résultats. N'apparaît que si la page est servie par l'outil, et se marque d'un point tant qu'il reste quelque chose à envoyer |
+| **exporter** | Télécharge le fichier d'annotations de tout le rapport — à déposer à côté des exécutions, ou à envoyer |
+| **importer** | Reprend un fichier existant : un `noms.json` entier, ou le `config.json` d'une seule exécution |
+| **JSON** | Affiche ce qui serait écrit, par-dessus la page, pour le relire ou le copier |
+
+La même barre porte, sous **exports**, les quatre formats destinés à d'autres outils. Ceux
+qui n'ont pas été produits y restent **nommés mais éteints** : une capacité qui ne vit que
+dans une option de ligne de commande n'existe pas pour qui lit la page. Un clic dessus donne
+la commande qui les produit — voir [Reprendre le résultat dans un autre outil](exports.md).
 
 ## Réserves
 
