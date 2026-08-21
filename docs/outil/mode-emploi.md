@@ -270,7 +270,11 @@ commun, qui associe un identifiant à ce qu'on veut en dire.
   "637985B7-4F91-46E6-BD08-8980D92653E8": {
     "nom": "Recette du 21/08 — nuit",
     "description": "24 M d'itérations. Vérifier la branche météo.",
-    "etiquettes": { "ticket": "RX-142", "à-rejouer": "" }
+    "etiquettes": { "ticket": "RX-142", "à-rejouer": "" },
+    "elagage": {
+      "racine": "lab/sample/Main.main;lab/sample/RoutePlanner.travelTimeMinutes",
+      "coupes": ["lab/sample/Main.main;lab/sample/Scenarios.at"]
+    }
   }
 }
 ```
@@ -280,9 +284,32 @@ on veut aussi une description et des étiquettes — la valeur d'une étiquette 
 Supprimer l'entrée rétablit le nom d'origine. Le script rappelle l'identifiant à la fin de
 chaque exécution, prêt à être collé.
 
+### Élaguer l'arbre pour ne montrer que ce qui compte
+
+Un arbre d'appel complet montre **tout** ce qui a tourné : le démarrage, les rouages, les
+branches qui n'intéressent personne aujourd'hui. Ce qu'on transmet à quelqu'un, c'est
+souvent **une** branche. Deux gestes, au bout de chaque ligne de l'onglet **Exécutions**,
+sous le bouton *élaguer* :
+
+| Geste | Ce qu'il fait |
+|---|---|
+| **Couper cette branche** | Retire ce nœud et tout ce qui en part — **sur ce chemin seulement**. La même méthode appelée depuis ailleurs reste visible |
+| **Repartir d'ici** | Masque les niveaux au-dessus : l'arbre commence à ce nœud |
+
+Ce que l'élagage **ne fait pas** : changer les mesures. Les pourcentages restent rapportés
+au total de l'exécution, les fichiers d'origine et les exports ne bougent pas, et un
+bandeau rappelle en permanence ce qui a été coupé, avec de quoi tout rétablir. C'est un
+**cadrage de lecture**, au même titre que les paquets masqués — et pour la même raison :
+un arbre amputé sans rien qui le dise se lirait comme une mesure incomplète.
+
+Les chemins s'écrivent comme dans le fichier de piles repliées — les frames de la racine au
+nœud, séparées par `;`. Un chemin devenu introuvable, parce que la mesure a changé, est
+ignoré plutôt qu'appliqué de travers.
+
 **Depuis la page, sans éditer de fichier.** La vue d'ensemble porte une fiche **Identité de
 cette exécution** : elle montre l'identifiant, le nom du lancement et le nom posé dans
-l'outil, et elle laisse saisir ce dernier, la description et les étiquettes. La saisie reste
+l'outil, et elle laisse saisir ce dernier, la description et les étiquettes — l'élagage
+s'y résume aussi, avec un bouton pour tout rétablir. La saisie reste
 dans le navigateur — la page est un fichier, elle n'écrit nulle part. Un bouton rend le
 `noms.json` correspondant : déposé à côté des exécutions, il fait entrer ces annotations
 dans le rapport pour tout le monde.

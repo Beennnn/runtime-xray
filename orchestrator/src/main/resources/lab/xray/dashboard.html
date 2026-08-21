@@ -162,6 +162,34 @@
               font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
   .node:hover .mask{opacity:.75}
   .node .mask:hover{opacity:1;color:#fff;background:var(--missbar);border-color:var(--missbar)}
+  /* Bandeau d'élagage : ce qui a été coupé doit rester sous les yeux, sinon un arbre
+     amputé se lit comme une mesure incomplète. */
+  .prunebar{padding:7px 9px;border-bottom:1px solid var(--border);background:var(--panel);
+            border-left:3px solid var(--violet);font-size:12px;color:var(--text)}
+  .prunebar[hidden]{display:none}
+  .prunebar > b{display:block;font-size:9.5px;letter-spacing:.7px;text-transform:uppercase;
+                color:var(--muted);margin-bottom:3px}
+  .prunebar .chip{display:inline-flex;align-items:center;gap:5px;background:var(--bg);
+                  border:1px solid var(--border);border-radius:12px;padding:1px 4px 1px 8px;
+                  margin:3px 4px 0 0;font-size:11.5px;max-width:100%}
+  .prunebar .chip span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .prunebar .chip button{font:inherit;border:0;background:none;cursor:pointer;
+                         color:var(--muted);padding:0 3px;border-radius:8px}
+  .prunebar .chip button:hover{color:#fff;background:var(--missbar)}
+  .prunebar .note{color:var(--muted);font-size:11px;margin-top:5px}
+  .prunebar .acts{margin-top:6px}
+  .prunebar .acts button{font:inherit;font-size:11.5px;border:1px solid var(--border);
+                         background:var(--bg);color:var(--accent);border-radius:12px;
+                         padding:2px 9px;cursor:pointer}
+  .prunebar .acts button:hover{border-color:var(--accent)}
+  /* Le geste d'élagage se propose comme « filtrer » : au survol seulement, sinon il ferait
+     un mur de texte sur des centaines de lignes. */
+  .node .prune{float:right;margin-left:8px;opacity:0;color:var(--muted);font-size:10.5px;
+               padding:0 5px;border-radius:9px;border:1px solid var(--border);
+               font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+  .node:hover .prune{opacity:.75}
+  .node .prune:hover{opacity:1;color:#fff;background:var(--violet);border-color:var(--violet)}
+  .node.sel .prune{color:#e8f0fb}
   .filterhint{padding:6px 10px;font-size:11.5px;color:var(--muted);
               border-bottom:1px solid var(--border);line-height:1.4}
   .filterhint b{color:var(--text)}
@@ -469,6 +497,7 @@
               title="Tout déplier, ou tout replier"><span class="ic"></span><span class="lab">tout déplier</span></button>
     </div>
     <div id="scope"></div>
+    <div class="prunebar" id="prunebar" hidden></div>
     <div class="list" id="list"></div>
   </div>
   <div class="split" id="vsplit" title="Glisser pour redimensionner">
@@ -639,7 +668,8 @@ function annotationOf(run){
   return {
     nom: local.nom !== undefined ? local.nom : (run.nomOutil || ""),
     description: local.description !== undefined ? local.description : (run.description || ""),
-    etiquettes: local.etiquettes !== undefined ? local.etiquettes : (run.etiquettes || {})
+    etiquettes: local.etiquettes !== undefined ? local.etiquettes : (run.etiquettes || {}),
+    elagage: local.elagage !== undefined ? local.elagage : (run.elagage || null)
   };
 }
 function annotationPatch(run, champ, valeur){
@@ -649,6 +679,84 @@ function annotationPatch(run, champ, valeur){
   saveAnnotations();
 }
 function shortId(run){ return (run.uuid || "").slice(0, 8); }
+
+/* ----------------------------------------------------------------- élagage de l'arbre
+ * Un arbre d'appel complet montre tout ce qui a tourné — le démarrage, les rouages, les
+ * branches qui n'intéressent personne aujourd'hui. Ce qu'on veut montrer à quelqu'un
+ * d'autre, c'est souvent UNE branche. D'où deux gestes : couper une branche, et repartir
+ * d'un nœud en masquant les niveaux au-dessus.
+ *
+ * Ce que l'élagage ne fait PAS : changer les mesures. Les pourcentages restent rapportés au
+ * total de l'exécution, et rien n'est retiré des fichiers. C'est un cadrage de lecture, pas
+ * une correction de la mesure — et le bandeau le dit, en permanence.
+ *
+ * Un chemin s'écrit comme dans le fichier de piles repliées : les frames de la racine au
+ * nœud, séparées par « ; ». Deux méthodes de même nom appelées depuis deux endroits sont
+ * donc deux chemins distincts, ce qui est exactement ce qu'on veut couper.
+ */
+function elagageOf(run){
+  const a = annotationOf(run).elagage || {};
+  return {
+    racine: typeof a.racine === "string" ? a.racine : "",
+    coupes: Array.isArray(a.coupes) ? a.coupes : []
+  };
+}
+function elagageActif(run){
+  const e = elagageOf(run);
+  return !!(e.racine || e.coupes.length);
+}
+function poseElagage(run, e){
+  const vide = !e.racine && !e.coupes.length;
+  annotationPatch(run, "elagage", vide ? null : {racine: e.racine, coupes: e.coupes});
+}
+function nodeAtPath(root, path){
+  let node = root;
+  for (const name of path.split(";")){
+    node = (node.children || []).find(k => k.name === name);
+    if (!node) return null;
+  }
+  return node;
+}
+/** Copie de l'arbre sans les branches coupées, chaque nœud portant son chemin d'origine. */
+function copyPruned(node, path, coupes){
+  const kids = [];
+  for (const kid of node.children || []){
+    const p = path ? path + ";" + kid.name : kid.name;
+    if (coupes.includes(p)) continue;
+    kids.push(copyPruned(kid, p, coupes));
+  }
+  return {name: node.name, total: node.total, children: kids, __path: path};
+}
+/**
+ * L'arbre tel qu'on a décidé de le lire.
+ *
+ * <p>Un chemin devenu introuvable — la mesure a changé, la méthode a disparu — est ignoré
+ * plutôt qu'appliqué de travers : mieux vaut montrer trop que montrer autre chose.
+ */
+function prunedTree(run){
+  const e = elagageOf(run);
+  // La copie sert aussi à poser le chemin de chaque nœud, dont l'affichage a besoin même
+  // sans élagage : elle est donc toujours faite, mais gardée tant que rien ne change.
+  const cle = e.racine + "|" + e.coupes.join("|");
+  if (run.__prunedKey === cle) return run.__pruned;
+  let base = run.calltree, basePath = "";
+  if (e.racine){
+    const trouve = nodeAtPath(run.calltree, e.racine);
+    if (trouve){ base = trouve; basePath = e.racine; }
+  }
+  const élagué = copyPruned(base, basePath, e.coupes);
+  // Racine ramenée : on réintroduit un parent muet pour que le nœud choisi s'affiche
+  // lui-même, et pas seulement ses enfants — sinon on ne sait plus d'où l'on part.
+  const arbre = basePath
+    ? {name: "tout", total: run.calltree.total, children: [élagué], __path: ""}
+    : élagué;
+  run.__prunedKey = cle;
+  run.__pruned = arbre;
+  return arbre;
+}
+
+/** Le chemin d'un nœud tel que l'élagage le désigne. */
+function pathOf(node){ return node && node.__path ? node.__path : (node ? node.name : ""); }
 /** Nom posé dans l'outil, sinon nom du lancement, sinon l'identifiant : jamais rien d'inventé. */
 function runLabel(run){
   return annotationOf(run).nom || run.nomOrigine || shortId(run) || run.chemin || "exécution";
@@ -1046,8 +1154,90 @@ function renderMaskBar(){
   document.getElementById("maskclear").onclick = () => { masked = []; saveMasks(); };
 }
 
+/**
+ * Le choix d'élagage, proposé sur le nœud qu'on désigne.
+ *
+ * <p>Deux gestes seulement, et leur portée est dite en toutes lettres : couper vaut pour
+ * <b>ce chemin</b>, pas pour la méthode partout où elle apparaît — une méthode appelée
+ * depuis deux endroits reste visible dans l'autre.
+ */
+function openPrunePicker(run, path, anchor){
+  closeMaskPicker();
+  const e = elagageOf(run);
+  const nom = dot(path.split(";").pop());
+  const pop = document.createElement("div");
+  pop.id = "maskpop";
+  pop.innerHTML = '<h4>Élaguer l\'arbre</h4>' +
+    '<button data-a="couper">Couper cette branche' +
+    '<span class="q">retire ' + esc(nom) + ' et tout ce qui en part, sur ce chemin seulement</span></button>' +
+    '<button data-a="racine">Repartir d\'ici' +
+    '<span class="q">masque les niveaux au-dessus : l\'arbre commence à ' + esc(nom) + '</span></button>' +
+    (elagageActif(run)
+      ? '<button data-a="reset">Tout rétablir<span class="q">revenir à l\'arbre mesuré</span></button>'
+      : "");
+  document.body.appendChild(pop);
+  const r = anchor.getBoundingClientRect();
+  pop.style.left = Math.min(r.left, window.innerWidth - pop.offsetWidth - 12) + "px";
+  pop.style.top = Math.min(r.bottom + 4, window.innerHeight - pop.offsetHeight - 12) + "px";
+  pop.querySelectorAll("button").forEach(b => b.onclick = ev => {
+    ev.stopPropagation();
+    if (b.dataset.a === "couper" && !e.coupes.includes(path)) e.coupes = e.coupes.concat([path]);
+    if (b.dataset.a === "racine") e.racine = path;
+    if (b.dataset.a === "reset"){ e.racine = ""; e.coupes = []; }
+    poseElagage(run, e);
+    closeMaskPicker();
+    // Élaguer ne doit pas refermer l'arbre : on rouvre ce qui l'était, sinon chaque coupe
+    // coûte de retrouver son chemin.
+    const ouvert = captureExpanded();
+    renderTree();
+    restoreExpanded(ouvert);
+    if (!selected) drawHome();
+  });
+  setTimeout(() => document.addEventListener("click", closeMaskPicker, { once: true }), 0);
+}
+
+/**
+ * Ce qui a été coupé, affiché en permanence.
+ *
+ * <p>Un arbre amputé sans rien qui le dise se lit comme une mesure incomplète — c'est le
+ * même principe que le bandeau des paquets masqués.
+ */
+function renderPruneBar(){
+  const bar = document.getElementById("prunebar");
+  if (!bar) return;
+  const run = R;
+  const e = elagageOf(run);
+  // Le bandeau reste visible dans les deux onglets : le graphe de temps de la vue
+  // d'ensemble suit l'élagage lui aussi, et un cadrage qui ne se voit que d'un côté se
+  // fait oublier de l'autre.
+  if (!elagageActif(run)){ bar.hidden = true; bar.innerHTML = ""; return; }
+  bar.hidden = false;
+  const chip = (label, titre, action) =>
+    '<span class="chip" title="' + esc(titre) + '"><span>' + esc(label) + '</span>' +
+    '<button data-a="' + action + '" title="Rétablir">✕</button></span>';
+  bar.innerHTML = '<b>Arbre élagué</b>' +
+    (e.racine ? chip("racine : " + dot(e.racine.split(";").pop()), dot(e.racine), "racine") : "") +
+    e.coupes.map((c, i) =>
+      chip("coupé : " + dot(c.split(";").pop()), dot(c), "coupe:" + i)).join("") +
+    '<div class="note">Les pourcentages restent rapportés au total mesuré : élaguer cadre ' +
+    'la lecture, ne corrige pas la mesure.</div>' +
+    '<div class="acts"><button data-a="reset">Tout rétablir</button></div>';
+  bar.querySelectorAll("button").forEach(b => b.onclick = () => {
+    const a = b.dataset.a;
+    if (a === "racine") e.racine = "";
+    else if (a === "reset"){ e.racine = ""; e.coupes = []; }
+    else if (a.startsWith("coupe:")) e.coupes = e.coupes.filter((_, i) => i !== +a.slice(6));
+    poseElagage(run, e);
+    const ouvert = captureExpanded();
+    renderTree();
+    restoreExpanded(ouvert);
+    if (!selected) drawHome();
+  });
+}
+
 function renderTree(){
   mode = "tree"; tab("tab-tree"); renderScope();
+  renderPruneBar();
   // L'arbre montre TOUTES les exécutions comme racines : les cocher n'aurait pas de sens.
   toggleRunPicker(false);
   showOptionsFor("tree"); resetExpandButton();
@@ -1071,7 +1261,7 @@ function renderTree(){
     holder.style.display = idx === runIndex ? "block" : "none";
     box.appendChild(holder);
     let built = false;
-    if (idx === runIndex){ level(holder, run.calltree, 1, total, idx); built = true; }
+    if (idx === runIndex){ level(holder, prunedTree(run), 1, total, idx); built = true; }
     head.onclick = () => {
       // Changer d'exécution reconstruit la liste entière. Toucher AU PRÉALABLE au DOM
       // qu'on s'apprête à remplacer laissait un conteneur déjà rempli mais marqué fermé —
@@ -1080,7 +1270,7 @@ function renderTree(){
       if (idx !== runIndex){ switchRun(idx, true); return; }
 
       const open = holder.style.display === "none";
-      if (open && !built){ level(holder, run.calltree, 1, total, idx); built = true; }
+      if (open && !built){ level(holder, prunedTree(run), 1, total, idx); built = true; }
       holder.style.display = open ? "block" : "none";
       head.querySelector(".tw").textContent = open ? "▾" : "▸";
       if (!open) goHome();
@@ -1132,7 +1322,9 @@ function renderTree(){
                      // range pas du code. Le geste vit dans la vue Code et dans le chemin
                      // affiché au-dessus du source, là où on a le paquet sous les yeux.
                      ((known && (R.values[kid.name] || []).length)
-                        ? ' <span class="tagval">' + R.values[kid.name].length + ' appels</span>' : '');
+                        ? ' <span class="tagval">' + R.values[kid.name].length + ' appels</span>' : '') +
+                     '<span class="prune" title="Couper cette branche, ou repartir d\'ici">élaguer</span>';
+      el.dataset.path = pathOf(kid);
       container.appendChild(el);
       const holder = document.createElement("div");
       holder.style.display = "none";
@@ -1146,6 +1338,10 @@ function renderTree(){
       let built = false;
       el.onclick = e => {
         e.stopPropagation();
+        if (e.target.classList.contains("prune")){
+          openPrunePicker(D.runs[idx], pathOf(kid), e.target);
+          return;
+        }
         if (kidsShown.length || observedCalls.length){
           const open = holder.style.display === "none";
           if (open && !built){
@@ -1200,6 +1396,7 @@ function renderTree(){
  */
 function renderClasses(){
   mode = "cls"; tab("tab-cls"); renderScope(); toggleRunPicker(true);
+  renderPruneBar();
   showOptionsFor("cls"); resetExpandButton();
   const box = document.getElementById("list"); box.innerHTML = "";
 
@@ -2151,22 +2348,25 @@ function card(cls, icon, value, label){
  * peut pas être cassé. Chaque barre mène à sa méthode.
  */
 function flameBlock(){
-  const root = R.calltree;
-  if (!root || !root.total) return "";
+  // Le graphe suit l'élagage : montrer ici une branche qu'on vient de couper dans l'arbre
+  // ferait dire deux choses différentes à la même page.
+  const root = prunedTree(R);
+  if (!root || !R.calltree || !R.calltree.total) return "";
   const H = 18, MAXD = 12;
   const bars = [];
   let maxDepth = 0;
 
+  const totalMesure = R.calltree.total;
   (function layout(node, depth, x){
     for (const kid of node.children){
-      const w = kid.total / root.total;
+      const w = kid.total / totalMesure;
       if (w * 100 < 0.4 || depth > MAXD){ x += w; continue; }   // trop fin pour être lu
       // Le temps PROPRE : ce que la méthode garde pour elle, une fois retiré ce qu'elle a
       // délégué. C'est la seule quantité qui désigne un endroit où agir — une barre large
       // dont un enfant est tout aussi large ne fait que passer le relais.
       const delegue = kid.children.reduce((sum, c) => sum + c.total, 0);
       bars.push({x, w, depth, name: kid.name, known: !!frameInfo(kid.name), total: kid.total,
-                 propre: Math.max(0, kid.total - delegue) / root.total});
+                 propre: Math.max(0, kid.total - delegue) / totalMesure});
       maxDepth = Math.max(maxDepth, depth);
       layout(kid, depth + 1, x);
       x += w;
@@ -2180,7 +2380,7 @@ function flameBlock(){
       (b.known ? ' data-f="' + esc(b.name) + '"' : '') +
       ' style="left:' + (b.x * 100).toFixed(4) + '%;width:' + (b.w * 100).toFixed(4) + '%;' +
       'top:' + (b.depth * H) + 'px;background:' + flameColour(b.propre, b.known) + '"' +
-      ' title="' + esc(dot(b.name)) + '  —  ' + formatWeight(b.total, root.total) +
+      ' title="' + esc(dot(b.name)) + '  —  ' + formatWeight(b.total, totalMesure) +
       ' au total, dont ' + (b.propre * 100).toFixed(1) + ' % en propre">' +
       '<span>' + esc(label) + '</span></div>';
   }).join("");
@@ -2325,6 +2525,19 @@ function renderIdentity(){
     row("Étiquettes", '<div id="annotTags">' + tagLines + '</div>' +
         '<button class="mini" id="annotTagAdd">+ étiquette</button>' +
         '<span class="hint">une clé, et un texte si besoin</span>') +
+    row("Élagage de l\'arbre", elagageActif(R)
+        ? (elagageOf(R).racine
+             ? 'racine ramenée à <code>' + esc(dot(elagageOf(R).racine.split(";").pop())) + '</code>'
+             : '') +
+          (elagageOf(R).coupes.length
+             ? (elagageOf(R).racine ? ', ' : '') + elagageOf(R).coupes.length +
+               ' branche' + (elagageOf(R).coupes.length > 1 ? 's' : '') + ' coupée' +
+               (elagageOf(R).coupes.length > 1 ? 's' : '')
+             : '') +
+          ' <button class="mini" id="annotPruneReset">tout rétablir</button>' +
+          '<span class="hint sous">se règle dans l\'onglet Exécutions, au bout de chaque ligne</span>'
+        : '<span class="hint" style="margin-left:0">aucun — dans l\'onglet <b>Exécutions</b>, ' +
+          '« élaguer » au bout d\'une ligne coupe la branche ou repart de ce nœud</span>') +
     '</table>' +
     '<p><button class="mini" id="annotDump">rendre le noms.json</button>' +
     '<span class="hint">à déposer à côté des exécutions pour que ces annotations '
@@ -2342,6 +2555,12 @@ function renderIdentity(){
   };
   const desc = document.getElementById("annotDesc");
   desc.oninput = () => annotationPatch(R, "description", desc.value.trim() || null);
+  const pruneReset = document.getElementById("annotPruneReset");
+  if (pruneReset) pruneReset.onclick = () => {
+    poseElagage(R, {racine: "", coupes: []});
+    mode === "tree" ? renderTree() : renderClasses();
+    drawHome();
+  };
 
   const collectTags = () => {
     const out = {};
@@ -2384,11 +2603,13 @@ function annotationsFile(){
   D.runs.forEach(run => {
     const a = annotationOf(run);
     const tags = a.etiquettes && Object.keys(a.etiquettes).length ? a.etiquettes : null;
-    if (!a.nom && !a.description && !tags) return;
+    const e = elagageActif(run) ? elagageOf(run) : null;
+    if (!a.nom && !a.description && !tags && !e) return;
     // Un nom seul garde la forme courte, celle qui circulait déjà.
-    out[run.uuid] = (!a.description && !tags)
+    out[run.uuid] = (!a.description && !tags && !e)
       ? a.nom
-      : {nom: a.nom || undefined, description: a.description || undefined, etiquettes: tags || undefined};
+      : {nom: a.nom || undefined, description: a.description || undefined,
+         etiquettes: tags || undefined, elagage: e || undefined};
   });
   return out;
 }

@@ -27,7 +27,12 @@ public final class Dashboard {
      *
      * <p>Deux formes sont acceptées, parce que la première a circulé :
      * {@code {"<uuid>": "un nom"}} et
-     * {@code {"<uuid>": {"nom": "…", "description": "…", "etiquettes": {"ticket": "ABC-123"}}}}.
+     * {@code {"<uuid>": {"nom": "…", "description": "…", "etiquettes": {"ticket": "ABC-123"},
+     * "elagage": {"racine": "a;b", "coupes": ["a;c"]}}}}.
+     *
+     * <p>L'élagage est un cadrage de <b>lecture</b> : la page n'affiche pas les branches
+     * coupées, mais rien n'est retiré des mesures ni des exports, et les pourcentages
+     * restent rapportés au total mesuré.
      */
     private static final String NAMES_FILE = "noms.json";
 
@@ -105,6 +110,7 @@ public final class Dashboard {
         run.put("nomOutil", annotation.name);
         run.put("description", annotation.description);
         run.put("etiquettes", annotation.tags);
+        run.put("elagage", annotation.pruning);
         run.put("renomme", annotation.name != null);
         // Trois sources, dans cet ordre : le nom posé dans l'outil, celui donné au
         // lancement, et à défaut l'identifiant. Aucun libellé inventé : sans nom, ce qui
@@ -227,9 +233,10 @@ public final class Dashboard {
     }
 
     /** Nom, description et étiquettes posés sur une exécution après sa mesure. */
-    private record Annotation(String name, String description, Map<String, Object> tags) {
+    private record Annotation(String name, String description, Map<String, Object> tags,
+                              Map<String, Object> pruning) {
 
-        static final Annotation EMPTY = new Annotation(null, null, Map.of());
+        static final Annotation EMPTY = new Annotation(null, null, Map.of(), null);
 
         @SuppressWarnings("unchecked")
         static Annotation of(Object recorded) {
@@ -237,12 +244,14 @@ public final class Dashboard {
             if (recorded instanceof Map<?, ?> map) {
                 Map<String, Object> m = (Map<String, Object>) map;
                 Object tags = m.get("etiquettes");
+                Object pruning = m.get("elagage");
                 return new Annotation(
                         text(m.get("nom")),
                         text(m.get("description")),
-                        tags instanceof Map<?, ?> t ? (Map<String, Object>) t : Map.of());
+                        tags instanceof Map<?, ?> t ? (Map<String, Object>) t : Map.of(),
+                        pruning instanceof Map<?, ?> p ? (Map<String, Object>) p : null);
             }
-            return new Annotation(text(recorded), null, Map.of());
+            return new Annotation(text(recorded), null, Map.of(), null);
         }
 
         private static String text(Object value) {
