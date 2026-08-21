@@ -240,7 +240,11 @@ remplit tout seul depuis l'intérieur du réseau.
 [`bin/recette-central.sh`](bin/recette-central.sh) récupère l'artefact **publié** dans un
 répertoire vierge, vérifie sa signature avec une clé récupérée d'un serveur public — comme
 le ferait un tiers — puis **l'exécute sur une application réelle** et contrôle que la page,
-le rapport Markdown, la couverture et le profil sont produits.
+le rapport Markdown, la couverture et le profil sont produits. Elle éprouve en plus ce que
+la version testée sait faire — exports, niveaux, rapport servi — et distingue trois issues :
+réussi, échoué, et **hors sujet** quand la version ne porte pas la fonctionnalité ou que le
+réseau ne permet pas de conclure. Compter une vérification impossible comme un échec ferait
+passer un artefact valide pour un artefact douteux.
 
 [`bin/recette-locale.sh`](bin/recette-locale.sh) fait le même travail sur le jar **qu'on
 s'apprête à publier**, et va jusqu'au bout de la chaîne : analyse complète avec capture des
@@ -250,7 +254,7 @@ et le serveur d'annotations — écriture dans le répertoire de l'exécution, r
 
 ```bash
 mvn -q package && ./bin/recette-locale.sh   # 26 contrôles sur ce qu'on va publier
-./bin/recette-central.sh                    # 13 contrôles sur ce qui est publié
+./bin/recette-central.sh                    # sur ce qui est publié, version par version
 ```
 
 Un HTTP 200 dit qu'un fichier existe ; il ne dit pas qu'il fonctionne. C'est la différence
@@ -321,7 +325,7 @@ coexistent — même format, aucun conversion pour passer de l'un à l'autre :
 |---|---|---|
 | **Chacun dans son navigateur** | ouvrir la page, annoter | immédiat, rien à installer ; exporter donne un fichier, importer reprend celui d'un collègue |
 | **Sur son poste** | `--serve` | la page écrit à côté des exécutions et le rapport est régénéré : l'annotation est acquise |
-| **Serveur partagé** | `--serve --serve-host 0.0.0.0` | on y dépose les résultats, tout le monde lit et **annote en parallèle** sans s'écraser |
+| **Serveur partagé** | `--serve --serve-host 0.0.0.0` | on y dépose les résultats — pris en compte sans redémarrage — tout le monde lit et **annote en parallèle** sans s'écraser |
 
 ```bash
 java -jar runtime-xray.jar --report-only --out runtime-xray-out --serve
