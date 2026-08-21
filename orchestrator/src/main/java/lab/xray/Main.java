@@ -36,6 +36,7 @@ public final class Main {
     private static final String DEFAULT_CONFIG = "runtime-xray.conf";
 
     public static void main(String[] args) {
+        parlerUtf8();
         try {
             System.exit(run(args));
         } catch (Exception e) {
@@ -43,6 +44,25 @@ public final class Main {
             System.err.println("Échec : " + e.getMessage());
             System.exit(1);
         }
+    }
+
+    /**
+     * Écrit sur la console en UTF-8, quelle que soit l'encodage de la machine.
+     *
+     * <p>Java choisit l'encodage de {@code System.out} d'après celui du système. Sur une
+     * machine réglée en C/POSIX — un conteneur, un serveur d'intégration, une session
+     * distante — cela vaut ASCII, et tous les messages de cet outil, qui sont en français,
+     * y perdent leurs accents : « Classes analys?es », « pas d'?chantillonnage ». Ce n'est
+     * pas cosmétique : ce sont des messages qu'on lit pour comprendre ce qui s'est passé,
+     * et qu'on cherche parfois dans un journal.
+     */
+    private static void parlerUtf8() {
+        System.setOut(new java.io.PrintStream(
+                new java.io.FileOutputStream(java.io.FileDescriptor.out), true,
+                StandardCharsets.UTF_8));
+        System.setErr(new java.io.PrintStream(
+                new java.io.FileOutputStream(java.io.FileDescriptor.err), true,
+                StandardCharsets.UTF_8));
     }
 
     private static int run(String[] args) throws Exception {
