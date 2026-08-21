@@ -220,7 +220,7 @@ mvn dependency:copy -Dartifact=io.github.beennnn:runtime-xray-cli:1.0.0 -Doutput
 | Taille | ~100 Ko |
 | Dépendances | aucune, hors du JDK |
 | Java | 21 ou plus |
-| Licence | 0BSD |
+| Licence | 0BSD pour le dépôt, MIT pour ce jar `1.0.0` |
 
 Les sources et la javadoc sont publiées à côté, sous les classificateurs habituels
 (`-sources.jar`, `-javadoc.jar`).
