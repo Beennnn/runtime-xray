@@ -265,6 +265,32 @@ class DashboardTest {
     }
 
     @Test
+    @DisplayName("L'élagage enregistré voyage jusqu'à la page")
+    void pruningTravelsToThePage(@TempDir Path dir) throws Exception {
+        Path out = dir.resolve("out");
+        Files.createDirectories(out);
+        fixtureRun(out.resolve("runs"), "essai", "UUID-E", true);
+        Files.writeString(out.resolve("noms.json"), Json.write(Map.of(
+                "UUID-E", Map.of("elagage", Map.of(
+                        "racine", "app/Main.main",
+                        "coupes", List.of("app/Main.main;app/Moteur.ecrire"))))),
+                StandardCharsets.UTF_8);
+
+        Map<String, Object> data = dataOf(Dashboard.build(out, List.of(sources(dir)), 8));
+        @SuppressWarnings("unchecked")
+        Map<String, Object> run = (Map<String, Object>) ((List<Object>) data.get("runs")).get(0);
+        Map<?, ?> elagage = (Map<?, ?>) run.get("elagage");
+        assertNotNull(elagage, "sans lui, la page rouvrirait l'arbre entier à chaque lecture");
+        assertEquals("app/Main.main", elagage.get("racine"));
+        assertEquals(List.of("app/Main.main;app/Moteur.ecrire"), elagage.get("coupes"));
+
+        // L'élagage cadre la lecture : la mesure, elle, reste entière.
+        Map<?, ?> arbre = (Map<?, ?>) run.get("calltree");
+        assertEquals(40L, ((Number) arbre.get("total")).longValue(),
+                "le total mesuré ne bouge pas");
+    }
+
+    @Test
     @DisplayName("Sans nom au lancement, c'est l'identifiant qui désigne l'exécution")
     void identifierStandsInForAMissingName(@TempDir Path dir) throws Exception {
         Path out = dir.resolve("out");

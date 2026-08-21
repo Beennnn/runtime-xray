@@ -147,6 +147,28 @@ code : collecte plus courte, rapport plus léger.
 Une page statique ne peut pas écrire dans votre fichier de configuration. C'est aussi ce qui
 lui permet d'être publiée telle quelle.
 
+### Élaguer l'arbre d'une exécution
+
+Filtrer range du **code** ; élaguer cadre une **exécution**. Dans l'onglet Exécutions, le
+bouton *élaguer* au bout d'une ligne propose deux gestes :
+
+- **couper cette branche** — ce nœud et tout ce qui en part disparaissent de l'arbre, *sur
+  ce chemin seulement* : la même méthode appelée depuis ailleurs reste visible ;
+- **repartir d'ici** — les niveaux au-dessus sont masqués, l'arbre commence à ce nœud.
+
+C'est ce qui permet de transmettre **une** branche plutôt qu'une exécution entière : le
+démarrage, les rouages et les scénarios voisins n'ont pas à être expliqués à chaque fois.
+
+Les pourcentages, eux, restent rapportés au total mesuré, et un bandeau violet rappelle en
+permanence ce qui a été coupé, avec de quoi tout rétablir. **Élaguer ne corrige pas la
+mesure** — les fichiers d'origine et les exports ne bougent pas. C'est aussi pour cela que
+le graphe de temps de la vue d'ensemble suit le même élagage : deux endroits de la page ne
+doivent pas raconter deux histoires.
+
+L'élagage se garde dans le navigateur comme le reste, et il entre dans le `noms.json` rendu
+par la fiche **Identité de cette exécution** — c'est ce qui le rend définitif, pour tous
+ceux qui ouvriront le rapport.
+
 ## Deux arbres, deux questions — on se sert des deux
 
 Le mot « arbre d'appel » recouvre deux objets différents dans cette page. Ils ne répondent
