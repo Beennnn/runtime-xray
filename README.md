@@ -278,6 +278,50 @@ n'accèdent plus au réseau.
 Chaque rapport enregistre son propre contexte : commande lancée, méthode racine, filtres,
 heure de début et de fin, durée, machine, système, version de Java.
 
+### Sur un gros code : mesurer par niveaux
+
+Les trois informations n'ont ni la même valeur, ni le même coût, et sur une application
+d'entreprise on ne les prend pas toutes du premier coup. L'ordre de priorité est fixé :
+**la couverture d'abord**, parce qu'elle est la seule exhaustive et la seule à montrer ce
+qui n'a *pas* tourné ; **l'arbre d'appel ensuite** ; **les valeurs en dernier**, quand on
+sait déjà quelle méthode regarder.
+
+```bash
+# 1. le moins cher : la couverture seule, restreinte au code du projet
+java -jar runtime-xray.jar --niveau couverture --cover "com.exemple.*"   --java "java -jar app.jar" --sources src/main/java
+
+# 2. + l'arbre d'appel, échantillonné dix fois moins souvent
+java -jar runtime-xray.jar --niveau arbre --interval 10 --cover "com.exemple.*"   --java "java -jar app.jar" --sources src/main/java
+
+# 3. + les valeurs d'une méthode : le défaut
+java -jar runtime-xray.jar --root "com.exemple.Moteur::calculer"   --java "java -jar app.jar" --sources src/main/java
+```
+
+Le levier le plus efficace n'est pas le niveau mais `--cover` : sans lui, JaCoCo instrumente
+**toute classe chargée par la JVM**, cadriciel et pilotes compris — du code que personne ne
+compte lire. Le détail des leviers, et une marche à suivre sur une application qu'on ne
+connaît pas : [Réduire l'empreinte sur un gros code](docs/outil/empreinte.md).
+
+### Reprendre la mesure dans un autre outil
+
+La page est **une** façon de lire une exécution, pas la seule. `--export` réécrit les mêmes
+mesures dans des formats publics — la mesure, pas la synthèse : aucun repli ni masquage de
+la page ne s'y applique.
+
+```bash
+java -jar runtime-xray.jar --report-only --out runtime-xray-out --export tout
+```
+
+| Fichier | Format | Ce qui l'ouvre |
+|---|---|---|
+| `profil.perf.txt` | sortie de `perf script` | Firefox Profiler |
+| `profil.cpuprofile` | CPU profile de Chrome DevTools | speedscope, les outils de développement des navigateurs |
+| `couverture.lcov` | LCOV | `genhtml`, Coverage Gutters, les services de suivi |
+| `valeurs.json` | JSON documenté | un script qui compare deux exécutions |
+
+Le recensement des formats ouverts — retenus et écartés, avec le motif — est dans
+[Reprendre le résultat dans un autre outil](docs/outil/exports.md).
+
 [Mode d'emploi complet](docs/outil/mode-emploi.md) — paramètres, fichier de configuration,
 choix de la méthode racine, publication du résultat.
 [Lire le rapport](docs/outil/lire-le-rapport.md) — ce que la page montre, ce qu'elle replie,
@@ -311,6 +355,8 @@ Trois dossiers, selon la question traitée.
 | Page | Contenu |
 |---|---|
 | [Mode d'emploi](docs/outil/mode-emploi.md) | Paramètres, configuration, méthode racine |
+| [Réduire l'empreinte](docs/outil/empreinte.md) | Faire tourner l'outil sur un gros code : trois niveaux d'observation, et les leviers |
+| [Reprendre le résultat ailleurs](docs/outil/exports.md) | Exports `perf`, `cpuprofile`, LCOV — pour Firefox Profiler, speedscope, un éditeur |
 | [Lire le rapport](docs/outil/lire-le-rapport.md) | Ce que la page montre, ce qu'elle replie, et ce qu'on peut lui demander |
 | [Détails techniques](docs/outil/technique.md) | Programme de démonstration et difficultés rencontrées |
 | [Diffusion](docs/outil/distribution.md) | Comment on met l'outil dans les mains de quelqu'un d'autre |

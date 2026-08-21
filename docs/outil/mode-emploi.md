@@ -170,6 +170,18 @@ Aucune modification du code analysé, aucun changement dans le build.
 | `MAVEN_REPO` / `--repo` | Maven Central | D'où récupérer les composants d'analyse, une seule fois. **Le seul réglage qui compte pour un réseau fermé** : y mettre le miroir interne |
 | `--no-values` | — | Ne capture pas les valeurs. Les pourcentages de temps deviennent exacts, puisque plus rien n'instrumente |
 
+### Ce qu'on accepte de payer
+
+Trois informations, trois coûts. Sur un gros code, on ne les prend pas toutes du premier
+coup — **[Réduire l'empreinte sur un gros code](empreinte.md)** détaille la marche à suivre.
+
+| Paramètre | Défaut | À quoi il sert |
+|---|---|---|
+| `NIVEAU` / `--niveau` | `complet` | Jusqu'où observer : `couverture` (JaCoCo seul), `arbre` (+ échantillonnage), `complet` (+ valeurs). Le premier réglage à baisser quand la mesure coûte trop cher |
+| `COVER_INCLUDES` / `--cover` | tout | Classes que JaCoCo instrumente, ex. `com.exemple.*`. **Sans lui, toute classe chargée est instrumentée**, dépendances comprises : c'est le poste de coût principal |
+| `SAMPLE_INTERVAL_MS` / `--interval` | 1 ms | Intervalle d'échantillonnage des piles. À 10 ms, dix fois moins de relevés |
+| `EXPORT` / `--export` | — | Réécrit les mesures pour d'autres outils : `perf`, `cpuprofile`, `lcov`, `valeurs`, ou `tout` — voir [les exports](exports.md) |
+
 ### Les deux modes qui ne mesurent rien
 
 | Option | Ce qu'elle fait |
@@ -211,7 +223,8 @@ runtime-xray-out/
         ├── classes-executees/   ← le bytecode retenu pour ce second rapport
         ├── async-profiler/      ← les piles repliées, plus le profil rendu par l'outil
         │                          lui-même (flamegraph.html et son inverse)
-        └── arthas/              ← les valeurs capturées et la trace d'invocation
+        ├── arthas/              ← les valeurs capturées et la trace d'invocation
+        └── exports/             ← les mêmes mesures pour d'autres outils, si --export
 ```
 
 Tout ce que les outils ont écrit reste ainsi atteignable. La page en donne la liste, groupée
@@ -240,19 +253,39 @@ repère indique celles qui ont **aussi** tourné ailleurs (`+2`) et celles qui s
 |---|---|---|
 | **UUID** | Généré au lancement, écrit dans `run-context.json` | **jamais** — c'est la clé stable |
 | **Nom d'origine** | Le `--name` donné au lancement | jamais — il permet de revenir en arrière |
-| **Nom d'affichage** | Ce que la vue montre | oui, via `noms.json` |
+| **Nom d'affichage** | Ce que la vue montre | oui, via `noms.json` ou depuis la page |
 
-Renommer après coup ne touche à aucune exécution : c'est un fichier à la racine du
-répertoire commun, qui associe un identifiant à un nom.
+Le nom affiché suit trois sources, dans cet ordre : **le nom posé dans l'outil**, sinon **le
+nom donné au lancement**, sinon **l'identifiant abrégé**. Rien n'est inventé : une exécution
+lancée sans `--name` s'affiche sous son identifiant, jamais sous un libellé de commodité qui
+se ferait passer pour une intention.
+
+Annoter après coup ne touche à aucune exécution : c'est un fichier à la racine du répertoire
+commun, qui associe un identifiant à ce qu'on veut en dire.
 
 ```json
 {
-  "8BF7DA2E-1C5A-4435-A3E3-4FE50CD41A2F": "Recette — jeu de données réduit"
+  "8BF7DA2E-1C5A-4435-A3E3-4FE50CD41A2F": "Recette — jeu de données réduit",
+
+  "637985B7-4F91-46E6-BD08-8980D92653E8": {
+    "nom": "Recette du 21/08 — nuit",
+    "description": "24 M d'itérations. Vérifier la branche météo.",
+    "etiquettes": { "ticket": "RX-142", "à-rejouer": "" }
+  }
 }
 ```
 
+Les deux formes cohabitent : un nom seul quand c'est tout ce qu'on a à dire, un objet quand
+on veut aussi une description et des étiquettes — la valeur d'une étiquette est facultative.
 Supprimer l'entrée rétablit le nom d'origine. Le script rappelle l'identifiant à la fin de
 chaque exécution, prêt à être collé.
+
+**Depuis la page, sans éditer de fichier.** La vue d'ensemble porte une fiche **Identité de
+cette exécution** : elle montre l'identifiant, le nom du lancement et le nom posé dans
+l'outil, et elle laisse saisir ce dernier, la description et les étiquettes. La saisie reste
+dans le navigateur — la page est un fichier, elle n'écrit nulle part. Un bouton rend le
+`noms.json` correspondant : déposé à côté des exécutions, il fait entrer ces annotations
+dans le rapport pour tout le monde.
 
 ### Rassembler des exécutions venues d'ailleurs
 
