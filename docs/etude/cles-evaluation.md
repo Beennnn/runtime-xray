@@ -1,8 +1,10 @@
 # Clés d'évaluation — comment les obtenir, où les ranger
 
 > Cette page décrit les démarches à faire pour intégrer les outils sous licence à l'étude.
-> **Ce sont des actions humaines** : elles demandent une adresse professionnelle, parfois
-> une validation par l'éditeur. Aucune ne peut être automatisée depuis ce dépôt.
+> **Ce sont des actions humaines** : elles demandent une adresse e-mail nominative et,
+> selon l'éditeur, une validation manuelle. Aucune ne peut être automatisée depuis ce
+> dépôt, et **aucune n'a été entreprise** — cette page recense les procédures, elle ne
+> rend compte d'aucune démarche.
 
 ## Règle absolue : aucune clé dans le dépôt
 
@@ -47,7 +49,7 @@ Voici l'état vérifié du socle gratuit, sur la même application, sous Java 21
 | Arbre d'appel d'**un** appel | Arthas `trace` | L'arbre d'une invocation, **avec les numéros de ligne**, branches conditionnelles comprises |
 | **Valeurs des paramètres** | Arthas `watch` | `@Mode[CAR] @Weather[SUNNY] @TimeOfDay[RUSH_HOUR]` et la valeur de retour |
 
-**Les trois besoins du brief sont couverts, pour 0 €, hors ligne.** L'essai commercial ne
+**Les trois besoins de l'étude sont couverts, pour 0 €, hors ligne.** L'essai commercial ne
 sert donc plus à combler un manque : il sert à répondre à une question plus étroite.
 
 ## Ce qu'on attend des outils commerciaux — et pourquoi

@@ -71,7 +71,7 @@ jdk.MethodTrace {
 }
 ```
 
-**Cet extrait est la démonstration la plus nette du trou du brief** : la pile complète est
+**Cet extrait est la démonstration la plus nette du manque recherché** : la pile complète est
 là, le nom du paramètre et son type aussi (`Leg`) — mais **jamais sa valeur**.
 
 **Dans JMC** — une application de bureau (Eclipse RCP) avec vues graphiques : flame view,
@@ -108,7 +108,7 @@ séparément sous **UPL 1.0** *(à confirmer)*. **Hors ligne par construction.**
 ## Ce qu'on peut en espérer
 
 **Sous Java 21** : un socle de diagnostic généraliste (GC, verrous, threads) déjà présent,
-mais pas la meilleure réponse aux besoins du brief.
+mais pas la meilleure réponse aux besoins de l'étude.
 
 **Sous Java 25** : l'arbre d'appel exact devient gratuit et sans installation — un argument
 sérieux en faveur d'un portage. Les valeurs de paramètres, elles, restent hors de portée

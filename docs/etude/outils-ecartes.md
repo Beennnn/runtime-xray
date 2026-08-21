@@ -69,7 +69,7 @@ Voir [les clés d'évaluation](cles-evaluation.md#ce-quon-attend-des-outils-comm
 
 ### [Kieker](fiches/kieker.md) — le bon outil pour la question suivante
 
-Le seul qui vise le **but final** du brief : reconstruire une architecture à partir de
+Le seul qui vise le **but final** de l'étude : reconstruire une architecture à partir de
 l'exécution. Mais c'est un projet en soi, et l'ouvrir avant d'avoir la première mesure
 inverserait l'ordre raisonnable.
 

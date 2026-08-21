@@ -1,183 +1,62 @@
-# Diffuser l'outil — faut-il le publier sur Maven Central ?
+# Diffuser l'outil
 
-> Question posée : *pourrait-on publier l'outil sous forme de jar sur Maven Central ?
-> Est-ce pertinent ?*
-
-**Réponse courte : ce n'était pas possible quand la question a été posée ; ça l'est devenu,
-et c'est fait** — `io.github.beennnn:runtime-xray-cli:1.0.0` est sur Maven Central.
+> Question de départ : *comment met-on cet outil entre les mains de quelqu'un d'autre ?*
 
 ## Ce que l'outil est aujourd'hui
 
 **Un seul jar**, `runtime-xray.jar`, sans aucune dépendance hors du JDK :
 `java -jar runtime-xray.jar --config mon-projet.conf`. Ni bash, ni Python.
 
-Ça n'a pas toujours été le cas — et c'est précisément cette question qui a déclenché la
-réécriture. La version d'origine était un script shell plus un script Python : deux
-prérequis de plus sur une machine où **Java est forcément présent**, et aucune portabilité
-Windows. L'argument « si on le distribue comme un jar, autant qu'il en soit un » a tenu.
-
-Reste que publier ce jar sur Maven Central serait toujours un abus de forme sur un point :
-Maven Central sert à distribuer des bibliothèques consommées par un build, et personne ne
-mettra cet outil en `<dependency>`. L'intérêt est ailleurs — voir juste en dessous.
-
-## Pourquoi l'idée est quand même bonne
-
-Il y a un argument sérieux, et c'est **la contrainte hors ligne**.
-
-Dans un environnement déconnecté, le **miroir Maven interne est souvent le seul canal
-ouvert**. C'est d'ailleurs déjà ainsi que l'outil récupère ses composants : JaCoCo et
-Arthas viennent de Maven Central. Publier l'outil au même endroit le rendrait installable
-par le mécanisme que l'entreprise a déjà autorisé :
-
-```bash
-mvn dependency:copy -Dartifact=io.github.beennnn:runtime-xray-cli:1.0.0 -DoutputDirectory=.
-```
-
-Autrement dit, l'intérêt n'est pas « être une bibliothèque », c'est **passer par le tuyau
-qui existe déjà**.
+Ça n'a pas toujours été le cas — et c'est cette question qui a déclenché la réécriture. La
+version d'origine était un script shell plus un script Python : deux prérequis de plus sur
+une machine où **Java est forcément présent**, et aucune portabilité Windows. L'argument
+« si on le distribue comme un fichier, autant que ce soit un jar » a tenu.
 
 ## Les trois voies, comparées
 
-| Voie | Effort | Ce que ça donne | Quand la choisir |
-|---|---|---|---|
-| **Release GitHub** *(en place)* | nul | Un zip téléchargeable | Aujourd'hui — c'est suffisant |
-| **Nexus / Artifactory interne** | faible | Le même zip, servi par le miroir de l'entreprise | Dès que plusieurs équipes derrière le pare-feu l'utilisent. **Ne demande pas Maven Central** |
-| **Maven Central** | réel | Distribution publique par un canal déjà ouvert partout | Si l'outil sort de l'entreprise |
+| Voie | Effort pour celui qui l'utilise | Quand la choisir |
+|---|---|---|
+| **Dépôt Maven public** *(retenu)* | un `curl`, rien à installer, aucun clone | Par défaut |
+| **Miroir Maven interne** | idem, servi par le Nexus maison | Réseau fermé, si le miroir ne relaie pas Central |
+| **Construction depuis les sources** | cloner, installer Maven, compiler | Seulement pour modifier l'outil |
 
-⚠️ Le point souvent manqué : **pour un usage interne, Maven Central est inutile.** Déposer
-le zip sur le Nexus de l'entreprise donne exactement le même bénéfice, sans compte, sans
-signature, sans processus de publication.
+⚠️ Le point souvent manqué : **en réseau fermé, un dépôt public est inutile.** Déposer le
+jar sur un miroir interne donne exactement le même bénéfice, sans compte, sans signature,
+sans processus de publication.
 
-## Ce que Maven Central exige, si on y va
+L'intérêt d'un dépôt Maven, quel qu'il soit, n'est pas « être une bibliothèque » — personne
+ne mettra cet outil en `<dependency>`. C'est de **passer par le tuyau qui existe déjà** :
+derrière un pare-feu, le miroir Maven est souvent le seul canal ouvert, et c'est déjà par
+lui que l'outil récupère ses composants d'analyse.
 
-- un **espace de noms** qu'on prouve posséder — `io.github.<compte>` s'obtient en prouvant
-  le compte GitHub, c'est le chemin le plus court ;
-- des artefacts **signés GPG**, accompagnés des jars `sources` et `javadoc` ;
-- une publication par le **Central Portal**, avec des règles de validation strictes ;
+## Ce qu'un dépôt public exige
+
+Mené jusqu'au bout sur la version `1.0.0` :
+
+- un **espace de noms** qu'on prouve posséder, ce qui suppose de prouver un compte ou un
+  domaine ;
+- des artefacts **signés GPG**, la clé publiée sur un serveur public, accompagnés des jars
+  `sources` et `javadoc` ;
+- une publication par un portail, avec des règles de validation strictes et un paquet à
+  relire avant confirmation ;
 - des versions **immuables** : rien ne se corrige après coup, seulement une version de plus.
 
-C'est une mise en place ponctuelle, ensuite automatisable. Mais c'est du travail réel pour
-un bénéfice nul tant que la diffusion reste interne.
+Conclusion : c'est une mise en place ponctuelle, ensuite automatisable, et elle vaut la
+peine. Elle achète la seule chose qui compte pour qui veut juste essayer l'outil — **ne
+rien avoir à faire**. Pas de clone, pas de JDK à aligner, pas de build à réussir, pas de
+compte à créer : un `curl` et un `java -jar`.
 
-## Ce que la réécriture en Java a effectivement apporté
+Ce point a un corollaire qui n'est pas anecdotique. Un utilisateur qui clone le dépôt pour
+compiler se retrouve avec un dépôt git sous la main, et l'outil écrit son rapport dans le
+répertoire de travail — un rapport qui porte les noms de classes et les valeurs de
+paramètres du code analysé. Distribuer un jar évite entièrement cette configuration :
+il n'y a pas de dépôt, donc rien à y pousser par mégarde.
+
+## Ce que la réécriture en Java a apporté
 
 - **un seul fichier** à transporter, au lieu de trois plus deux interpréteurs ;
 - **aucune dépendance** hors du JDK — vérifiable : le module n'a que JUnit, en portée test ;
 - la **portabilité Windows**, gratuite, qui manquait ;
-- une distribution naturelle par Maven, interne ou publique ;
 - accessoirement, une **couverture de test réelle** sur la logique d'assemblage : lecture du
   XML de couverture, repli des frames, liens non cassés dans la page produite. Un script
   shell ne se teste pas comme ça.
-
-## Ce qu'il resterait concrètement à faire
-
-L'obstacle n'est plus la nature de l'artefact, il est administratif — et un point est
-souvent découvert trop tard :
-
-| Point | État | Détail |
-|---|---|---|
-| Nature de l'artefact | ✅ | Un jar exécutable de ~100 Ko, sans dépendance d'exécution |
-| `groupId` | ✅ | `io.github.beennnn` — le seul espace de noms qu'on puisse prouver posséder sans posséder un domaine |
-| Métadonnées du POM | ✅ | `name`, `description`, `url`, `licenses`, `developers`, `scm`, `issueManagement` |
-| Artefacts joints | ✅ | `sources` et `javadoc` produits par le profil `release`, avec `doclint` désactivé — la documentation est rédigée pour des lecteurs, pas pour un vérificateur HTML |
-| Plugin de publication | ✅ | `central-publishing-maven-plugin`, `autoPublish=false` : le dépôt est déposé mais **pas rendu définitif** sans relecture |
-| Module de démonstration exclu | ✅ | `maven.deploy.skip` **et** `skipPublishing` sur `sample-app` — voir l'avertissement ci-dessous |
-| Signature GPG | ✅ | RSA 4096, `8D181AA1F3545E3C43804355D7D3E62B52C66FCA`, publiée sur `keys.openpgp.org` **et** `keyserver.ubuntu.com` — c'est ce dernier que Sonatype interroge |
-| Signatures vérifiées | ✅ | Les quatre `.asc` du paquet passent `gpg --verify` |
-| Configuration Maven | ✅ | `~/.m2/settings.xml`, jeton lu dans l'environnement et non écrit dans le fichier |
-| Espace de noms validé | ✅ | `io.github.beennnn` — **Verified**, prouvé par le dépôt public `Beennnn/q5h7vezbmz`, que le Portal a lui-même nommé |
-| Jeton du Portal | ✅ | Généré, lu dans l'environnement au moment du dépôt |
-| Publication | ✅ | `io.github.beennnn:runtime-xray-cli:1.0.0`, déposé, validé 3/3, puis publié |
-
-### ⚠️ `maven.deploy.skip` ne suffit pas à exclure un module
-
-Constaté en vérifiant le paquet avant publication : `sample-app` s'y trouvait **malgré**
-`maven.deploy.skip=true`. Le plugin Central constitue son paquet de son côté, sans passer
-par le `deploy` standard ; la propriété qui l'en retire est **`skipPublishing`**.
-
-Les deux sont donc posées sur le module de démonstration. Le contrôle tient en une commande,
-et il vaut la peine d'être fait avant chaque première publication d'un projet :
-
-```bash
-mvn -Prelease deploy -DskipTests -Dgpg.skip=true    # échoue à l'envoi, faute de jeton
-unzip -l target/central-publishing/central-bundle.zip | grep -E '\.jar$|\.pom$'
-```
-
-Sans identifiants, l'envoi ne peut pas aboutir — mais le paquet, lui, est déjà constitué et
-inspectable. C'est le seul moment où l'on peut encore corriger : un artefact publié sur
-Central ne se retire pas.
-
-### La clé de signature
-
-Faite : RSA 4096, sans expiration, publiée sur les deux serveurs de clés. Central refuse un
-artefact dont la clé n'est pas publiée — une signature invérifiable ne prouve rien.
-
-Deux réglages accompagnent la clé, et le second n'est pas anecdotique :
-
-```
-# ~/.gnupg/gpg-agent.conf
-pinentry-program /opt/homebrew/bin/pinentry-mac
-default-cache-ttl 1800
-```
-
-Sans `pinentry-mac`, gpg tente de demander la phrase de passe sur un terminal ; toute
-signature lancée depuis un script, un outil ou une tâche planifiée échoue alors sur
-`Inappropriate ioctl for device`. Avec lui, la demande apparaît dans une fenêtre, et la
-phrase de passe ne transite ni par Maven ni par une variable d'environnement.
-
-### La validation de l'espace de noms
-
-Faite. Le Portal a donné une **clé de vérification** (`q5h7vezbmz`) et demandé un dépôt
-public GitHub portant exactement ce nom ; sa seule existence prouve la maîtrise du compte,
-donc du préfixe `io.github.beennnn`. Le dépôt n'a servi qu'à ça et peut être supprimé.
-
-À retenir pour un autre projet : la validation est **liée à la méthode de connexion**. Le
-Portal le dit lui-même — deux méthodes différentes sont deux comptes distincts, même avec
-la même adresse. Se reconnecter autrement ferait disparaître l'espace de noms de la liste.
-
-### Vérifier ce qui a été publié
-
-```bash
-./bin/recette-central.sh <version>
-```
-
-Treize contrôles : téléchargement des quatre artefacts, validité de la signature avec une
-clé récupérée d'un serveur public, puis **exécution réelle** de l'outil sur une application,
-dans un répertoire vierge et sans rien du dépôt. Un HTTP 200 prouve qu'un fichier existe, pas
-qu'il marche.
-
-### Publier une version suivante
-
-Le jeton se lit dans l'environnement, il n'est écrit nulle part :
-
-```bash
-export CENTRAL_USERNAME='...' CENTRAL_PASSWORD='...'
-```
-
-Ensuite :
-
-```bash
-mvn -Prelease deploy
-```
-
-Le dépôt apparaît dans le Portal **sans être publié** : on relit ce qui part, puis on
-confirme. C'est délibéré — une version publiée ne se retire pas.
-
-Pour vérifier le montage sans rien signer ni envoyer :
-
-```bash
-mvn -Prelease clean install -Dgpg.skip=true
-```
-
-produit `runtime-xray-cli-1.0.0.jar`, `-sources.jar`, `-javadoc.jar` et le POM, c'est-à-dire
-exactement les quatre artefacts que Central exige.
-
-## Recommandation
-
-1. **Maintenant** : rien à faire. La release GitHub suffit, et un dépôt interne suffit pour
-   l'entreprise.
-2. **Si plusieurs équipes l'adoptent** : déposer le jar sur le Nexus interne — une heure de
-   travail, aucun compte à créer. C'est aussi ce qui permet de servir les composants
-   d'analyse par le même miroir, ce dont l'outil a besoin de toute façon hors ligne.
-3. **Si l'outil doit sortir du dépôt** : Maven Central devient défendable, maintenant que
-   l'artefact publié serait un vrai jar exécutable et non un zip de scripts déguisé.

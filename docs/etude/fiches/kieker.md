@@ -11,7 +11,7 @@ là où un profiler répond « où passe le temps ? » et un outil de couverture
 est-on passé ? », Kieker répond **« à quoi ressemble ce logiciel, vu de son exécution ? »**.
 
 C'est le seul outil recensé dont l'objectif déclaré coïncide avec le **but final du
-brief** : *analyser, restructurer et redéfinir le code à partir de ces données*.
+l'étude** : *analyser, restructurer et redéfinir le code à partir de ces données*.
 
 ## Sa philosophie
 
