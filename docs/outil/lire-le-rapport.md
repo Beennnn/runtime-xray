@@ -198,24 +198,35 @@ lancement, qui ne change jamais ; le **nom donné par `--name`**, qui dit ce qu'
 mesurer ; le **nom posé après coup**, qui dit ce qu'on a compris. Sans `--name`, c'est
 l'identifiant abrégé qui s'affiche — jamais un libellé inventé.
 
-Le **bandeau d'identité**, sous le nom de l'exécution en vue d'ensemble, tient sur une
-ligne : identifiant abrégé, nom modifiable sur place, description, étiquettes. Le nom du
-lancement et l'identifiant complet sont dans les infobulles — ils ne se modifient pas, ils
-n'ont donc pas à occuper la ligne. Selon le mode, la saisie reste dans le navigateur,
-s'exporte en fichier, ou s'écrit directement à côté des exécutions : [Annoter les
-exécutions](annotations.md).
+### La fiche d'une exécution
 
-## Les sorties brutes
+C'est le bandeau marqué **fiche**, sous le fil d'Ariane en vue d'ensemble : ce que *vous*
+ajoutez à une exécution pour la reconnaître plus tard — nom, description, étiquettes. Il
+tient sur une ligne : identifiant abrégé, nom modifiable sur place, description, étiquettes.
+Le nom du lancement et l'identifiant complet sont dans les infobulles — ils ne se modifient
+pas, ils n'ont donc pas à occuper la ligne.
 
-En bas de la vue d'ensemble, une section liste tout ce que les outils ont écrit, groupé
-par outil : les rapports HTML de JaCoCo, le profil natif d'async-profiler et son inverse,
-les piles repliées, les valeurs et la trace d'Arthas, le journal de l'exécution, le contexte.
+**Aucune mesure n'en est modifiée.** La fiche se pose à côté et se retire sans rien perdre :
+c'est la seule chose de cette page qui vienne d'un humain, et elle est tenue séparée pour
+qu'on ne puisse jamais la confondre avec ce qui a été mesuré.
 
-Quand l'outil a été lancé avec `--export`, une rubrique **« Pour un autre outil »** s'y
-ajoute : les mêmes mesures réécrites en `perf script`, en `cpuprofile`, en LCOV et en JSON.
-Ces quatre formats sont aussi nommés dans la barre du haut, sous **exports** — éteints tant
-qu'ils n'ont pas été produits, et un clic donne alors la commande. Voir [Reprendre le
-résultat dans un autre outil](exports.md).
+À droite du bandeau, un état dit où elle est gardée : *gardé dans ce navigateur*, ou *à
+jour* / *non enregistré* quand la page est servie par l'outil. Les actions — enregistrer,
+exporter, importer, voir le JSON — sont dans la barre du haut, sous **fiche**. Le détail des
+trois modes : [Annoter les exécutions](annotations.md).
+
+## Les sorties brutes, et le menu **Exports**
+
+Tout ce que l'exécution a écrit est atteignable à deux endroits, qui montrent la même liste :
+le menu **Exports**, en haut à gauche, et une section en bas de la vue d'ensemble. Groupé par
+origine : les rapports HTML de JaCoCo, le profil natif d'async-profiler et son inverse, les
+piles repliées, les valeurs et la trace d'Arthas, le journal de l'exécution, le contexte.
+
+Une rubrique **« Formats ouverts »** porte les mêmes mesures réécrites en `perf script`, en
+`cpuprofile`, en LCOV et en JSON. Ces quatre-là restent **nommés même absents**, en grisé :
+une capacité qui ne vivrait que dans une option de ligne de commande n'existe pas pour qui
+lit la page. Un clic dit alors comment les produire, sans relancer la moindre mesure. Voir
+[Reprendre le résultat dans un autre outil](exports.md).
 
 Ce n'est pas de la complétude pour la forme. Cette page est une synthèse : elle replie
 des frames, agrège des appels, masque des paquets. Chacun de ces choix peut se révéler faux
