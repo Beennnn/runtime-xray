@@ -198,10 +198,12 @@ lancement, qui ne change jamais ; le **nom donné par `--name`**, qui dit ce qu'
 mesurer ; le **nom posé après coup**, qui dit ce qu'on a compris. Sans `--name`, c'est
 l'identifiant abrégé qui s'affiche — jamais un libellé inventé.
 
-La fiche **Identité de cette exécution**, en vue d'ensemble, montre les trois et laisse
-saisir le nom, une description libre et des étiquettes clé/valeur. Selon le mode, la saisie
-reste dans le navigateur, s'exporte en fichier, ou s'écrit directement à côté des
-exécutions : [Annoter les exécutions](annotations.md).
+Le **bandeau d'identité**, sous le nom de l'exécution en vue d'ensemble, tient sur une
+ligne : identifiant abrégé, nom modifiable sur place, description, étiquettes. Le nom du
+lancement et l'identifiant complet sont dans les infobulles — ils ne se modifient pas, ils
+n'ont donc pas à occuper la ligne. Selon le mode, la saisie reste dans le navigateur,
+s'exporte en fichier, ou s'écrit directement à côté des exécutions : [Annoter les
+exécutions](annotations.md).
 
 ## Les sorties brutes
 
@@ -210,8 +212,10 @@ par outil : les rapports HTML de JaCoCo, le profil natif d'async-profiler et son
 les piles repliées, les valeurs et la trace d'Arthas, le journal de l'exécution, le contexte.
 
 Quand l'outil a été lancé avec `--export`, une rubrique **« Pour un autre outil »** s'y
-ajoute : les mêmes mesures réécrites en `perf script`, en `cpuprofile`, en LCOV et en JSON,
-pour être ouvertes ailleurs — voir [Reprendre le résultat dans un autre outil](exports.md).
+ajoute : les mêmes mesures réécrites en `perf script`, en `cpuprofile`, en LCOV et en JSON.
+Ces quatre formats sont aussi nommés dans la barre du haut, sous **exports** — éteints tant
+qu'ils n'ont pas été produits, et un clic donne alors la commande. Voir [Reprendre le
+résultat dans un autre outil](exports.md).
 
 Ce n'est pas de la complétude pour la forme. Cette page est une synthèse : elle replie
 des frames, agrège des appels, masque des paquets. Chacun de ces choix peut se révéler faux

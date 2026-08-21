@@ -262,7 +262,9 @@ l'identifiant qui désigne l'exécution : rien n'est inventé.
 
 S'y ajoutent une description libre, des étiquettes clé/valeur, et l'élagage de l'arbre
 d'appel — couper une branche, ou repartir d'un nœud. Tout cela se saisit dans la fiche
-**Identité de cette exécution**, et s'écrit dans un fichier à côté des mesures.
+**bandeau d'identité** posé sous le nom de l'exécution, et s'écrit dans un fichier à côté
+des mesures. Les gestes — enregistrer, exporter, importer — vivent dans la barre du haut :
+le rapport se lit, il ne se remplit pas.
 
 Trois façons de faire vivre ces annotations, qui coexistent :
 
