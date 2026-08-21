@@ -12,6 +12,11 @@ version d'origine était un script shell plus un script Python : deux prérequis
 une machine où **Java est forcément présent**, et aucune portabilité Windows. L'argument
 « si on le distribue comme un fichier, autant que ce soit un jar » a tenu.
 
+Le même jar sert aussi le rapport : `--serve` en fait un petit serveur HTTP, sans rien
+installer de plus. Diffuser l'outil et **héberger les résultats pour une équipe** ne
+demandent donc qu'un seul fichier — voir [Annoter les exécutions](annotations.md) et
+[Publier le rapport](../resultat/publication.md), qui le compare aux autres canaux.
+
 ## Les trois voies, comparées
 
 | Voie | Effort pour celui qui l'utilise | Quand la choisir |

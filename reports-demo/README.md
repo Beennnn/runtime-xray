@@ -5,6 +5,11 @@ Ce dossier contient ce que les outils ont **effectivement écrit** en analysant
 
 **→ [Tout est navigable en ligne](https://beennnn.github.io/runtime-xray/)** sans rien cloner.
 
+Les exécutions de [`executions/`](executions/) portent en plus un dossier `exports/` : les
+mêmes mesures réécrites pour d'autres outils — `cpuprofile` (speedscope), LCOV (éditeurs,
+suivi de couverture), et les valeurs capturées en JSON. Voir
+[Reprendre le résultat dans un autre outil](../docs/outil/exports.md).
+
 | Dossier | Outil | Ce qu'on y voit |
 |---|---|---|
 | `generated/jacoco/html/` | JaCoCo | Site de couverture, **code source colorié ligne à ligne**. Point d'entrée : `index.html` |

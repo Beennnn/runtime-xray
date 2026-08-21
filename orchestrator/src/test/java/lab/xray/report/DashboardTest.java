@@ -18,6 +18,7 @@ import java.util.regex.Pattern;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -237,6 +238,74 @@ class DashboardTest {
         assertEquals("Recette — cas nominal", run.get("nom"));
         assertEquals("nom-technique", run.get("nomOrigine"), "l'origine permet le retour arrière");
         assertEquals(Boolean.TRUE, run.get("renomme"));
+    }
+
+    @Test
+    @DisplayName("Une annotation complète porte le nom, la description et les étiquettes")
+    void richAnnotationIsRead(@TempDir Path dir) throws Exception {
+        Path out = dir.resolve("out");
+        Files.createDirectories(out);
+        fixtureRun(out.resolve("runs"), "nom-technique", "UUID-A", true);
+        Files.writeString(out.resolve("noms.json"), Json.write(Map.of(
+                "UUID-A", Map.of(
+                        "nom", "Recette du 21/08",
+                        "description", "Vérifier la branche météo",
+                        "etiquettes", Map.of("ticket", "RX-142", "à-rejouer", "")))),
+                StandardCharsets.UTF_8);
+
+        Map<String, Object> data = dataOf(Dashboard.build(out, List.of(sources(dir)), 8));
+        @SuppressWarnings("unchecked")
+        Map<String, Object> run = (Map<String, Object>) ((List<Object>) data.get("runs")).get(0);
+        assertEquals("Recette du 21/08", run.get("nom"));
+        assertEquals("nom-technique", run.get("nomOrigine"), "l'origine reste consultable");
+        assertEquals("Vérifier la branche météo", run.get("description"));
+        assertEquals("RX-142", ((Map<?, ?>) run.get("etiquettes")).get("ticket"));
+        assertEquals("", ((Map<?, ?>) run.get("etiquettes")).get("à-rejouer"),
+                "une étiquette peut n'être qu'une clé");
+    }
+
+    @Test
+    @DisplayName("L'élagage enregistré voyage jusqu'à la page")
+    void pruningTravelsToThePage(@TempDir Path dir) throws Exception {
+        Path out = dir.resolve("out");
+        Files.createDirectories(out);
+        fixtureRun(out.resolve("runs"), "essai", "UUID-E", true);
+        Files.writeString(out.resolve("noms.json"), Json.write(Map.of(
+                "UUID-E", Map.of("elagage", Map.of(
+                        "racine", "app/Main.main",
+                        "coupes", List.of("app/Main.main;app/Moteur.ecrire"))))),
+                StandardCharsets.UTF_8);
+
+        Map<String, Object> data = dataOf(Dashboard.build(out, List.of(sources(dir)), 8));
+        @SuppressWarnings("unchecked")
+        Map<String, Object> run = (Map<String, Object>) ((List<Object>) data.get("runs")).get(0);
+        Map<?, ?> elagage = (Map<?, ?>) run.get("elagage");
+        assertNotNull(elagage, "sans lui, la page rouvrirait l'arbre entier à chaque lecture");
+        assertEquals("app/Main.main", elagage.get("racine"));
+        assertEquals(List.of("app/Main.main;app/Moteur.ecrire"), elagage.get("coupes"));
+
+        // L'élagage cadre la lecture : la mesure, elle, reste entière.
+        Map<?, ?> arbre = (Map<?, ?>) run.get("calltree");
+        assertEquals(40L, ((Number) arbre.get("total")).longValue(),
+                "le total mesuré ne bouge pas");
+    }
+
+    @Test
+    @DisplayName("Sans nom au lancement, c'est l'identifiant qui désigne l'exécution")
+    void identifierStandsInForAMissingName(@TempDir Path dir) throws Exception {
+        Path out = dir.resolve("out");
+        Files.createDirectories(out);
+        Path run = fixtureRun(out.resolve("runs"), "20260821-004121", "0123456789abcdef", true);
+        // Une exécution lancée sans --name : le contexte ne porte aucun nom.
+        Files.writeString(run.resolve("run-context.json"), Json.write(Map.of(
+                "uuid", "0123456789abcdef",
+                "commande", "java -jar app.jar")), StandardCharsets.UTF_8);
+
+        Map<String, Object> data = dataOf(Dashboard.build(out, List.of(sources(dir)), 8));
+        @SuppressWarnings("unchecked")
+        Map<String, Object> first = (Map<String, Object>) ((List<Object>) data.get("runs")).get(0);
+        assertNull(first.get("nomOrigine"), "aucun nom n'a été donné : rien n'est inventé");
+        assertEquals("01234567", first.get("nom"), "l'identifiant abrégé tient lieu de nom");
     }
 
     @Test

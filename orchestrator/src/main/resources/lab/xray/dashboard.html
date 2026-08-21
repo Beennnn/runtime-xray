@@ -47,10 +47,13 @@
   .cleanbtn{display:inline-flex;align-items:center;gap:7px;font:inherit;font-size:12.5px;
             font-weight:600;padding:5px 12px;border-radius:20px;cursor:pointer;
             border:1px solid var(--border);background:var(--bg);color:var(--muted)}
-  .cleanbtn:hover{border-color:var(--accent);color:var(--accent)}
-  .cleanbtn .dot{width:9px;height:9px;border-radius:50%;background:var(--missbar);opacity:.55}
+  .cleanbtn:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
+  .cleanbtn .ic{display:inline-flex}
+  .cleanbtn .ic svg{display:block}
   .cleanbtn[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
-  .cleanbtn[aria-pressed="true"] .dot{background:#fff;opacity:1}
+  /* Ce que fait l'autre position du bouton, écrit à côté : un interrupteur qui change
+     d'intitulé quand on l'actionne ne dit jamais ce qu'on obtiendra en cliquant. */
+  .altlabel{font-size:11.5px;color:var(--muted);margin-left:9px}
   /* Les liens sont groupés PAR OUTIL : « couverture détaillée » et « couverture ciblée »
      viennent du même outil et le répéter sur chacun était du bruit. La marque porte le nom
      une fois, les liens suivent. */
@@ -104,11 +107,21 @@
   .listbar{display:flex;gap:6px;margin:8px;flex-wrap:wrap}
   #search{flex:1 1 100%;padding:5px 9px;border:1px solid var(--border);border-radius:6px;
           background:var(--bg);color:var(--text);font:inherit;font-size:12.5px;min-width:96px}
-  .unitbtn{font:inherit;font-size:11.5px;font-weight:700;width:38px;border-radius:6px;
-           border:1px solid var(--border);background:var(--bg);color:var(--muted);cursor:pointer}
-  .unitbtn.wide{width:auto;padding:0 9px}
-  .unitbtn[aria-pressed="true"]{border-color:var(--fullbar);color:var(--fullbar)}
-  .unitbtn:hover{border-color:var(--accent);color:var(--accent)}
+  /* Les réglages étaient des étiquettes nues — « % », « pkg » — qu'il fallait avoir
+     essayées pour savoir ce qu'elles faisaient. Chacun porte maintenant son icône, son
+     intitulé en toutes lettres, et l'état où il se trouve : un réglage actif est bleu et
+     plein, un réglage disponible est gris et creux. On voit donc d'un coup d'œil ce qui est
+     en cours et ce qu'il reste à activer. */
+  .unitbtn{display:inline-flex;align-items:center;gap:5px;font:inherit;font-size:11.5px;
+           font-weight:600;padding:4px 9px;border-radius:14px;border:1px solid var(--border);
+           background:var(--bg);color:var(--muted);cursor:pointer;line-height:1;
+           white-space:nowrap}
+  .unitbtn .ic{display:inline-flex;flex:0 0 auto}
+  .unitbtn .ic svg{display:block}
+  .unitbtn:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
+  .unitbtn[aria-pressed="true"]{border-color:var(--accent);color:var(--accent);
+                                background:var(--accent-soft)}
+  .unitbtn[aria-pressed="true"] .ic{color:var(--accent)}
   #scope{display:none;padding:7px 10px;border-bottom:1px solid var(--border);
          font-size:11.5px;color:var(--muted)}
   #scope b{color:var(--text)}
@@ -149,6 +162,34 @@
               font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
   .node:hover .mask{opacity:.75}
   .node .mask:hover{opacity:1;color:#fff;background:var(--missbar);border-color:var(--missbar)}
+  /* Bandeau d'élagage : ce qui a été coupé doit rester sous les yeux, sinon un arbre
+     amputé se lit comme une mesure incomplète. */
+  .prunebar{padding:7px 9px;border-bottom:1px solid var(--border);background:var(--panel);
+            border-left:3px solid var(--violet);font-size:12px;color:var(--text)}
+  .prunebar[hidden]{display:none}
+  .prunebar > b{display:block;font-size:9.5px;letter-spacing:.7px;text-transform:uppercase;
+                color:var(--muted);margin-bottom:3px}
+  .prunebar .chip{display:inline-flex;align-items:center;gap:5px;background:var(--bg);
+                  border:1px solid var(--border);border-radius:12px;padding:1px 4px 1px 8px;
+                  margin:3px 4px 0 0;font-size:11.5px;max-width:100%}
+  .prunebar .chip span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .prunebar .chip button{font:inherit;border:0;background:none;cursor:pointer;
+                         color:var(--muted);padding:0 3px;border-radius:8px}
+  .prunebar .chip button:hover{color:#fff;background:var(--missbar)}
+  .prunebar .note{color:var(--muted);font-size:11px;margin-top:5px}
+  .prunebar .acts{margin-top:6px}
+  .prunebar .acts button{font:inherit;font-size:11.5px;border:1px solid var(--border);
+                         background:var(--bg);color:var(--accent);border-radius:12px;
+                         padding:2px 9px;cursor:pointer}
+  .prunebar .acts button:hover{border-color:var(--accent)}
+  /* Le geste d'élagage se propose comme « filtrer » : au survol seulement, sinon il ferait
+     un mur de texte sur des centaines de lignes. */
+  .node .prune{float:right;margin-left:8px;opacity:0;color:var(--muted);font-size:10.5px;
+               padding:0 5px;border-radius:9px;border:1px solid var(--border);
+               font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+  .node:hover .prune{opacity:.75}
+  .node .prune:hover{opacity:1;color:#fff;background:var(--violet);border-color:var(--violet)}
+  .node.sel .prune{color:#e8f0fb}
   .filterhint{padding:6px 10px;font-size:11.5px;color:var(--muted);
               border-bottom:1px solid var(--border);line-height:1.4}
   .filterhint b{color:var(--text)}
@@ -181,7 +222,10 @@
                         background:var(--bg);color:var(--accent);border-radius:12px;
                         padding:2px 9px;cursor:pointer}
   .maskbar .acts button:hover{border-color:var(--accent)}
-  .maskbar code{font-size:11px;word-break:break-all}
+  /* Le repli se fait entre les noms, pas au milieu : « org.apache.com | mons » sur deux
+     lignes ne se lit plus comme un nom de paquet. Un nom plus large que la colonne reste
+     coupé — mais lui seul. */
+  .maskbar code{font-size:11px;word-break:normal;overflow-wrap:break-word}
   /* Quand on affiche tout le code, la couleur dit en un coup d'œil ce qui a servi. */
   .node.live .lbl{color:var(--fullbar)}
   .node.partial .lbl{color:var(--partbar)}
@@ -193,6 +237,14 @@
   .node.callnode{color:var(--violet)}
   .callbadge{font-size:10px;border:1px solid var(--violet);color:var(--violet);
              border-radius:10px;padding:0 5px;vertical-align:1px}
+  /* La ligne sélectionnée est un aplat bleu plein : tout ce qu'elle porte repasse en blanc.
+     Sans ces règles, la couleur de couverture — vert, orange, rouge — restait appliquée au
+     nom et se retrouvait sur ce bleu, où elle ne se lit plus. */
+  .node.sel, .node.sel.jdk, .node.sel.callnode{color:#fff}
+  .node.sel .lbl, .node.sel.live .lbl, .node.sel.partial .lbl,
+  .node.sel.dead .lbl, .node.sel.pkgnode .lbl{color:#fff;opacity:1}
+  .node.sel.dead .pct{color:#e8f0fb}
+  .node.sel .tagdead{color:#fff;border-color:#fff}
   .call.pick{cursor:pointer;border-radius:5px;padding-left:6px;padding-right:6px}
   .call.pick:hover{background:var(--accent-soft)}
   /* Le tableau peut être large : il défile dans son cadre, jamais la page entière. */
@@ -349,6 +401,10 @@
   .flame .fl{position:absolute;height:16px;border-radius:2px;overflow:hidden;
              font:10px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:#1f2328;
              padding:0 3px;line-height:16px;white-space:nowrap;box-sizing:border-box}
+  /* Une barre étroite ne montre pas un début de nom : « RoutePlanne » ou « Breaks.t » ne
+     désignent rien. Le nom est raccourci, puis retiré s'il ne tient toujours pas — le
+     survol le donne en entier de toute façon. */
+  .flame .fl span{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .flame .fl.known{cursor:pointer}
   .flame .fl.known:hover{outline:1px solid var(--text);outline-offset:-1px}
   /* La légende reprend l'échelle exacte du graphe : une légende approximative ne se
@@ -357,6 +413,32 @@
             margin:0 3px;border:1px solid var(--border);
             background:linear-gradient(to right,#dbe7f3,#f3e2b4,#f5cf7a,#ef9f45,#e2662c,#c8341b)}
   .home code{background:var(--panel);border:1px solid var(--border);border-radius:4px;padding:1px 5px;font-size:12px}
+  /* Identité : l'identifiant suit l'exécution partout où son nom s'affiche, parce que le
+     nom peut avoir été changé et que lui ne change jamais. */
+  .uid{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:10px;
+       color:var(--muted);border:1px solid var(--border);border-radius:8px;padding:0 4px;
+       margin-left:6px;vertical-align:1px}
+  .annot input,.annot textarea{font:inherit;font-size:12.5px;color:var(--text);
+       background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:4px 8px}
+  .annot input[type=text]{width:100%;max-width:420px}
+  .annot textarea{width:100%;max-width:560px;min-height:52px;resize:vertical}
+  .annot .tagline{display:flex;gap:6px;align-items:center;margin-bottom:4px;flex-wrap:wrap}
+  .annot .tagline .k{width:150px} .annot .tagline .v{flex:1;min-width:160px;max-width:340px}
+  .annot .mini{font:inherit;font-size:11.5px;font-weight:600;padding:3px 9px;border-radius:12px;
+       border:1px solid var(--border);background:var(--bg);color:var(--muted);cursor:pointer}
+  .annot .mini:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
+  .annot .hint{color:var(--muted);font-size:11.5px;margin-left:8px}
+  /* Coincée entre un champ large et un bouton, l'explication se coupait en deux morceaux
+     illisibles : elle prend sa propre ligne. */
+  .annot .hint.sous{display:block;margin:4px 0 0}
+  .annot .annotacts{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .annot .mini.fort{border-color:var(--accent);color:#fff;background:var(--accent)}
+  .annot .mini.fort:hover{filter:brightness(1.1);background:var(--accent);color:#fff}
+  .annot .annotacts .hint{flex:1 1 100%}
+  .annot .drop{color:var(--muted);border-color:transparent;padding:3px 7px}
+  .annot .drop:hover{border-color:var(--missbar);color:var(--missbar);background:transparent}
+  .annot pre{background:var(--panel);border:1px solid var(--border);border-radius:8px;
+       padding:10px 12px;font-size:11.5px;overflow:auto;max-height:180px;margin:8px 0 0}
   table.ctx{border-collapse:collapse;width:100%;margin-bottom:20px}
   table.ctx td{padding:5px 10px;border-bottom:1px solid var(--border);vertical-align:top;font-size:13px}
   td.ck{color:var(--muted);white-space:nowrap;width:1%}
@@ -407,16 +489,19 @@
     </div>
     <div class="listbar">
       <input id="search" placeholder="Chercher…" title="Filtrer la liste par nom de classe ou de méthode" autocomplete="off">
-      <button id="unitbtn" class="unitbtn" title="Basculer entre part du temps et temps estimé">%</button>
-      <button id="pkgbtn" class="unitbtn" title="Afficher ou masquer les noms de paquet">pkg</button>
-      <button id="valbtn" class="unitbtn wide" aria-pressed="true"
-              title="Une ligne par champ de la valeur, ou une ligne par paramètre">par champ</button>
-      <button id="scopebtn" class="unitbtn wide" aria-pressed="true"
-              title="N'afficher que le code exécuté, ou tout le code du projet">exécuté</button>
-      <button id="expandbtn" class="unitbtn wide"
-              title="Tout déplier, ou tout replier">tout déplier</button>
+      <button id="unitbtn" class="unitbtn"
+              title="Part du temps total — cliquer pour voir un temps estimé"><span class="ic"></span><span class="lab">part du temps</span></button>
+      <button id="pkgbtn" class="unitbtn" aria-pressed="true"
+              title="Les noms de paquet sont affichés — cliquer pour ne garder que les noms de classe"><span class="ic"></span><span class="lab">noms de paquet</span></button>
+      <button id="valbtn" class="unitbtn" aria-pressed="true"
+              title="Une ligne par champ de la valeur — cliquer pour n'avoir qu'une ligne par paramètre"><span class="ic"></span><span class="lab">par champ</span></button>
+      <button id="scopebtn" class="unitbtn" aria-pressed="true"
+              title="Seul le code exécuté est listé — cliquer pour voir tout le code"><span class="ic"></span><span class="lab">code exécuté</span></button>
+      <button id="expandbtn" class="unitbtn"
+              title="Tout déplier, ou tout replier"><span class="ic"></span><span class="lab">tout déplier</span></button>
     </div>
     <div id="scope"></div>
+    <div class="prunebar" id="prunebar" hidden></div>
     <div class="list" id="list"></div>
   </div>
   <div class="split" id="vsplit" title="Glisser pour redimensionner">
@@ -427,8 +512,9 @@
     <div class="viewbar">
       <button id="clean" class="cleanbtn" aria-pressed="true"
               title="Resserré : seule la méthode sélectionnée est affichée, sans ses lignes mortes">
-        <span class="dot"></span> Resserré sur la méthode
+        <span class="ic"></span><span class="lab">Resserré sur la méthode</span>
       </button>
+      <span class="altlabel" id="cleanalt">cliquer pour afficher le fichier entier</span>
     </div>
     <div id="context"></div>
     <div id="code"></div>
@@ -567,13 +653,320 @@ function computeAgg(){
 }
 let AGG = computeAgg();
 
+/* ------------------------------------------------------- identité des exécutions
+ * Une exécution porte trois choses distinctes, et les confondre fait perdre la trace de ce
+ * qu'on regarde : un identifiant, qui ne change jamais ; le nom donné au lancement, qui dit
+ * ce qu'on croyait mesurer ; le nom posé après coup, qui dit ce qu'on a compris. La page
+ * sait saisir les deux derniers, plus une description et des étiquettes ; elle les garde
+ * dans le navigateur et sait rendre le « noms.json » qui les rendra définitifs.
+ */
+const ANNOT_KEY = "runtime-xray-annotations";
+let annotations = {};
+try { annotations = JSON.parse(localStorage.getItem(ANNOT_KEY) || "{}"); } catch(e){ annotations = {}; }
+function saveAnnotations(){
+  try { localStorage.setItem(ANNOT_KEY, JSON.stringify(annotations)); } catch(e){}
+}
+/** Ce qui a été saisi dans la page l'emporte sur ce que le rapport portait déjà. */
+function annotationOf(run){
+  const local = annotations[run.uuid] || {};
+  const base = annotationEnregistree(run);
+  return {
+    nom: local.nom !== undefined ? local.nom : base.nom,
+    description: local.description !== undefined ? local.description : base.description,
+    etiquettes: local.etiquettes !== undefined ? local.etiquettes : base.etiquettes,
+    elagage: local.elagage !== undefined ? local.elagage : base.elagage
+  };
+}
+function annotationPatch(run, champ, valeur){
+  const a = annotations[run.uuid] || (annotations[run.uuid] = {});
+  if (valeur === null) delete a[champ]; else a[champ] = valeur;
+  if (!Object.keys(a).length) delete annotations[run.uuid];
+  saveAnnotations();
+}
+
+/* ------------------------------------------------- écrire, exporter, importer
+ * Une page ouverte comme fichier ne peut rien écrire sur le disque : c'est une règle du
+ * navigateur, et c'est aussi ce qui la rend transmissible telle quelle. Les annotations
+ * vivent donc dans le navigateur, et trois chemins les en sortent :
+ *
+ *   — servie par l'outil (« --serve »), la page ENREGISTRE dans noms.json, à côté des
+ *     exécutions, et le rapport est régénéré : l'annotation devient celle du rapport ;
+ *   — sinon, on EXPORTE le fichier et on le dépose soi-même ;
+ *   — et on IMPORTE un noms.json existant pour retrouver, dans ce navigateur, ce qu'un
+ *     collègue a annoté.
+ */
+let peutEnregistrer = false;
+// Ce que le serveur partagé porte déjà : les annotations des autres, et l'empreinte de
+// chacune. L'empreinte est ce qui permet de dire « quelqu'un est passé depuis ».
+let annotationsServeur = {};
+let empreintesServeur = {};
+
+function lireServeur(){
+  return fetch("__xray/noms", {cache: "no-store"})
+    .then(r => r.ok ? r.json() : null)
+    .then(j => {
+      if (!j) return false;
+      const avant = JSON.stringify(empreintesServeur);
+      annotationsServeur = j.annotations || {};
+      empreintesServeur = j.empreintes || {};
+      return JSON.stringify(empreintesServeur) !== avant;
+    })
+    .catch(() => false);
+}
+
+fetch("__xray/ping", {cache: "no-store"})
+  .then(r => r.ok ? r.json() : null)
+  .then(j => {
+    if (!j || !j.peutEcrire) return;
+    peutEnregistrer = true;
+    return lireServeur().then(() => {
+      renderIdentity();
+      refreshRunLabels();
+      // Plusieurs personnes peuvent annoter en même temps : on relit régulièrement, et on
+      // repose les noms des exécutions qu'on n'est pas en train de modifier soi-même.
+      setInterval(() => lireServeur().then(change => {
+        if (!change) return;
+        refreshRunLabels();
+        if (!document.getElementById("annotName")
+            || document.activeElement.id !== "annotName") renderIdentity();
+      }), 15000);
+    });
+  })
+  .catch(() => {});   // page ouverte comme fichier : on reste sur l'export
+
+/** L'annotation d'une exécution telle qu'elle est enregistrée : serveur d'abord, sinon
+ *  celle que la page portait à sa construction. */
+function annotationEnregistree(run){
+  const distante = annotationsServeur[run.uuid];
+  if (distante !== undefined) {
+    return typeof distante === "string"
+      ? {nom: distante, description: "", etiquettes: {}, elagage: null}
+      : {nom: distante.nom || "", description: distante.description || "",
+         etiquettes: distante.etiquettes || {}, elagage: distante.elagage || null};
+  }
+  return {nom: run.nomOutil || "", description: run.description || "",
+          etiquettes: run.etiquettes || {}, elagage: run.elagage || null};
+}
+
+/** Vrai si ce navigateur porte, pour cette exécution, autre chose que ce qui est enregistré. */
+function annotationModifiee(run){
+  const local = annotations[run.uuid];
+  if (!local) return false;
+  const a = annotationOf(run), e = annotationEnregistree(run);
+  return JSON.stringify([a.nom, a.description, a.etiquettes, a.elagage])
+      !== JSON.stringify([e.nom, e.description, e.etiquettes, e.elagage]);
+}
+
+/**
+ * Envoie l'annotation de l'exécution regardée.
+ *
+ * <p>Une exécution à la fois, avec l'empreinte de ce qu'on avait sous les yeux : deux
+ * personnes qui annotent deux exécutions ne se croisent jamais, et sur la même exécution
+ * la seconde est prévenue au lieu d'écraser la première.
+ */
+function enregistrerAnnotations(bouton){
+  const run = R;
+  const a = annotationOf(run);
+  const tags = a.etiquettes && Object.keys(a.etiquettes).length ? a.etiquettes : undefined;
+  const el = elagageActif(run) ? elagageOf(run) : undefined;
+  const valeur = (!a.nom && !a.description && !tags && !el)
+    ? {}
+    : {nom: a.nom || undefined, description: a.description || undefined,
+       etiquettes: tags, elagage: el};
+  const dire = t => { bouton.textContent = t; };
+  const rendre = () => setTimeout(() => { dire("Enregistrer"); renderIdentity(); }, 2500);
+
+  dire("enregistrement…");
+  fetch("__xray/noms/" + encodeURIComponent(run.uuid), {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    // Pas d'empreinte connue — page ouverte avant que le serveur ne réponde — vaut « pas
+    // de vérification » : mieux qu'un refus systématique sur une exécution jamais annotée.
+    body: JSON.stringify({base: empreintesServeur[run.uuid] !== undefined
+                                ? empreintesServeur[run.uuid] : null,
+                          valeur: valeur})
+  }).then(r => r.json().then(j => ({status: r.status, body: j})).catch(() => ({status: r.status, body: {}})))
+    .then(({status, body}) => {
+      if (status === 409){
+        // Quelqu'un d'autre est passé : on montre ce qui est enregistré, et on laisse
+        // décider — écraser sans le dire ferait disparaître son travail.
+        annotationsServeur[run.uuid] = body.valeur;
+        empreintesServeur[run.uuid] = body.empreinte;
+        dire("modifiée entre-temps");
+        const out = document.getElementById("annotOut");
+        out.hidden = false;
+        out.textContent = "Cette exécution a été annotée par quelqu'un d'autre pendant que "
+          + "vous la modifiiez. Version enregistrée :\n\n"
+          + JSON.stringify(body.valeur, null, 2)
+          + "\n\nCliquer « Enregistrer » à nouveau remplacera la sienne par la vôtre ; "
+          + "« reprendre la version enregistrée » abandonnera vos modifications.";
+        rendre();
+        return;
+      }
+      if (status !== 200) throw new Error("refus du serveur (" + status + ")");
+      // Ce qui est enregistré n'est plus « une modification locale » : on efface la copie
+      // du navigateur, pour que « modifié » ne désigne que ce qui n'est pas encore parti.
+      delete annotations[run.uuid];
+      saveAnnotations();
+      annotationsServeur[run.uuid] = valeur && Object.keys(valeur).length ? valeur : undefined;
+      empreintesServeur[run.uuid] = body.empreinte;
+      dire("enregistré ✓");
+      rendre();
+    })
+    .catch(e => { dire("échec : " + e.message); rendre(); });
+}
+
+/** Abandonne les modifications locales d'une exécution et reprend ce qui est enregistré. */
+function reprendreEnregistree(run){
+  delete annotations[run.uuid];
+  saveAnnotations();
+  renderIdentity();
+  refreshRunLabels();
+  mode === "tree" ? renderTree() : renderClasses();
+  drawHome();
+}
+
+function exporterAnnotations(){
+  const blob = new Blob([JSON.stringify(annotationsFile(), null, 2)],
+                        {type: "application/json"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "noms.json";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+}
+
+/** Reprend un noms.json : les exécutions qu'il nomme écrasent ce qu'on avait, les autres
+ *  restent — importer n'est pas repartir de zéro. */
+function importerAnnotations(texte){
+  const lu = JSON.parse(texte);
+  if (!lu || typeof lu !== "object" || Array.isArray(lu)) {
+    throw new Error("ce fichier ne porte pas d'annotations");
+  }
+  // Un fichier d'exécution — nom, description, étiquettes — n'est pas indexé par
+  // identifiant : il vaut pour l'exécution regardée, et c'est la seule lecture possible.
+  if (lu.nom !== undefined || lu.description !== undefined
+      || lu.etiquettes !== undefined || lu.elagage !== undefined) {
+    annotations[R.uuid] = {nom: lu.nom || "", description: lu.description || "",
+                           etiquettes: lu.etiquettes || {}, elagage: lu.elagage || null};
+    saveAnnotations();
+    return 1;
+  }
+  let reprises = 0;
+  for (const [uuid, valeur] of Object.entries(lu)){
+    annotations[uuid] = (typeof valeur === "string")
+      ? {nom: valeur}
+      : {nom: valeur.nom || "", description: valeur.description || "",
+         etiquettes: valeur.etiquettes || {}, elagage: valeur.elagage || null};
+    reprises++;
+  }
+  saveAnnotations();
+  return reprises;
+}
+function shortId(run){ return (run.uuid || "").slice(0, 8); }
+
+/* ----------------------------------------------------------------- élagage de l'arbre
+ * Un arbre d'appel complet montre tout ce qui a tourné — le démarrage, les rouages, les
+ * branches qui n'intéressent personne aujourd'hui. Ce qu'on veut montrer à quelqu'un
+ * d'autre, c'est souvent UNE branche. D'où deux gestes : couper une branche, et repartir
+ * d'un nœud en masquant les niveaux au-dessus.
+ *
+ * Ce que l'élagage ne fait PAS : changer les mesures. Les pourcentages restent rapportés au
+ * total de l'exécution, et rien n'est retiré des fichiers. C'est un cadrage de lecture, pas
+ * une correction de la mesure — et le bandeau le dit, en permanence.
+ *
+ * Un chemin s'écrit comme dans le fichier de piles repliées : les frames de la racine au
+ * nœud, séparées par « ; ». Deux méthodes de même nom appelées depuis deux endroits sont
+ * donc deux chemins distincts, ce qui est exactement ce qu'on veut couper.
+ */
+function elagageOf(run){
+  const a = annotationOf(run).elagage || {};
+  return {
+    racine: typeof a.racine === "string" ? a.racine : "",
+    coupes: Array.isArray(a.coupes) ? a.coupes : []
+  };
+}
+function elagageActif(run){
+  const e = elagageOf(run);
+  return !!(e.racine || e.coupes.length);
+}
+function poseElagage(run, e){
+  annotationPatch(run, "elagage", {racine: e.racine, coupes: e.coupes});
+  renderAnnotActs();
+}
+function nodeAtPath(root, path){
+  let node = root;
+  for (const name of path.split(";")){
+    node = (node.children || []).find(k => k.name === name);
+    if (!node) return null;
+  }
+  return node;
+}
+/** Copie de l'arbre sans les branches coupées, chaque nœud portant son chemin d'origine. */
+function copyPruned(node, path, coupes){
+  const kids = [];
+  for (const kid of node.children || []){
+    const p = path ? path + ";" + kid.name : kid.name;
+    if (coupes.includes(p)) continue;
+    kids.push(copyPruned(kid, p, coupes));
+  }
+  return {name: node.name, total: node.total, children: kids, __path: path};
+}
+/**
+ * L'arbre tel qu'on a décidé de le lire.
+ *
+ * <p>Un chemin devenu introuvable — la mesure a changé, la méthode a disparu — est ignoré
+ * plutôt qu'appliqué de travers : mieux vaut montrer trop que montrer autre chose.
+ */
+function prunedTree(run){
+  const e = elagageOf(run);
+  // La copie sert aussi à poser le chemin de chaque nœud, dont l'affichage a besoin même
+  // sans élagage : elle est donc toujours faite, mais gardée tant que rien ne change.
+  const cle = e.racine + "|" + e.coupes.join("|");
+  if (run.__prunedKey === cle) return run.__pruned;
+  let base = run.calltree, basePath = "";
+  if (e.racine){
+    const trouve = nodeAtPath(run.calltree, e.racine);
+    if (trouve){ base = trouve; basePath = e.racine; }
+  }
+  const élagué = copyPruned(base, basePath, e.coupes);
+  // Racine ramenée : on réintroduit un parent muet pour que le nœud choisi s'affiche
+  // lui-même, et pas seulement ses enfants — sinon on ne sait plus d'où l'on part.
+  const arbre = basePath
+    ? {name: "tout", total: run.calltree.total, children: [élagué], __path: ""}
+    : élagué;
+  run.__prunedKey = cle;
+  run.__pruned = arbre;
+  return arbre;
+}
+
+/** Le chemin d'un nœud tel que l'élagage le désigne. */
+function pathOf(node){ return node && node.__path ? node.__path : (node ? node.name : ""); }
+/** Nom posé dans l'outil, sinon nom du lancement, sinon l'identifiant : jamais rien d'inventé. */
+function runLabel(run){
+  return annotationOf(run).nom || run.nomOrigine || shortId(run) || run.chemin || "exécution";
+}
+/** Repose les libellés partout où ils s'affichent, sans reconstruire la vue. */
+function refreshRunLabels(){
+  document.querySelectorAll("[data-runname]").forEach(el => {
+    el.textContent = runLabel(D.runs[+el.dataset.runname]);
+  });
+  const c = document.getElementById("crumbname");
+  if (c) c.textContent = runLabel(R);
+}
+
 (function initRuns(){
   if (D.runs.length < 2) return;
   document.getElementById("runpick").hidden = false;
   const box = document.getElementById("runboxes");
   box.innerHTML = D.runs.map((r, i) =>
     '<label><input type="checkbox" data-run="' + i + '" checked> ' +
-    esc(r.nom) + '<span class="cnt">' + methodCount(r) + ' méthodes</span></label>').join("");
+    '<span data-runname="' + i + '">' + esc(runLabel(r)) + '</span>' +
+    (r.uuid ? '<span class="uid" title="Identifiant permanent : ' + esc(r.uuid) + '">'
+              + esc(shortId(r)) + '</span>' : '') +
+    '<span class="cnt">' + methodCount(r) + ' méthodes</span></label>').join("");
   box.querySelectorAll("input[data-run]").forEach(cb => cb.onchange = () => {
     const i = +cb.dataset.run;
     cb.checked ? shownRuns.add(i) : shownRuns.delete(i);
@@ -768,7 +1161,11 @@ function restoreExpanded(open){
 
 function resetExpandButton(){
   const b = document.getElementById("expandbtn");
-  if (b){ b.dataset.state = ""; b.textContent = "tout déplier"; }
+  if (b){
+    b.dataset.state = "";
+    setOption("expandbtn", {icon: OPT.deplier, label: "tout déplier", pressed: false,
+                            title: "Ouvrir toutes les branches d'un coup"});
+  }
 }
 function toggleRunPicker(show){
   const p = document.getElementById("runpick");
@@ -944,8 +1341,90 @@ function renderMaskBar(){
   document.getElementById("maskclear").onclick = () => { masked = []; saveMasks(); };
 }
 
+/**
+ * Le choix d'élagage, proposé sur le nœud qu'on désigne.
+ *
+ * <p>Deux gestes seulement, et leur portée est dite en toutes lettres : couper vaut pour
+ * <b>ce chemin</b>, pas pour la méthode partout où elle apparaît — une méthode appelée
+ * depuis deux endroits reste visible dans l'autre.
+ */
+function openPrunePicker(run, path, anchor){
+  closeMaskPicker();
+  const e = elagageOf(run);
+  const nom = dot(path.split(";").pop());
+  const pop = document.createElement("div");
+  pop.id = "maskpop";
+  pop.innerHTML = '<h4>Élaguer l\'arbre</h4>' +
+    '<button data-a="couper">Couper cette branche' +
+    '<span class="q">retire ' + esc(nom) + ' et tout ce qui en part, sur ce chemin seulement</span></button>' +
+    '<button data-a="racine">Repartir d\'ici' +
+    '<span class="q">masque les niveaux au-dessus : l\'arbre commence à ' + esc(nom) + '</span></button>' +
+    (elagageActif(run)
+      ? '<button data-a="reset">Tout rétablir<span class="q">revenir à l\'arbre mesuré</span></button>'
+      : "");
+  document.body.appendChild(pop);
+  const r = anchor.getBoundingClientRect();
+  pop.style.left = Math.min(r.left, window.innerWidth - pop.offsetWidth - 12) + "px";
+  pop.style.top = Math.min(r.bottom + 4, window.innerHeight - pop.offsetHeight - 12) + "px";
+  pop.querySelectorAll("button").forEach(b => b.onclick = ev => {
+    ev.stopPropagation();
+    if (b.dataset.a === "couper" && !e.coupes.includes(path)) e.coupes = e.coupes.concat([path]);
+    if (b.dataset.a === "racine") e.racine = path;
+    if (b.dataset.a === "reset"){ e.racine = ""; e.coupes = []; }
+    poseElagage(run, e);
+    closeMaskPicker();
+    // Élaguer ne doit pas refermer l'arbre : on rouvre ce qui l'était, sinon chaque coupe
+    // coûte de retrouver son chemin.
+    const ouvert = captureExpanded();
+    renderTree();
+    restoreExpanded(ouvert);
+    if (!selected) drawHome();
+  });
+  setTimeout(() => document.addEventListener("click", closeMaskPicker, { once: true }), 0);
+}
+
+/**
+ * Ce qui a été coupé, affiché en permanence.
+ *
+ * <p>Un arbre amputé sans rien qui le dise se lit comme une mesure incomplète — c'est le
+ * même principe que le bandeau des paquets masqués.
+ */
+function renderPruneBar(){
+  const bar = document.getElementById("prunebar");
+  if (!bar) return;
+  const run = R;
+  const e = elagageOf(run);
+  // Le bandeau reste visible dans les deux onglets : le graphe de temps de la vue
+  // d'ensemble suit l'élagage lui aussi, et un cadrage qui ne se voit que d'un côté se
+  // fait oublier de l'autre.
+  if (!elagageActif(run)){ bar.hidden = true; bar.innerHTML = ""; return; }
+  bar.hidden = false;
+  const chip = (label, titre, action) =>
+    '<span class="chip" title="' + esc(titre) + '"><span>' + esc(label) + '</span>' +
+    '<button data-a="' + action + '" title="Rétablir">✕</button></span>';
+  bar.innerHTML = '<b>Arbre élagué</b>' +
+    (e.racine ? chip("racine : " + dot(e.racine.split(";").pop()), dot(e.racine), "racine") : "") +
+    e.coupes.map((c, i) =>
+      chip("coupé : " + dot(c.split(";").pop()), dot(c), "coupe:" + i)).join("") +
+    '<div class="note">Les pourcentages restent rapportés au total mesuré : élaguer cadre ' +
+    'la lecture, ne corrige pas la mesure.</div>' +
+    '<div class="acts"><button data-a="reset">Tout rétablir</button></div>';
+  bar.querySelectorAll("button").forEach(b => b.onclick = () => {
+    const a = b.dataset.a;
+    if (a === "racine") e.racine = "";
+    else if (a === "reset"){ e.racine = ""; e.coupes = []; }
+    else if (a.startsWith("coupe:")) e.coupes = e.coupes.filter((_, i) => i !== +a.slice(6));
+    poseElagage(run, e);
+    const ouvert = captureExpanded();
+    renderTree();
+    restoreExpanded(ouvert);
+    if (!selected) drawHome();
+  });
+}
+
 function renderTree(){
   mode = "tree"; tab("tab-tree"); renderScope();
+  renderPruneBar();
   // L'arbre montre TOUTES les exécutions comme racines : les cocher n'aurait pas de sens.
   toggleRunPicker(false);
   showOptionsFor("tree"); resetExpandButton();
@@ -959,14 +1438,17 @@ function renderTree(){
     const head = document.createElement("div");
     head.className = "node runroot" + (idx === runIndex ? " on" : "");
     head.innerHTML = '<span class="tw">' + (idx === runIndex ? "▾" : "▸") + '</span>' +
-                     '<span class="runbadge">exécution</span> ' + esc(run.nom) +
+                     '<span class="runbadge">exécution</span> ' +
+                     '<span data-runname="' + idx + '">' + esc(runLabel(run)) + '</span>' +
+                     (run.uuid ? '<span class="uid" title="Identifiant permanent : '
+                                 + esc(run.uuid) + '">' + esc(shortId(run)) + '</span>' : '') +
                      ' <span class="pct2">' + total.toLocaleString("fr") + ' mesures</span>';
     box.appendChild(head);
     const holder = document.createElement("div");
     holder.style.display = idx === runIndex ? "block" : "none";
     box.appendChild(holder);
     let built = false;
-    if (idx === runIndex){ level(holder, run.calltree, 1, total, idx); built = true; }
+    if (idx === runIndex){ level(holder, prunedTree(run), 1, total, idx); built = true; }
     head.onclick = () => {
       // Changer d'exécution reconstruit la liste entière. Toucher AU PRÉALABLE au DOM
       // qu'on s'apprête à remplacer laissait un conteneur déjà rempli mais marqué fermé —
@@ -975,7 +1457,7 @@ function renderTree(){
       if (idx !== runIndex){ switchRun(idx, true); return; }
 
       const open = holder.style.display === "none";
-      if (open && !built){ level(holder, run.calltree, 1, total, idx); built = true; }
+      if (open && !built){ level(holder, prunedTree(run), 1, total, idx); built = true; }
       holder.style.display = open ? "block" : "none";
       head.querySelector(".tw").textContent = open ? "▾" : "▸";
       if (!open) goHome();
@@ -1027,7 +1509,9 @@ function renderTree(){
                      // range pas du code. Le geste vit dans la vue Code et dans le chemin
                      // affiché au-dessus du source, là où on a le paquet sous les yeux.
                      ((known && (R.values[kid.name] || []).length)
-                        ? ' <span class="tagval">' + R.values[kid.name].length + ' appels</span>' : '');
+                        ? ' <span class="tagval">' + R.values[kid.name].length + ' appels</span>' : '') +
+                     '<span class="prune" title="Couper cette branche, ou repartir d\'ici">élaguer</span>';
+      el.dataset.path = pathOf(kid);
       container.appendChild(el);
       const holder = document.createElement("div");
       holder.style.display = "none";
@@ -1041,6 +1525,10 @@ function renderTree(){
       let built = false;
       el.onclick = e => {
         e.stopPropagation();
+        if (e.target.classList.contains("prune")){
+          openPrunePicker(D.runs[idx], pathOf(kid), e.target);
+          return;
+        }
         if (kidsShown.length || observedCalls.length){
           const open = holder.style.display === "none";
           if (open && !built){
@@ -1095,6 +1583,7 @@ function renderTree(){
  */
 function renderClasses(){
   mode = "cls"; tab("tab-cls"); renderScope(); toggleRunPicker(true);
+  renderPruneBar();
   showOptionsFor("cls"); resetExpandButton();
   const box = document.getElementById("list"); box.innerHTML = "";
 
@@ -1520,7 +2009,7 @@ function draw(){
   document.getElementById("crumb").innerHTML =
     '<a class="back" id="backHome" title="Revenir à la vue d\'ensemble">← Vue d\'ensemble</a> <span>›</span> ' +
     (D.runs.length > 1 ? '<span class="pill" title="Exécution dont proviennent la couverture et les valeurs affichées">'
-        + esc(R.nom) + '</span> <span>›</span> ' : '') +
+        + '<span id="crumbname">' + esc(runLabel(R)) + '</span></span> <span>›</span> ' : '') +
     crumbPackage(info.cls) + ' <b>'+
     esc(info.cls.split("/").pop())+'.java</b>'+
     (info.name ? ' <span>›</span> <b>'+esc(info.name)+'()</b>' : '') +
@@ -1646,16 +2135,22 @@ function drawValues(info){
     // Expliquer POURQUOI il n'y a rien : sans cela, on croit à un défaut de l'outil alors
     // que c'est un choix — l'observation des valeurs est ciblée, et elle doit l'être.
     const nom = esc(info.name || info.cls.split("/").pop());
+    // Une classe n'a pas de méthode à nommer : proposer « --root paquet.Classe:: » livrait
+    // une commande que personne ne peut lancer. On dit alors ce qui manque.
+    const cible = info.name ? "<code>" + nom + "</code>" : "la classe <code>" + nom + "</code>";
+    const commande = "--root " + esc(dot(info.cls)) + "::" +
+                     (info.name ? esc(info.name) : "<i>methode</i>");
     const racine = R.context && R.context.methodeRacine ? R.context.methodeRacine : null;
     box.innerHTML = others.length
       ? '<h3>Valeurs des paramètres</h3><div class="explain">' +
-        '<b>Aucune valeur n\'a été capturée pour <code>' + nom + '</code></b> — ce qui ne veut ' +
+        '<b>Aucune valeur n\'a été capturée pour ' + cible + '</b> — ce qui ne veut ' +
         'pas dire qu\'elle n\'a pas tourné : la couverture et les temps la montrent bien. ' +
         'L\'observation des valeurs est <b>ciblée</b> sur une méthode racine' +
         (racine ? ' — ici <code>' + esc(racine) + '</code>' : '') + ', parce qu\'observer ' +
         'toutes les méthodes produirait un volume ingérable et fausserait la mesure.' +
-        '<br>Pour obtenir les valeurs de <code>' + nom + '</code>, relancer avec ' +
-        '<code>--root ' + esc(dot(info.cls) + "::" + (info.name || "")) + '</code>.' +
+        '<br>Pour obtenir les valeurs de ' + cible + ', relancer avec ' +
+        '<code>' + commande + '</code>' +
+        (info.name ? '' : ' — en nommant la méthode à observer') + '.' +
         '<br>Méthodes observées dans cette exécution : ' + others.map(f =>
           '<a href="#" class="vlink" data-f="' + esc(f) + '">' + esc(f.split("/").pop()) + '</a>')
           .join(" · ") + '</div>'
@@ -1771,10 +2266,10 @@ function schema(){
 
     <!-- colonne gauche -->
     <rect x="8" y="50" width="210" height="286" rx="6" class="fr2"/>
-    <rect x="8" y="50" width="70" height="24" rx="4" fill="var(--accent-soft)"/>
-    <text x="18" y="66" class="tb">Code exécuté</text>
-    <text x="92" y="66" class="tx">Arbre</text>
-    <text x="140" y="66" class="tx">Packages</text>
+    <rect x="8" y="50" width="105" height="24" fill="var(--accent-soft)"/>
+    <rect x="8" y="72" width="105" height="2" fill="var(--accent)"/>
+    <text x="45" y="66" class="tb">Code</text>
+    <text x="136" y="66" class="tx">Exécutions</text>
     <rect x="16" y="84" width="194" height="18" rx="4" fill="var(--accent)"/>
     <text x="24" y="97" fill="#fff" font-size="10.5" font-family="monospace">38,3 % RoutePlanner.travel…</text>
     <g class="tx" font-family="monospace" font-size="10.5">
@@ -1900,6 +2395,22 @@ function rawBlock(){
         "Les paramètres et retours relevés, dans la forme où l\'outil les a imprimés."),
       f(a.traceBrute, "arthas/trace-calltree.txt", "Trace d\'invocation",
         "Les arbres d\'appel réels, un par invocation, avec les numéros de ligne.")]) +
+    (a.exportPerf || a.exportCpuprofile || a.exportLcov || a.exportValeurs
+      ? '<h3 class="rawh">Pour un autre outil</h3>' +
+        '<p class="rawnote">Les mêmes mesures réécrites dans des formats publics, pour les ' +
+        'reprendre ailleurs — un profileur, un éditeur, un script. Produits par ' +
+        '<code>--export</code>, sans repli ni masquage : c\'est la mesure, pas la synthèse.</p>' +
+        '<div class="links2">' +
+        f(a.exportPerf, "exports/profil.perf.txt", "Profil au format perf",
+          "La sortie texte de perf script. C\'est ce que Firefox Profiler sait ouvrir.") +
+        f(a.exportCpuprofile, "exports/profil.cpuprofile", "Profil au format cpuprofile",
+          "Le profil échantillonné de Chrome DevTools — bien plus compact, lu par speedscope.") +
+        f(a.exportLcov, "exports/couverture.lcov", "Couverture au format LCOV",
+          "Le format que lisent les éditeurs et les services de suivi de couverture.") +
+        f(a.exportValeurs, "exports/valeurs.json", "Valeurs capturées en JSON",
+          "Les appels observés et leurs valeurs, pour un script qui les compare.") +
+        '</div>'
+      : "") +
     (a.journal || a.contexte
       ? '<h3 class="rawh">Cette exécution</h3><div class="links2">' +
         f(a.journal, "execution.log", "Journal de l\'exécution",
@@ -1925,8 +2436,14 @@ function linksBlock(){
     '</div>';
 }
 function reserveBlock(){
-  if (!R.profileNote) return "";
-  return '<div class="reserve"><b>Une réserve sur les pourcentages de temps.</b> ' +
+  // La réserve sur les piles tronquées vaut même sans inspection des valeurs : elle dit
+  // pourquoi la somme des racines ne fait pas tout à fait le total.
+  const piles = R.stacksNote
+    ? '<div class="reserve"><b>Des piles que le profileur n\'a pas pu remonter.</b> ' +
+      esc(R.stacksNote) + '</div>'
+    : "";
+  if (!R.profileNote) return piles;
+  return piles + '<div class="reserve"><b>Une réserve sur les pourcentages de temps.</b> ' +
     esc(R.profileNote) + ' <br><br>' +
     'Tout a été collecté en <b>un seul lancement</b> : c\'est le mode par défaut, parce ' +
     'qu\'il donne les trois informations recherchées d\'un coup et que le temps d\'exécution ' +
@@ -1944,6 +2461,17 @@ function contextBlock(){
     row("Programme lancé", '<code>'+esc(c.commande||"")+'</code>') +
     row("Méthode racine inspectée", c.methodeRacine ? '<code>'+esc(c.methodeRacine)+'</code>' : "") +
     row("Filtre de profil", c.filtreClasses ? '<code>'+esc(c.filtreClasses)+'</code>' : "") +
+    // Un rapport moins fourni qu'un autre se lit comme une mesure ratée tant qu'on ne voit
+    // pas le niveau demandé : il dit que c'était un choix, et lequel.
+    row("Niveau d'observation", c.niveau && c.niveau !== "complet"
+        ? '<code>'+esc(c.niveau)+'</code> <span style="opacity:.7">— '
+          + (c.niveau === "couverture" ? 'couverture seule, sans échantillonnage ni valeurs'
+                                       : 'couverture et arbre d\'appel, sans les valeurs')
+          + '</span>' : "") +
+    row("Classes instrumentées", c.classesInstrumentees
+        ? '<code>'+esc(c.classesInstrumentees)+'</code>' : "") +
+    row("Intervalle d'échantillonnage", c.intervalleMs && c.intervalleMs !== 1
+        ? c.intervalleMs + ' ms' : "") +
     row("Début", esc(c.debut)) +
     row("Fin", esc(c.fin) + (c.dureeSecondes ? ' <span style="opacity:.7">— '+c.dureeSecondes+' s</span>' : "")) +
     row("Statut", esc(c.statut)) +
@@ -1960,6 +2488,35 @@ function contextBlock(){
 
 
 /* Une icône par indicateur : sur quatre nombres alignés, la forme se repère avant le texte. */
+/**
+ * Icônes des réglages. Un intitulé seul — « % », « pkg » — demande de l'avoir essayé pour
+ * savoir ce qu'il fait ; l'icône donne la nature du réglage avant même de lire.
+ */
+const OPT = {
+  pct:     '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M19 5 5 19"/><circle cx="7.5" cy="7.5" r="2.5"/><circle cx="16.5" cy="16.5" r="2.5"/></svg>',
+  ms:      '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l3 2M9 2h6"/></svg>',
+  pkgOn:   '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 3 3 7.5v9L12 21l9-4.5v-9L12 3z"/><path d="M3 7.5 12 12l9-4.5M12 12v9"/></svg>',
+  pkgOff:  '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 3 3 7.5v9L12 21l9-4.5v-9L12 3z"/><path d="M4 4l16 16"/></svg>',
+  champs:  '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16M15 4v16"/></svg>',
+  params:  '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>',
+  execute: '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 5h16l-6 7v6l-4 2v-8L4 5z"/></svg>',
+  tout:    '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 3 3 8l9 5 9-5-9-5z"/><path d="M3 13l9 5 9-5M3 17.5 12 22l9-4.5"/></svg>',
+  deplier: '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7 8 5 5 5-5M7 15l5 5 5-5"/></svg>',
+  replier: '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7 16 5-5 5 5M7 9l5-5 5 5"/></svg>',
+  cible:   '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2.5"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>',
+  fichier: '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-5z"/><path d="M14 3v5h5"/></svg>'
+};
+
+/** Pose l'icône, l'intitulé, l'état et l'infobulle d'un réglage en un seul geste. */
+function setOption(id, {icon, label, pressed, title}){
+  const b = document.getElementById(id);
+  if (!b) return;
+  if (icon !== undefined) b.querySelector(".ic").innerHTML = icon;
+  if (label !== undefined) b.querySelector(".lab").textContent = label;
+  if (pressed !== undefined) b.setAttribute("aria-pressed", String(pressed));
+  if (title !== undefined) b.title = title;
+}
+
 const ICON = {
   lignes:   '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h13M4 12h9M4 18h5"/></svg>',
   methodes: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4h8M12 4v6M12 10 6 20M12 10l6 10"/><circle cx="12" cy="10" r="1.6" fill="currentColor"/></svg>',
@@ -1978,22 +2535,25 @@ function card(cls, icon, value, label){
  * peut pas être cassé. Chaque barre mène à sa méthode.
  */
 function flameBlock(){
-  const root = R.calltree;
-  if (!root || !root.total) return "";
+  // Le graphe suit l'élagage : montrer ici une branche qu'on vient de couper dans l'arbre
+  // ferait dire deux choses différentes à la même page.
+  const root = prunedTree(R);
+  if (!root || !R.calltree || !R.calltree.total) return "";
   const H = 18, MAXD = 12;
   const bars = [];
   let maxDepth = 0;
 
+  const totalMesure = R.calltree.total;
   (function layout(node, depth, x){
     for (const kid of node.children){
-      const w = kid.total / root.total;
+      const w = kid.total / totalMesure;
       if (w * 100 < 0.4 || depth > MAXD){ x += w; continue; }   // trop fin pour être lu
       // Le temps PROPRE : ce que la méthode garde pour elle, une fois retiré ce qu'elle a
       // délégué. C'est la seule quantité qui désigne un endroit où agir — une barre large
       // dont un enfant est tout aussi large ne fait que passer le relais.
       const delegue = kid.children.reduce((sum, c) => sum + c.total, 0);
       bars.push({x, w, depth, name: kid.name, known: !!frameInfo(kid.name), total: kid.total,
-                 propre: Math.max(0, kid.total - delegue) / root.total});
+                 propre: Math.max(0, kid.total - delegue) / totalMesure});
       maxDepth = Math.max(maxDepth, depth);
       layout(kid, depth + 1, x);
       x += w;
@@ -2007,7 +2567,7 @@ function flameBlock(){
       (b.known ? ' data-f="' + esc(b.name) + '"' : '') +
       ' style="left:' + (b.x * 100).toFixed(4) + '%;width:' + (b.w * 100).toFixed(4) + '%;' +
       'top:' + (b.depth * H) + 'px;background:' + flameColour(b.propre, b.known) + '"' +
-      ' title="' + esc(dot(b.name)) + '  —  ' + formatWeight(b.total, root.total) +
+      ' title="' + esc(dot(b.name)) + '  —  ' + formatWeight(b.total, totalMesure) +
       ' au total, dont ' + (b.propre * 100).toFixed(1) + ' % en propre">' +
       '<span>' + esc(label) + '</span></div>';
   }).join("");
@@ -2020,6 +2580,33 @@ function flameBlock(){
     'se consomme vraiment. Cliquer entre dans la méthode.</p>' +
     '<div class="flame" style="height:' + ((maxDepth + 1) * H) + 'px">' + body + '</div>';
 }
+
+/**
+ * Ajuste les étiquettes du graphe de temps à la largeur réelle de leur barre.
+ *
+ * <p>Une barre étroite portant « RoutePlanne » ou « Breaks.t » ne désigne rien : le nom
+ * coupé au milieu coûte de la place sans rien apprendre. On essaie donc le nom complet,
+ * puis le seul nom de méthode, puis rien du tout — le survol donne l'intitulé entier dans
+ * tous les cas. La mesure se fait après rendu, parce que la largeur d'une barre est un
+ * pourcentage : elle dépend de la fenêtre, pas des données.
+ */
+function fitFlameLabels(){
+  document.querySelectorAll(".flame .fl").forEach(el => {
+    const span = el.querySelector("span");
+    if (!span) return;
+    const full = span.dataset.full || span.textContent;
+    span.dataset.full = full;
+    for (const essai of [full, full.split(".").pop(), ""]) {
+      span.textContent = essai;
+      if (span.scrollWidth <= span.clientWidth) break;
+    }
+  });
+}
+// La largeur des barres suit la fenêtre : ce qui tenait à 1400 px ne tient plus à 900.
+addEventListener("resize", () => {
+  clearTimeout(fitFlameLabels.t);
+  fitFlameLabels.t = setTimeout(fitFlameLabels, 120);
+});
 
 /**
  * La couleur dit le temps PROPRE, pas la profondeur.
@@ -2042,7 +2629,10 @@ function flameColour(propre, known){
 
 function drawHome(){
   document.getElementById("crumb").innerHTML =
-    '<b>' + esc(R.nom) + '</b> <span class="pill">vue d\'ensemble</span>' +
+    '<b id="crumbname">' + esc(runLabel(R)) + '</b>' +
+    (R.uuid ? '<span class="uid" title="Identifiant permanent de cette exécution">'
+              + esc(shortId(R)) + '</span>' : '') +
+    ' <span class="pill">vue d\'ensemble</span>' +
     (D.runs.length > 1 ? ' <span class="pill">' + D.runs.length + ' exécutions dans ce rapport</span>' : '');
   document.getElementById("values").innerHTML = "";
   const hot = executedMethods().slice(0, 6);
@@ -2057,6 +2647,7 @@ function drawHome(){
    '</div>'+
    '<div class="bar"><span style="width:'+AGG.pct.toFixed(1)+'%"></span></div>'+
    flameBlock()+
+   '<div id="identity"></div>'+
    contextBlock()+
    (AGG.dead.length ? '<h2>Jamais exécuté</h2><p>'+AGG.dead.map(d=>'<span class="chip dead">'+esc(d)+'</span>').join("")+'</p>' : '')+
    '<h2>Les plus coûteuses</h2><p>'+hot.map(h=>
@@ -2075,12 +2666,207 @@ function drawHome(){
   document.querySelectorAll(".flame .fl.known").forEach(g => {
     g.onclick = () => { const t = frameInfo(g.dataset.f); if (t) select(t, null); };
   });
+  fitFlameLabels();
   document.querySelectorAll(".chip[data-f]").forEach(c => {
     c.style.cursor = "pointer";
     c.onclick = () => { const t = frameInfo(c.dataset.f); if (t) select(t, null); };
   });
   const oh = document.getElementById("openhelp");
   if (oh) oh.onclick = e => { e.preventDefault(); openHelp(); };
+  renderIdentity();
+}
+
+/**
+ * Fiche d'identité de l'exécution regardée, et de quoi la compléter.
+ *
+ * <p>La saisie reste dans le navigateur — la page est un fichier, elle n'écrit nulle part.
+ * Le bouton du bas rend le {@code noms.json} correspondant : déposé à côté des exécutions,
+ * il fait entrer ces annotations dans le rapport lui-même, pour tout le monde.
+ */
+function renderIdentity(){
+  const box = document.getElementById("identity");
+  if (!box) return;
+  const a = annotationOf(R);
+  const row = (k, v) => '<tr><td class="ck">' + k + '</td><td class="cv">' + v + '</td></tr>';
+  const tags = Object.entries(a.etiquettes || {});
+  const tagLines = tags.map(([k, v], i) =>
+      '<div class="tagline" data-tag="' + i + '">' +
+      '<input type="text" class="k" value="' + esc(k) + '" placeholder="étiquette">' +
+      '<input type="text" class="v" value="' + esc(v == null ? "" : String(v)) + '" placeholder="texte (facultatif)">' +
+      '<button class="mini drop" title="Retirer cette étiquette">✕</button></div>').join("");
+
+  box.innerHTML = '<h2>Identité de cette exécution</h2><div class="annot"><table class="ctx">' +
+    row("Identifiant", '<code>' + esc(R.uuid || "—") + '</code>'
+        + '<span class="hint">permanent : il ne change jamais, même renommée</span>') +
+    row("Nom au lancement", R.nomOrigine
+        ? '<code>' + esc(R.nomOrigine) + '</code><span class="hint">donné par <code>--name</code></span>'
+        : '<span class="hint">aucun — <code>--name</code> n\'a pas été donné, '
+          + 'c\'est l\'identifiant qui sert de nom</span>') +
+    row("Nom dans l\'outil",
+        '<input type="text" id="annotName" value="' + esc(a.nom) + '" placeholder="' +
+        esc(R.nomOrigine || shortId(R)) + '"> ' +
+        '<button class="mini" id="annotNameReset">valeur par défaut</button>' +
+        '<span class="hint sous">c\'est ce nom qui s\'affiche partout</span>') +
+    row("Description", '<textarea id="annotDesc" placeholder="ce qu\'on cherchait, ce qu\'on a vu, ce qu\'il reste à vérifier">'
+        + esc(a.description) + '</textarea>') +
+    row("Étiquettes", '<div id="annotTags">' + tagLines + '</div>' +
+        '<button class="mini" id="annotTagAdd">+ étiquette</button>' +
+        '<span class="hint">une clé, et un texte si besoin</span>') +
+    row("Élagage de l\'arbre", elagageActif(R)
+        ? (elagageOf(R).racine
+             ? 'racine ramenée à <code>' + esc(dot(elagageOf(R).racine.split(";").pop())) + '</code>'
+             : '') +
+          (elagageOf(R).coupes.length
+             ? (elagageOf(R).racine ? ', ' : '') + elagageOf(R).coupes.length +
+               ' branche' + (elagageOf(R).coupes.length > 1 ? 's' : '') + ' coupée' +
+               (elagageOf(R).coupes.length > 1 ? 's' : '')
+             : '') +
+          ' <button class="mini" id="annotPruneReset">tout rétablir</button>' +
+          '<span class="hint sous">se règle dans l\'onglet Exécutions, au bout de chaque ligne</span>'
+        : '<span class="hint" style="margin-left:0">aucun — dans l\'onglet <b>Exécutions</b>, ' +
+          '« élaguer » au bout d\'une ligne coupe la branche ou repart de ce nœud</span>') +
+    '</table>' +
+    '<p class="annotacts" id="annotActs"></p>' +
+    '<pre id="annotOut" hidden></pre></div>';
+  renderAnnotActs();
+
+  const name = document.getElementById("annotName");
+  name.oninput = () => {
+    annotationPatch(R, "nom", name.value.trim() || null);
+    refreshRunLabels();
+    renderAnnotActs();
+  };
+  document.getElementById("annotNameReset").onclick = () => {
+    // Vide, et non « absent » : une clé effacée laisserait revenir le nom enregistré dans
+    // le rapport, et le retour à la valeur par défaut ne tiendrait pas une régénération.
+    annotationPatch(R, "nom", "");
+    name.value = "";
+    refreshRunLabels();
+  };
+  const desc = document.getElementById("annotDesc");
+  desc.oninput = () => { annotationPatch(R, "description", desc.value.trim()); renderAnnotActs(); };
+  const pruneReset = document.getElementById("annotPruneReset");
+  if (pruneReset) pruneReset.onclick = () => {
+    poseElagage(R, {racine: "", coupes: []});
+    mode === "tree" ? renderTree() : renderClasses();
+    drawHome();
+  };
+
+  const collectTags = () => {
+    const out = {};
+    document.querySelectorAll("#annotTags .tagline").forEach(line => {
+      const k = line.querySelector(".k").value.trim();
+      if (k) out[k] = line.querySelector(".v").value.trim();
+    });
+    annotationPatch(R, "etiquettes", out);
+    renderAnnotActs();
+  };
+  document.querySelectorAll("#annotTags .tagline").forEach(line => {
+    line.querySelectorAll("input").forEach(i => i.oninput = collectTags);
+    line.querySelector(".drop").onclick = () => { line.remove(); collectTags(); };
+  });
+  document.getElementById("annotTagAdd").onclick = () => {
+    const line = document.createElement("div");
+    line.className = "tagline";
+    line.innerHTML = '<input type="text" class="k" placeholder="étiquette">' +
+                     '<input type="text" class="v" placeholder="texte (facultatif)">' +
+                     '<button class="mini drop" title="Retirer cette étiquette">✕</button>';
+    document.getElementById("annotTags").appendChild(line);
+    line.querySelectorAll("input").forEach(i => i.oninput = collectTags);
+    line.querySelector(".drop").onclick = () => { line.remove(); collectTags(); };
+    line.querySelector(".k").focus();
+  };
+}
+
+/**
+ * Les actions et l'état de la fiche, redessinés seuls.
+ *
+ * <p>Ils changent à chaque frappe — « non enregistré » apparaît dès la première lettre —
+ * alors que refaire toute la fiche ferait perdre le curseur du champ qu'on est en train de
+ * remplir. D'où ce bloc à part.
+ */
+function renderAnnotActs(){
+  const box = document.getElementById("annotActs");
+  if (!box) return;
+  const modifie = annotationModifiee(R);
+  box.innerHTML =
+    (peutEnregistrer
+      ? '<button class="mini fort" id="annotSave">Enregistrer</button>' +
+        (modifie ? '<button class="mini" id="annotRevert">reprendre la version enregistrée</button>' : '')
+      : '') +
+    '<button class="mini" id="annotExport">exporter le fichier</button>' +
+    '<button class="mini" id="annotImport">importer un fichier…</button>' +
+    '<button class="mini" id="annotDump">voir le JSON</button>' +
+    '<input type="file" id="annotFile" accept=".json,application/json" hidden>' +
+    '<span class="hint sous">' +
+    (peutEnregistrer
+      ? (modifie
+           ? '<b>Modifications non enregistrées</b> — elles ne sont, pour l\'instant, que '
+             + 'dans ce navigateur. '
+           : 'À jour avec le serveur. ') +
+        '« Enregistrer » écrit l\'annotation de <b>cette exécution</b> à côté de ses '
+        + 'résultats : plusieurs personnes peuvent donc annoter en même temps, chacune la '
+        + 'sienne, sans s\'écraser.'
+      : 'Ces annotations vivent dans ce navigateur, et y restent d\'une visite à l\'autre. ' +
+        'Les <b>exporter</b> donne un fichier à déposer à côté des exécutions ; ' +
+        'servir le rapport avec <code>--serve</code> laisse la page l\'écrire elle-même.') +
+    '</span>';
+
+  const save = document.getElementById("annotSave");
+  if (save) save.onclick = () => enregistrerAnnotations(save);
+  const revert = document.getElementById("annotRevert");
+  if (revert) revert.onclick = () => reprendreEnregistree(R);
+  document.getElementById("annotExport").onclick = exporterAnnotations;
+  const fichier = document.getElementById("annotFile");
+  document.getElementById("annotImport").onclick = () => fichier.click();
+  fichier.onchange = () => {
+    const f = fichier.files && fichier.files[0];
+    if (!f) return;
+    const out = document.getElementById("annotOut");
+    f.text().then(t => {
+      const n = importerAnnotations(t);
+      renderIdentity();
+      refreshRunLabels();
+      mode === "tree" ? renderTree() : renderClasses();
+      drawHome();
+      const dit = document.getElementById("annotOut");
+      dit.hidden = false;
+      dit.textContent = n + " exécution" + (n > 1 ? "s" : "") + " reprise"
+                        + (n > 1 ? "s" : "") + " de « " + f.name + " »"
+                        + (peutEnregistrer ? " — « Enregistrer » les posera sur le serveur." : ".");
+    }).catch(e => {
+      out.hidden = false;
+      out.textContent = "import refusé : " + e.message;
+    });
+    fichier.value = "";
+  };
+  document.getElementById("annotDump").onclick = () => {
+    const out = document.getElementById("annotOut");
+    out.hidden = false;
+    out.textContent = JSON.stringify(annotationsFile(), null, 2);
+    const r = document.createRange();
+    r.selectNodeContents(out);
+    const sel = getSelection();
+    sel.removeAllRanges();
+    sel.addRange(r);
+  };
+}
+
+/** Les annotations de toutes les exécutions du rapport, dans la forme attendue par l'outil. */
+function annotationsFile(){
+  const out = {};
+  D.runs.forEach(run => {
+    const a = annotationOf(run);
+    const tags = a.etiquettes && Object.keys(a.etiquettes).length ? a.etiquettes : null;
+    const e = elagageActif(run) ? elagageOf(run) : null;
+    if (!a.nom && !a.description && !tags && !e) return;
+    // Un nom seul garde la forme courte, celle qui circulait déjà.
+    out[run.uuid] = (!a.description && !tags && !e)
+      ? a.nom
+      : {nom: a.nom || undefined, description: a.description || undefined,
+         etiquettes: tags || undefined, elagage: e || undefined};
+  });
+  return out;
 }
 
 /** Revenir à la vue d'ensemble : on déselectionne la méthode en cours pour repartir du
@@ -2183,11 +2969,16 @@ function openHelp(){
 
 /* ------------------------------------------------------------ interactions */
 document.getElementById("home").onclick = e => { e.preventDefault(); goHome(); };
-document.getElementById("pkgbtn").onclick = e => {
+document.getElementById("pkgbtn").onclick = () => {
   showPackages = !showPackages;
-  const b = e.currentTarget;
-  b.style.opacity = showPackages ? "1" : ".55";
-  b.title = showPackages ? "Masquer les noms de paquet" : "Afficher les noms de paquet";
+  setOption("pkgbtn", {
+    icon: showPackages ? OPT.pkgOn : OPT.pkgOff,
+    label: showPackages ? "noms de paquet" : "noms de classe",
+    pressed: showPackages,
+    title: showPackages
+      ? "Les noms de paquet sont affichés — cliquer pour ne garder que les noms de classe"
+      : "Seuls les noms de classe sont affichés — cliquer pour remettre les paquets"
+  });
   // Renommer sur place : reconstruire refermerait l'arbre qu'on vient d'ouvrir.
   document.querySelectorAll("#list .node[data-frame]").forEach(el => {
     const label = el.querySelector(".lbl");
@@ -2234,26 +3025,30 @@ document.getElementById("expandbtn").onclick = e => {
   if (expanded){
     collapseAll();
     b.dataset.state = "";
-    b.textContent = "tout déplier";
+    setOption("expandbtn", {icon: OPT.deplier, label: "tout déplier", pressed: false,
+                            title: "Ouvrir toutes les branches d'un coup"});
     return;
   }
   const n = expandAll();
   b.dataset.state = "open";
-  b.textContent = "tout replier";
+  setOption("expandbtn", {icon: OPT.replier, label: "tout replier", pressed: true,
+                          title: "Tout est ouvert — cliquer pour tout refermer"});
   const head = document.querySelector("#list .grouphead");
   if (n >= EXPAND_BUDGET && head){
     head.textContent = "affichage arrêté à " + n + " lignes — replier, puis ouvrir la branche voulue";
   }
 };
 
-document.getElementById("scopebtn").onclick = e => {
+document.getElementById("scopebtn").onclick = () => {
   executedOnly = !executedOnly;
-  const b = e.currentTarget;
-  b.setAttribute("aria-pressed", String(executedOnly));
-  b.textContent = executedOnly ? "exécuté" : "tout";
-  b.title = executedOnly
+  setOption("scopebtn", {
+    icon: executedOnly ? OPT.execute : OPT.tout,
+    label: executedOnly ? "code exécuté" : "tout le code",
+    pressed: executedOnly,
+    title: executedOnly
       ? "Seul le code exécuté est listé — cliquer pour voir tout le code"
-      : "Tout le code est listé, le non exécuté en rouge — cliquer pour n'afficher que l'exécuté";
+      : "Tout le code est listé, le non exécuté en rouge — cliquer pour n'afficher que l'exécuté"
+  });
   if (mode === "cls"){
     const open = captureExpanded();
     renderClasses();
@@ -2261,14 +3056,16 @@ document.getElementById("scopebtn").onclick = e => {
     reselect();
   }
 };
-document.getElementById("valbtn").onclick = e => {
+document.getElementById("valbtn").onclick = () => {
   valueSplit = valueSplit === "champs" ? "params" : "champs";
-  const b = e.currentTarget;
-  b.textContent = valueSplit === "champs" ? "par champ" : "par paramètre";
-  b.setAttribute("aria-pressed", valueSplit === "champs");
-  b.title = valueSplit === "champs"
-    ? "Une ligne par champ de la valeur — cliquer pour n'avoir qu'une ligne par paramètre"
-    : "Une ligne par paramètre — cliquer pour éclater chaque valeur en ses champs";
+  setOption("valbtn", {
+    icon: valueSplit === "champs" ? OPT.champs : OPT.params,
+    label: valueSplit === "champs" ? "par champ" : "par paramètre",
+    pressed: valueSplit === "champs",
+    title: valueSplit === "champs"
+      ? "Une ligne par champ de la valeur — cliquer pour n'avoir qu'une ligne par paramètre"
+      : "Une ligne par paramètre — cliquer pour éclater chaque valeur en ses champs"
+  });
   // Redessiner sur place les appels déjà dépliés : reconstruire refermerait l'arbre.
   document.querySelectorAll("#list .node.callnode").forEach(leaf => {
     const holder = leaf.nextElementSibling;
@@ -2281,12 +3078,17 @@ document.getElementById("valbtn").onclick = e => {
   if (selected) draw();
 };
 
-document.getElementById("unitbtn").onclick = e => {
+document.getElementById("unitbtn").onclick = () => {
   unit = unit === "pct" ? "ms" : "pct";
-  e.currentTarget.textContent = unit === "pct" ? "%" : "ms";
-  e.currentTarget.title = unit === "pct"
-    ? "Part du temps total — cliquer pour voir un temps estimé"
-    : "Temps estimé (un relevé ≈ 1 ms de temps processeur) — cliquer pour voir la part";
+  setOption("unitbtn", {
+    icon: unit === "pct" ? OPT.pct : OPT.ms,
+    label: unit === "pct" ? "part du temps" : "temps estimé",
+    // Ce réglage n'est pas un interrupteur : les deux positions disent la même mesure dans
+    // une autre unité. Il ne s'allume donc pas — il annonce l'unité en cours.
+    title: unit === "pct"
+      ? "Part du temps total — cliquer pour voir un temps estimé"
+      : "Temps estimé (un relevé ≈ 1 ms de temps processeur) — cliquer pour voir la part"
+  });
   // Reformater sur place : reconstruire refermerait l'arbre qu'on vient d'ouvrir.
   document.querySelectorAll("#list .node[data-samples]").forEach(el => {
     const pct = el.querySelector(".pct");
@@ -2313,13 +3115,18 @@ function reselect(){
                n.textContent.includes(selected.cls.split("/").pop() + "." + (selected.name || "")));
   if (target) target.classList.add("sel");
 }
-document.getElementById("clean").onclick = e => {
-  const b = e.currentTarget;
+document.getElementById("clean").onclick = () => {
   clean = !clean;
-  b.setAttribute("aria-pressed", String(clean));
-  b.lastChild.textContent = clean ? " Resserré sur la méthode" : " Fichier entier";
-  b.title = clean ? "Resserré : seule la méthode sélectionnée est affichée, sans ses lignes mortes"
-                  : "Fichier entier, y compris le code jamais exécuté";
+  setOption("clean", {
+    icon: clean ? OPT.cible : OPT.fichier,
+    label: clean ? "Resserré sur la méthode" : "Fichier entier",
+    pressed: clean,
+    title: clean ? "Resserré : seule la méthode sélectionnée est affichée, sans ses lignes mortes"
+                 : "Fichier entier, y compris le code jamais exécuté"
+  });
+  const alt = document.getElementById("cleanalt");
+  if (alt) alt.textContent = clean ? "cliquer pour afficher le fichier entier"
+                                   : "cliquer pour revenir à la seule méthode";
   mode === "cls" ? renderClasses() : renderTree();
   reselect();
   draw();
@@ -2374,6 +3181,15 @@ document.getElementById("search").oninput = e => {
   document.getElementById("vtoggle").onclick = e => { e.stopPropagation(); toggleNav(); };
   document.getElementById("htoggle").onclick = e => { e.stopPropagation(); toggleValues(); };
 })();
+
+// Les icônes des réglages sont posées ici plutôt que dans le gabarit : leur dessin change
+// avec l'état du bouton, et il n'y a qu'un seul endroit qui en décide.
+setOption("unitbtn",  {icon: OPT.pct});
+setOption("pkgbtn",   {icon: OPT.pkgOn});
+setOption("valbtn",   {icon: OPT.champs});
+setOption("scopebtn", {icon: OPT.execute});
+setOption("expandbtn",{icon: OPT.deplier, title: "Ouvrir toutes les branches d'un coup"});
+setOption("clean",    {icon: OPT.cible});
 
 // La vue d'entrée suit l'onglet de gauche : s'ouvrir sur le second se lirait comme un
 // état bizarre plutôt que comme un choix.

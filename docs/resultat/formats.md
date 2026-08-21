@@ -126,3 +126,9 @@ sans effort supplémentaire. **Le découplage est un acquis, pas un chantier.**
 Mais il ouvre une porte : le jour où l'affichage ne convient plus — parce qu'il faut un
 portail, parce qu'il faut GitLab, parce qu'il faut IntelliJ — **on change l'affichage sans
 changer la collecte**. Aucun de ces outils ne vous enferme dans sa propre visionneuse.
+
+C'est cette porte que franchit `--export` : les mesures y sont réécrites en `perf script`,
+en `cpuprofile` et en LCOV, pour être ouvertes dans Firefox Profiler, speedscope ou un
+éditeur — sans que rien de la collecte ne change. Le recensement des formats ouverts,
+retenus et écartés avec le motif, est dans [Reprendre le résultat dans un autre
+outil](../outil/exports.md).

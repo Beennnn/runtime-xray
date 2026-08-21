@@ -170,12 +170,29 @@ Aucune modification du code analysé, aucun changement dans le build.
 | `MAVEN_REPO` / `--repo` | Maven Central | D'où récupérer les composants d'analyse, une seule fois. **Le seul réglage qui compte pour un réseau fermé** : y mettre le miroir interne |
 | `--no-values` | — | Ne capture pas les valeurs. Les pourcentages de temps deviennent exacts, puisque plus rien n'instrumente |
 
-### Les deux modes qui ne mesurent rien
+### Ce qu'on accepte de payer
+
+Trois informations, trois coûts. Sur un gros code, on ne les prend pas toutes du premier
+coup — **[Réduire l'empreinte sur un gros code](empreinte.md)** détaille la marche à suivre.
+
+| Paramètre | Défaut | À quoi il sert |
+|---|---|---|
+| `NIVEAU` / `--niveau` | `complet` | Jusqu'où observer : `couverture` (JaCoCo seul), `arbre` (+ échantillonnage), `complet` (+ valeurs). Le premier réglage à baisser quand la mesure coûte trop cher |
+| `COVER_INCLUDES` / `--cover` | tout | Classes que JaCoCo instrumente, ex. `com.exemple.*`. **Sans lui, toute classe chargée est instrumentée**, dépendances comprises : c'est le poste de coût principal |
+| `SAMPLE_INTERVAL_MS` / `--interval` | 1 ms | Intervalle d'échantillonnage des piles. À 10 ms, dix fois moins de relevés |
+| `EXPORT` / `--export` | — | Réécrit les mesures pour d'autres outils : `perf`, `cpuprofile`, `lcov`, `valeurs`, ou `tout` — voir [les exports](exports.md) |
+
+### Les modes qui ne mesurent rien
 
 | Option | Ce qu'elle fait |
 |---|---|
 | `--print-options` | Affiche la ligne d'agents à coller dans une commande Java **qu'on ne contrôle pas** — un service systemd, un conteneur, un serveur d'application. L'outil ne lance rien : il vous rend le texte |
-| `--report-only` | Réassemble la page depuis des exécutions déjà sur le disque, sans rien relancer. Utile après avoir renommé une exécution, ou changé les paquets masqués |
+| `--report-only` | Réassemble la page depuis des exécutions déjà sur le disque, sans rien relancer. Utile après avoir annoté une exécution, ou changé les paquets masqués |
+| `--serve [port]` | Sert le rapport (défaut : 8787) et laisse la page **écrire ses annotations** à côté des exécutions, puis la régénère. Plusieurs personnes peuvent annoter à la fois — voir [Annoter les exécutions](annotations.md) |
+| `--serve-host <hôte>` | Interface d'écoute (défaut : `127.0.0.1`). `0.0.0.0` pour un serveur partagé — **sans authentification** : à placer derrière un filtrage |
+
+Ces options se combinent : `--report-only --serve` sert des mesures déjà prises, sans rien
+relancer, et c'est le mode d'un serveur où l'on dépose des résultats venus d'ailleurs.
 
 ### Choisir la fonction racine
 
@@ -201,17 +218,19 @@ grand-chose de toute façon.
 runtime-xray-out/
 ├── index.html                   ← la vue intégrée : ouvrir le dossier suffit à la trouver
 ├── rapport.md                   ← le même contenu, lisible dans une forge (voir plus bas)
-├── noms.json                    ← renommer une exécution après coup (facultatif)
+├── noms.json                    ← annotations de tout le rapport (facultatif, échangeable)
 └── runs/
     └── 20260821-004121-recette-v2/
         ├── run-context.json     ← identifiant, nom, commande, heure, machine…
+        ├── config.json          ← annotations de CETTE exécution (facultatif, prioritaire)
         ├── execution.log        ← la sortie de l'application
         ├── jacoco/html/         ← la couverture détaillée, tout le code analysé
         ├── jacoco-focused/html/ ← la même, restreinte aux classes qui ont tourné
         ├── classes-executees/   ← le bytecode retenu pour ce second rapport
         ├── async-profiler/      ← les piles repliées, plus le profil rendu par l'outil
         │                          lui-même (flamegraph.html et son inverse)
-        └── arthas/              ← les valeurs capturées et la trace d'invocation
+        ├── arthas/              ← les valeurs capturées et la trace d'invocation
+        └── exports/             ← les mêmes mesures pour d'autres outils, si --export
 ```
 
 Tout ce que les outils ont écrit reste ainsi atteignable. La page en donne la liste, groupée
@@ -234,25 +253,35 @@ repère indique celles qui ont **aussi** tourné ailleurs (`+2`) et celles qui s
 
 **[→ Exemple à trois exécutions](https://beennnn.github.io/runtime-xray/multi/)**
 
-### Trois identités, et pourquoi
+### Nommer, décrire, étiqueter, élaguer
 
-| | Ce que c'est | Change ? |
+Une exécution porte trois identités qu'il ne faut pas confondre — l'**identifiant**, qui ne
+change jamais ; le **nom donné au lancement** par `--name`, qui dit ce qu'on croyait
+mesurer ; le **nom posé après coup**, qui dit ce qu'on a compris. À défaut de nom, c'est
+l'identifiant qui désigne l'exécution : rien n'est inventé.
+
+S'y ajoutent une description libre, des étiquettes clé/valeur, et l'élagage de l'arbre
+d'appel — couper une branche, ou repartir d'un nœud. Tout cela se saisit dans la fiche
+**Identité de cette exécution**, et s'écrit dans un fichier à côté des mesures.
+
+Trois façons de faire vivre ces annotations, qui coexistent :
+
+| Mode | Comment | Ce que ça donne |
 |---|---|---|
-| **UUID** | Généré au lancement, écrit dans `run-context.json` | **jamais** — c'est la clé stable |
-| **Nom d'origine** | Le `--name` donné au lancement | jamais — il permet de revenir en arrière |
-| **Nom d'affichage** | Ce que la vue montre | oui, via `noms.json` |
+| **Dans le navigateur** | ouvrir la page | immédiat ; **exporter** rend le fichier, **importer** reprend celui d'un collègue |
+| **Sur son poste** | `--serve` | la page écrit à côté des exécutions et le rapport est régénéré |
+| **Serveur partagé** | `--serve --serve-host 0.0.0.0` | on y dépose les résultats, tout le monde lit et **annote en parallèle** |
 
-Renommer après coup ne touche à aucune exécution : c'est un fichier à la racine du
-répertoire commun, qui associe un identifiant à un nom.
-
-```json
-{
-  "8BF7DA2E-1C5A-4435-A3E3-4FE50CD41A2F": "Recette — jeu de données réduit"
-}
+```bash
+java -jar runtime-xray.jar --report-only --out runtime-xray-out --serve
 ```
 
-Supprimer l'entrée rétablit le nom d'origine. Le script rappelle l'identifiant à la fin de
-chaque exécution, prêt à être collé.
+L'annotation d'une exécution s'écrit dans **son répertoire** (`config.json`), ce qui la
+fait voyager avec la mesure ; un `<exécution>-config.json` posé à côté, ou le `noms.json`
+commun, restent lus — dans cet ordre de priorité.
+
+**Tout le détail — les trois modes, l'écriture concurrente, les emplacements de fichier,
+les formats et les réserves : [Annoter les exécutions](annotations.md).**
 
 ### Rassembler des exécutions venues d'ailleurs
 
