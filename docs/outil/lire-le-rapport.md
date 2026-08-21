@@ -10,6 +10,11 @@
 La page est autonome : un fichier HTML sans dépendance, qui s'ouvre depuis un disque, une
 pièce jointe ou une forge. Elle n'appelle rien sur le réseau.
 
+> **Au survol, tout s'explique.** Chiffres, pastilles, colonnes, boutons, barres de la
+> flamme, cases à cocher : chaque élément porte une infobulle qui dit ce qu'il montre, ou
+> ce qu'il fait si on clique. Ce document donne le raisonnement ; la page donne le détail
+> sans qu'on ait à la quitter.
+
 ## Les deux entrées, à gauche
 
 Deux onglets mènent au même code, par deux chemins différents.
