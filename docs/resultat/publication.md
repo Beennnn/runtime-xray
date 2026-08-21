@@ -106,6 +106,28 @@ Un workflow qui rejoue les collecteurs à chaque exécution et publie le zip en 
 **Les limites** : rétention limitée (90 jours par défaut), téléchargement réservé aux
 personnes connectées à GitHub, et **sur un dépôt privé les minutes sont facturées**.
 
+## 5. Le rapport servi par l'outil lui-même — ✅ testé
+
+L'orchestrateur sait servir son propre répertoire de sortie :
+
+```bash
+# sur son poste
+java -jar runtime-xray.jar --report-only --out runtime-xray-out --serve
+
+# sur une machine interne où l'on dépose les résultats
+java -jar runtime-xray.jar --report-only --out /srv/runtime-xray --serve 8080 --serve-host 0.0.0.0
+```
+
+**Ce que ça donne** : le seul canal à la fois **rendu, hors ligne et partagé**. Pas de
+forge, pas de service tiers, rien à décompresser — une URL interne. Et il est le seul où la
+page peut **écrire** : les noms, descriptions, étiquettes et élagages saisis par les uns
+sont vus par les autres, chacun annotant ses exécutions en parallèle. Voir [Annoter les
+exécutions](../outil/annotations.md).
+
+**Les limites** : il n'authentifie personne — il l'écrit au démarrage dès qu'il écoute
+au-delà de la boucle locale, et se place donc derrière ce qui filtre déjà les accès. Et
+c'est un processus à garder vivant, là où un zip ne demande rien à personne.
+
 ## Ce que GitHub ne sait pas faire
 
 **Afficher la couverture dans la diff d'une pull request** — pas nativement. Il faut un
@@ -127,5 +149,10 @@ ceux-là, le fichier autonome reste le seul canal.
 | Fichiers versionnés | ❌ source brut | ❌ | ❌ | ✅ |
 | GitHub Pages | ✅ | ❌ | ❌ | ✅ |
 | **Release + zip** | ✅ après décompression | ✅ | ✅ | ✅ |
+| **Servi par l'outil** (`--serve`) | ✅ | ✅ | ❌ processus à garder vivant | ✅ |
 | Artefact Actions | ✅ après décompression | ❌ | ✅ | 📄 |
 | Diff de PR | ❌ sur GitHub · ✅ sur GitLab | ✅ si GitLab interne | ❌ | 📄 |
+
+Le zip reste le canal retenu pour **transmettre** un rapport : il ne demande rien à
+personne. `--serve` est celui qui convient quand plusieurs personnes doivent **travailler
+sur** les mêmes exécutions, parce que c'est le seul où ce qu'elles en disent se garde.

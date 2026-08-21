@@ -182,12 +182,17 @@ coup — **[Réduire l'empreinte sur un gros code](empreinte.md)** détaille la 
 | `SAMPLE_INTERVAL_MS` / `--interval` | 1 ms | Intervalle d'échantillonnage des piles. À 10 ms, dix fois moins de relevés |
 | `EXPORT` / `--export` | — | Réécrit les mesures pour d'autres outils : `perf`, `cpuprofile`, `lcov`, `valeurs`, ou `tout` — voir [les exports](exports.md) |
 
-### Les deux modes qui ne mesurent rien
+### Les modes qui ne mesurent rien
 
 | Option | Ce qu'elle fait |
 |---|---|
 | `--print-options` | Affiche la ligne d'agents à coller dans une commande Java **qu'on ne contrôle pas** — un service systemd, un conteneur, un serveur d'application. L'outil ne lance rien : il vous rend le texte |
-| `--report-only` | Réassemble la page depuis des exécutions déjà sur le disque, sans rien relancer. Utile après avoir renommé une exécution, ou changé les paquets masqués |
+| `--report-only` | Réassemble la page depuis des exécutions déjà sur le disque, sans rien relancer. Utile après avoir annoté une exécution, ou changé les paquets masqués |
+| `--serve [port]` | Sert le rapport (défaut : 8787) et laisse la page **écrire ses annotations** à côté des exécutions, puis la régénère. Plusieurs personnes peuvent annoter à la fois — voir [Annoter les exécutions](annotations.md) |
+| `--serve-host <hôte>` | Interface d'écoute (défaut : `127.0.0.1`). `0.0.0.0` pour un serveur partagé — **sans authentification** : à placer derrière un filtrage |
+
+Ces options se combinent : `--report-only --serve` sert des mesures déjà prises, sans rien
+relancer, et c'est le mode d'un serveur où l'on dépose des résultats venus d'ailleurs.
 
 ### Choisir la fonction racine
 
@@ -213,10 +218,11 @@ grand-chose de toute façon.
 runtime-xray-out/
 ├── index.html                   ← la vue intégrée : ouvrir le dossier suffit à la trouver
 ├── rapport.md                   ← le même contenu, lisible dans une forge (voir plus bas)
-├── noms.json                    ← renommer une exécution après coup (facultatif)
+├── noms.json                    ← annotations de tout le rapport (facultatif, échangeable)
 └── runs/
     └── 20260821-004121-recette-v2/
         ├── run-context.json     ← identifiant, nom, commande, heure, machine…
+        ├── config.json          ← annotations de CETTE exécution (facultatif, prioritaire)
         ├── execution.log        ← la sortie de l'application
         ├── jacoco/html/         ← la couverture détaillée, tout le code analysé
         ├── jacoco-focused/html/ ← la même, restreinte aux classes qui ont tourné
@@ -247,131 +253,35 @@ repère indique celles qui ont **aussi** tourné ailleurs (`+2`) et celles qui s
 
 **[→ Exemple à trois exécutions](https://beennnn.github.io/runtime-xray/multi/)**
 
-### Trois identités, et pourquoi
+### Nommer, décrire, étiqueter, élaguer
 
-| | Ce que c'est | Change ? |
+Une exécution porte trois identités qu'il ne faut pas confondre — l'**identifiant**, qui ne
+change jamais ; le **nom donné au lancement** par `--name`, qui dit ce qu'on croyait
+mesurer ; le **nom posé après coup**, qui dit ce qu'on a compris. À défaut de nom, c'est
+l'identifiant qui désigne l'exécution : rien n'est inventé.
+
+S'y ajoutent une description libre, des étiquettes clé/valeur, et l'élagage de l'arbre
+d'appel — couper une branche, ou repartir d'un nœud. Tout cela se saisit dans la fiche
+**Identité de cette exécution**, et s'écrit dans un fichier à côté des mesures.
+
+Trois façons de faire vivre ces annotations, qui coexistent :
+
+| Mode | Comment | Ce que ça donne |
 |---|---|---|
-| **UUID** | Généré au lancement, écrit dans `run-context.json` | **jamais** — c'est la clé stable |
-| **Nom d'origine** | Le `--name` donné au lancement | jamais — il permet de revenir en arrière |
-| **Nom d'affichage** | Ce que la vue montre | oui, via `noms.json` ou depuis la page |
-
-Le nom affiché suit trois sources, dans cet ordre : **le nom posé dans l'outil**, sinon **le
-nom donné au lancement**, sinon **l'identifiant abrégé**. Rien n'est inventé : une exécution
-lancée sans `--name` s'affiche sous son identifiant, jamais sous un libellé de commodité qui
-se ferait passer pour une intention.
-
-Annoter après coup ne touche à aucune exécution : c'est un fichier à la racine du répertoire
-commun, qui associe un identifiant à ce qu'on veut en dire.
-
-```json
-{
-  "8BF7DA2E-1C5A-4435-A3E3-4FE50CD41A2F": "Recette — jeu de données réduit",
-
-  "637985B7-4F91-46E6-BD08-8980D92653E8": {
-    "nom": "Recette du 21/08 — nuit",
-    "description": "24 M d'itérations. Vérifier la branche météo.",
-    "etiquettes": { "ticket": "RX-142", "à-rejouer": "" },
-    "elagage": {
-      "racine": "lab/sample/Main.main;lab/sample/RoutePlanner.travelTimeMinutes",
-      "coupes": ["lab/sample/Main.main;lab/sample/Scenarios.at"]
-    }
-  }
-}
-```
-
-Les deux formes cohabitent : un nom seul quand c'est tout ce qu'on a à dire, un objet quand
-on veut aussi une description et des étiquettes — la valeur d'une étiquette est facultative.
-Supprimer l'entrée rétablit le nom d'origine. Le script rappelle l'identifiant à la fin de
-chaque exécution, prêt à être collé.
-
-### Élaguer l'arbre pour ne montrer que ce qui compte
-
-Un arbre d'appel complet montre **tout** ce qui a tourné : le démarrage, les rouages, les
-branches qui n'intéressent personne aujourd'hui. Ce qu'on transmet à quelqu'un, c'est
-souvent **une** branche. Deux gestes, au bout de chaque ligne de l'onglet **Exécutions**,
-sous le bouton *élaguer* :
-
-| Geste | Ce qu'il fait |
-|---|---|
-| **Couper cette branche** | Retire ce nœud et tout ce qui en part — **sur ce chemin seulement**. La même méthode appelée depuis ailleurs reste visible |
-| **Repartir d'ici** | Masque les niveaux au-dessus : l'arbre commence à ce nœud |
-
-Ce que l'élagage **ne fait pas** : changer les mesures. Les pourcentages restent rapportés
-au total de l'exécution, les fichiers d'origine et les exports ne bougent pas, et un
-bandeau rappelle en permanence ce qui a été coupé, avec de quoi tout rétablir. C'est un
-**cadrage de lecture**, au même titre que les paquets masqués — et pour la même raison :
-un arbre amputé sans rien qui le dise se lirait comme une mesure incomplète.
-
-Les chemins s'écrivent comme dans le fichier de piles repliées — les frames de la racine au
-nœud, séparées par `;`. Un chemin devenu introuvable, parce que la mesure a changé, est
-ignoré plutôt qu'appliqué de travers.
-
-### Où vivent les annotations : trois modes, et ils coexistent
-
-Une page ouverte comme fichier ne peut rien écrire sur le disque — c'est une règle du
-navigateur, et c'est aussi ce qui la rend transmissible telle quelle. D'où trois façons de
-faire vivre les annotations, du plus simple au plus partagé. **Aucune n'exclut les
-autres** : c'est le même format, et on passe de l'une à l'autre sans rien convertir.
-
-| | Ce qu'on fait | Ce que ça donne |
-|---|---|---|
-| **1. Chacun dans son navigateur** | Ouvrir la page, annoter | Immédiat, sans rien installer. Les annotations restent dans ce navigateur, d'une visite à l'autre. **Exporter** donne un fichier ; **importer** reprend celui d'un collègue |
-| **2. Sur son poste** | `--serve`, puis annoter | La page écrit à côté des exécutions, et le rapport est régénéré : l'annotation est acquise, y compris pour qui rouvrira le fichier sans serveur |
-| **3. Un serveur partagé** | `--serve --serve-host 0.0.0.0` sur une machine où l'on dépose les résultats | Tout le monde y accède par un navigateur et **annote en parallèle**, chacun ses exécutions, sans s'écraser |
+| **Dans le navigateur** | ouvrir la page | immédiat ; **exporter** rend le fichier, **importer** reprend celui d'un collègue |
+| **Sur son poste** | `--serve` | la page écrit à côté des exécutions et le rapport est régénéré |
+| **Serveur partagé** | `--serve --serve-host 0.0.0.0` | on y dépose les résultats, tout le monde lit et **annote en parallèle** |
 
 ```bash
-# 2. sur son poste — http://localhost:8787
 java -jar runtime-xray.jar --report-only --out runtime-xray-out --serve
-
-# 3. serveur partagé — on y dépose des répertoires d'exécution, tout le monde lit et annote
-java -jar runtime-xray.jar --report-only --out /srv/runtime-xray --serve 8080 --serve-host 0.0.0.0
 ```
 
-Le mode 3 n'authentifie personne et le dit au démarrage : quiconque atteint le port peut
-lire les rapports et les annoter. Il se place derrière ce qui filtre déjà les accès —
-réseau interne, mandataire, portail d'entreprise.
+L'annotation d'une exécution s'écrit dans **son répertoire** (`config.json`), ce qui la
+fait voyager avec la mesure ; un `<exécution>-config.json` posé à côté, ou le `noms.json`
+commun, restent lus — dans cet ordre de priorité.
 
-**Annoter à plusieurs.** L'écriture porte sur **une exécution**, jamais sur le fichier
-entier : deux personnes qui annotent deux exécutions ne se croisent pas. Sur la *même*
-exécution, la seconde est prévenue — « modifiée entre-temps », avec la version enregistrée
-sous les yeux — et choisit entre garder la sienne ou reprendre celle du serveur. Personne
-n'écrase personne en silence. La page relit le serveur toutes les quinze secondes, ce qui
-suffit pour voir arriver les noms posés par les autres.
-
-### Où le fichier est écrit
-
-En vision fichier, **une exécution est un répertoire**. Son annotation peut vivre à trois
-endroits, et l'ordre de priorité est celui-ci :
-
-| Emplacement | Ce que ça implique |
-|---|---|
-| `runs/<exécution>/config.json` | **Prioritaire.** L'annotation est *dans* l'exécution : elle la suit partout — copie, archive, envoi à un collègue |
-| `runs/<exécution>-config.json` | À côté du répertoire, même nom suffixé. L'exécution reste intacte : utile si elle est en lecture seule, signée, ou produite par quelqu'un d'autre |
-| `noms.json` | Un seul fichier pour tout le rapport, indexé par identifiant. C'est le **format d'échange** : celui qu'exporte la page |
-
-Le plus proche de l'exécution l'emporte, et il est pris **entier** — pas de mélange entre
-un nom d'un fichier et une description d'un autre, qui donnerait une annotation que
-personne n'a écrite. Le serveur, lui, écrit **là où l'annotation vit déjà**, et dans le
-répertoire de l'exécution si elle n'existait pas encore.
-
-Un fichier d'exécution ne porte pas d'identifiant — il est déjà dans le bon répertoire :
-
-```json
-{
-  "nom": "Recette du 21/08 — nuit",
-  "description": "24 M d'itérations. Vérifier la branche météo.",
-  "etiquettes": { "ticket": "RX-142" },
-  "elagage": { "racine": "lab/sample/Main.main", "coupes": [] }
-}
-```
-
-**Depuis la page, sans éditer de fichier.** La vue d'ensemble porte une fiche **Identité de
-cette exécution** : elle montre l'identifiant, le nom du lancement et le nom posé dans
-l'outil, et elle laisse saisir ce dernier, la description et les étiquettes — l'élagage
-s'y résume aussi, avec un bouton pour tout rétablir. La saisie reste
-dans le navigateur — la page est un fichier, elle n'écrit nulle part. Un bouton rend le
-`noms.json` correspondant : déposé à côté des exécutions, il fait entrer ces annotations
-dans le rapport pour tout le monde.
+**Tout le détail — les trois modes, l'écriture concurrente, les emplacements de fichier,
+les formats et les réserves : [Annoter les exécutions](annotations.md).**
 
 ### Rassembler des exécutions venues d'ailleurs
 

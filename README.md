@@ -320,8 +320,12 @@ java -jar runtime-xray.jar --report-only --out runtime-xray-out --serve
 
 L'annotation d'une exécution est écrite **dans son répertoire** (`config.json`), ce qui la
 fait voyager avec la mesure ; un fichier `<exécution>-config.json` posé à côté, ou le
-`noms.json` commun, restent lus — dans cet ordre de priorité. Le détail est dans
-[le mode d'emploi](docs/outil/mode-emploi.md#où-vivent-les-annotations--trois-modes-et-ils-coexistent).
+`noms.json` commun, restent lus — dans cet ordre de priorité. Sur un serveur partagé,
+l'écriture porte sur une exécution à la fois : deux personnes ne s'écrasent pas, et celle
+qui arrive après voit la version enregistrée avant de trancher.
+
+Tout le détail — les trois modes, l'écriture concurrente, les emplacements, les formats et
+les réserves : [Annoter les exécutions](docs/outil/annotations.md).
 
 ### Reprendre la mesure dans un autre outil
 
@@ -376,6 +380,7 @@ Trois dossiers, selon la question traitée.
 | Page | Contenu |
 |---|---|
 | [Mode d'emploi](docs/outil/mode-emploi.md) | Paramètres, configuration, méthode racine |
+| [Annoter les exécutions](docs/outil/annotations.md) | Nommer, décrire, étiqueter, élaguer — seul, sur son poste, ou à plusieurs |
 | [Réduire l'empreinte](docs/outil/empreinte.md) | Faire tourner l'outil sur un gros code : trois niveaux d'observation, et les leviers |
 | [Reprendre le résultat ailleurs](docs/outil/exports.md) | Exports `perf`, `cpuprofile`, LCOV — pour Firefox Profiler, speedscope, un éditeur |
 | [Lire le rapport](docs/outil/lire-le-rapport.md) | Ce que la page montre, ce qu'elle replie, et ce qu'on peut lui demander |
