@@ -331,7 +331,9 @@ public final class Config {
             # Servir le rapport ne se règle pas ici : c'est un mode de lancement, pas une
             # propriété du projet. « --serve » sert le répertoire de sortie et laisse la page
             # écrire ses annotations à côté des exécutions ; « --serve-host 0.0.0.0 » en fait
-            # un serveur partagé, où plusieurs personnes annotent en parallèle.
+            # un serveur partagé, où plusieurs personnes annotent en parallèle, que
+            # « --serve-token » ferme par un secret (XRAY_SERVE_TOKEN pour ne pas l'exposer
+            # dans « ps »). Un secret ne se range pas dans un fichier suivi en version.
 
             # Dépôt d'où récupérer les composants d'analyse, une seule fois. Sur un réseau
             # fermé, indiquer le miroir interne : c'est le seul réglage qui compte pour

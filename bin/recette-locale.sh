@@ -145,6 +145,47 @@ etape $? "la page a été régénérée avec l'annotation"
 
 curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:$PORT/../$(basename "$BAC")" | grep -q '40'
 etape $? "un chemin qui sort du répertoire servi est refusé"
+
+kill "$serveur_pid" 2>/dev/null; wait "$serveur_pid" 2>/dev/null; serveur_pid=""
+echo
+
+echo "6. Le même serveur, gardé par un secret partagé"
+SECRET="recette-$$"
+PORT2="$(python3 -c 'import socket;s=socket.socket();s.bind(("127.0.0.1",0));print(s.getsockname()[1]);s.close()')"
+java -jar "$JAR" --report-only --out sortie --serve "$PORT2" --serve-token "$SECRET" \
+  > garde.log 2>&1 &
+serveur_pid=$!
+for _ in $(seq 1 40); do
+  curl -s -o /dev/null "http://127.0.0.1:$PORT2/__xray/ping" && break; sleep 0.25
+done
+
+code="$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:$PORT2/__xray/ping")"
+[ "$code" = "401" ]; etape $? "sans le secret, la page ne peut rien lire ($code)"
+
+# Le refus qui compte : personne n'écrit dans les fichiers d'annotation sans le secret.
+code="$(curl -s -o /dev/null -w '%{http_code}' -X POST \
+  "http://127.0.0.1:$PORT2/__xray/noms/$UUID" -H 'Content-Type: application/json' \
+  -d '{"valeur":{"nom":"intrus"}}')"
+[ "$code" = "401" ]; etape $? "sans le secret, on n'écrit aucune annotation ($code)"
+grep -q intrus "$(ls sortie/runs/*/config.json | head -1)" && faux=1 || faux=0
+[ "$faux" = 0 ]; etape $? "et rien n'a été écrit sur le disque"
+
+code="$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:$PORT2/")"
+[ "$code" = "302" ]; etape $? "un navigateur est envoyé vers la page d'entrée ($code)"
+
+curl -s -H "Authorization: Bearer $SECRET" "http://127.0.0.1:$PORT2/__xray/ping" \
+  | grep -q '"garde":true'
+etape $? "avec le secret, un script passe et sait que la porte existe"
+
+curl -s -c bocal.txt -o /dev/null -X POST "http://127.0.0.1:$PORT2/__xray/entrer" \
+  --data-urlencode "jeton=$SECRET" --data-urlencode "vers=/"
+grep -q xray_session bocal.txt
+etape $? "le formulaire ouvre une session de navigateur"
+grep -q "$SECRET" bocal.txt && fuite=1 || fuite=0
+[ "$fuite" = 0 ]; etape $? "et cette session ne transporte pas le secret lui-même"
+
+curl -s -b bocal.txt -o /dev/null -w '%{http_code}' "http://127.0.0.1:$PORT2/" | grep -q 200
+etape $? "avec cette session, le rapport s'ouvre"
 echo
 
 echo "────────────────────────────────────"

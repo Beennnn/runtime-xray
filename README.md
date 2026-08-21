@@ -331,6 +331,12 @@ coexistent — même format, aucun conversion pour passer de l'un à l'autre :
 java -jar runtime-xray.jar --report-only --out runtime-xray-out --serve
 ```
 
+Un serveur partagé se ferme par `--serve-token` : sans valeur, un secret est tiré au sort
+et affiché une fois ; les visiteurs le saisissent sur une page d'entrée et la session dure
+douze heures. C'est un secret partagé, pas des comptes — il dit qui peut entrer, pas qui a
+écrit quoi — et **en HTTP simple il circule en clair** : il complète un filtrage réseau, il
+ne le remplace pas.
+
 L'annotation d'une exécution est écrite **dans son répertoire** (`config.json`), ce qui la
 fait voyager avec la mesure ; un fichier `<exécution>-config.json` posé à côté, ou le
 `noms.json` commun, restent lus — dans cet ordre de priorité. Sur un serveur partagé,

@@ -48,10 +48,11 @@ import java.util.concurrent.locks.ReentrantLock;
  * yeux : la seconde reçoit un refus et la version courante, plutôt que d'écraser en
  * silence le travail de la première.
  *
- * <p>Ce qu'il n'est pas : un service authentifié. Il n'écoute que la boucle locale par
- * défaut, et la seule écriture qu'il accepte est l'annotation d'une exécution, dans un
- * fichier dont il choisit lui-même le nom. Déployé au-delà, il se met derrière ce qui
- * filtre déjà les accès de l'entreprise — l'avertissement est imprimé au démarrage.
+ * <p>Il n'écoute que la boucle locale par défaut, et la seule écriture qu'il accepte est
+ * l'annotation d'une exécution, dans un fichier dont il choisit lui-même le nom. Déployé
+ * au-delà, {@code --serve-token} lui donne un secret partagé — voir {@link Access} pour ce
+ * que ce secret vaut et ne vaut pas. Sans secret, l'avertissement est imprimé au démarrage :
+ * il se met alors derrière ce qui filtre déjà les accès de l'entreprise.
  */
 public final class LocalServer {
 
@@ -69,10 +70,10 @@ public final class LocalServer {
      * @param rebuild régénère la page après une écriture, en arrière-plan : sans lui, une
      *                page rouverte comme fichier afficherait l'annotation d'avant
      */
-    public static void serve(Path outDir, String host, int port, Callable<Void> rebuild)
-            throws IOException {
-        HttpServer server = start(outDir, host, port, rebuild);
-        annonce(outDir.toAbsolutePath().normalize(), host, port);
+    public static void serve(Path outDir, String host, int port, Callable<Void> rebuild,
+                             Access acces) throws IOException {
+        HttpServer server = start(outDir, host, port, rebuild, acces);
+        annonce(outDir.toAbsolutePath().normalize(), host, port, acces);
 
         CountDownLatch stop = new CountDownLatch(1);
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
@@ -95,6 +96,11 @@ public final class LocalServer {
      */
     static HttpServer start(Path outDir, String host, int port, Callable<Void> rebuild)
             throws IOException {
+        return start(outDir, host, port, rebuild, Access.ouvert());
+    }
+
+    static HttpServer start(Path outDir, String host, int port, Callable<Void> rebuild,
+                            Access acces) throws IOException {
         Path root = outDir.toAbsolutePath().normalize();
         InetAddress address = "0.0.0.0".equals(host) || "*".equals(host)
                 ? new InetSocketAddress(port).getAddress()
@@ -106,13 +112,29 @@ public final class LocalServer {
         // proposer « Enregistrer » plutôt que le seul export de fichier.
         server.createContext("/__xray/ping", ex -> {
             noCache(ex);
-            json(ex, 200, Map.of("peutEcrire", true, "fichier", Annotations.DANS_LE_RUN));
+            if (barre(ex, acces)) return;
+            json(ex, 200, Map.of("peutEcrire", true, "fichier", Annotations.DANS_LE_RUN,
+                    "garde", acces.garde()));
+        });
+
+        // La porte, quand il y a un secret : un formulaire, et le cookie qui s'ensuit.
+        if (acces.garde()) server.createContext("/__xray/entrer", ex -> {
+            try {
+                entrer(ex, acces);
+            } catch (Exception e) {
+                // Un gestionnaire qui remonte une exception n'envoie RIEN : le navigateur
+                // voit une connexion coupée, et personne ne sait pourquoi il ne peut pas
+                // entrer. Mieux vaut une erreur nommée.
+                System.err.println("   page d'entrée en échec : " + e);
+                text(ex, 500, String.valueOf(e.getMessage()));
+            }
         });
 
         // Les annotations partagées, avec l'empreinte de chacune : c'est elle qui permet de
         // détecter qu'une exécution a bougé pendant qu'on l'annotait.
         server.createContext("/__xray/noms", ex -> {
             noCache(ex);
+            if (barre(ex, acces)) return;
             try {
                 String method = ex.getRequestMethod().toUpperCase(Locale.ROOT);
                 String rest = ex.getRequestURI().getPath().substring("/__xray/noms".length());
@@ -165,6 +187,7 @@ public final class LocalServer {
 
         server.createContext("/", ex -> {
             try {
+                if (barre(ex, acces)) return;
                 Path file = resolve(root, ex.getRequestURI().getPath());
                 if (file == null || !Files.isRegularFile(file)) {
                     text(ex, 404, "introuvable");
@@ -343,7 +366,77 @@ public final class LocalServer {
         }
     }
 
-    private static void annonce(Path root, String host, int port) {
+    /**
+     * Arrête net une requête qui n'a pas montré patte blanche, et dit {@code true} si elle
+     * est traitée.
+     *
+     * <p>Deux réponses différentes, parce que deux appelants différents : un navigateur qui
+     * demande une page est envoyé vers le formulaire, où il saura quoi faire ; un
+     * {@code fetch} de la page, ou un script, reçoit un 401 — le renvoyer vers du HTML lui
+     * ferait analyser un formulaire comme si c'étaient ses données.
+     */
+    private static boolean barre(HttpExchange ex, Access acces) throws IOException {
+        if (acces.autorise(ex)) return false;
+        String chemin = ex.getRequestURI().getPath();
+        if (chemin.startsWith("/__xray/")) {
+            text(ex, 401, "secret partagé requis : ouvrir " + chemin.replaceFirst("/__xray/.*",
+                    "/") + " dans un navigateur, ou passer un en-tête Authorization: Bearer");
+            return true;
+        }
+        String vers = ex.getRequestURI().getRawQuery() == null ? chemin
+                : chemin + "?" + ex.getRequestURI().getRawQuery();
+        ex.getResponseHeaders().add("Location", Access.versEntree(vers));
+        send(ex, 302, "text/plain; charset=utf-8", new byte[0]);
+        return true;
+    }
+
+    /** Le formulaire d'entrée, puis le cookie et le retour vers la page demandée. */
+    private static void entrer(HttpExchange ex, Access acces) throws IOException {
+        noCache(ex);
+        String methode = ex.getRequestMethod().toUpperCase(Locale.ROOT);
+        if (methode.equals("GET")) {
+            String vers = parametre(ex.getRequestURI().getRawQuery(), "vers");
+            html(ex, 200, Access.pageEntree(vers, null));
+            return;
+        }
+        if (!methode.equals("POST")) {
+            text(ex, 405, "méthode non acceptée");
+            return;
+        }
+        Map<String, String> champs = Access.champs(read(ex.getRequestBody()));
+        String origine = Access.origine(ex);
+        if (acces.misDeCote(origine)) {
+            html(ex, 429, Access.pageEntree(champs.get("vers"),
+                    "Trop d'essais depuis cette adresse. Réessayer dans une trentaine de secondes."));
+            return;
+        }
+        String session = acces.ouvrirSession(champs.get("jeton"), origine);
+        if (session == null) {
+            System.err.println("   accès refusé depuis " + origine);
+            html(ex, 401, Access.pageEntree(champs.get("vers"), "Ce secret n'est pas le bon."));
+            return;
+        }
+        String vers = champs.getOrDefault("vers", "/");
+        // Une redirection ouverte enverrait ailleurs quelqu'un qui vient de se fier à
+        // l'adresse qu'on lui a donnée : on ne repart que vers une page de ce serveur.
+        if (!vers.startsWith("/") || vers.startsWith("//")) vers = "/";
+        ex.getResponseHeaders().add("Set-Cookie", acces.enteteCookie(session));
+        ex.getResponseHeaders().add("Location", vers);
+        send(ex, 302, "text/plain; charset=utf-8", new byte[0]);
+    }
+
+    private static String parametre(String requete, String nom) {
+        if (requete == null) return null;
+        for (String morceau : requete.split("&")) {
+            String[] paire = morceau.split("=", 2);
+            if (paire.length == 2 && paire[0].equals(nom)) {
+                return java.net.URLDecoder.decode(paire[1], StandardCharsets.UTF_8);
+            }
+        }
+        return null;
+    }
+
+    private static void annonce(Path root, String host, int port, Access acces) {
         boolean local = host.startsWith("127.") || host.equals("localhost");
         System.out.println();
         System.out.println("▶ Rapport servi sur http://" + (local ? "localhost" : host)
@@ -353,12 +446,7 @@ public final class LocalServer {
                 + "), et la page est régénérée :");
         System.out.println("   elles valent alors pour tout le monde, et suivent l'exécution "
                 + "si on la déplace.");
-        if (!local) {
-            System.out.println();
-            System.out.println("   ⚠️ Écoute au-delà de la boucle locale, SANS authentification :");
-            System.out.println("      quiconque atteint ce port peut lire les rapports et annoter.");
-            System.out.println("      À placer derrière ce qui filtre déjà les accès.");
-        }
+        acces.annoncer(local);
         System.out.println("   Ctrl-C pour arrêter.");
     }
 
@@ -404,6 +492,10 @@ public final class LocalServer {
         send(ex, code, "application/json", Json.write(body).getBytes(StandardCharsets.UTF_8));
     }
 
+    private static void html(HttpExchange ex, int code, String body) throws IOException {
+        send(ex, code, "text/html; charset=utf-8", body.getBytes(StandardCharsets.UTF_8));
+    }
+
     private static void text(HttpExchange ex, int code, String body) throws IOException {
         send(ex, code, "text/plain; charset=utf-8", body.getBytes(StandardCharsets.UTF_8));
     }
@@ -411,7 +503,10 @@ public final class LocalServer {
     private static void send(HttpExchange ex, int code, String type, byte[] body)
             throws IOException {
         ex.getResponseHeaders().add("Content-Type", type);
-        ex.sendResponseHeaders(code, body.length);
+        // Une longueur de zéro ne veut PAS dire « pas de corps » ici : elle demande un
+        // encodage par morceaux, et le client attend alors des octets qui ne viendront
+        // jamais. Une redirection sans corps doit passer -1.
+        ex.sendResponseHeaders(code, body.length == 0 ? -1 : body.length);
         try (OutputStream out = ex.getResponseBody()) {
             out.write(body);
         }

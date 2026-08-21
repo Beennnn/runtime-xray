@@ -776,6 +776,9 @@ let peutEnregistrer = false;
 // chacune. L'empreinte est ce qui permet de dire « quelqu'un est passé depuis ».
 let annotationsServeur = {};
 let empreintesServeur = {};
+// Le serveur est-il gardé par un secret partagé ? On le dit dans la barre : quelqu'un qui
+// annote a le droit de savoir si ce qu'il écrit part sur un serveur ouvert à tous.
+let serveurGarde = false;
 // La révision du rapport côté serveur : elle change quand une exécution est déposée ou
 // retirée. La page ne se recharge pas d'elle-même — on ne fait pas disparaître ce que
 // quelqu'un est en train de lire — elle propose.
@@ -783,7 +786,8 @@ let revisionServeur = null;
 
 function lireServeur(){
   return fetch("__xray/noms", {cache: "no-store"})
-    .then(r => r.ok ? r.json() : null)
+    .then(r => { if (r.status === 401) { sessionExpiree(); return null; }
+                 return r.ok ? r.json() : null; })
     .then(j => {
       if (!j) return false;
       const avant = JSON.stringify(empreintesServeur);
@@ -801,6 +805,7 @@ fetch("__xray/ping", {cache: "no-store"})
   .then(j => {
     if (!j || !j.peutEcrire) return;
     peutEnregistrer = true;
+    serveurGarde = !!j.garde;
     return lireServeur().then(() => {
       renderIdentity();
       refreshRunLabels();
@@ -815,6 +820,27 @@ fetch("__xray/ping", {cache: "no-store"})
     });
   })
   .catch(() => {});   // page ouverte comme fichier : on reste sur l'export
+
+/**
+ * Signale que le serveur ne nous reconnaît plus : la session gardée par le secret partagé
+ * a expiré, ou le serveur a redémarré.
+ *
+ * <p>Ce qui a été saisi et pas encore enregistré reste dans ce navigateur : se reconnecter
+ * puis enregistrer à nouveau suffit. On le dit, parce que sans cela « échec » ressemble à
+ * du travail perdu.
+ */
+function sessionExpiree(){
+  peutEnregistrer = false;
+  if (document.getElementById("nouvelles")) return;
+  const barre = document.createElement("div");
+  barre.id = "nouvelles";
+  barre.innerHTML = 'Session expirée. Ce qui n\'est pas encore enregistré reste dans ce ' +
+    'navigateur. <button class="mini" id="nouvellesGo">se reconnecter</button>' +
+    '<button class="mini" id="nouvellesNon" aria-label="Ignorer">✕</button>';
+  document.body.appendChild(barre);
+  document.getElementById("nouvellesGo").onclick = () => location.reload();
+  document.getElementById("nouvellesNon").onclick = () => barre.remove();
+}
 
 /**
  * Signale que le rapport a changé sur le serveur — une exécution déposée, une autre retirée.
@@ -899,6 +925,15 @@ function enregistrerAnnotations(bouton){
           + JSON.stringify(body.valeur, null, 2)
           + "\n\nCliquer « enregistrer » à nouveau remplacera la sienne par la vôtre ; "
           + "recharger la page reprendra la sienne et abandonnera vos modifications.");
+        rendre();
+        return;
+      }
+      if (status === 401){
+        // Le pire moment pour perdre l'accès : quelqu'un vient d'écrire une description.
+        // Elle n'est pas perdue — elle reste dans ce navigateur tant que le serveur ne l'a
+        // pas prise — et c'est exactement ce qu'il faut dire, plutôt qu'un « échec ».
+        dire("session expirée");
+        sessionExpiree();
         rendre();
         return;
       }
@@ -2955,6 +2990,11 @@ function renderAnnotActs(){
   box.innerHTML =
     '<span class="toolgrp"><span class="mark" title="Nom, description et étiquettes de ' +
     'cette exécution">annotations</span>' +
+    (peutEnregistrer && serveurGarde
+      ? '<span class="mark" title="Ce serveur est gardé par un secret partagé : seules les ' +
+        'personnes qui l\'ont peuvent lire et annoter" aria-label="Serveur gardé par un ' +
+        'secret partagé">🔒</span>'
+      : '') +
     (peutEnregistrer
       ? '<a href="#" id="annotSave"' + (modifie ? ' style="font-weight:700"' : '') +
         ' title="Écrire l\'annotation de cette exécution à côté de ses résultats">' +
