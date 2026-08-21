@@ -119,6 +119,66 @@ class ExportsTest {
     }
 
     @Test
+    @DisplayName("Un profil trop gros est allégé proportionnellement, pas tronqué")
+    void hugeProfileIsThinnedNotCut(@TempDir Path dir) throws Exception {
+        // Deux branches très inégales, et un poids total très au-dessus du plafond : ce qui
+        // compte est que la SECONDE survive, et dans sa proportion. Tronquer la ferait
+        // disparaître entièrement — le profil dirait alors que le programme n'y est jamais
+        // passé.
+        Path run = dir.resolve("runs/gros");
+        Files.createDirectories(run.resolve("async-profiler"));
+        Files.writeString(run.resolve("async-profiler/profil.collapsed"),
+                "app/Main.main;app/Chaud.boucle 9000000\n"
+              + "app/Main.main;app/Froid.rare 1000000\n", StandardCharsets.UTF_8);
+
+        Exports.write(run, Set.of(Exports.Format.PERF), 1, 8);
+        List<String> lignes = Files.readAllLines(run.resolve("exports/profil.perf.txt"));
+
+        long chaud = lignes.stream().filter(l -> l.contains("app/Chaud.boucle")).count();
+        long froid = lignes.stream().filter(l -> l.contains("app/Froid.rare")).count();
+        long total = chaud + froid;
+
+        // Le plafond porte sur les octets : c'est le fichier qu'on empêche de devenir
+        // inexploitable, pas un nombre de relevés qui ne dit rien de sa taille.
+        long octets = Files.size(run.resolve("exports/profil.perf.txt"));
+        assertTrue(octets < 40L * 1024 * 1024,
+                "le fichier dépasse franchement le plafond : " + octets / (1024 * 1024) + " Mo");
+        assertTrue(octets > 16L * 1024 * 1024,
+                "allégé bien plus que nécessaire : " + octets / (1024 * 1024) + " Mo");
+
+        assertTrue(froid > 0, "la branche légère a disparu — c'est ce que faisait la troncature");
+        double part = (double) froid / total;
+        assertTrue(part > 0.08 && part < 0.12,
+                "la proportion mesurée (10 %) doit être gardée, or elle vaut " + part);
+    }
+
+    @Test
+    @DisplayName("Un profil qui tient n'est pas touché")
+    void smallProfileIsKeptWhole(@TempDir Path dir) throws Exception {
+        Path run = run(dir);
+        Exports.write(run, Set.of(Exports.Format.PERF), 1, 8);
+        long entetes = Files.readAllLines(run.resolve("exports/profil.perf.txt")).stream()
+                .filter(l -> l.contains("cpu-clock:")).count();
+        assertEquals(4, entetes, "3 + 1 relevés, tous présents");
+    }
+
+    @Test
+    @DisplayName("Le cpuprofile porte tous les relevés, même quand perf est allégé")
+    @SuppressWarnings("unchecked")
+    void cpuprofileKeepsEverything(@TempDir Path dir) throws Exception {
+        Path run = dir.resolve("runs/gros");
+        Files.createDirectories(run.resolve("async-profiler"));
+        Files.writeString(run.resolve("async-profiler/profil.collapsed"),
+                "app/Main.main;app/Chaud.boucle 2000000\n", StandardCharsets.UTF_8);
+
+        Exports.write(run, Set.of(Exports.Format.CPUPROFILE), 1, 8);
+        Map<String, Object> profile = (Map<String, Object>) Json.read(
+                Files.readString(run.resolve("exports/profil.cpuprofile"), StandardCharsets.UTF_8));
+        assertEquals(2_000_000, ((List<Object>) profile.get("samples")).size(),
+                "compact par construction : il n'a aucune raison d'être allégé");
+    }
+
+    @Test
     @DisplayName("Sans mesure à réécrire, aucun fichier n'est créé")
     void nothingToExportWritesNothing(@TempDir Path dir) throws Exception {
         Path run = dir.resolve("runs/vide");
