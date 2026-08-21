@@ -150,7 +150,23 @@ public final class RunSession {
         Thread.sleep(config.attachAfterSeconds * 1000L);
         Optional<ProcessHandle> jvm = findJvm(process);
         if (jvm.isEmpty()) {
-            System.out.println("   ⚠️ JVM introuvable : inspection des valeurs sautée");
+            // Deux causes très différentes derrière la même absence, et l'opérateur n'a pas
+            // à deviner laquelle : ou l'application a fini avant qu'on ne s'attache — de
+            // loin le cas le plus fréquent, et il se corrige en une option — ou la commande
+            // ne démarre pas de JVM qu'on puisse suivre. Dire « JVM introuvable » sans
+            // distinguer les deux envoyait chercher un problème d'installation là où il n'y
+            // avait qu'un programme trop court.
+            if (!process.isAlive()) {
+                System.out.println("   ⚠️ l'application s'est terminée avant l'attachement ("
+                        + config.attachAfterSeconds + " s) : valeurs non capturées.");
+                System.out.println("      Augmenter la charge de travail, ou baisser "
+                        + "--attach-after. La couverture et les temps, eux, sont complets.");
+            } else {
+                System.out.println("   ⚠️ aucune JVM à suivre parmi les processus lancés : "
+                        + "valeurs non capturées.");
+                System.out.println("      La commande n'en démarre peut-être pas une "
+                        + "directement — voir --print-options pour s'attacher à la vôtre.");
+            }
             return;
         }
         long pid = jvm.get().pid();

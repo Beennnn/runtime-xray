@@ -235,19 +235,28 @@ Sur la machine isolée, décompresser dans `$HOME` : l'outil n'ouvrira aucune co
 Si un miroir Maven interne est joignable, `--repo` ou `MAVEN_REPO` l'y envoie et le cache se
 remplit tout seul depuis l'intérieur du réseau.
 
-### Vérifier que la version publiée fonctionne
+### Vérifier que ça fonctionne — deux recettes
 
-[`bin/recette-central.sh`](bin/recette-central.sh) récupère l'artefact publié dans un
+[`bin/recette-central.sh`](bin/recette-central.sh) récupère l'artefact **publié** dans un
 répertoire vierge, vérifie sa signature avec une clé récupérée d'un serveur public — comme
 le ferait un tiers — puis **l'exécute sur une application réelle** et contrôle que la page,
 le rapport Markdown, la couverture et le profil sont produits.
 
+[`bin/recette-locale.sh`](bin/recette-locale.sh) fait le même travail sur le jar **qu'on
+s'apprête à publier**, et va jusqu'au bout de la chaîne : analyse complète avec capture des
+valeurs, les quatre exports et leur forme, le niveau d'observation qui n'échantillonne pas,
+et le serveur d'annotations — écriture dans le répertoire de l'exécution, refus d'une
+écriture périmée, régénération de la page, refus d'un chemin qui sort du répertoire servi.
+
 ```bash
-./bin/recette-central.sh          # ou : ./bin/recette-central.sh 1.1.0
+mvn -q package && ./bin/recette-locale.sh   # 26 contrôles sur ce qu'on va publier
+./bin/recette-central.sh                    # 13 contrôles sur ce qui est publié
 ```
 
 Un HTTP 200 dit qu'un fichier existe ; il ne dit pas qu'il fonctionne. C'est la différence
-entre « publié » et « utilisable », et elle se vérifie en treize contrôles.
+entre « publié » et « utilisable ». Et les tests unitaires vérifient des décisions une par
+une, sans jamais lancer de JVM observée : seule une recette dit que les morceaux, mis bout
+à bout, fonctionnent encore.
 
 ## L'outil
 
