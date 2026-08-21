@@ -82,6 +82,21 @@ C'est la seule difficulté réelle du mode 3, et elle est traitée là où elle 
 - Tant qu'une saisie n'est pas envoyée, le bandeau l'annonce — *non enregistré* — et le
   bouton **enregistrer** se marque d'un point.
 
+### Déposer des résultats pendant qu'il tourne
+
+C'est le geste même du mode 3 : on copie un répertoire d'exécution dans `runs/`, et tout le
+monde doit le voir. Le serveur **sonde le répertoire toutes les dix secondes** et réassemble
+la page dès qu'une exécution apparaît ou disparaît — il n'y a rien à redémarrer.
+
+Les pages ouvertes ne se rechargent pas d'elles-mêmes : quelqu'un est peut-être en train de
+lire une méthode ou d'écrire une description. Elles l'annoncent, en bas à droite — *« Le
+rapport a changé sur le serveur — 4 exécutions à présent »* — et laissent recharger quand
+c'est le moment.
+
+Le sondage est délibéré, plutôt qu'une surveillance du système de fichiers : les résultats
+arrivent souvent par un partage réseau, où les notifications de modification sont au mieux
+irrégulières. Dix secondes suffisent — on ne dépose pas une exécution dix fois par minute.
+
 ### Ce que le serveur n'est pas
 
 Il n'authentifie personne. Par défaut il n'écoute que la boucle locale ; au-delà, il
