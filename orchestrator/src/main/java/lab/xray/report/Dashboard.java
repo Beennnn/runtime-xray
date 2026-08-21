@@ -22,9 +22,6 @@ import java.util.Map;
  */
 public final class Dashboard {
 
-    /** Renommage après coup : associe l'identifiant permanent d'une exécution à un nom. */
-    private static final String NAMES_FILE = "noms.json";
-
     private Dashboard() {}
 
     public static Path build(Path commonDir, List<Path> sourceRoots, int valuesPerMethod)
@@ -40,7 +37,7 @@ public final class Dashboard {
      */
     public static Path build(Path commonDir, List<Path> sourceRoots, int valuesPerMethod,
                              PackageFilter hidden) throws Exception {
-        Map<String, Object> overrides = readOverrides(commonDir);
+        Map<String, Object> overrides = Annotations.readCentral(commonDir);
         List<Path> bases = findRuns(commonDir, 0, 3);
         if (bases.isEmpty()) {
             throw new IOException("aucune exécution trouvée sous " + commonDir
@@ -87,15 +84,28 @@ public final class Dashboard {
                 valuesPerMethod);
 
         String uuid = String.valueOf(context.getOrDefault("uuid", ""));
-        String origin = String.valueOf(context.getOrDefault("nomOrigine",
-                base.getFileName().toString()));
-        Object renamed = overrides.get(uuid);
+        Object recordedName = context.get("nomOrigine");
+        String origin = recordedName == null || String.valueOf(recordedName).isBlank()
+                ? null
+                : String.valueOf(recordedName);
+        // Trois emplacements possibles, le plus proche de l'exécution l'emporte —
+        // voir Annotations pour ce que chacun implique.
+        Annotation annotation = Annotation.of(Annotations.forRun(base, uuid, overrides));
 
         Map<String, Object> run = new LinkedHashMap<>();
         run.put("uuid", uuid);
         run.put("nomOrigine", origin);
-        run.put("renomme", renamed != null);
-        run.put("nom", renamed != null ? renamed : origin);
+        run.put("nomOutil", annotation.name);
+        run.put("description", annotation.description);
+        run.put("etiquettes", annotation.tags);
+        run.put("elagage", annotation.pruning);
+        run.put("renomme", annotation.name != null);
+        // Trois sources, dans cet ordre : le nom posé dans l'outil, celui donné au
+        // lancement, et à défaut l'identifiant. Aucun libellé inventé : sans nom, ce qui
+        // s'affiche désigne quand même l'exécution, et une seule.
+        run.put("nom", annotation.name != null ? annotation.name
+                : origin != null ? origin
+                : shortId(uuid, base));
         run.put("chemin", relative(commonDir, base));
         run.put("rapports", reportsPresent(base));
         // La vue doit pouvoir dire ce qui a été écarté AVANT la mesure : ce code-là n'est
@@ -109,6 +119,7 @@ public final class Dashboard {
         // d'échantillons en durée estimée dans la vue.
         run.put("intervalMs", 1);
         run.put("profileNote", tree.note);
+        run.put("stacksNote", tree.stacksNote);
         run.put("trace", inspection.trace);
         run.put("values", inspection.values);
         run.put("context", context.isEmpty() ? null : context);
@@ -152,6 +163,10 @@ public final class Dashboard {
         m.put("collapsed", Files.isRegularFile(base.resolve("async-profiler/profil.collapsed")));
         m.put("valeurs", Files.isRegularFile(base.resolve("arthas/watch-params.txt")));
         m.put("traceBrute", Files.isRegularFile(base.resolve("arthas/trace-calltree.txt")));
+        m.put("exportPerf", Files.isRegularFile(base.resolve("exports/profil.perf.txt")));
+        m.put("exportCpuprofile", Files.isRegularFile(base.resolve("exports/profil.cpuprofile")));
+        m.put("exportLcov", Files.isRegularFile(base.resolve("exports/couverture.lcov")));
+        m.put("exportValeurs", Files.isRegularFile(base.resolve("exports/valeurs.json")));
         m.put("journal", Files.isRegularFile(base.resolve("execution.log")));
         m.put("contexte", Files.isRegularFile(base.resolve("run-context.json")));
         return m;
@@ -199,17 +214,38 @@ public final class Dashboard {
         }
     }
 
-    @SuppressWarnings("unchecked")
-    private static Map<String, Object> readOverrides(Path commonDir) {
-        Path file = commonDir.resolve(NAMES_FILE);
-        if (!Files.isRegularFile(file)) {
-            return new LinkedHashMap<>();
+    /** Faute de nom, l'identifiant abrégé : assez court pour tenir, assez long pour trier. */
+    private static String shortId(String uuid, Path base) {
+        if (uuid == null || uuid.isBlank()) return base.getFileName().toString();
+        return uuid.length() > 8 ? uuid.substring(0, 8) : uuid;
+    }
+
+    /** Nom, description et étiquettes posés sur une exécution après sa mesure. */
+    private record Annotation(String name, String description, Map<String, Object> tags,
+                              Map<String, Object> pruning) {
+
+        static final Annotation EMPTY = new Annotation(null, null, Map.of(), null);
+
+        @SuppressWarnings("unchecked")
+        static Annotation of(Object recorded) {
+            if (recorded == null) return EMPTY;
+            if (recorded instanceof Map<?, ?> map) {
+                Map<String, Object> m = (Map<String, Object>) map;
+                Object tags = m.get("etiquettes");
+                Object pruning = m.get("elagage");
+                return new Annotation(
+                        text(m.get("nom")),
+                        text(m.get("description")),
+                        tags instanceof Map<?, ?> t ? (Map<String, Object>) t : Map.of(),
+                        pruning instanceof Map<?, ?> p ? (Map<String, Object>) p : null);
+            }
+            return new Annotation(text(recorded), null, Map.of(), null);
         }
-        try {
-            return (Map<String, Object>) Json.read(Files.readString(file, StandardCharsets.UTF_8));
-        } catch (Exception e) {
-            System.err.println("   " + file + " illisible — noms d'origine conservés");
-            return new LinkedHashMap<>();
+
+        private static String text(Object value) {
+            if (value == null) return null;
+            String s = String.valueOf(value).trim();
+            return s.isEmpty() ? null : s;
         }
     }
 

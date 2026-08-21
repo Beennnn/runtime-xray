@@ -3,6 +3,7 @@ package lab.xray;
 import lab.xray.json.Json;
 import lab.xray.report.Coverage;
 import lab.xray.report.Dashboard;
+import lab.xray.report.Exports;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -17,6 +18,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 import java.util.UUID;
@@ -48,6 +50,9 @@ public final class Main {
         Path configFile = null;
         boolean printOptionsOnly = false;
         boolean reportOnly = false;
+        boolean serve = false;
+        int servePort = 8787;
+        String serveHost = "127.0.0.1";
 
         for (int i = 0; i < args.length; i++) {
             String a = args[i];
@@ -68,6 +73,19 @@ public final class Main {
                 case "--no-values" -> config.captureValues = false;
                 case "--print-options" -> printOptionsOnly = true;
                 case "--report-only" -> reportOnly = true;
+                case "--export" -> config.exportFormats = args[++i];
+                case "--niveau" -> config.level = args[++i];
+                case "--cover" -> config.coverIncludes = args[++i];
+                case "--interval" -> config.sampleIntervalMs = Integer.parseInt(args[++i]);
+                case "--serve-host" -> serveHost = args[++i];
+                case "--serve" -> {
+                    serve = true;
+                    // Le port se colle à l'option quand on le donne, et se tait sinon :
+                    // « --serve 9000 » et « --serve --report-only » doivent marcher tous les deux.
+                    if (i + 1 < args.length && args[i + 1].matches("\\d+")) {
+                        servePort = Integer.parseInt(args[++i]);
+                    }
+                }
                 default -> {
                     System.err.println("Option inconnue : " + a);
                     usage();
@@ -113,6 +131,8 @@ public final class Main {
         }
 
         require(!config.javaCommand.isBlank() || reportOnly, "--java est obligatoire");
+        require(List.of("couverture", "arbre", "complet").contains(config.level.trim()),
+                "--niveau attend couverture, arbre ou complet (reçu : " + config.level + ")");
         // Les classes servent à MESURER. Réassembler une vue depuis des mesures existantes
         // n'en a aucun besoin.
         // --classes n'est plus exigé ici : le bytecode se déduit de la JVM observée, une
@@ -129,10 +149,24 @@ public final class Main {
             collect(config, tools, outDir);
         }
 
+        if (!config.exportFormats.isBlank()) {
+            exportRuns(config, outDir);
+        }
+
         System.out.println("▶ Assemblage de la vue");
         Path page = Dashboard.build(outDir, sourceRoots(config), config.watchCount, config.hidden());
         System.out.println();
         System.out.println("Terminé — ouvrir : " + page);
+
+        if (serve) {
+            Config servi = config;
+            LocalServer.serve(outDir, serveHost, servePort, () -> {
+                // Après une écriture, la page est reconstruite : l'annotation devient celle
+                // du rapport, et pas seulement celle de ce navigateur.
+                Dashboard.build(outDir, sourceRoots(servi), servi.watchCount, servi.hidden());
+                return null;
+            });
+        }
         return 0;
     }
 
@@ -164,9 +198,13 @@ public final class Main {
         writeContext(config, runDir, uuid, name, session);
 
         System.out.println();
-        System.out.println("   Pour renommer cette exécution plus tard, ajouter dans "
-                + outDir.resolve("noms.json") + " :");
+        System.out.println("   Pour nommer, décrire ou étiqueter cette exécution plus tard, "
+                + "ajouter dans " + outDir.resolve("noms.json") + " :");
         System.out.println("     { \"" + uuid + "\": \"un nom plus parlant\" }");
+        System.out.println("   ou, pour tout renseigner :");
+        System.out.println("     { \"" + uuid + "\": { \"nom\": \"…\", \"description\": \"…\","
+                + " \"etiquettes\": { \"ticket\": \"ABC-123\", \"recette\": \"\" } } }");
+        System.out.println("   La vue sait aussi les saisir et rendre ce fichier.");
     }
 
     /**
@@ -400,7 +438,11 @@ public final class Main {
                                      RunSession session) throws IOException {
         Map<String, Object> ctx = new LinkedHashMap<>();
         ctx.put("uuid", uuid);
-        ctx.put("nomOrigine", name);
+        // Le nom n'est enregistré que s'il a été DONNÉ. Écrire ici le libellé de repli
+        // — « exécution du 21/08 à 00:41 » — reviendrait à faire passer une commodité
+        // d'affichage pour une intention de l'opérateur, et la vue ne pourrait plus dire
+        // laquelle des deux elle montre.
+        ctx.put("nomOrigine", config.runName.isBlank() ? null : config.runName);
         ctx.putAll(config.describe());
         ctx.put("debut", session.startedAt);
         ctx.put("fin", session.endedAt);
@@ -415,6 +457,29 @@ public final class Main {
         ctx.put("javaHome", System.getProperty("java.home", ""));
         ctx.put("repertoireTravail", Path.of("").toAbsolutePath().toString());
         Files.writeString(runDir.resolve("run-context.json"), Json.write(ctx), StandardCharsets.UTF_8);
+    }
+
+    /**
+     * Réécrit chaque exécution dans les formats demandés, pour qu'un autre outil la lise.
+     *
+     * <p>L'export porte sur <b>toutes</b> les exécutions présentes, y compris celles d'hier :
+     * c'est le même geste que l'assemblage de la vue, et rien ne justifierait de servir un
+     * format à une exécution et pas à sa voisine.
+     */
+    private static void exportRuns(Config config, Path outDir) throws Exception {
+        Set<Exports.Format> formats = Exports.Format.parse(config.exportFormats);
+        System.out.println("▶ Export vers " + formats.stream().map(f -> f.option).sorted()
+                .collect(java.util.stream.Collectors.joining(", ")));
+        Path runs = outDir.resolve("runs");
+        if (!Files.isDirectory(runs)) return;
+        try (var dirs = Files.list(runs)) {
+            for (Path run : dirs.filter(Files::isDirectory).sorted().toList()) {
+                for (Path written : Exports.write(run, formats, 1, config.watchCount)) {
+                    System.out.println("   " + written + " ("
+                            + Files.size(written) / 1024 + " Ko)");
+                }
+            }
+        }
     }
 
     // ------------------------------------------------------------------- divers
@@ -542,10 +607,25 @@ public final class Main {
                   --attach-after <s>   Délai avant l'inspection des valeurs (défaut : 8).
                   --max-seconds <s>    Garde-fou sur la durée (défaut : 600).
                   --no-values          N'inspecte pas les valeurs : mesures de temps exactes.
+                  --niveau <n>         Jusqu'où observer : couverture (JaCoCo seul), arbre
+                                       (+ échantillonnage), complet (+ valeurs). Défaut :
+                                       complet. Le levier à baisser sur un gros code.
+                  --cover "<motifs>"   Classes que JaCoCo instrumente, ex. "com.exemple.*".
+                                       Sans lui, tout ce que la JVM charge est instrumenté.
+                  --interval <ms>      Intervalle d'échantillonnage des piles (défaut : 1).
                   --print-options      N'exécute rien : affiche les options JVM à ajouter à une
                                        ligne de commande quelconque, puis sortez par --report-only.
                   --repo <url>         Dépôt Maven d'où tirer les composants (miroir interne).
                   --report-only        Assemble la vue depuis des mesures déjà collectées.
+                  --serve [port]       Sert le rapport (défaut : 8787) et laisse la page
+                                       écrire ses annotations à côté des exécutions, puis la
+                                       régénère. Plusieurs personnes peuvent annoter à la fois.
+                  --serve-host <hôte>  Interface d'écoute (défaut : 127.0.0.1). Mettre
+                                       0.0.0.0 pour un serveur partagé — sans
+                                       authentification : à placer derrière un filtrage.
+                  --export <formats>   Réécrit les mesures pour d'autres outils : perf,
+                                       cpuprofile, lcov, valeurs — ou « tout ». Les fichiers
+                                       vont dans <exécution>/exports/.
                 """);
     }
 }

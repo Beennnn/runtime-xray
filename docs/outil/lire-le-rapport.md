@@ -147,6 +147,29 @@ code : collecte plus courte, rapport plus léger.
 Une page statique ne peut pas écrire dans votre fichier de configuration. C'est aussi ce qui
 lui permet d'être publiée telle quelle.
 
+### Élaguer l'arbre d'une exécution
+
+Filtrer range du **code** ; élaguer cadre une **exécution**. Dans l'onglet Exécutions, le
+bouton *élaguer* au bout d'une ligne propose deux gestes :
+
+- **couper cette branche** — ce nœud et tout ce qui en part disparaissent de l'arbre, *sur
+  ce chemin seulement* : la même méthode appelée depuis ailleurs reste visible ;
+- **repartir d'ici** — les niveaux au-dessus sont masqués, l'arbre commence à ce nœud.
+
+C'est ce qui permet de transmettre **une** branche plutôt qu'une exécution entière : le
+démarrage, les rouages et les scénarios voisins n'ont pas à être expliqués à chaque fois.
+
+Les pourcentages, eux, restent rapportés au total mesuré, et un bandeau violet rappelle en
+permanence ce qui a été coupé, avec de quoi tout rétablir. **Élaguer ne corrige pas la
+mesure** — les fichiers d'origine et les exports ne bougent pas. C'est aussi pour cela que
+le graphe de temps de la vue d'ensemble suit le même élagage : deux endroits de la page ne
+doivent pas raconter deux histoires.
+
+L'élagage se garde comme le reste des annotations : dans le navigateur d'abord, puis dans
+un fichier à côté des exécutions — que la page écrit elle-même quand elle est servie par
+l'outil, ou qu'on dépose soi-même après l'avoir exporté. C'est ce qui le rend définitif
+pour tous ceux qui ouvriront le rapport : [Annoter les exécutions](annotations.md).
+
 ## Deux arbres, deux questions — on se sert des deux
 
 Le mot « arbre d'appel » recouvre deux objets différents dans cette page. Ils ne répondent
@@ -170,14 +193,25 @@ cases à cocher choisissent celles qu'on affiche. Sur une méthode ouverte, la p
 les autres exécutions où elle a aussi tourné, et le nombre de contextes d'appel distincts —
 un clic bascule.
 
-Trois identités par exécution, et chacune a sa raison : un UUID attribué au lancement
-(stable, il ne change jamais), le nom d'origine donné par `--name`, et un nom d'affichage modifiable après coup dans `noms.json` sans rien relancer.
+Trois identités par exécution, et chacune a sa raison : un **identifiant** attribué au
+lancement, qui ne change jamais ; le **nom donné par `--name`**, qui dit ce qu'on croyait
+mesurer ; le **nom posé après coup**, qui dit ce qu'on a compris. Sans `--name`, c'est
+l'identifiant abrégé qui s'affiche — jamais un libellé inventé.
+
+La fiche **Identité de cette exécution**, en vue d'ensemble, montre les trois et laisse
+saisir le nom, une description libre et des étiquettes clé/valeur. Selon le mode, la saisie
+reste dans le navigateur, s'exporte en fichier, ou s'écrit directement à côté des
+exécutions : [Annoter les exécutions](annotations.md).
 
 ## Les sorties brutes
 
 En bas de la vue d'ensemble, une section liste tout ce que les outils ont écrit, groupé
 par outil : les rapports HTML de JaCoCo, le profil natif d'async-profiler et son inverse,
 les piles repliées, les valeurs et la trace d'Arthas, le journal de l'exécution, le contexte.
+
+Quand l'outil a été lancé avec `--export`, une rubrique **« Pour un autre outil »** s'y
+ajoute : les mêmes mesures réécrites en `perf script`, en `cpuprofile`, en LCOV et en JSON,
+pour être ouvertes ailleurs — voir [Reprendre le résultat dans un autre outil](exports.md).
 
 Ce n'est pas de la complétude pour la forme. Cette page est une synthèse : elle replie
 des frames, agrège des appels, masque des paquets. Chacun de ces choix peut se révéler faux

@@ -56,6 +56,32 @@ class CallTreeTest {
     }
 
     @Test
+    @DisplayName("Une pile que le profileur n'a pas remontée ne devient pas un second point d'entrée")
+    void brokenStackNeverBecomesARoot(@TempDir Path dir) throws IOException {
+        CallTree t = CallTree.parse(write(dir, """
+                app/Main.main;app/Service.traiter 99
+                [unknown_Java];app/Speeds.forMode 1
+                """));
+        // Le relevé reste dans le total : le temps a bien été passé quelque part.
+        assertEquals(100L, t.root.get("total"));
+        // Mais il ne s'affiche pas à côté de main, où il se lirait comme une seconde racine.
+        assertNull(child(t.root, "app/Speeds.forMode"));
+        assertEquals(1, ((List<Object>) t.root.get("children")).size());
+        assertNotNull(t.stacksNote);
+        assertTrue(t.stacksNote.contains("1 relevé sur 100"), t.stacksNote);
+    }
+
+    @Test
+    @DisplayName("Une racine entre crochets qui nomme un fil reste une vraie racine")
+    void threadRootIsKept(@TempDir Path dir) throws IOException {
+        CallTree t = CallTree.parse(write(dir, """
+                [main tid=123];app/Main.main 7
+                """));
+        assertNull(t.stacksNote);
+        assertNotNull(child(t.root, "app/Main.main"));
+    }
+
+    @Test
     @DisplayName("Les branches sont triées du plus coûteux au moins coûteux")
     void sortsChildrenByWeight(@TempDir Path dir) throws IOException {
         CallTree t = CallTree.parse(write(dir, """

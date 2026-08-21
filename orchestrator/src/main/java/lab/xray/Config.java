@@ -52,6 +52,39 @@ public final class Config {
     public int maxSeconds = 600;
     public int watchCount = 10;
     /**
+     * Ce qu'on accepte de payer pour observer, par ordre de priorité des informations.
+     *
+     * <p>Sur un code d'entreprise, tout mesurer d'un coup n'est pas toujours tenable : la
+     * couverture instrumente chaque classe chargée, l'échantillonnage réveille la JVM mille
+     * fois par seconde, et la capture des valeurs intercepte chaque entrée d'une méthode.
+     * Les trois informations n'ont pourtant pas la même valeur : savoir <b>ce qui a tourné</b>
+     * passe avant savoir <b>qui appelle qui</b>, qui passe avant <b>avec quelles valeurs</b>.
+     * Le niveau retenu dit jusqu'où on va.
+     *
+     * <ul>
+     *   <li>{@code couverture} — JaCoCo seul ;</li>
+     *   <li>{@code arbre} — plus l'échantillonnage des piles ;</li>
+     *   <li>{@code complet} — plus la capture des valeurs (défaut).</li>
+     * </ul>
+     */
+    public String level = "complet";
+    /**
+     * Classes que JaCoCo instrumente, au format de son agent — {@code com.exemple.*}, plusieurs
+     * motifs séparés par {@code :}. Vide : tout ce que la JVM charge, y compris les
+     * bibliothèques tierces, ce qui est le plus coûteux et rarement le plus utile.
+     */
+    public String coverIncludes = "";
+    /**
+     * Intervalle d'échantillonnage des piles, en millisecondes. L'augmenter est le levier le
+     * plus direct sur le coût du profil : à 10 ms, dix fois moins de relevés qu'à 1 ms.
+     */
+    public int sampleIntervalMs = 1;
+    /**
+     * Formats de réécriture demandés — {@code perf}, {@code cpuprofile}, {@code lcov},
+     * {@code valeurs}, ou {@code tout}. Vide : aucun export, et rien d'écrit en plus.
+     */
+    public String exportFormats = "";
+    /**
      * Nombre d'invocations dont on trace l'arbre d'appel.
      *
      * <p>Chaque invocation empruntant des branches différentes, ce nombre détermine
@@ -102,6 +135,10 @@ public final class Config {
             case "ATTACH_AFTER" -> attachAfterSeconds = parse(value, attachAfterSeconds);
             case "MAX_SECONDS" -> maxSeconds = parse(value, maxSeconds);
             case "WATCH_COUNT" -> watchCount = parse(value, watchCount);
+            case "EXPORT" -> exportFormats = value;
+            case "LEVEL", "NIVEAU" -> level = value;
+            case "COVER_INCLUDES" -> coverIncludes = value;
+            case "SAMPLE_INTERVAL_MS" -> sampleIntervalMs = parse(value, sampleIntervalMs);
             case "TRACE_COUNT" -> traceCount = parse(value, traceCount);
             default -> { /* une clé inconnue n'est pas une erreur : le fichier peut servir à autre chose */ }
         }
@@ -133,6 +170,17 @@ public final class Config {
         return paths;
     }
 
+    /** Vrai si le niveau demandé va jusqu'à l'échantillonnage des piles. */
+    public boolean profileWanted() {
+        return !"couverture".equalsIgnoreCase(level.trim());
+    }
+
+    /** Vrai si le niveau demandé va jusqu'à la capture des valeurs. */
+    public boolean valuesWanted() {
+        String l = level.trim();
+        return captureValues && ("complet".equalsIgnoreCase(l) || l.isBlank());
+    }
+
     public PackageFilter hidden() {
         return PackageFilter.of(hiddenPackages);
     }
@@ -149,7 +197,12 @@ public final class Config {
         m.put("repertoireClasses", classesDir);
         m.put("paquetsMasques", hiddenPackages.isBlank() ? null : hiddenPackages);
         m.put("repertoiresSources", sourceDirs.isBlank() ? null : sourceDirs);
-        m.put("valeursInspectees", captureValues && !rootMethod.isBlank());
+        m.put("valeursInspectees", valuesWanted() && !rootMethod.isBlank());
+        // Le niveau et ses réglages voyagent avec l'exécution : sans eux, un rapport moins
+        // fourni qu'un autre se lit comme une mesure ratée plutôt que comme un choix.
+        m.put("niveau", level);
+        m.put("classesInstrumentees", coverIncludes.isBlank() ? null : coverIncludes);
+        m.put("intervalleMs", sampleIntervalMs);
         return m;
     }
 
@@ -251,6 +304,34 @@ public final class Config {
             # des branches différentes : plus il y en a, plus de lignes du code portent
             # l'annotation « appelle … ». Le coût est faible.
             TRACE_COUNT=10
+
+            # ── L'empreinte sur l'application observée ──────────────────────── facultatif
+            # Trois informations, pas la même valeur ni le même coût : ce qui a tourné passe
+            # avant qui appelle qui, qui passe avant avec quelles valeurs. NIVEAU dit jusqu'où
+            # on va, et c'est le premier réglage à baisser quand la mesure devient trop chère.
+            #
+            #   couverture  JaCoCo seul — le moins cher, et l'information la plus sûre
+            #   arbre       + l'échantillonnage des piles
+            #   complet     + la capture des valeurs (défaut)
+            #NIVEAU="arbre"
+
+            # Classes que JaCoCo instrumente, au format de son agent (motifs séparés par ':').
+            # Sans ce réglage, TOUTE classe chargée est instrumentée, dépendances comprises :
+            # c'est le poste de coût principal sur une application d'entreprise.
+            #COVER_INCLUDES="com.exemple.*:com.exemple.commun.*"
+
+            # Intervalle d'échantillonnage des piles, en millisecondes. Le multiplier par dix
+            # divise par dix le nombre de relevés — et le coût qui va avec.
+            #SAMPLE_INTERVAL_MS=10
+
+            # Réécriture des mesures pour d'autres outils : perf, cpuprofile, lcov, valeurs,
+            # ou « tout ». Les fichiers vont dans <exécution>/exports/.
+            #EXPORT="cpuprofile,lcov"
+
+            # Servir le rapport ne se règle pas ici : c'est un mode de lancement, pas une
+            # propriété du projet. « --serve » sert le répertoire de sortie et laisse la page
+            # écrire ses annotations à côté des exécutions ; « --serve-host 0.0.0.0 » en fait
+            # un serveur partagé, où plusieurs personnes annotent en parallèle.
 
             # Dépôt d'où récupérer les composants d'analyse, une seule fois. Sur un réseau
             # fermé, indiquer le miroir interne : c'est le seul réglage qui compte pour

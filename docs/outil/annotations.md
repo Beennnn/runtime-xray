@@ -1,0 +1,209 @@
+# Annoter les exécutions — seul, sur son poste, ou à plusieurs
+
+> Une mesure sans nom ne se retrouve pas. Ce document décrit ce qu'on peut ajouter à une
+> exécution après l'avoir mesurée, où ça s'écrit, et les trois façons de faire vivre ces
+> annotations — du navigateur seul au serveur partagé.
+
+## Le problème
+
+Trois exécutions dans un rapport, c'est déjà trois répertoires horodatés dont les noms ne
+disent rien. Au bout d'une semaine, personne ne sait plus laquelle portait le jeu de
+données réduit, laquelle a servi à la démonstration, ni pourquoi celle du milieu avait été
+relancée.
+
+Ce que la mesure ne peut pas produire — **ce qu'on cherchait, ce qu'on a compris, ce qu'il
+reste à vérifier** — doit donc pouvoir s'écrire après coup, et rester attaché à
+l'exécution. C'est tout l'objet de ce qui suit.
+
+## Ce qu'on peut ajouter
+
+| | Ce que c'est | À quoi ça sert |
+|---|---|---|
+| **Nom** | Le libellé affiché partout où l'exécution apparaît | Retrouver *celle-là* dans un sélecteur qui en montre cinq |
+| **Description** | Du texte libre | Dire ce qu'on cherchait et ce qu'on a vu — le rapport ne le devinera jamais |
+| **Étiquettes** | Des clés, chacune avec un texte **facultatif** | Rattacher à un ticket, un environnement, une version ; marquer « à rejouer » sans autre commentaire |
+| **Élagage** | Des branches coupées, une racine ramenée | Ne montrer que la branche qui compte — voir plus bas |
+
+Tout cela se saisit dans la page, dans la fiche **Identité de cette exécution** de la vue
+d'ensemble, ou s'écrit à la main dans un fichier. Les deux chemins mènent au même endroit.
+
+## Trois identités, et pourquoi il en faut trois
+
+| | Ce que c'est | Change ? |
+|---|---|---|
+| **Identifiant** | Généré au lancement, écrit dans `run-context.json` | **jamais** — c'est la clé stable, celle qui survit à tous les renommages |
+| **Nom au lancement** | Le `--name` donné à la mesure | jamais — il dit ce qu'on **croyait** mesurer, et permet le retour arrière |
+| **Nom dans l'outil** | Posé après coup | oui, autant de fois qu'on veut — il dit ce qu'on a **compris** |
+
+Le nom affiché suit cet ordre : **le nom posé dans l'outil**, sinon **celui du lancement**,
+sinon **l'identifiant abrégé**. Rien n'est inventé au passage : une exécution lancée sans
+`--name` s'affiche sous son identifiant, jamais sous un libellé de commodité — « exécution
+du 21/08 à 00:41 » se ferait passer pour une intention de l'opérateur alors que ce n'en est
+pas une.
+
+## Les trois modes
+
+Une page ouverte comme fichier ne peut rien écrire sur le disque : c'est une règle du
+navigateur, et c'est aussi ce qui rend la page transmissible telle quelle. D'où trois
+façons de faire vivre les annotations, du plus simple au plus partagé. **Aucune n'exclut
+les autres** : c'est le même format, et on passe de l'une à l'autre sans rien convertir.
+
+| | Ce qu'on fait | Ce que ça donne | Ce que ça suppose |
+|---|---|---|---|
+| **1. Chacun dans son navigateur** | Ouvrir la page, annoter | Immédiat. Les annotations restent dans ce navigateur d'une visite à l'autre. **Exporter** rend un fichier, **importer** reprend celui d'un collègue | Rien |
+| **2. Sur son poste** | `--serve`, puis annoter | La page écrit à côté des exécutions et le rapport est régénéré : l'annotation est acquise, y compris pour qui rouvrira le fichier sans serveur | Lancer l'outil |
+| **3. Un serveur partagé** | `--serve --serve-host 0.0.0.0` sur une machine où l'on dépose les résultats | Tout le monde y accède par un navigateur et **annote en parallèle**, sans s'écraser | Une machine, et un filtrage d'accès |
+
+```bash
+# 2. sur son poste — http://localhost:8787
+java -jar runtime-xray.jar --report-only --out runtime-xray-out --serve
+
+# 3. serveur partagé — on y dépose des répertoires d'exécution, tout le monde lit et annote
+java -jar runtime-xray.jar --report-only --out /srv/runtime-xray --serve 8080 --serve-host 0.0.0.0
+```
+
+La page reconnaît d'elle-même le mode où elle se trouve : servie par l'outil, elle propose
+**Enregistrer** ; ouverte comme fichier ou depuis un hébergement statique, elle s'en tient
+à **exporter** et **importer**.
+
+### Annoter à plusieurs
+
+C'est la seule difficulté réelle du mode 3, et elle est traitée là où elle se pose :
+
+- **L'écriture porte sur une exécution**, jamais sur le fichier entier. Deux personnes qui
+  annotent deux exécutions ne se voient donc jamais.
+- Sur la **même** exécution, chacun envoie l'empreinte de ce qu'il avait sous les yeux. Si
+  quelqu'un est passé entre-temps, le second reçoit **« modifiée entre-temps »** et la
+  version enregistrée, et choisit : garder la sienne, ou *reprendre la version
+  enregistrée*. Personne n'écrase personne en silence.
+- La page **relit le serveur toutes les quinze secondes** : les noms posés par les autres
+  arrivent tout seuls, sans recharger.
+- Tant qu'une saisie n'est pas envoyée, la fiche l'annonce : *modifications non
+  enregistrées*.
+
+### Ce que le serveur n'est pas
+
+Il n'authentifie personne. Par défaut il n'écoute que la boucle locale ; au-delà, il
+l'écrit au démarrage :
+
+```
+⚠️ Écoute au-delà de la boucle locale, SANS authentification :
+   quiconque atteint ce port peut lire les rapports et annoter.
+   À placer derrière ce qui filtre déjà les accès.
+```
+
+C'est un outil de diagnostic, pas un service : on le met derrière ce qui filtre déjà les
+accès de l'entreprise — réseau interne, mandataire, portail. La seule écriture qu'il
+accepte est l'annotation d'une exécution, dans un fichier dont il choisit lui-même le nom ;
+et le service de fichiers refuse tout chemin qui sortirait du répertoire servi.
+
+## Où le fichier est écrit
+
+En vision fichier, **une exécution est un répertoire**. Son annotation peut vivre à trois
+endroits, et l'ordre de priorité est celui-ci :
+
+| Emplacement | Ce que ça implique |
+|---|---|
+| `runs/<exécution>/config.json` | **Prioritaire.** L'annotation est *dans* l'exécution : elle la suit partout — copie, archive, envoi à un collègue |
+| `runs/<exécution>-config.json` | À côté du répertoire, même nom suffixé. L'exécution reste intacte : utile si elle est en lecture seule, signée, ou produite par quelqu'un d'autre |
+| `noms.json` | Un seul fichier à la racine, indexé par identifiant. C'est le **format d'échange** : celui qu'exporte la page |
+
+Deux règles, et elles se justifient de la même façon :
+
+- **le plus proche de l'exécution l'emporte** — celui qui a rangé l'annotation avec la
+  mesure a exprimé une intention plus précise que celui qui a rempli le fichier commun ;
+- **la source retenue est prise entière** — mélanger un nom venu d'un fichier et une
+  description venue d'un autre donnerait une annotation que personne n'a écrite, et que
+  personne ne saurait corriger.
+
+Le serveur, lui, écrit **là où l'annotation vit déjà**, et dans le répertoire de
+l'exécution si elle n'existait pas encore.
+
+### Les deux formes
+
+Un fichier d'exécution ne porte pas d'identifiant — il est déjà dans le bon répertoire :
+
+```json
+{
+  "nom": "Recette du 21/08 — nuit",
+  "description": "24 M d'itérations. Vérifier la branche météo.",
+  "etiquettes": { "ticket": "RX-142", "à-rejouer": "" },
+  "elagage": {
+    "racine": "lab/sample/Main.main;lab/sample/RoutePlanner.travelTimeMinutes",
+    "coupes": ["lab/sample/Main.main;lab/sample/Scenarios.at"]
+  }
+}
+```
+
+Le fichier commun, lui, est indexé par identifiant, et accepte le nom seul — c'est la forme
+qui circulait avant les descriptions et les étiquettes, et elle reste lue telle quelle :
+
+```json
+{
+  "8BF7DA2E-1C5A-4435-A3E3-4FE50CD41A2F": "Recette — jeu de données réduit",
+
+  "637985B7-4F91-46E6-BD08-8980D92653E8": {
+    "nom": "Recette du 21/08 — nuit",
+    "description": "24 M d'itérations. Vérifier la branche météo.",
+    "etiquettes": { "ticket": "RX-142" }
+  }
+}
+```
+
+Supprimer une entrée rétablit le nom d'origine. À la fin de chaque mesure, l'outil rappelle
+l'identifiant de l'exécution et les deux formes possibles, prêts à être collés.
+
+## Élaguer l'arbre
+
+Un arbre d'appel complet montre **tout** ce qui a tourné : le démarrage, les rouages, les
+branches qui n'intéressent personne aujourd'hui. Ce qu'on transmet à quelqu'un, c'est
+souvent **une** branche. Deux gestes, sous le bouton *élaguer* au bout de chaque ligne de
+l'onglet **Exécutions** :
+
+| Geste | Ce qu'il fait |
+|---|---|
+| **Couper cette branche** | Retire ce nœud et tout ce qui en part — **sur ce chemin seulement**. La même méthode appelée depuis ailleurs reste visible |
+| **Repartir d'ici** | Masque les niveaux au-dessus : l'arbre commence à ce nœud |
+
+Les chemins s'écrivent comme dans le fichier de piles repliées — les frames de la racine au
+nœud, séparées par `;`. Un chemin devenu introuvable, parce que la mesure a changé, est
+ignoré plutôt qu'appliqué de travers.
+
+**Ce que l'élagage ne fait pas : corriger la mesure.** Les pourcentages restent rapportés
+au total mesuré, les fichiers d'origine et [les exports](exports.md) ne bougent pas, et un
+bandeau rappelle en permanence ce qui est coupé, avec de quoi tout rétablir. Le graphe de
+temps de la vue d'ensemble suit le même cadrage — deux endroits de la page ne doivent pas
+raconter deux histoires.
+
+## Depuis la page
+
+La fiche **Identité de cette exécution**, dans la vue d'ensemble, montre les trois
+identités et laisse tout saisir. En bas, quatre gestes :
+
+| Bouton | Ce qu'il fait |
+|---|---|
+| **Enregistrer** | Écrit l'annotation de cette exécution à côté de ses résultats. N'apparaît que si la page est servie par l'outil |
+| **exporter le fichier** | Télécharge le `noms.json` de tout le rapport — à déposer à côté des exécutions, ou à envoyer |
+| **importer un fichier…** | Reprend un fichier existant : un `noms.json` entier, ou le `config.json` d'une seule exécution |
+| **voir le JSON** | Affiche ce qui serait écrit, pour le relire ou le copier à la main |
+
+## Réserves
+
+- **Le navigateur oublie.** Mode 1, les annotations vivent dans le stockage local du
+  navigateur : elles disparaissent avec lui, ne suivent pas d'une machine à l'autre, et ne
+  sont pas visibles par les autres. C'est pour cela que l'export existe.
+- **Les annotations ne sont pas dans les exports.** [Ce qui part vers un autre
+  outil](exports.md) est la mesure, pas ce qu'on en a dit — un profil `perf` n'a pas
+  d'endroit où loger une description.
+- **Le serveur régénère la page après chaque écriture.** Sur un rapport très gros, cela
+  prend quelques secondes ; c'est fait en arrière-plan, et plusieurs écritures rapprochées
+  ne déclenchent qu'un assemblage de plus, à la fin.
+- **Ni verrou ni historique.** Deux personnes sur la même exécution sont départagées au
+  moment d'écrire, mais rien ne conserve la version remplacée : on la voit au moment du
+  refus, pas après.
+
+## À lire ensuite
+
+- [Mode d'emploi](mode-emploi.md) — tous les paramètres, dont `--serve` et `--serve-host`
+- [Lire le rapport](lire-le-rapport.md) — ce que la page montre, ce qu'elle replie
+- [Reprendre le résultat dans un autre outil](exports.md) — perf, cpuprofile, LCOV
