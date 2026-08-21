@@ -302,6 +302,27 @@ Le levier le plus efficace n'est pas le niveau mais `--cover` : sans lui, JaCoCo
 compte lire. Le détail des leviers, et une marche à suivre sur une application qu'on ne
 connaît pas : [Réduire l'empreinte sur un gros code](docs/outil/empreinte.md).
 
+### Annoter les exécutions : dans le navigateur, sur son poste, ou à plusieurs
+
+Une exécution se nomme, se décrit, s'étiquette, et son arbre d'appel s'élague pour ne
+montrer que la branche qui compte. Ces annotations vivent où l'on veut, et les trois modes
+coexistent — même format, aucun conversion pour passer de l'un à l'autre :
+
+| Mode | Comment | Ce que ça donne |
+|---|---|---|
+| **Chacun dans son navigateur** | ouvrir la page, annoter | immédiat, rien à installer ; exporter donne un fichier, importer reprend celui d'un collègue |
+| **Sur son poste** | `--serve` | la page écrit à côté des exécutions et le rapport est régénéré : l'annotation est acquise |
+| **Serveur partagé** | `--serve --serve-host 0.0.0.0` | on y dépose les résultats, tout le monde lit et **annote en parallèle** sans s'écraser |
+
+```bash
+java -jar runtime-xray.jar --report-only --out runtime-xray-out --serve
+```
+
+L'annotation d'une exécution est écrite **dans son répertoire** (`config.json`), ce qui la
+fait voyager avec la mesure ; un fichier `<exécution>-config.json` posé à côté, ou le
+`noms.json` commun, restent lus — dans cet ordre de priorité. Le détail est dans
+[le mode d'emploi](docs/outil/mode-emploi.md#où-vivent-les-annotations--trois-modes-et-ils-coexistent).
+
 ### Reprendre la mesure dans un autre outil
 
 La page est **une** façon de lire une exécution, pas la seule. `--export` réécrit les mêmes

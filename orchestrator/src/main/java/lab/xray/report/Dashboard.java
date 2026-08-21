@@ -22,20 +22,6 @@ import java.util.Map;
  */
 public final class Dashboard {
 
-    /**
-     * Annotations posées après coup, indexées par l'identifiant permanent d'une exécution.
-     *
-     * <p>Deux formes sont acceptées, parce que la première a circulé :
-     * {@code {"<uuid>": "un nom"}} et
-     * {@code {"<uuid>": {"nom": "…", "description": "…", "etiquettes": {"ticket": "ABC-123"},
-     * "elagage": {"racine": "a;b", "coupes": ["a;c"]}}}}.
-     *
-     * <p>L'élagage est un cadrage de <b>lecture</b> : la page n'affiche pas les branches
-     * coupées, mais rien n'est retiré des mesures ni des exports, et les pourcentages
-     * restent rapportés au total mesuré.
-     */
-    private static final String NAMES_FILE = "noms.json";
-
     private Dashboard() {}
 
     public static Path build(Path commonDir, List<Path> sourceRoots, int valuesPerMethod)
@@ -51,7 +37,7 @@ public final class Dashboard {
      */
     public static Path build(Path commonDir, List<Path> sourceRoots, int valuesPerMethod,
                              PackageFilter hidden) throws Exception {
-        Map<String, Object> overrides = readOverrides(commonDir);
+        Map<String, Object> overrides = Annotations.readCentral(commonDir);
         List<Path> bases = findRuns(commonDir, 0, 3);
         if (bases.isEmpty()) {
             throw new IOException("aucune exécution trouvée sous " + commonDir
@@ -102,7 +88,9 @@ public final class Dashboard {
         String origin = recordedName == null || String.valueOf(recordedName).isBlank()
                 ? null
                 : String.valueOf(recordedName);
-        Annotation annotation = Annotation.of(overrides.get(uuid));
+        // Trois emplacements possibles, le plus proche de l'exécution l'emporte —
+        // voir Annotations pour ce que chacun implique.
+        Annotation annotation = Annotation.of(Annotations.forRun(base, uuid, overrides));
 
         Map<String, Object> run = new LinkedHashMap<>();
         run.put("uuid", uuid);
@@ -258,20 +246,6 @@ public final class Dashboard {
             if (value == null) return null;
             String s = String.valueOf(value).trim();
             return s.isEmpty() ? null : s;
-        }
-    }
-
-    @SuppressWarnings("unchecked")
-    private static Map<String, Object> readOverrides(Path commonDir) {
-        Path file = commonDir.resolve(NAMES_FILE);
-        if (!Files.isRegularFile(file)) {
-            return new LinkedHashMap<>();
-        }
-        try {
-            return (Map<String, Object>) Json.read(Files.readString(file, StandardCharsets.UTF_8));
-        } catch (Exception e) {
-            System.err.println("   " + file + " illisible — noms d'origine conservés");
-            return new LinkedHashMap<>();
         }
     }
 

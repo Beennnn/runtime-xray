@@ -431,6 +431,10 @@
   /* Coincée entre un champ large et un bouton, l'explication se coupait en deux morceaux
      illisibles : elle prend sa propre ligne. */
   .annot .hint.sous{display:block;margin:4px 0 0}
+  .annot .annotacts{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .annot .mini.fort{border-color:var(--accent);color:#fff;background:var(--accent)}
+  .annot .mini.fort:hover{filter:brightness(1.1);background:var(--accent);color:#fff}
+  .annot .annotacts .hint{flex:1 1 100%}
   .annot .drop{color:var(--muted);border-color:transparent;padding:3px 7px}
   .annot .drop:hover{border-color:var(--missbar);color:var(--missbar);background:transparent}
   .annot pre{background:var(--panel);border:1px solid var(--border);border-radius:8px;
@@ -665,11 +669,12 @@ function saveAnnotations(){
 /** Ce qui a été saisi dans la page l'emporte sur ce que le rapport portait déjà. */
 function annotationOf(run){
   const local = annotations[run.uuid] || {};
+  const base = annotationEnregistree(run);
   return {
-    nom: local.nom !== undefined ? local.nom : (run.nomOutil || ""),
-    description: local.description !== undefined ? local.description : (run.description || ""),
-    etiquettes: local.etiquettes !== undefined ? local.etiquettes : (run.etiquettes || {}),
-    elagage: local.elagage !== undefined ? local.elagage : (run.elagage || null)
+    nom: local.nom !== undefined ? local.nom : base.nom,
+    description: local.description !== undefined ? local.description : base.description,
+    etiquettes: local.etiquettes !== undefined ? local.etiquettes : base.etiquettes,
+    elagage: local.elagage !== undefined ? local.elagage : base.elagage
   };
 }
 function annotationPatch(run, champ, valeur){
@@ -677,6 +682,188 @@ function annotationPatch(run, champ, valeur){
   if (valeur === null) delete a[champ]; else a[champ] = valeur;
   if (!Object.keys(a).length) delete annotations[run.uuid];
   saveAnnotations();
+}
+
+/* ------------------------------------------------- écrire, exporter, importer
+ * Une page ouverte comme fichier ne peut rien écrire sur le disque : c'est une règle du
+ * navigateur, et c'est aussi ce qui la rend transmissible telle quelle. Les annotations
+ * vivent donc dans le navigateur, et trois chemins les en sortent :
+ *
+ *   — servie par l'outil (« --serve »), la page ENREGISTRE dans noms.json, à côté des
+ *     exécutions, et le rapport est régénéré : l'annotation devient celle du rapport ;
+ *   — sinon, on EXPORTE le fichier et on le dépose soi-même ;
+ *   — et on IMPORTE un noms.json existant pour retrouver, dans ce navigateur, ce qu'un
+ *     collègue a annoté.
+ */
+let peutEnregistrer = false;
+// Ce que le serveur partagé porte déjà : les annotations des autres, et l'empreinte de
+// chacune. L'empreinte est ce qui permet de dire « quelqu'un est passé depuis ».
+let annotationsServeur = {};
+let empreintesServeur = {};
+
+function lireServeur(){
+  return fetch("__xray/noms", {cache: "no-store"})
+    .then(r => r.ok ? r.json() : null)
+    .then(j => {
+      if (!j) return false;
+      const avant = JSON.stringify(empreintesServeur);
+      annotationsServeur = j.annotations || {};
+      empreintesServeur = j.empreintes || {};
+      return JSON.stringify(empreintesServeur) !== avant;
+    })
+    .catch(() => false);
+}
+
+fetch("__xray/ping", {cache: "no-store"})
+  .then(r => r.ok ? r.json() : null)
+  .then(j => {
+    if (!j || !j.peutEcrire) return;
+    peutEnregistrer = true;
+    return lireServeur().then(() => {
+      renderIdentity();
+      refreshRunLabels();
+      // Plusieurs personnes peuvent annoter en même temps : on relit régulièrement, et on
+      // repose les noms des exécutions qu'on n'est pas en train de modifier soi-même.
+      setInterval(() => lireServeur().then(change => {
+        if (!change) return;
+        refreshRunLabels();
+        if (!document.getElementById("annotName")
+            || document.activeElement.id !== "annotName") renderIdentity();
+      }), 15000);
+    });
+  })
+  .catch(() => {});   // page ouverte comme fichier : on reste sur l'export
+
+/** L'annotation d'une exécution telle qu'elle est enregistrée : serveur d'abord, sinon
+ *  celle que la page portait à sa construction. */
+function annotationEnregistree(run){
+  const distante = annotationsServeur[run.uuid];
+  if (distante !== undefined) {
+    return typeof distante === "string"
+      ? {nom: distante, description: "", etiquettes: {}, elagage: null}
+      : {nom: distante.nom || "", description: distante.description || "",
+         etiquettes: distante.etiquettes || {}, elagage: distante.elagage || null};
+  }
+  return {nom: run.nomOutil || "", description: run.description || "",
+          etiquettes: run.etiquettes || {}, elagage: run.elagage || null};
+}
+
+/** Vrai si ce navigateur porte, pour cette exécution, autre chose que ce qui est enregistré. */
+function annotationModifiee(run){
+  const local = annotations[run.uuid];
+  if (!local) return false;
+  const a = annotationOf(run), e = annotationEnregistree(run);
+  return JSON.stringify([a.nom, a.description, a.etiquettes, a.elagage])
+      !== JSON.stringify([e.nom, e.description, e.etiquettes, e.elagage]);
+}
+
+/**
+ * Envoie l'annotation de l'exécution regardée.
+ *
+ * <p>Une exécution à la fois, avec l'empreinte de ce qu'on avait sous les yeux : deux
+ * personnes qui annotent deux exécutions ne se croisent jamais, et sur la même exécution
+ * la seconde est prévenue au lieu d'écraser la première.
+ */
+function enregistrerAnnotations(bouton){
+  const run = R;
+  const a = annotationOf(run);
+  const tags = a.etiquettes && Object.keys(a.etiquettes).length ? a.etiquettes : undefined;
+  const el = elagageActif(run) ? elagageOf(run) : undefined;
+  const valeur = (!a.nom && !a.description && !tags && !el)
+    ? {}
+    : {nom: a.nom || undefined, description: a.description || undefined,
+       etiquettes: tags, elagage: el};
+  const dire = t => { bouton.textContent = t; };
+  const rendre = () => setTimeout(() => { dire("Enregistrer"); renderIdentity(); }, 2500);
+
+  dire("enregistrement…");
+  fetch("__xray/noms/" + encodeURIComponent(run.uuid), {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    // Pas d'empreinte connue — page ouverte avant que le serveur ne réponde — vaut « pas
+    // de vérification » : mieux qu'un refus systématique sur une exécution jamais annotée.
+    body: JSON.stringify({base: empreintesServeur[run.uuid] !== undefined
+                                ? empreintesServeur[run.uuid] : null,
+                          valeur: valeur})
+  }).then(r => r.json().then(j => ({status: r.status, body: j})).catch(() => ({status: r.status, body: {}})))
+    .then(({status, body}) => {
+      if (status === 409){
+        // Quelqu'un d'autre est passé : on montre ce qui est enregistré, et on laisse
+        // décider — écraser sans le dire ferait disparaître son travail.
+        annotationsServeur[run.uuid] = body.valeur;
+        empreintesServeur[run.uuid] = body.empreinte;
+        dire("modifiée entre-temps");
+        const out = document.getElementById("annotOut");
+        out.hidden = false;
+        out.textContent = "Cette exécution a été annotée par quelqu'un d'autre pendant que "
+          + "vous la modifiiez. Version enregistrée :\n\n"
+          + JSON.stringify(body.valeur, null, 2)
+          + "\n\nCliquer « Enregistrer » à nouveau remplacera la sienne par la vôtre ; "
+          + "« reprendre la version enregistrée » abandonnera vos modifications.";
+        rendre();
+        return;
+      }
+      if (status !== 200) throw new Error("refus du serveur (" + status + ")");
+      // Ce qui est enregistré n'est plus « une modification locale » : on efface la copie
+      // du navigateur, pour que « modifié » ne désigne que ce qui n'est pas encore parti.
+      delete annotations[run.uuid];
+      saveAnnotations();
+      annotationsServeur[run.uuid] = valeur && Object.keys(valeur).length ? valeur : undefined;
+      empreintesServeur[run.uuid] = body.empreinte;
+      dire("enregistré ✓");
+      rendre();
+    })
+    .catch(e => { dire("échec : " + e.message); rendre(); });
+}
+
+/** Abandonne les modifications locales d'une exécution et reprend ce qui est enregistré. */
+function reprendreEnregistree(run){
+  delete annotations[run.uuid];
+  saveAnnotations();
+  renderIdentity();
+  refreshRunLabels();
+  mode === "tree" ? renderTree() : renderClasses();
+  drawHome();
+}
+
+function exporterAnnotations(){
+  const blob = new Blob([JSON.stringify(annotationsFile(), null, 2)],
+                        {type: "application/json"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "noms.json";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+}
+
+/** Reprend un noms.json : les exécutions qu'il nomme écrasent ce qu'on avait, les autres
+ *  restent — importer n'est pas repartir de zéro. */
+function importerAnnotations(texte){
+  const lu = JSON.parse(texte);
+  if (!lu || typeof lu !== "object" || Array.isArray(lu)) {
+    throw new Error("ce fichier ne porte pas d'annotations");
+  }
+  // Un fichier d'exécution — nom, description, étiquettes — n'est pas indexé par
+  // identifiant : il vaut pour l'exécution regardée, et c'est la seule lecture possible.
+  if (lu.nom !== undefined || lu.description !== undefined
+      || lu.etiquettes !== undefined || lu.elagage !== undefined) {
+    annotations[R.uuid] = {nom: lu.nom || "", description: lu.description || "",
+                           etiquettes: lu.etiquettes || {}, elagage: lu.elagage || null};
+    saveAnnotations();
+    return 1;
+  }
+  let reprises = 0;
+  for (const [uuid, valeur] of Object.entries(lu)){
+    annotations[uuid] = (typeof valeur === "string")
+      ? {nom: valeur}
+      : {nom: valeur.nom || "", description: valeur.description || "",
+         etiquettes: valeur.etiquettes || {}, elagage: valeur.elagage || null};
+    reprises++;
+  }
+  saveAnnotations();
+  return reprises;
 }
 function shortId(run){ return (run.uuid || "").slice(0, 8); }
 
@@ -706,8 +893,8 @@ function elagageActif(run){
   return !!(e.racine || e.coupes.length);
 }
 function poseElagage(run, e){
-  const vide = !e.racine && !e.coupes.length;
-  annotationPatch(run, "elagage", vide ? null : {racine: e.racine, coupes: e.coupes});
+  annotationPatch(run, "elagage", {racine: e.racine, coupes: e.coupes});
+  renderAnnotActs();
 }
 function nodeAtPath(root, path){
   let node = root;
@@ -2539,22 +2726,25 @@ function renderIdentity(){
         : '<span class="hint" style="margin-left:0">aucun — dans l\'onglet <b>Exécutions</b>, ' +
           '« élaguer » au bout d\'une ligne coupe la branche ou repart de ce nœud</span>') +
     '</table>' +
-    '<p><button class="mini" id="annotDump">rendre le noms.json</button>' +
-    '<span class="hint">à déposer à côté des exécutions pour que ces annotations '
-    + 'entrent dans le rapport</span></p><pre id="annotOut" hidden></pre></div>';
+    '<p class="annotacts" id="annotActs"></p>' +
+    '<pre id="annotOut" hidden></pre></div>';
+  renderAnnotActs();
 
   const name = document.getElementById("annotName");
   name.oninput = () => {
     annotationPatch(R, "nom", name.value.trim() || null);
     refreshRunLabels();
+    renderAnnotActs();
   };
   document.getElementById("annotNameReset").onclick = () => {
-    annotationPatch(R, "nom", null);
+    // Vide, et non « absent » : une clé effacée laisserait revenir le nom enregistré dans
+    // le rapport, et le retour à la valeur par défaut ne tiendrait pas une régénération.
+    annotationPatch(R, "nom", "");
     name.value = "";
     refreshRunLabels();
   };
   const desc = document.getElementById("annotDesc");
-  desc.oninput = () => annotationPatch(R, "description", desc.value.trim() || null);
+  desc.oninput = () => { annotationPatch(R, "description", desc.value.trim()); renderAnnotActs(); };
   const pruneReset = document.getElementById("annotPruneReset");
   if (pruneReset) pruneReset.onclick = () => {
     poseElagage(R, {racine: "", coupes: []});
@@ -2568,7 +2758,8 @@ function renderIdentity(){
       const k = line.querySelector(".k").value.trim();
       if (k) out[k] = line.querySelector(".v").value.trim();
     });
-    annotationPatch(R, "etiquettes", Object.keys(out).length ? out : null);
+    annotationPatch(R, "etiquettes", out);
+    renderAnnotActs();
   };
   document.querySelectorAll("#annotTags .tagline").forEach(line => {
     line.querySelectorAll("input").forEach(i => i.oninput = collectTags);
@@ -2584,6 +2775,70 @@ function renderIdentity(){
     line.querySelectorAll("input").forEach(i => i.oninput = collectTags);
     line.querySelector(".drop").onclick = () => { line.remove(); collectTags(); };
     line.querySelector(".k").focus();
+  };
+}
+
+/**
+ * Les actions et l'état de la fiche, redessinés seuls.
+ *
+ * <p>Ils changent à chaque frappe — « non enregistré » apparaît dès la première lettre —
+ * alors que refaire toute la fiche ferait perdre le curseur du champ qu'on est en train de
+ * remplir. D'où ce bloc à part.
+ */
+function renderAnnotActs(){
+  const box = document.getElementById("annotActs");
+  if (!box) return;
+  const modifie = annotationModifiee(R);
+  box.innerHTML =
+    (peutEnregistrer
+      ? '<button class="mini fort" id="annotSave">Enregistrer</button>' +
+        (modifie ? '<button class="mini" id="annotRevert">reprendre la version enregistrée</button>' : '')
+      : '') +
+    '<button class="mini" id="annotExport">exporter le fichier</button>' +
+    '<button class="mini" id="annotImport">importer un fichier…</button>' +
+    '<button class="mini" id="annotDump">voir le JSON</button>' +
+    '<input type="file" id="annotFile" accept=".json,application/json" hidden>' +
+    '<span class="hint sous">' +
+    (peutEnregistrer
+      ? (modifie
+           ? '<b>Modifications non enregistrées</b> — elles ne sont, pour l\'instant, que '
+             + 'dans ce navigateur. '
+           : 'À jour avec le serveur. ') +
+        '« Enregistrer » écrit l\'annotation de <b>cette exécution</b> à côté de ses '
+        + 'résultats : plusieurs personnes peuvent donc annoter en même temps, chacune la '
+        + 'sienne, sans s\'écraser.'
+      : 'Ces annotations vivent dans ce navigateur, et y restent d\'une visite à l\'autre. ' +
+        'Les <b>exporter</b> donne un fichier à déposer à côté des exécutions ; ' +
+        'servir le rapport avec <code>--serve</code> laisse la page l\'écrire elle-même.') +
+    '</span>';
+
+  const save = document.getElementById("annotSave");
+  if (save) save.onclick = () => enregistrerAnnotations(save);
+  const revert = document.getElementById("annotRevert");
+  if (revert) revert.onclick = () => reprendreEnregistree(R);
+  document.getElementById("annotExport").onclick = exporterAnnotations;
+  const fichier = document.getElementById("annotFile");
+  document.getElementById("annotImport").onclick = () => fichier.click();
+  fichier.onchange = () => {
+    const f = fichier.files && fichier.files[0];
+    if (!f) return;
+    const out = document.getElementById("annotOut");
+    f.text().then(t => {
+      const n = importerAnnotations(t);
+      renderIdentity();
+      refreshRunLabels();
+      mode === "tree" ? renderTree() : renderClasses();
+      drawHome();
+      const dit = document.getElementById("annotOut");
+      dit.hidden = false;
+      dit.textContent = n + " exécution" + (n > 1 ? "s" : "") + " reprise"
+                        + (n > 1 ? "s" : "") + " de « " + f.name + " »"
+                        + (peutEnregistrer ? " — « Enregistrer » les posera sur le serveur." : ".");
+    }).catch(e => {
+      out.hidden = false;
+      out.textContent = "import refusé : " + e.message;
+    });
+    fichier.value = "";
   };
   document.getElementById("annotDump").onclick = () => {
     const out = document.getElementById("annotOut");
