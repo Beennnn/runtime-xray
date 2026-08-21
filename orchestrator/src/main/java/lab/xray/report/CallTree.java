@@ -48,10 +48,28 @@ public final class CallTree {
             // MHN_resolve_Mem, eventHandlerClassFileLoadHook, [unknown_Java] — c'est-à-dire
             // du code qu'aucun lecteur ne peut ouvrir ni corriger.
             + "|^[^/.]*$");
+    /**
+     * Piles que le profileur n'a pas su remonter.
+     *
+     * <p>Quand l'échantillon tombe dans un fragment de code où la remontée de pile échoue —
+     * un trampoline du compilateur, une transition natale — async-profiler écrit un marqueur
+     * entre crochets en guise de racine : {@code [unknown_Java];lab/sample/Speeds.forMode}.
+     * Le marqueur est du code qu'on ne peut pas ouvrir, il est donc replié comme le reste de
+     * la machine virtuelle — mais alors la frame suivante remonte à la racine et s'affiche à
+     * côté de {@code main}, comme si le programme avait deux points d'entrée. Ce n'en est pas
+     * un : c'est une pile tronquée. On la compte, on la signale, et on ne la greffe pas.
+     *
+     * <p>Le motif ne vise que les marqueurs d'échec. Une racine entre crochets peut aussi
+     * être un nom de fil ({@code [main tid=123]}) : celle-là est une vraie racine.
+     */
+    private static final Pattern BROKEN_ROOT = Pattern.compile(
+            "^\\[(unknown|not_walkable|broken|deopt|failed)", Pattern.CASE_INSENSITIVE);
     private static final int MAX_DEPTH = 40;
 
     public Map<String, Object> root;
     public String note;
+    /** Réserve sur les piles tronquées, ou {@code null} s'il n'y en a pas eu. */
+    public String stacksNote;
 
     public static CallTree parse(Path collapsed) throws IOException {
         return parse(collapsed, PackageFilter.NONE);
@@ -64,6 +82,7 @@ public final class CallTree {
         CallTree t = new CallTree();
         Node root = new Node("tout");
         long folded = 0;
+        long brokenStacks = 0;
 
         if (Files.isRegularFile(collapsed)) {
             for (String line : Files.readAllLines(collapsed, StandardCharsets.UTF_8)) {
@@ -76,6 +95,12 @@ public final class CallTree {
                     continue;
                 }
                 String[] frames = line.substring(0, space).split(";");
+                if (frames.length > 0 && BROKEN_ROOT.matcher(frames[0]).find()) {
+                    // Comptée dans le total — le temps a bien été passé — mais pas greffée.
+                    root.total += count;
+                    brokenStacks += count;
+                    continue;
+                }
                 List<String> kept = new ArrayList<>(frames.length);
                 boolean foldedInstrumentation = false;
                 for (String f : frames) {
@@ -104,7 +129,22 @@ public final class CallTree {
                     + "a déclenchés, ce qui restitue la forme de l'arbre. Réserve : le coût "
                     + "affiché de la méthode observée reste surestimé.";
         }
+        if (brokenStacks > 0 && root.total > 0) {
+            double share = 100.0 * brokenStacks / root.total;
+            t.stacksNote = brokenStacks + " relevé" + (brokenStacks > 1 ? "s" : "")
+                    + " sur " + root.total + " (" + format(share) + " %) ont une pile que le "
+                    + "profileur n'a pas pu remonter jusqu'à son point d'entrée. Ils sont "
+                    + "comptés dans le total, mais ne figurent pas dans l'arbre : les y "
+                    + "rattacher aurait fait apparaître un second point d'entrée qui n'existe "
+                    + "pas.";
+        }
         return t;
+    }
+
+    /** Deux décimales au plus, et pas de « 0,00 % » pour un relevé qui existe. */
+    private static String format(double share) {
+        String s = String.format(java.util.Locale.FRANCE, "%.2f", share);
+        return s.equals("0,00") ? "< 0,01" : s;
     }
 
     private static final class Node {

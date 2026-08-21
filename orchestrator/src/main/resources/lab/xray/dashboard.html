@@ -47,10 +47,13 @@
   .cleanbtn{display:inline-flex;align-items:center;gap:7px;font:inherit;font-size:12.5px;
             font-weight:600;padding:5px 12px;border-radius:20px;cursor:pointer;
             border:1px solid var(--border);background:var(--bg);color:var(--muted)}
-  .cleanbtn:hover{border-color:var(--accent);color:var(--accent)}
-  .cleanbtn .dot{width:9px;height:9px;border-radius:50%;background:var(--missbar);opacity:.55}
+  .cleanbtn:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
+  .cleanbtn .ic{display:inline-flex}
+  .cleanbtn .ic svg{display:block}
   .cleanbtn[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
-  .cleanbtn[aria-pressed="true"] .dot{background:#fff;opacity:1}
+  /* Ce que fait l'autre position du bouton, écrit à côté : un interrupteur qui change
+     d'intitulé quand on l'actionne ne dit jamais ce qu'on obtiendra en cliquant. */
+  .altlabel{font-size:11.5px;color:var(--muted);margin-left:9px}
   /* Les liens sont groupés PAR OUTIL : « couverture détaillée » et « couverture ciblée »
      viennent du même outil et le répéter sur chacun était du bruit. La marque porte le nom
      une fois, les liens suivent. */
@@ -104,11 +107,21 @@
   .listbar{display:flex;gap:6px;margin:8px;flex-wrap:wrap}
   #search{flex:1 1 100%;padding:5px 9px;border:1px solid var(--border);border-radius:6px;
           background:var(--bg);color:var(--text);font:inherit;font-size:12.5px;min-width:96px}
-  .unitbtn{font:inherit;font-size:11.5px;font-weight:700;width:38px;border-radius:6px;
-           border:1px solid var(--border);background:var(--bg);color:var(--muted);cursor:pointer}
-  .unitbtn.wide{width:auto;padding:0 9px}
-  .unitbtn[aria-pressed="true"]{border-color:var(--fullbar);color:var(--fullbar)}
-  .unitbtn:hover{border-color:var(--accent);color:var(--accent)}
+  /* Les réglages étaient des étiquettes nues — « % », « pkg » — qu'il fallait avoir
+     essayées pour savoir ce qu'elles faisaient. Chacun porte maintenant son icône, son
+     intitulé en toutes lettres, et l'état où il se trouve : un réglage actif est bleu et
+     plein, un réglage disponible est gris et creux. On voit donc d'un coup d'œil ce qui est
+     en cours et ce qu'il reste à activer. */
+  .unitbtn{display:inline-flex;align-items:center;gap:5px;font:inherit;font-size:11.5px;
+           font-weight:600;padding:4px 9px;border-radius:14px;border:1px solid var(--border);
+           background:var(--bg);color:var(--muted);cursor:pointer;line-height:1;
+           white-space:nowrap}
+  .unitbtn .ic{display:inline-flex;flex:0 0 auto}
+  .unitbtn .ic svg{display:block}
+  .unitbtn:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
+  .unitbtn[aria-pressed="true"]{border-color:var(--accent);color:var(--accent);
+                                background:var(--accent-soft)}
+  .unitbtn[aria-pressed="true"] .ic{color:var(--accent)}
   #scope{display:none;padding:7px 10px;border-bottom:1px solid var(--border);
          font-size:11.5px;color:var(--muted)}
   #scope b{color:var(--text)}
@@ -181,7 +194,10 @@
                         background:var(--bg);color:var(--accent);border-radius:12px;
                         padding:2px 9px;cursor:pointer}
   .maskbar .acts button:hover{border-color:var(--accent)}
-  .maskbar code{font-size:11px;word-break:break-all}
+  /* Le repli se fait entre les noms, pas au milieu : « org.apache.com | mons » sur deux
+     lignes ne se lit plus comme un nom de paquet. Un nom plus large que la colonne reste
+     coupé — mais lui seul. */
+  .maskbar code{font-size:11px;word-break:normal;overflow-wrap:break-word}
   /* Quand on affiche tout le code, la couleur dit en un coup d'œil ce qui a servi. */
   .node.live .lbl{color:var(--fullbar)}
   .node.partial .lbl{color:var(--partbar)}
@@ -193,6 +209,14 @@
   .node.callnode{color:var(--violet)}
   .callbadge{font-size:10px;border:1px solid var(--violet);color:var(--violet);
              border-radius:10px;padding:0 5px;vertical-align:1px}
+  /* La ligne sélectionnée est un aplat bleu plein : tout ce qu'elle porte repasse en blanc.
+     Sans ces règles, la couleur de couverture — vert, orange, rouge — restait appliquée au
+     nom et se retrouvait sur ce bleu, où elle ne se lit plus. */
+  .node.sel, .node.sel.jdk, .node.sel.callnode{color:#fff}
+  .node.sel .lbl, .node.sel.live .lbl, .node.sel.partial .lbl,
+  .node.sel.dead .lbl, .node.sel.pkgnode .lbl{color:#fff;opacity:1}
+  .node.sel.dead .pct{color:#e8f0fb}
+  .node.sel .tagdead{color:#fff;border-color:#fff}
   .call.pick{cursor:pointer;border-radius:5px;padding-left:6px;padding-right:6px}
   .call.pick:hover{background:var(--accent-soft)}
   /* Le tableau peut être large : il défile dans son cadre, jamais la page entière. */
@@ -349,6 +373,10 @@
   .flame .fl{position:absolute;height:16px;border-radius:2px;overflow:hidden;
              font:10px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:#1f2328;
              padding:0 3px;line-height:16px;white-space:nowrap;box-sizing:border-box}
+  /* Une barre étroite ne montre pas un début de nom : « RoutePlanne » ou « Breaks.t » ne
+     désignent rien. Le nom est raccourci, puis retiré s'il ne tient toujours pas — le
+     survol le donne en entier de toute façon. */
+  .flame .fl span{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .flame .fl.known{cursor:pointer}
   .flame .fl.known:hover{outline:1px solid var(--text);outline-offset:-1px}
   /* La légende reprend l'échelle exacte du graphe : une légende approximative ne se
@@ -407,14 +435,16 @@
     </div>
     <div class="listbar">
       <input id="search" placeholder="Chercher…" title="Filtrer la liste par nom de classe ou de méthode" autocomplete="off">
-      <button id="unitbtn" class="unitbtn" title="Basculer entre part du temps et temps estimé">%</button>
-      <button id="pkgbtn" class="unitbtn" title="Afficher ou masquer les noms de paquet">pkg</button>
-      <button id="valbtn" class="unitbtn wide" aria-pressed="true"
-              title="Une ligne par champ de la valeur, ou une ligne par paramètre">par champ</button>
-      <button id="scopebtn" class="unitbtn wide" aria-pressed="true"
-              title="N'afficher que le code exécuté, ou tout le code du projet">exécuté</button>
-      <button id="expandbtn" class="unitbtn wide"
-              title="Tout déplier, ou tout replier">tout déplier</button>
+      <button id="unitbtn" class="unitbtn"
+              title="Part du temps total — cliquer pour voir un temps estimé"><span class="ic"></span><span class="lab">part du temps</span></button>
+      <button id="pkgbtn" class="unitbtn" aria-pressed="true"
+              title="Les noms de paquet sont affichés — cliquer pour ne garder que les noms de classe"><span class="ic"></span><span class="lab">noms de paquet</span></button>
+      <button id="valbtn" class="unitbtn" aria-pressed="true"
+              title="Une ligne par champ de la valeur — cliquer pour n'avoir qu'une ligne par paramètre"><span class="ic"></span><span class="lab">par champ</span></button>
+      <button id="scopebtn" class="unitbtn" aria-pressed="true"
+              title="Seul le code exécuté est listé — cliquer pour voir tout le code"><span class="ic"></span><span class="lab">code exécuté</span></button>
+      <button id="expandbtn" class="unitbtn"
+              title="Tout déplier, ou tout replier"><span class="ic"></span><span class="lab">tout déplier</span></button>
     </div>
     <div id="scope"></div>
     <div class="list" id="list"></div>
@@ -427,8 +457,9 @@
     <div class="viewbar">
       <button id="clean" class="cleanbtn" aria-pressed="true"
               title="Resserré : seule la méthode sélectionnée est affichée, sans ses lignes mortes">
-        <span class="dot"></span> Resserré sur la méthode
+        <span class="ic"></span><span class="lab">Resserré sur la méthode</span>
       </button>
+      <span class="altlabel" id="cleanalt">cliquer pour afficher le fichier entier</span>
     </div>
     <div id="context"></div>
     <div id="code"></div>
@@ -768,7 +799,11 @@ function restoreExpanded(open){
 
 function resetExpandButton(){
   const b = document.getElementById("expandbtn");
-  if (b){ b.dataset.state = ""; b.textContent = "tout déplier"; }
+  if (b){
+    b.dataset.state = "";
+    setOption("expandbtn", {icon: OPT.deplier, label: "tout déplier", pressed: false,
+                            title: "Ouvrir toutes les branches d'un coup"});
+  }
 }
 function toggleRunPicker(show){
   const p = document.getElementById("runpick");
@@ -1646,16 +1681,22 @@ function drawValues(info){
     // Expliquer POURQUOI il n'y a rien : sans cela, on croit à un défaut de l'outil alors
     // que c'est un choix — l'observation des valeurs est ciblée, et elle doit l'être.
     const nom = esc(info.name || info.cls.split("/").pop());
+    // Une classe n'a pas de méthode à nommer : proposer « --root paquet.Classe:: » livrait
+    // une commande que personne ne peut lancer. On dit alors ce qui manque.
+    const cible = info.name ? "<code>" + nom + "</code>" : "la classe <code>" + nom + "</code>";
+    const commande = "--root " + esc(dot(info.cls)) + "::" +
+                     (info.name ? esc(info.name) : "<i>methode</i>");
     const racine = R.context && R.context.methodeRacine ? R.context.methodeRacine : null;
     box.innerHTML = others.length
       ? '<h3>Valeurs des paramètres</h3><div class="explain">' +
-        '<b>Aucune valeur n\'a été capturée pour <code>' + nom + '</code></b> — ce qui ne veut ' +
+        '<b>Aucune valeur n\'a été capturée pour ' + cible + '</b> — ce qui ne veut ' +
         'pas dire qu\'elle n\'a pas tourné : la couverture et les temps la montrent bien. ' +
         'L\'observation des valeurs est <b>ciblée</b> sur une méthode racine' +
         (racine ? ' — ici <code>' + esc(racine) + '</code>' : '') + ', parce qu\'observer ' +
         'toutes les méthodes produirait un volume ingérable et fausserait la mesure.' +
-        '<br>Pour obtenir les valeurs de <code>' + nom + '</code>, relancer avec ' +
-        '<code>--root ' + esc(dot(info.cls) + "::" + (info.name || "")) + '</code>.' +
+        '<br>Pour obtenir les valeurs de ' + cible + ', relancer avec ' +
+        '<code>' + commande + '</code>' +
+        (info.name ? '' : ' — en nommant la méthode à observer') + '.' +
         '<br>Méthodes observées dans cette exécution : ' + others.map(f =>
           '<a href="#" class="vlink" data-f="' + esc(f) + '">' + esc(f.split("/").pop()) + '</a>')
           .join(" · ") + '</div>'
@@ -1771,10 +1812,10 @@ function schema(){
 
     <!-- colonne gauche -->
     <rect x="8" y="50" width="210" height="286" rx="6" class="fr2"/>
-    <rect x="8" y="50" width="70" height="24" rx="4" fill="var(--accent-soft)"/>
-    <text x="18" y="66" class="tb">Code exécuté</text>
-    <text x="92" y="66" class="tx">Arbre</text>
-    <text x="140" y="66" class="tx">Packages</text>
+    <rect x="8" y="50" width="105" height="24" fill="var(--accent-soft)"/>
+    <rect x="8" y="72" width="105" height="2" fill="var(--accent)"/>
+    <text x="45" y="66" class="tb">Code</text>
+    <text x="136" y="66" class="tx">Exécutions</text>
     <rect x="16" y="84" width="194" height="18" rx="4" fill="var(--accent)"/>
     <text x="24" y="97" fill="#fff" font-size="10.5" font-family="monospace">38,3 % RoutePlanner.travel…</text>
     <g class="tx" font-family="monospace" font-size="10.5">
@@ -1925,8 +1966,14 @@ function linksBlock(){
     '</div>';
 }
 function reserveBlock(){
-  if (!R.profileNote) return "";
-  return '<div class="reserve"><b>Une réserve sur les pourcentages de temps.</b> ' +
+  // La réserve sur les piles tronquées vaut même sans inspection des valeurs : elle dit
+  // pourquoi la somme des racines ne fait pas tout à fait le total.
+  const piles = R.stacksNote
+    ? '<div class="reserve"><b>Des piles que le profileur n\'a pas pu remonter.</b> ' +
+      esc(R.stacksNote) + '</div>'
+    : "";
+  if (!R.profileNote) return piles;
+  return piles + '<div class="reserve"><b>Une réserve sur les pourcentages de temps.</b> ' +
     esc(R.profileNote) + ' <br><br>' +
     'Tout a été collecté en <b>un seul lancement</b> : c\'est le mode par défaut, parce ' +
     'qu\'il donne les trois informations recherchées d\'un coup et que le temps d\'exécution ' +
@@ -1960,6 +2007,35 @@ function contextBlock(){
 
 
 /* Une icône par indicateur : sur quatre nombres alignés, la forme se repère avant le texte. */
+/**
+ * Icônes des réglages. Un intitulé seul — « % », « pkg » — demande de l'avoir essayé pour
+ * savoir ce qu'il fait ; l'icône donne la nature du réglage avant même de lire.
+ */
+const OPT = {
+  pct:     '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M19 5 5 19"/><circle cx="7.5" cy="7.5" r="2.5"/><circle cx="16.5" cy="16.5" r="2.5"/></svg>',
+  ms:      '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l3 2M9 2h6"/></svg>',
+  pkgOn:   '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 3 3 7.5v9L12 21l9-4.5v-9L12 3z"/><path d="M3 7.5 12 12l9-4.5M12 12v9"/></svg>',
+  pkgOff:  '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 3 3 7.5v9L12 21l9-4.5v-9L12 3z"/><path d="M4 4l16 16"/></svg>',
+  champs:  '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16M15 4v16"/></svg>',
+  params:  '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>',
+  execute: '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 5h16l-6 7v6l-4 2v-8L4 5z"/></svg>',
+  tout:    '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 3 3 8l9 5 9-5-9-5z"/><path d="M3 13l9 5 9-5M3 17.5 12 22l9-4.5"/></svg>',
+  deplier: '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7 8 5 5 5-5M7 15l5 5 5-5"/></svg>',
+  replier: '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7 16 5-5 5 5M7 9l5-5 5 5"/></svg>',
+  cible:   '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2.5"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>',
+  fichier: '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-5z"/><path d="M14 3v5h5"/></svg>'
+};
+
+/** Pose l'icône, l'intitulé, l'état et l'infobulle d'un réglage en un seul geste. */
+function setOption(id, {icon, label, pressed, title}){
+  const b = document.getElementById(id);
+  if (!b) return;
+  if (icon !== undefined) b.querySelector(".ic").innerHTML = icon;
+  if (label !== undefined) b.querySelector(".lab").textContent = label;
+  if (pressed !== undefined) b.setAttribute("aria-pressed", String(pressed));
+  if (title !== undefined) b.title = title;
+}
+
 const ICON = {
   lignes:   '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h13M4 12h9M4 18h5"/></svg>',
   methodes: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4h8M12 4v6M12 10 6 20M12 10l6 10"/><circle cx="12" cy="10" r="1.6" fill="currentColor"/></svg>',
@@ -2022,6 +2098,33 @@ function flameBlock(){
 }
 
 /**
+ * Ajuste les étiquettes du graphe de temps à la largeur réelle de leur barre.
+ *
+ * <p>Une barre étroite portant « RoutePlanne » ou « Breaks.t » ne désigne rien : le nom
+ * coupé au milieu coûte de la place sans rien apprendre. On essaie donc le nom complet,
+ * puis le seul nom de méthode, puis rien du tout — le survol donne l'intitulé entier dans
+ * tous les cas. La mesure se fait après rendu, parce que la largeur d'une barre est un
+ * pourcentage : elle dépend de la fenêtre, pas des données.
+ */
+function fitFlameLabels(){
+  document.querySelectorAll(".flame .fl").forEach(el => {
+    const span = el.querySelector("span");
+    if (!span) return;
+    const full = span.dataset.full || span.textContent;
+    span.dataset.full = full;
+    for (const essai of [full, full.split(".").pop(), ""]) {
+      span.textContent = essai;
+      if (span.scrollWidth <= span.clientWidth) break;
+    }
+  });
+}
+// La largeur des barres suit la fenêtre : ce qui tenait à 1400 px ne tient plus à 900.
+addEventListener("resize", () => {
+  clearTimeout(fitFlameLabels.t);
+  fitFlameLabels.t = setTimeout(fitFlameLabels, 120);
+});
+
+/**
  * La couleur dit le temps PROPRE, pas la profondeur.
  *
  * <p>Colorer par profondeur ne disait rien : la position verticale la donne déjà, et le
@@ -2075,6 +2178,7 @@ function drawHome(){
   document.querySelectorAll(".flame .fl.known").forEach(g => {
     g.onclick = () => { const t = frameInfo(g.dataset.f); if (t) select(t, null); };
   });
+  fitFlameLabels();
   document.querySelectorAll(".chip[data-f]").forEach(c => {
     c.style.cursor = "pointer";
     c.onclick = () => { const t = frameInfo(c.dataset.f); if (t) select(t, null); };
@@ -2183,11 +2287,16 @@ function openHelp(){
 
 /* ------------------------------------------------------------ interactions */
 document.getElementById("home").onclick = e => { e.preventDefault(); goHome(); };
-document.getElementById("pkgbtn").onclick = e => {
+document.getElementById("pkgbtn").onclick = () => {
   showPackages = !showPackages;
-  const b = e.currentTarget;
-  b.style.opacity = showPackages ? "1" : ".55";
-  b.title = showPackages ? "Masquer les noms de paquet" : "Afficher les noms de paquet";
+  setOption("pkgbtn", {
+    icon: showPackages ? OPT.pkgOn : OPT.pkgOff,
+    label: showPackages ? "noms de paquet" : "noms de classe",
+    pressed: showPackages,
+    title: showPackages
+      ? "Les noms de paquet sont affichés — cliquer pour ne garder que les noms de classe"
+      : "Seuls les noms de classe sont affichés — cliquer pour remettre les paquets"
+  });
   // Renommer sur place : reconstruire refermerait l'arbre qu'on vient d'ouvrir.
   document.querySelectorAll("#list .node[data-frame]").forEach(el => {
     const label = el.querySelector(".lbl");
@@ -2234,26 +2343,30 @@ document.getElementById("expandbtn").onclick = e => {
   if (expanded){
     collapseAll();
     b.dataset.state = "";
-    b.textContent = "tout déplier";
+    setOption("expandbtn", {icon: OPT.deplier, label: "tout déplier", pressed: false,
+                            title: "Ouvrir toutes les branches d'un coup"});
     return;
   }
   const n = expandAll();
   b.dataset.state = "open";
-  b.textContent = "tout replier";
+  setOption("expandbtn", {icon: OPT.replier, label: "tout replier", pressed: true,
+                          title: "Tout est ouvert — cliquer pour tout refermer"});
   const head = document.querySelector("#list .grouphead");
   if (n >= EXPAND_BUDGET && head){
     head.textContent = "affichage arrêté à " + n + " lignes — replier, puis ouvrir la branche voulue";
   }
 };
 
-document.getElementById("scopebtn").onclick = e => {
+document.getElementById("scopebtn").onclick = () => {
   executedOnly = !executedOnly;
-  const b = e.currentTarget;
-  b.setAttribute("aria-pressed", String(executedOnly));
-  b.textContent = executedOnly ? "exécuté" : "tout";
-  b.title = executedOnly
+  setOption("scopebtn", {
+    icon: executedOnly ? OPT.execute : OPT.tout,
+    label: executedOnly ? "code exécuté" : "tout le code",
+    pressed: executedOnly,
+    title: executedOnly
       ? "Seul le code exécuté est listé — cliquer pour voir tout le code"
-      : "Tout le code est listé, le non exécuté en rouge — cliquer pour n'afficher que l'exécuté";
+      : "Tout le code est listé, le non exécuté en rouge — cliquer pour n'afficher que l'exécuté"
+  });
   if (mode === "cls"){
     const open = captureExpanded();
     renderClasses();
@@ -2261,14 +2374,16 @@ document.getElementById("scopebtn").onclick = e => {
     reselect();
   }
 };
-document.getElementById("valbtn").onclick = e => {
+document.getElementById("valbtn").onclick = () => {
   valueSplit = valueSplit === "champs" ? "params" : "champs";
-  const b = e.currentTarget;
-  b.textContent = valueSplit === "champs" ? "par champ" : "par paramètre";
-  b.setAttribute("aria-pressed", valueSplit === "champs");
-  b.title = valueSplit === "champs"
-    ? "Une ligne par champ de la valeur — cliquer pour n'avoir qu'une ligne par paramètre"
-    : "Une ligne par paramètre — cliquer pour éclater chaque valeur en ses champs";
+  setOption("valbtn", {
+    icon: valueSplit === "champs" ? OPT.champs : OPT.params,
+    label: valueSplit === "champs" ? "par champ" : "par paramètre",
+    pressed: valueSplit === "champs",
+    title: valueSplit === "champs"
+      ? "Une ligne par champ de la valeur — cliquer pour n'avoir qu'une ligne par paramètre"
+      : "Une ligne par paramètre — cliquer pour éclater chaque valeur en ses champs"
+  });
   // Redessiner sur place les appels déjà dépliés : reconstruire refermerait l'arbre.
   document.querySelectorAll("#list .node.callnode").forEach(leaf => {
     const holder = leaf.nextElementSibling;
@@ -2281,12 +2396,17 @@ document.getElementById("valbtn").onclick = e => {
   if (selected) draw();
 };
 
-document.getElementById("unitbtn").onclick = e => {
+document.getElementById("unitbtn").onclick = () => {
   unit = unit === "pct" ? "ms" : "pct";
-  e.currentTarget.textContent = unit === "pct" ? "%" : "ms";
-  e.currentTarget.title = unit === "pct"
-    ? "Part du temps total — cliquer pour voir un temps estimé"
-    : "Temps estimé (un relevé ≈ 1 ms de temps processeur) — cliquer pour voir la part";
+  setOption("unitbtn", {
+    icon: unit === "pct" ? OPT.pct : OPT.ms,
+    label: unit === "pct" ? "part du temps" : "temps estimé",
+    // Ce réglage n'est pas un interrupteur : les deux positions disent la même mesure dans
+    // une autre unité. Il ne s'allume donc pas — il annonce l'unité en cours.
+    title: unit === "pct"
+      ? "Part du temps total — cliquer pour voir un temps estimé"
+      : "Temps estimé (un relevé ≈ 1 ms de temps processeur) — cliquer pour voir la part"
+  });
   // Reformater sur place : reconstruire refermerait l'arbre qu'on vient d'ouvrir.
   document.querySelectorAll("#list .node[data-samples]").forEach(el => {
     const pct = el.querySelector(".pct");
@@ -2313,13 +2433,18 @@ function reselect(){
                n.textContent.includes(selected.cls.split("/").pop() + "." + (selected.name || "")));
   if (target) target.classList.add("sel");
 }
-document.getElementById("clean").onclick = e => {
-  const b = e.currentTarget;
+document.getElementById("clean").onclick = () => {
   clean = !clean;
-  b.setAttribute("aria-pressed", String(clean));
-  b.lastChild.textContent = clean ? " Resserré sur la méthode" : " Fichier entier";
-  b.title = clean ? "Resserré : seule la méthode sélectionnée est affichée, sans ses lignes mortes"
-                  : "Fichier entier, y compris le code jamais exécuté";
+  setOption("clean", {
+    icon: clean ? OPT.cible : OPT.fichier,
+    label: clean ? "Resserré sur la méthode" : "Fichier entier",
+    pressed: clean,
+    title: clean ? "Resserré : seule la méthode sélectionnée est affichée, sans ses lignes mortes"
+                 : "Fichier entier, y compris le code jamais exécuté"
+  });
+  const alt = document.getElementById("cleanalt");
+  if (alt) alt.textContent = clean ? "cliquer pour afficher le fichier entier"
+                                   : "cliquer pour revenir à la seule méthode";
   mode === "cls" ? renderClasses() : renderTree();
   reselect();
   draw();
@@ -2374,6 +2499,15 @@ document.getElementById("search").oninput = e => {
   document.getElementById("vtoggle").onclick = e => { e.stopPropagation(); toggleNav(); };
   document.getElementById("htoggle").onclick = e => { e.stopPropagation(); toggleValues(); };
 })();
+
+// Les icônes des réglages sont posées ici plutôt que dans le gabarit : leur dessin change
+// avec l'état du bouton, et il n'y a qu'un seul endroit qui en décide.
+setOption("unitbtn",  {icon: OPT.pct});
+setOption("pkgbtn",   {icon: OPT.pkgOn});
+setOption("valbtn",   {icon: OPT.champs});
+setOption("scopebtn", {icon: OPT.execute});
+setOption("expandbtn",{icon: OPT.deplier, title: "Ouvrir toutes les branches d'un coup"});
+setOption("clean",    {icon: OPT.cible});
 
 // La vue d'entrée suit l'onglet de gauche : s'ouvrir sur le second se lirait comme un
 // état bizarre plutôt que comme un choix.

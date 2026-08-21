@@ -109,6 +109,7 @@ public final class Dashboard {
         // d'échantillons en durée estimée dans la vue.
         run.put("intervalMs", 1);
         run.put("profileNote", tree.note);
+        run.put("stacksNote", tree.stacksNote);
         run.put("trace", inspection.trace);
         run.put("values", inspection.values);
         run.put("context", context.isEmpty() ? null : context);
