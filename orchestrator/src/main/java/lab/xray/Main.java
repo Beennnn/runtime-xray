@@ -73,6 +73,8 @@ public final class Main {
         boolean serve = false;
         int servePort = 8787;
         String serveHost = "127.0.0.1";
+        String serveToken = null;
+        boolean tokenTireAuSort = false;
 
         for (int i = 0; i < args.length; i++) {
             String a = args[i];
@@ -98,6 +100,17 @@ public final class Main {
                 case "--cover" -> config.coverIncludes = args[++i];
                 case "--interval" -> config.sampleIntervalMs = Integer.parseInt(args[++i]);
                 case "--serve-host" -> serveHost = args[++i];
+                case "--serve-token" -> {
+                    // Le secret se colle à l'option, ou se tait : « --serve-token » seul en
+                    // tire un au sort et l'affiche. C'est le cas le plus fréquent — on veut
+                    // fermer la porte, pas inventer une phrase.
+                    if (i + 1 < args.length && !args[i + 1].startsWith("--")) {
+                        serveToken = args[++i];
+                    } else {
+                        serveToken = Access.secretTireAuSort();
+                        tokenTireAuSort = true;
+                    }
+                }
                 case "--serve" -> {
                     serve = true;
                     // Le port se colle à l'option quand on le donne, et se tait sinon :
@@ -180,12 +193,22 @@ public final class Main {
 
         if (serve) {
             Config servi = config;
+            String secret = Access.secretDemande(serveToken, System.getenv());
+            Access acces = secret == null ? Access.ouvert() : Access.avecSecret(secret);
+            if (tokenTireAuSort) {
+                // Affiché une fois, ici et nulle part ailleurs : il n'est écrit dans aucun
+                // fichier, et le serveur ne le réaffichera pas.
+                System.out.println();
+                System.out.println("▶ Secret partagé tiré au sort : " + secret);
+                System.out.println("   À transmettre aux personnes qui doivent accéder au "
+                        + "rapport.");
+            }
             LocalServer.serve(outDir, serveHost, servePort, () -> {
                 // Après une écriture, la page est reconstruite : l'annotation devient celle
                 // du rapport, et pas seulement celle de ce navigateur.
                 Dashboard.build(outDir, sourceRoots(servi), servi.watchCount, servi.hidden());
                 return null;
-            });
+            }, acces);
         }
         return 0;
     }
@@ -641,8 +664,13 @@ public final class Main {
                                        écrire ses annotations à côté des exécutions, puis la
                                        régénère. Plusieurs personnes peuvent annoter à la fois.
                   --serve-host <hôte>  Interface d'écoute (défaut : 127.0.0.1). Mettre
-                                       0.0.0.0 pour un serveur partagé — sans
-                                       authentification : à placer derrière un filtrage.
+                                       0.0.0.0 pour un serveur partagé.
+                  --serve-token [s]    Garde le rapport servi par un secret partagé, demandé
+                                       une fois puis retenu 12 h. Sans valeur, un secret est
+                                       tiré au sort et affiché. XRAY_SERVE_TOKEN fait de
+                                       même sans l'exposer dans « ps ». Sans cette option,
+                                       rien n'est demandé : à réserver à la boucle locale ou
+                                       à un réseau déjà filtré.
                   --export <formats>   Réécrit les mesures pour d'autres outils : perf,
                                        cpuprofile, lcov, valeurs — ou « tout ». Les fichiers
                                        vont dans <exécution>/exports/.

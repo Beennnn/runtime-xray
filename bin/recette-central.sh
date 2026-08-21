@@ -114,9 +114,27 @@ if sait "--serve"; then
   for _ in $(seq 1 40); do curl -sf "http://127.0.0.1:$PORT/__xray/ping" >/dev/null && break; sleep 0.25; done
   curl -sf "http://127.0.0.1:$PORT/__xray/ping" | grep -q '"peutEcrire":true'
   etape $? "le rapport se sert, et la page peut y écrire"
-  kill "$pid" 2>/dev/null
+  kill "$pid" 2>/dev/null; wait "$pid" 2>/dev/null
 else
   horsSujet "rapport servi et annotations écrites (--serve)"
+fi
+
+if sait "--serve-token"; then
+  PORT="$(python3 -c 'import socket;s=socket.socket();s.bind(("127.0.0.1",0));print(s.getsockname()[1]);s.close()')"
+  java -jar "$JAR" --report-only --out sortie --serve "$PORT" --serve-token secret-recette \
+    > garde.log 2>&1 &
+  pid=$!
+  for _ in $(seq 1 40); do
+    curl -s -o /dev/null "http://127.0.0.1:$PORT/__xray/ping" && break; sleep 0.25
+  done
+  code="$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:$PORT/__xray/ping")"
+  [ "$code" = "401" ]; etape $? "sans le secret, le rapport servi ne s'ouvre pas ($code)"
+  curl -s -H "Authorization: Bearer secret-recette" "http://127.0.0.1:$PORT/__xray/ping" \
+    | grep -q '"garde":true'
+  etape $? "avec le secret, il s'ouvre"
+  kill "$pid" 2>/dev/null; wait "$pid" 2>/dev/null
+else
+  horsSujet "secret partagé sur le rapport servi (--serve-token)"
 fi
 echo
 
