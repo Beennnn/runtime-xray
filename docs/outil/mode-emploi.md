@@ -189,7 +189,8 @@ coup — **[Réduire l'empreinte sur un gros code](empreinte.md)** détaille la 
 | `--print-options` | Affiche la ligne d'agents à coller dans une commande Java **qu'on ne contrôle pas** — un service systemd, un conteneur, un serveur d'application. L'outil ne lance rien : il vous rend le texte |
 | `--report-only` | Réassemble la page depuis des exécutions déjà sur le disque, sans rien relancer. Utile après avoir annoté une exécution, ou changé les paquets masqués |
 | `--serve [port]` | Sert le rapport (défaut : 8787) et laisse la page **écrire ses annotations** à côté des exécutions, puis la régénère. Plusieurs personnes peuvent annoter à la fois — voir [Annoter les exécutions](annotations.md) |
-| `--serve-host <hôte>` | Interface d'écoute (défaut : `127.0.0.1`). `0.0.0.0` pour un serveur partagé — **sans authentification** : à placer derrière un filtrage |
+| `--serve-host <hôte>` | Interface d'écoute (défaut : `127.0.0.1`). `0.0.0.0` pour un serveur partagé |
+| `--serve-token [secret]` | Garde le rapport servi par un **secret partagé**, demandé une fois puis retenu douze heures. Sans valeur, un secret est tiré au sort et affiché. `XRAY_SERVE_TOKEN` fait de même sans l'exposer dans `ps`. Sans l'option, rien n'est demandé : à réserver à la boucle locale ou à un réseau déjà filtré — voir [ce que ce secret vaut](annotations.md#ce-que-ce-secret-vaut-et-ce-quil-ne-vaut-pas) |
 
 Ces options se combinent : `--report-only --serve` sert des mesures déjà prises, sans rien
 relancer, et c'est le mode d'un serveur où l'on dépose des résultats venus d'ailleurs.
@@ -273,6 +274,7 @@ Trois façons de faire vivre ces annotations, qui coexistent :
 | **Dans le navigateur** | ouvrir la page | immédiat ; **exporter** rend le fichier, **importer** reprend celui d'un collègue |
 | **Sur son poste** | `--serve` | la page écrit à côté des exécutions et le rapport est régénéré |
 | **Serveur partagé** | `--serve --serve-host 0.0.0.0` | on y dépose les résultats, tout le monde lit et **annote en parallèle** |
+| **… fermé par un secret** | `--serve-token` en plus | une page d'entrée, une session de douze heures ; complète un filtrage réseau, ne le remplace pas |
 
 ```bash
 java -jar runtime-xray.jar --report-only --out runtime-xray-out --serve
