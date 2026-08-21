@@ -51,9 +51,15 @@ runs/20260821-004121-recette/
     └── valeurs.json         ← valeurs capturées
 ```
 
-La page les nomme à deux endroits : dans la **barre du haut**, sous *exports*, où ils
-restent visibles mais éteints tant qu'ils n'ont pas été produits — un clic donne alors la
-commande — et dans la liste des sorties brutes, sous *« Pour un autre outil »*.
+La page les nomme à deux endroits, qui montrent la même liste : le menu **Exports** en haut
+à gauche, rubrique *« Formats ouverts »*, et la liste des sorties brutes en bas de la vue
+d'ensemble. Chaque entrée porte la phrase qui dit ce qu'elle contient et ce qui l'ouvre —
+`perf`, `lcov`, `cpuprofile` alignés sans explication ne disaient rien à qui ne les
+connaissait pas déjà.
+
+Ces quatre-là restent **nommés même absents**, en grisé, et un clic donne alors la commande
+qui les produit : une capacité qui ne vivrait que dans une option de ligne de commande
+n'existe pas pour qui lit la page.
 
 ## Les formats retenus
 
