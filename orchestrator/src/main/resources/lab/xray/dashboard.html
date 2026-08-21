@@ -10,6 +10,10 @@
     --muted:#59636e; --accent:#0969da; --accent-soft:#ddf4ff;
     --full:#b7f0c6; --part:#ffec9e; --miss:#ffc9c4;
     --fullbar:#1a7f37; --partbar:#9a6700; --missbar:#cf222e; --violet:#8250df;
+    /* La fiche a sa propre couleur, qui n'est celle d'aucune mesure : le vert dit
+       « exécuté », le rouge « jamais », le violet « valeurs capturées ». Ce qui vient d'un
+       humain ne doit ressembler à aucun des trois. */
+    --fiche:#0f766e; --fiche-soft:#e9f6f4;
   }
   @media (prefers-color-scheme: dark){
     :root:not([data-theme="light"]){
@@ -17,6 +21,7 @@
       --muted:#9198a1; --accent:#4493f8; --accent-soft:#121d2f;
       --full:#16512c; --part:#5c4710; --miss:#63201f;
       --fullbar:#3fb950; --partbar:#d29922; --missbar:#f85149; --violet:#ab7df8;
+      --fiche:#2dd4bf; --fiche-soft:#102420;
     }
   }
   *{box-sizing:border-box} html,body{height:100%}
@@ -60,7 +65,6 @@
   .cleanbtn[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
   /* Ce que fait l'autre position du bouton, écrit à côté : un interrupteur qui change
      d'intitulé quand on l'actionne ne dit jamais ce qu'on obtiendra en cliquant. */
-  .altlabel{font-size:11.5px;color:var(--muted);margin-left:0}
   /* Les liens sont groupés PAR OUTIL : « couverture détaillée » et « couverture ciblée »
      viennent du même outil et le répéter sur chacun était du bruit. La marque porte le nom
      une fois, les liens suivent. */
@@ -76,6 +80,10 @@
      voyait plus quel fichier venait de quel outil, et ils occupaient la largeur entière
      pour un usage occasionnel. Repliés dans un menu, les catégories redeviennent des
      titres, chaque fichier gagne la phrase qui dit ce qu'il contient, et la barre respire. */
+  /* Le groupe « fiche » de la barre du haut porte la même couleur que le bandeau : on voit
+     du premier coup d'œil que les deux parlent de la même chose. */
+  .toolgrp.fichegrp{border-color:var(--fiche);background:var(--fiche-soft)}
+  .toolgrp.fichegrp .mark{color:var(--fiche);border-right-color:var(--fiche)}
   .dl{position:relative;display:inline-flex}
   .dlmenu{position:absolute;top:calc(100% + 7px);left:0;z-index:45;width:min(94vw,430px);
           max-height:min(70vh,540px);overflow:auto;background:var(--bg);
@@ -319,12 +327,24 @@
      seule ligne. Empilés, ils repoussaient le contenu de deux rangs sans rien dire de plus. */
   .topline{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:8px 16px;
            border-bottom:1px solid var(--border)}
+  /* Revenir où l'on était : un rapport se parcourt en entrant dans des appels, et sans
+     ces deux boutons on ne remontait qu'en refaisant le chemin à la main. */
+  .nav{display:inline-flex;gap:4px}
+  .navbtn{font:inherit;font-size:13px;line-height:1;padding:4px 9px;border-radius:7px;
+          border:1px solid var(--border);background:var(--bg);color:var(--text);cursor:pointer}
+  .navbtn:hover:not(:disabled){border-color:var(--accent);color:var(--accent);
+                               background:var(--accent-soft)}
+  .navbtn:disabled{opacity:.4;cursor:default}
+  /* Un mot qui s'efface : ce qu'on n'a pas pu faire doit se dire, sans arrêter la lecture. */
+  #bref{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:70;
+        background:var(--text);color:var(--bg);border-radius:9px;padding:8px 14px;
+        font-size:12.5px;box-shadow:0 8px 24px rgba(0,0,0,.25)}
+  #bref[hidden]{display:none}
   .crumb{font-size:13px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
   .viewbar{display:flex;align-items:center;gap:8px;margin-left:auto}
   .crumb b{font-weight:650} .crumb span{color:var(--muted)}
   .crumb a.pkgseg{color:var(--muted);text-decoration:none;border-radius:4px;padding:0 2px}
-  .crumb a.pkgseg:hover{color:#fff;background:var(--missbar)}
-  .crumb a.pkgseg:hover::after{content:" filtrer"; font-size:9.5px; opacity:.85}
+  .crumb a.pkgseg:hover{color:var(--accent);background:var(--accent-soft)}
   .crumb .pkgdot{color:var(--muted)}
   .pill{font-size:11px;border:1px solid var(--border);border-radius:20px;padding:1px 8px;color:var(--muted)}
   #context{display:none;padding:7px 16px;border-bottom:1px solid var(--border);background:var(--panel2)}
@@ -333,6 +353,9 @@
            padding:3px 8px;border-radius:5px;cursor:pointer;border:1px solid transparent}
   .ctxpath:hover{background:var(--accent-soft)}
   .ctxpath.on{border-color:var(--accent);background:var(--accent-soft)}
+  /* Un seul chemin ne se choisit pas : ni cadre, ni surbrillance, ni curseur de clic. */
+  .ctxpath.seul{cursor:default;padding-left:0}
+  .ctxpath.seul:hover{background:none}
   .ctxpath .share{display:inline-block;width:38px;color:var(--muted);font-variant-numeric:tabular-nums}
   .ctxpath a{color:var(--accent);text-decoration:none}
   .ctxpath a:hover{text-decoration:underline}
@@ -382,7 +405,13 @@
        padding:4px 8px;margin-bottom:7px;display:inline-block}
   .explain{color:var(--muted);font-size:11.5px;margin-bottom:8px}
   .explain b{color:var(--text)}
-  .legend{padding:7px 16px;color:var(--muted);font-size:11px;border-top:1px solid var(--border)}
+  /* La légende occupe le pied ; le lien vers le dépôt s'y range à droite. Il n'a rien à
+     faire dans la barre du haut : on n'y va pas en lisant un rapport, on y va après. */
+  .legend{padding:7px 16px;color:var(--muted);font-size:11px;border-top:1px solid var(--border);
+          display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+  .legend .depot{margin-left:auto;color:var(--accent);text-decoration:none;white-space:nowrap;
+                 border:1px solid var(--border);border-radius:11px;padding:2px 10px}
+  .legend .depot:hover{border-color:var(--accent);background:var(--accent-soft)}
   /* La pastille de légende reprend EXACTEMENT le fond des lignes de code, bordé de la
      couleur vive : sinon la légende ne ressemble pas à ce qu'elle est censée expliquer. */
   .sw{display:inline-block;width:16px;height:11px;border-radius:3px;vertical-align:-1px;
@@ -465,12 +494,15 @@
   /* Ce qui se modifie ne vit pas dans le corps de la page : le rapport se lit, il ne se
      remplit pas. L'identité de l'exécution tient donc sur un bandeau dense, juste sous son
      nom, et les actions montent dans la barre du haut avec les autres boutons. */
+  /* Le bandeau se fondait dans la page : rien ne disait que cette ligne-là n'est pas une
+     mesure mais ce qu'on en a dit. Un liseré et un fond à sa couleur l'en détachent. */
   .identbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;
-            padding:8px 16px;border-bottom:1px solid var(--border);background:var(--panel2)}
+            padding:9px 16px 9px 13px;border-bottom:1px solid var(--border);
+            border-left:3px solid var(--fiche);background:var(--fiche-soft)}
   .identbar[hidden]{display:none}
   /* Le même mot et la même icône qu'en haut : c'est bien la fiche que ce bandeau remplit. */
   .identbar .mark{display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:700;
-                  letter-spacing:.4px;color:var(--text);text-transform:uppercase;
+                  letter-spacing:.4px;color:var(--fiche);text-transform:uppercase;
                   border-right:1px solid var(--border);padding-right:9px}
   .identbar .uid{margin-left:0;cursor:default;font-size:10.5px;color:var(--text);
                  background:var(--bg);padding:2px 6px}
@@ -506,11 +538,30 @@
                   background:var(--bg)}
   .identbar .etat.modifie{color:var(--partbar);font-weight:600;border-color:var(--partbar)}
   /* Le JSON s'affiche par-dessus, pas dans le flux : il sert à copier, pas à lire. */
-  #annotout{position:fixed;top:52px;right:16px;z-index:60;max-width:520px;max-height:60vh;
-            overflow:auto;background:var(--bg);border:1px solid var(--border);border-radius:10px;
-            box-shadow:0 12px 34px rgba(0,0,0,.22);padding:12px 14px;font-size:11.5px;
-            white-space:pre-wrap;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+  /* Ce panneau s'ouvrait sans titre et sans largeur minimale. Sur un rapport où aucune
+     fiche n'est remplie, il tenait donc en « {} » : quarante pixels dans un coin, que
+     personne ne voit — cliquer « JSON » avait l'air de ne rien faire. */
+  #annotout{position:fixed;top:52px;right:16px;z-index:60;width:min(92vw,560px);
+            max-height:70vh;display:flex;flex-direction:column;background:var(--bg);
+            border:1px solid var(--border);border-radius:10px;
+            box-shadow:0 12px 34px rgba(0,0,0,.22);font-size:11.5px;font-family:inherit}
   #annotout[hidden]{display:none}
+  #annotout .tete{display:flex;align-items:center;gap:8px;padding:9px 12px;
+                  border-bottom:1px solid var(--border);background:var(--panel);
+                  border-radius:9px 9px 0 0}
+  #annotout .titre{font-family:inherit;font-size:12.5px;font-weight:650;color:var(--text);
+                   margin-right:auto;font-feature-settings:normal}
+  /* Le monospace sert au JSON, pas à la phrase française qui l'introduit : la mettre en
+     chasse fixe la faisait lire comme du code. */
+  #annotout .corps{overflow:auto;padding:11px 13px;line-height:1.5}
+  #annotout .json{display:block;white-space:pre-wrap;
+                  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+  #annotout .vide{color:var(--muted);font-size:12.5px;line-height:1.45;
+                  border-bottom:1px dashed var(--border);padding-bottom:9px;margin-bottom:9px}
+  #annotout .acte{font:inherit;font-size:11.5px;font-weight:600;padding:3px 10px;
+                  border-radius:11px;border:1px solid var(--border);background:var(--bg);
+                  color:var(--text);cursor:pointer;white-space:nowrap}
+  #annotout .acte:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
   /* L'annonce d'un rapport modifié : visible, mais elle n'interrompt rien. */
   #nouvelles{position:fixed;bottom:16px;right:16px;z-index:60;display:flex;align-items:center;
              gap:8px;background:var(--bg);border:1px solid var(--accent);border-radius:10px;
@@ -570,11 +621,8 @@
   <span class="links" id="links"></span>
   <span class="links" id="annotbar"></span>
   <button id="helpbtn" class="helpbtn" title="Comment lire et utiliser cette page">? Aide</button>
-  <a class="helpbtn" href="https://github.com/Beennnn/runtime-xray" target="_blank" rel="noopener"
-     title="Le code, les scripts, et comment lancer cet outil sur un autre projet"
-     style="text-decoration:none">Dépôt ↗</a>
 </header>
-<pre id="annotout" hidden></pre>
+<div id="annotout" hidden></div>
 <div id="help" hidden><div class="helpbox">
   <button id="helpclose" class="helpclose" title="Fermer">✕</button>
   <div id="helpbody"></div>
@@ -619,13 +667,19 @@
   </div>
   <div id="detail">
     <div class="topline">
+      <span class="nav">
+        <button id="navprec" class="navbtn" title="Vue précédente (Alt + ←)"
+                aria-label="Vue précédente" disabled>←</button>
+        <button id="navsuiv" class="navbtn" title="Vue suivante (Alt + →)"
+                aria-label="Vue suivante" disabled>→</button>
+      </span>
       <div class="crumb" id="crumb"></div>
       <div class="viewbar">
         <button id="clean" class="cleanbtn" aria-pressed="true"
                 title="Resserré : seule la méthode sélectionnée est affichée, sans ses lignes mortes">
           <span class="ic"></span><span class="lab">Resserré sur la méthode</span>
         </button>
-        <span class="altlabel" id="cleanalt">cliquer pour afficher le fichier entier</span>
+
       </div>
     </div>
     <div class="identbar" id="ident" hidden></div>
@@ -744,6 +798,22 @@ function formatWeight(samples, total){
   if (ms >= 10000) return (ms / 1000).toFixed(1) + "s";
   if (ms >= 1000) return (ms / 1000).toFixed(2) + "s";
   return Math.round(ms) + "ms";
+}
+
+/**
+ * La part du temps, écrite en toutes lettres pour le fil d'Ariane.
+ *
+ * <p>{@code formatWeight} rend « · » sous 0,1 % : dans une colonne étroite c'est le bon
+ * signe pour « négligeable », mais collé à « du temps » cela donnait « · du temps », qui ne
+ * veut rien dire. Et en millisecondes, « 62ms du temps » n'en voulait pas beaucoup plus.
+ */
+function partDuTemps(samples){
+  const t = formatWeight(samples, R.calltree.total);
+  if (unit !== "pct") return t + " cumulées ici";
+  if (t === "·") return "moins de 0,1 % du temps";
+  // Dans une colonne, « 8.6% » économise deux caractères ; dans une phrase française, il
+  // faut la virgule et l'espace.
+  return t.replace(".", ",").replace("%", " %") + " du temps";
 }
 
 /* ---------------------------------------------------------------- agrégats */
@@ -961,7 +1031,8 @@ function enregistrerAnnotations(bouton){
           + "modifiiez. Version enregistrée :\n\n"
           + JSON.stringify(body.valeur, null, 2)
           + "\n\nCliquer « enregistrer » à nouveau remplacera la sienne par la vôtre ; "
-          + "recharger la page reprendra la sienne et abandonnera vos modifications.");
+          + "recharger la page reprendra la sienne et abandonnera vos modifications.",
+          "Fiche modifiée entre-temps");
         rendre();
         return;
       }
@@ -1201,10 +1272,10 @@ const TOOLMARK = {
   // change rien. « Annotations » ne disait rien à qui n'avait pas lu la documentation.
   fiche:
     '<svg viewBox="0 0 14 14" width="12" height="12" aria-hidden="true" fill="none"' +
-    ' stroke="#2f855a" stroke-width="1.5" stroke-linejoin="round">' +
+    ' stroke="currentColor" stroke-width="1.5" stroke-linejoin="round">' +
     '<path d="M7.4 1.4H2.4a1 1 0 0 0-1 1v5a1 1 0 0 0 .3.7l4.9 4.9a1 1 0 0 0 1.4 0l4.3-4.3' +
     'a1 1 0 0 0 0-1.4L8.1 1.7a1 1 0 0 0-.7-.3Z"/>' +
-    '<circle cx="4.3" cy="4.3" r=".85" fill="#2f855a" stroke="none"/></svg>',
+    '<circle cx="4.3" cy="4.3" r=".85" fill="currentColor" stroke="none"/></svg>',
   // Les formats publics : une flèche qui sort de la boîte. Ce ne sont plus les fichiers
   // d'un outil, mais la même mesure réécrite pour un autre.
   ouvert:
@@ -1353,10 +1424,19 @@ function poserMenuExports(){
   };
   bouton.onkeydown = e => { if (e.key === "Escape" && !menu.hidden) fermer(true); };
   // Un clic ailleurs ferme : c'est ce que fait tout menu, et ne pas le faire donne
-  // l'impression que la page est bloquée.
-  document.addEventListener("click", e => {
-    if (!menu.hidden && !menu.contains(e.target) && !bouton.contains(e.target)) fermer(false);
-  });
+  // l'impression que la page est bloquée. Posé UNE fois sur le document : la barre se
+  // reconstruit à chaque changement d'exécution, et un écouteur par reconstruction
+  // s'accumulerait sans que rien ne le montre.
+  if (!poserMenuExports.pose) {
+    poserMenuExports.pose = true;
+    document.addEventListener("click", e => {
+      const m = document.getElementById("dlmenu"), b = document.getElementById("dlbtn");
+      if (m && !m.hidden && !m.contains(e.target) && b && !b.contains(e.target)) {
+        m.hidden = true;
+        b.setAttribute("aria-expanded", "false");
+      }
+    });
+  }
   menu.addEventListener("click", e => {
     const a = e.target.closest("a.off");
     if (!a) { if (e.target.closest("a")) fermer(false); return; }
@@ -1365,7 +1445,8 @@ function poserMenuExports(){
     montrer("« " + a.dataset.export + " » n'a pas été produit pour ce rapport.\n\n"
       + "Pour l'obtenir, sans relancer la moindre mesure :\n\n"
       + "    java -jar runtime-xray.jar --report-only --out <ce dossier> --export tout\n\n"
-      + "Les fichiers sont écrits dans <exécution>/exports/, et ce menu les liera.");
+      + "Les fichiers sont écrits dans <exécution>/exports/, et ce menu les liera.",
+      "« " + a.dataset.export + " » n'a pas été produit");
   });
 }
 
@@ -1375,7 +1456,10 @@ document.getElementById("legend").innerHTML =
   '<span class="sw" style="background:var(--full);border-color:var(--fullbar)"></span>exécutée' +
   '<span class="sw" style="background:var(--part);border-color:var(--partbar)"></span>partiellement' +
   '<span class="sw" style="background:var(--miss);border-color:var(--missbar)"></span>jamais exécutée' +
-  ' <span style="opacity:.75">(masquée tant que « Resserré sur la méthode » est actif)</span>';
+  ' <span style="opacity:.75">(masquée tant que « Resserré sur la méthode » est actif)</span>' +
+  '<a class="depot" href="https://github.com/Beennnn/runtime-xray" target="_blank" rel="noopener"' +
+  ' title="Le code, les scripts, et comment lancer cet outil sur un autre projet">' +
+  'Dépôt du projet ↗</a>';
 // La légende ne garde que le code couleur : c'est la seule chose qu'on ne peut pas deviner.
 // Les annotations de ligne se lisent d'elles-mêmes, et le détail vit dans l'aide.
 
@@ -1901,6 +1985,7 @@ function renderTree(){
   function hasMatch(node){
     return visibleChildren(node).some(k => dot(k.name).toLowerCase().includes(filter) || hasMatch(k));
   }
+  reprendreSelection();
 }
 
 /**
@@ -2015,6 +2100,7 @@ function renderClasses(){
     for (const child of node.children.values()) n += countClasses(child);
     return n;
   }
+  reprendreSelection();
 }
 
 /** Les méthodes exécutées d'une classe, en ordre alphabétique. */
@@ -2088,17 +2174,34 @@ function renderContexts(info){
   if (!info || !info.name){ box.innerHTML = ""; box.style.display = "none"; return; }
   const {chemins, total, nb} = pathsTo(info.frame);
   if (!chemins.length){ box.innerHTML = ""; box.style.display = "none"; return; }
+  // Le dernier maillon de chaque chemin EST la méthode ouverte : il est déjà écrit dans le
+  // fil d'Ariane juste au-dessus, et il est identique sur toutes les lignes. Ce qui
+  // distingue un contexte d'un autre, c'est qui appelle — on ne montre que cela.
+  const chaines = chemins.map(c => ({
+    part: 100 * c.total / total,
+    appelants: c.path.filter(f => frameInfo(f) && f !== info.frame)
+  })).filter(c => c.appelants.length);
+  // Une méthode appelée de nulle part — une racine d'exécution — n'a pas de contexte à
+  // montrer. Le bandeau se taisait déjà quand aucun chemin n'était connu ; il se tait
+  // aussi quand le seul chemin connu ne contient qu'elle-même.
+  if (!chaines.length){ box.innerHTML = ""; box.style.display = "none"; return; }
+
   box.style.display = "block";
-  const label = nb === 1 ? "Appelée depuis un seul contexte :"
-                         : "Appelée depuis " + nb + " contextes — choisir lequel regarder :";
+  // Avec un seul contexte, « 100 % » est vrai et ne dit rien : 100 % d'un seul chemin.
+  // On ne le montre que là où il départage.
+  const seul = chaines.length === 1;
+  const label = seul ? "Appelée depuis :"
+                     : "Appelée depuis " + nb + " contextes — choisir lequel regarder :";
   box.innerHTML = '<span class="ctxlabel">' + label + '</span>' +
-    chemins.map((c, i) => {
-      const chain = c.path.filter(f => frameInfo(f));
-      const short = chain.map((f, j) =>
-        '<a href="#" data-f="'+esc(f)+'" class="'+(j === chain.length-1 ? "cur" : "")+'">'+
-        esc(f.split("/").pop())+'</a>').join('<span class="sep"> › </span>');
-      return '<div class="ctxpath'+(i === ctxIndex ? " on" : "")+'" data-i="'+i+'">'+
-             '<span class="share">'+(100*c.total/total).toFixed(0)+' %</span>'+short+'</div>';
+    chaines.map((c, i) => {
+      const short = c.appelants.map(f =>
+        '<a href="#" data-f="'+esc(f)+'">'+esc(f.split("/").pop())+'</a>')
+        .join('<span class="sep"> › </span>');
+      return '<div class="ctxpath'+(seul ? " seul" : (i === ctxIndex ? " on" : ""))+'"'+
+             ' data-i="'+i+'">'+
+             (seul ? "" : '<span class="share">'
+                + (c.part < 1 && c.part > 0 ? "&lt;1" : c.part.toFixed(0)) + ' %</span>')
+             + short + '</div>';
     }).join("");
   box.querySelectorAll(".ctxpath").forEach(el => el.onclick = e => {
     if (e.target.tagName === "A") return;
@@ -2112,9 +2215,9 @@ function renderContexts(info){
       .filter(o => o.i !== runIndex && o.n > 0);
     if (ailleurs.length){
       box.innerHTML += '<div class="ctxelse">Aussi appelée dans : ' +
-        ailleurs.map(o => '<a href="#" data-run="'+o.i+'">'+esc(o.run.nom)+
-          ' <span class="share">'+o.n+' contexte'+(o.n > 1 ? 's' : '')+'</span></a>').join(" · ") +
-        '</div>';
+        ailleurs.map(o => '<a href="#" data-run="'+o.i+'">'+esc(runLabel(o.run)) +
+          ' <span class="share">— '+o.n+' contexte'+(o.n > 1 ? 's' : '')+'</span></a>')
+          .join(" · ") + '</div>';
       box.querySelectorAll("a[data-run]").forEach(a => a.onclick = e => {
         e.preventDefault();
         switchRun(+a.dataset.run, false);
@@ -2218,6 +2321,229 @@ function linkifyCalls(escapedLine, lineNumber){
   });
 }
 
+
+/* ============================================================ navigation
+   Deux onglets qui montrent le même code sous deux angles, et une méthode ouverte : passer
+   de l'un à l'autre perdait la sélection et renvoyait à la vue d'ensemble. On repartait
+   alors de zéro pour retrouver ce qu'on venait de quitter. */
+
+/** Ce qu'on est en train de regarder, réduit à ce qui suffit à y revenir. */
+function vueCourante(){
+  return {mode: mode, run: runIndex, frame: selected ? selected.frame : null,
+          call: callIndex, ctx: ctxIndex, scope: scopeFrame};
+}
+function memeVue(a, b){
+  return !!a && !!b && a.mode === b.mode && a.run === b.run && a.frame === b.frame
+      && a.call === b.call;
+}
+
+let histoire = [], histoirePos = -1, rejoue = false;
+
+/**
+ * Note la vue courante dans l'historique.
+ *
+ * <p>Rien n'est noté pendant qu'on rejoue une vue — sans quoi revenir en arrière
+ * empilerait aussitôt la vue d'où l'on vient, et le bouton « suivant » ne servirait
+ * jamais. Repartir d'une vue ancienne coupe la suite, comme le fait un navigateur.
+ */
+function noterVue(){
+  if (rejoue) return;
+  const v = vueCourante();
+  if (memeVue(histoire[histoirePos], v)) { histoire[histoirePos] = v; return; }
+  histoire = histoire.slice(0, histoirePos + 1);
+  histoire.push(v);
+  histoirePos = histoire.length - 1;
+  majNav();
+}
+
+function allerA(pos){
+  if (pos < 0 || pos >= histoire.length) return;
+  const v = histoire[pos];
+  histoirePos = pos;
+  rejoue = true;
+  try {
+    if (v.run !== runIndex) switchRun(v.run, false);
+    scopeFrame = v.scope;
+    ctxIndex = v.ctx || 0;
+    if (v.mode === "tree") renderTree(); else renderClasses();
+    if (v.frame){
+      const t = frameInfo(v.frame);
+      if (t){ select(t, null, v.call === null ? undefined : v.call); devoiler(v.frame); }
+    } else goHome();
+  } finally { rejoue = false; }
+  majNav();
+}
+
+function majNav(){
+  const p = document.getElementById("navprec"), s = document.getElementById("navsuiv");
+  if (!p || !s) return;
+  p.disabled = histoirePos <= 0;
+  s.disabled = histoirePos >= histoire.length - 1;
+}
+
+/* ------------------------------------------------ dévoiler une méthode dans une vue */
+
+/**
+ * Ouvre ce qu'il faut pour que {@code frame} soit visible et sélectionné dans la vue
+ * courante, et rend {@code true} si on l'a trouvée.
+ *
+ * <p>Les deux arbres se construisent au fur et à mesure qu'on les déplie : on ne peut pas
+ * chercher un nœud qui n'existe pas encore. On rejoue donc le chemin, en cliquant les
+ * parents l'un après l'autre — exactement ce qu'aurait fait la main.
+ */
+function devoiler(frame){
+  const trouve = mode === "tree" ? devoilerDansArbre(frame) : devoilerDansCode(frame);
+  return trouve;
+}
+
+function devoilerDansCode(frame){
+  const info = frameInfo(frame);
+  if (!info) return false;
+  const paquet = dot(info.cls).split(".").slice(0, -1).join(".");
+  let conteneur = document.getElementById("list");
+  for (let garde = 0; garde < 40; garde++){
+    const noeuds = [...conteneur.querySelectorAll(":scope > .node")];
+    const classe = noeuds.find(n => n.dataset.path === "cls:" + info.cls);
+    if (classe){
+      if (deplier(classe)) { /* la classe s'ouvre et se sélectionne elle-même */ }
+      const dedans = classe.nextElementSibling;
+      const meth = info.name && dedans
+        ? [...dedans.querySelectorAll(":scope > .node")].find(n => n.dataset.frame === frame)
+        : null;
+      const cible = meth || classe;
+      cible.click();
+      cible.scrollIntoView({block: "center", behavior: "smooth"});
+      return true;
+    }
+    // Les paquets sont compactés — « lab.sample » peut tenir en un seul nœud : on cherche
+    // celui dont le chemin est un préfixe du paquet visé, et on descend dedans.
+    const pkg = noeuds.find(n => (n.dataset.path || "").startsWith("pkg:")
+      && (paquet + ".").startsWith(n.dataset.path.slice(4) + "."));
+    if (!pkg) return false;
+    deplier(pkg);
+    conteneur = pkg.nextElementSibling;
+    if (!conteneur) return false;
+  }
+  return false;
+}
+
+/** Ouvre un nœud s'il est fermé, et dit s'il a fallu le faire. */
+function deplier(el){
+  const tw = el.querySelector(".tw");
+  if (tw && tw.textContent === "▸"){ el.click(); return true; }
+  return false;
+}
+
+/** Le chemin le plus court, dans un arbre d'appel, jusqu'à un nom de frame. */
+function cheminVers(arbre, frame){
+  const file = [{node: arbre, chemin: []}];
+  while (file.length){
+    const {node, chemin} = file.shift();
+    for (const kid of node.children || []){
+      const suite = chemin.concat([pathOf(kid)]);
+      if (kid.name === frame) return suite;
+      file.push({node: kid, chemin: suite});
+    }
+  }
+  return null;
+}
+
+function devoilerDansArbre(frame){
+  // On regarde d'abord l'exécution ouverte ; sinon la première où la méthode apparaît,
+  // dans l'ordre du rapport.
+  const ordre = [runIndex].concat(D.runs.map((_, i) => i).filter(i => i !== runIndex));
+  for (const idx of ordre){
+    const chemin = cheminVers(prunedTree(D.runs[idx]), frame);
+    if (!chemin) continue;
+    if (idx !== runIndex){
+      // Changer d'exécution reconstruit l'arbre : on repose l'intention, et c'est le
+      // re-rendu qui la consomme.
+      aDevoiler = frame;
+      switchRun(idx, true);
+      return true;
+    }
+    return poserDansArbre(chemin);
+  }
+  return false;
+}
+
+function poserDansArbre(chemin){
+  const box = document.getElementById("list");
+  const racine = [...box.querySelectorAll(":scope > .node.runroot")][runIndex];
+  if (!racine) return false;
+  deplier(racine);
+  let conteneur = racine.nextElementSibling;
+  for (let i = 0; i < chemin.length; i++){
+    if (!conteneur) return false;
+    const el = [...conteneur.querySelectorAll(":scope > .node")]
+      .find(n => n.dataset.path === chemin[i]);
+    if (!el) return false;
+    if (i === chemin.length - 1){
+      el.click();
+      el.scrollIntoView({block: "center", behavior: "smooth"});
+      return true;
+    }
+    deplier(el);
+    conteneur = el.nextElementSibling;
+  }
+  return false;
+}
+
+/** Ouvre un paquet dans la vue Code — ce que fait un clic sur le fil d'Ariane. */
+function ouvrirPaquet(chemin){
+  const vise = dot(chemin);
+  aDevoiler = null;
+  if (mode !== "cls") renderClasses();
+  let conteneur = document.getElementById("list");
+  for (let garde = 0; garde < 40; garde++){
+    const noeuds = [...conteneur.querySelectorAll(":scope > .node")];
+    const pkg = noeuds.find(n => (n.dataset.path || "").startsWith("pkg:")
+      && (vise + ".").startsWith(n.dataset.path.slice(4) + "."));
+    if (!pkg) return;
+    deplier(pkg);
+    pkg.scrollIntoView({block: "center", behavior: "smooth"});
+    if (pkg.dataset.path.slice(4) === vise) return;
+    conteneur = pkg.nextElementSibling;
+    if (!conteneur) return;
+  }
+}
+
+/** L'intention posée avant un rendu, consommée à la fin de celui-ci. */
+let aDevoiler = null;
+
+/**
+ * Reprend la sélection après un changement de vue.
+ *
+ * <p>Appelé à la fin des deux rendus. Si la méthode n'existe pas dans la vue d'arrivée —
+ * un paquet masqué, une exécution où elle n'a jamais tourné — on ne force rien : la vue
+ * s'ouvre normalement, et on le dit plutôt que de faire semblant.
+ */
+function reprendreSelection(){
+  const frame = aDevoiler;
+  aDevoiler = null;
+  if (!frame) return;
+  rejoue = true;
+  try {
+    if (!devoiler(frame)) montrerBref(dot(frame).split(".").pop()
+      + " n'apparaît pas dans cette vue.");
+  } finally { rejoue = false; }
+  noterVue();
+}
+
+/** Un mot en bas à droite, qui s'efface tout seul. */
+function montrerBref(texte){
+  let b = document.getElementById("bref");
+  if (!b){
+    b = document.createElement("div");
+    b.id = "bref";
+    document.body.appendChild(b);
+  }
+  b.textContent = texte;
+  b.hidden = false;
+  clearTimeout(montrerBref.t);
+  montrerBref.t = setTimeout(() => { b.hidden = true; }, 3200);
+}
+
 /* ------------------------------------------------------------ vue de code */
 function selectFrame(frame, el){
   const info = frameInfo(frame);
@@ -2231,6 +2557,7 @@ function select(info, el, call){
   selected = info;
   callIndex = (call === undefined) ? null : call;
   draw();
+  noterVue();
 }
 /**
  * Le paquet du fichier ouvert, découpé niveau par niveau, chacun masquable.
@@ -2318,11 +2645,14 @@ function fillValueNodes(container, call, depth){
 function crumbPackage(cls){
   const parts = dot(cls).split(".").slice(0, -1);
   if (!parts.length) return '<span>(paquet par défaut) ›</span>';
+  // Un fil d'Ariane sert à remonter, pas à faire disparaître. Cliquer un segment ouvrait
+  // ici le paquet dans le masque : le geste le plus naturel de la page faisait la chose la
+  // plus destructrice. Il ouvre maintenant ce paquet dans la vue Code ; « ne plus voir »
+  // reste où il a toujours été, au bout de la ligne dans la liste de gauche.
   return parts.map((seg, i) => {
     const path = parts.slice(0, i + 1).join("/");
-    return '<a href="#" class="pkgseg" data-p="' + esc(path) + '" title="Filtrer ' +
-           esc(parts.slice(0, i + 1).join(".")) + ' — ne plus afficher ce paquet ni ce ' +
-           'qu\'il contient">' +
+    return '<a href="#" class="pkgseg" data-p="' + esc(path) + '" title="Ouvrir ' +
+           esc(parts.slice(0, i + 1).join(".")) + ' dans la liste du code">' +
            esc(seg) + '</a>';
   }).join('<span class="pkgdot">.</span>') + ' <span>›</span>';
 }
@@ -2342,8 +2672,9 @@ function draw(){
     crumbPackage(info.cls) + ' <b>'+
     esc(info.cls.split("/").pop())+'.java</b>'+
     (info.name ? ' <span>›</span> <b>'+esc(info.name)+'()</b>' : '') +
-    (samples ? ' <span class="pill" title="Temps passé dans cette méthode">'+
-        formatWeight(samples, R.calltree.total) + ' du temps</span>' : '') +
+    (samples ? ' <span class="pill" title="Part du temps mesuré passée dans cette méthode '
+        + 'et dans ce qu\'elle appelle, tous appels confondus">'
+        + partDuTemps(samples) + '</span>' : '') +
     (myCalls.length ? ' <span class="pill" id="pillValues" style="color:var(--violet);border-color:var(--violet);cursor:pointer">'
         + myCalls.length + ' appel(s) capturé(s) — voir les valeurs</span>' : '') +
     (mode==="exec" && info.name ? ' <span class="pill" style="cursor:pointer" id="scopeBtn">ne montrer que ce qui tourne sous cette méthode</span>' : '') +
@@ -2351,7 +2682,7 @@ function draw(){
 
   document.querySelectorAll("#crumb a.pkgseg").forEach(a => a.onclick = e => {
     e.preventDefault();
-    addMask(a.dataset.p);
+    ouvrirPaquet(a.dataset.p);
   });
 
   if (!src){ code.innerHTML = '<p style="padding:18px;color:var(--muted)">Source indisponible.</p>';
@@ -2438,8 +2769,9 @@ function jacocoLink(info){
   const href = (R.chemin || "") + "jacoco/html/" + pkg + "/" + file +
                (info.line ? "#L" + info.line : "");
   return ' <a class="pill" style="text-decoration:none" target="_blank" rel="noopener" href="' +
-         href + '" title="Ouvrir cette classe dans le rapport de couverture détaillé">' +
-         'voir dans le rapport détaillé ↗</a>';
+         href + '" title="Ouvrir cette classe dans le rapport HTML de JaCoCo — la même ' +
+         'couverture, présentée par l\'outil qui l\'a mesurée">' +
+         'voir dans JaCoCo ↗</a>';
 }
 function declarationLine(info){
   const src = D.sources[info.source] || [];
@@ -2924,8 +3256,11 @@ function flameColour(propre, known){
 function drawHome(){
   document.getElementById("crumb").innerHTML =
     '<span class="pill">vue d\'ensemble</span>' +
-    (D.runs.length > 1 ? ' <span class="pill">' + D.runs.length
-                         + ' exécutions dans ce rapport</span>' : '');
+    // « dans ce rapport » demandait de savoir ce qu'est un rapport. C'est le nombre
+    // d'exécutions de la liste, et rien d'autre : autant l'écrire.
+    (D.runs.length > 1 ? ' <span class="pill" title="Cette page en réunit plusieurs ; '
+        + 'l\'onglet Exécutions les montre côte à côte">' + D.runs.length
+        + ' exécutions</span>' : '');
   document.getElementById("values").innerHTML = "";
   const hot = executedMethods().slice(0, 6);
   const observees = Object.keys(R.values || {});
@@ -3101,7 +3436,7 @@ function renderAnnotActs(){
   if (!box) return;
   const modifie = peutEnregistrer && annotationModifiee(R);
   box.innerHTML =
-    '<span class="toolgrp"><span class="mark" title="La fiche de cette exécution : le nom, ' +
+    '<span class="toolgrp fichegrp"><span class="mark" title="La fiche de cette exécution : le nom, ' +
     'la description et les étiquettes que VOUS lui donnez — le bandeau juste en dessous. ' +
     'Aucune mesure n\'en est modifiée.">' + TOOLMARK.fiche + 'fiche</span>' +
     (peutEnregistrer && serveurGarde
@@ -3137,28 +3472,104 @@ function renderAnnotActs(){
       drawHome();
       montrer(n + " exécution" + (n > 1 ? "s" : "") + " reprise" + (n > 1 ? "s" : "")
               + " de « " + f.name + " »"
-              + (peutEnregistrer ? " — « enregistrer » les posera sur le serveur." : "."));
-    }).catch(e => montrer("import refusé : " + e.message));
+              + (peutEnregistrer ? " — « enregistrer » les posera sur le serveur." : "."),
+              "Fiches reprises");
+    }).catch(e => montrer(e.message, "Import refusé"));
     fichier.value = "";
   };
   document.getElementById("annotDump").onclick = e => {
     e.preventDefault();
-    montrer(JSON.stringify(annotationsFile(), null, 2));
+    // Un rapport où personne n'a encore rempli de fiche donnait « {} », seul, dans un
+    // coin. C'est exact, et parfaitement inutile : le panneau dit maintenant ce qu'il
+    // attend et à quoi ce fichier sert.
+    const fiches = annotationsFile();
+    const combien = Object.keys(fiches).length;
+    const texte = JSON.stringify(fiches, null, 2);
+    montrer(texte,
+      combien
+        ? "Fiches de ce rapport — " + combien + " exécution" + (combien > 1 ? "s" : "")
+        : "Fiches de ce rapport — aucune pour l'instant",
+      texte,
+      combien ? null
+        : "Aucune exécution de ce rapport n'a encore de fiche. Dès qu'on donne à l'une "
+        + "d'elles un nom, une description, une étiquette ou un élagage, elle apparaît "
+        + "ici. C'est ce fichier que « exporter » télécharge et que « importer » reprend, "
+        + "et c'est aussi ce que le serveur écrit à côté des mesures.");
   };
 }
 
 /** Affiche un texte par-dessus la page — il sert à copier, pas à être lu dans le flux. */
-function montrer(texte){
+/**
+ * Le panneau du coin : un titre, un corps, et de quoi le refermer.
+ *
+ * @param titre    ce qu'on est en train de regarder — sans lui, le panneau pouvait s'ouvrir
+ *                 sur deux caractères sans que rien ne dise ce que c'était
+ * @param aCopier  le texte que le bouton « copier » met dans le presse-papier ; ce panneau
+ *                 sert à reprendre du JSON ailleurs, pas à le lire
+ * @param avant    une phrase en français au-dessus, quand le texte seul ne suffit pas
+ */
+function montrer(texte, titre, aCopier, avant){
   const out = document.getElementById("annotout");
   if (!out) return;
   out.hidden = false;
-  out.textContent = texte;
+  out.innerHTML = "";
+
+  const tete = document.createElement("div");
+  tete.className = "tete";
+  const t = document.createElement("span");
+  t.className = "titre";
+  t.textContent = titre || "Runtime X-Ray";
+  tete.appendChild(t);
+
+  if (aCopier) {
+    const copier = document.createElement("button");
+    copier.className = "acte";
+    copier.textContent = "copier";
+    copier.onclick = () => {
+      // Sans presse-papier — page ouverte comme fichier, permission refusée — on
+      // sélectionne le texte : le Ctrl-C de l'utilisateur fait le reste.
+      const dit = m => { copier.textContent = m; setTimeout(() => copier.textContent = "copier", 1800); };
+      const corps = out.querySelector(".json");
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(aCopier).then(() => dit("copié ✓"), () => selectionner(corps, dit));
+      } else selectionner(corps, dit);
+    };
+    tete.appendChild(copier);
+  }
+
   const fermer = document.createElement("button");
-  fermer.className = "fermer";
+  fermer.className = "acte";
   fermer.textContent = "✕";
   fermer.title = "Fermer";
+  fermer.setAttribute("aria-label", "Fermer");
   fermer.onclick = () => { out.hidden = true; };
-  out.appendChild(fermer);
+  tete.appendChild(fermer);
+  out.appendChild(tete);
+
+  const corps = document.createElement("div");
+  corps.className = "corps";
+  if (avant) {
+    const p = document.createElement("div");
+    p.className = "vide";
+    p.textContent = avant;
+    corps.appendChild(p);
+  }
+  const json = document.createElement("span");
+  json.className = "json";
+  json.textContent = texte;
+  corps.appendChild(json);
+  out.appendChild(corps);
+}
+
+/** Sélectionne le texte affiché, faute de presse-papier accessible. */
+function selectionner(noeud, dit){
+  if (!noeud) { dit("copie refusée"); return; }
+  const plage = document.createRange();
+  plage.selectNodeContents(noeud);
+  const sel = window.getSelection();
+  sel.removeAllRanges();
+  sel.addRange(plage);
+  dit("sélectionné — Ctrl-C");
 }
 
 /** Les annotations de toutes les exécutions du rapport, dans la forme attendue par l'outil. */
@@ -3434,8 +3845,30 @@ document.getElementById("help").onclick = e => {
 document.addEventListener("keydown", e => {
   if (e.key === "Escape") document.getElementById("help").hidden = true;
 });
-document.getElementById("tab-tree").onclick = renderTree;
-document.getElementById("tab-cls").onclick  = renderClasses;
+/**
+ * Changer d'onglet emporte ce qu'on regardait.
+ *
+ * <p>Les deux vues montrent le même code : l'une par l'exécution, l'autre par
+ * l'organisation. Passer de l'une à l'autre en perdant la méthode ouverte obligeait à
+ * refaire tout le chemin pour retrouver ce qu'on venait de quitter.
+ */
+function changerOnglet(rendu){
+  // Seule une MÉTHODE se retrouve dans les deux vues : l'arbre d'appel ne connaît pas les
+  // classes. Une classe ouverte ne demande donc rien, et ne fait rien échouer.
+  aDevoiler = selected && selected.name ? selected.frame : null;
+  rendu();
+}
+document.getElementById("tab-tree").onclick = () => changerOnglet(renderTree);
+document.getElementById("tab-cls").onclick  = () => changerOnglet(renderClasses);
+
+document.getElementById("navprec").onclick = () => allerA(histoirePos - 1);
+document.getElementById("navsuiv").onclick = () => allerA(histoirePos + 1);
+// Alt + flèches : le raccourci que tout le monde connaît déjà pour « précédent ».
+document.addEventListener("keydown", e => {
+  if (!e.altKey || e.ctrlKey || e.metaKey) return;
+  if (e.key === "ArrowLeft"){ e.preventDefault(); allerA(histoirePos - 1); }
+  if (e.key === "ArrowRight"){ e.preventDefault(); allerA(histoirePos + 1); }
+});
 function reselect(){
   // Re-rendre la liste efface la surbrillance : on la repose sur la méthode courante,
   // sinon basculer un réglage donne l'impression d'avoir perdu le contexte.
@@ -3454,9 +3887,6 @@ document.getElementById("clean").onclick = () => {
     title: clean ? "Resserré : seule la méthode sélectionnée est affichée, sans ses lignes mortes"
                  : "Fichier entier, y compris le code jamais exécuté"
   });
-  const alt = document.getElementById("cleanalt");
-  if (alt) alt.textContent = clean ? "cliquer pour afficher le fichier entier"
-                                   : "cliquer pour revenir à la seule méthode";
   mode === "cls" ? renderClasses() : renderTree();
   reselect();
   draw();

@@ -33,6 +33,28 @@ gauche ferme puis remonte, `Entrée` sélectionne. Le curseur est volontairement
 la sélection — un liseré, pas un aplat — pour qu'on puisse parcourir l'arbre sans changer
 ce qu'affiche le panneau de droite.
 
+### Passer d'un onglet à l'autre garde la méthode
+
+Les deux onglets montrent le même code : quitter l'un pour l'autre **emporte la méthode
+ouverte**. Depuis Exécutions, elle est retrouvée et dépliée dans l'arborescence du code ;
+depuis Code, elle est retrouvée dans l'arbre d'appel — dans l'exécution regardée, ou à
+défaut **dans la première où elle a tourné**, et la page bascule alors sur celle-là.
+
+Si elle n'apparaît nulle part dans la vue d'arrivée — un paquet masqué, une méthode qui
+n'a tourné dans aucune exécution — la vue s'ouvre normalement et le dit en un mot. Elle ne
+sélectionne jamais autre chose à la place.
+
+### Revenir sur ses pas
+
+Les deux flèches en haut à gauche rejouent les vues visitées, dans un sens et dans
+l'autre — `Alt` + `←` et `Alt` + `→`. Une vue, c'est l'onglet, l'exécution, la méthode et
+l'appel regardés : y revenir les repose tous les quatre.
+
+Le **fil d'Ariane** navigue lui aussi : cliquer un segment de paquet l'ouvre dans la liste
+du code. *(Il masquait ce paquet dans les versions antérieures — le geste le plus naturel
+de la page faisait la chose la plus destructrice. « Ne plus voir » vit là où il a toujours
+vécu : au bout de la ligne, dans la liste de gauche.)*
+
 ## Ce qui n'est PAS affiché, et pourquoi
 
 C'est la partie qu'il faut connaître pour ne pas se méprendre sur un pourcentage.
@@ -192,6 +214,12 @@ Chaque lancement ajoute une exécution. Toutes apparaissent comme racines de l'a
 cases à cocher choisissent celles qu'on affiche. Sur une méthode ouverte, la page indique
 les autres exécutions où elle a aussi tourné, et le nombre de contextes d'appel distincts —
 un clic bascule.
+
+Le bandeau **« Appelée depuis »**, sous le fil d'Ariane, montre **qui appelle** — et rien
+d'autre. La méthode ouverte est déjà nommée juste au-dessus, et elle terminait chacun des
+chemins à l'identique : elle en a été retirée, comme le « 100 % » d'un contexte unique, qui
+était vrai sans rien apprendre. Avec plusieurs contextes, la part de chacun reste affichée,
+puisque c'est elle qui les départage.
 
 Trois identités par exécution, et chacune a sa raison : un **identifiant** attribué au
 lancement, qui ne change jamais ; le **nom donné par `--name`**, qui dit ce qu'on croyait
