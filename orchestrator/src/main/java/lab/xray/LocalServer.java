@@ -70,6 +70,30 @@ public final class LocalServer {
      */
     public static void serve(Path outDir, String host, int port, Callable<Void> rebuild)
             throws IOException {
+        HttpServer server = start(outDir, host, port, rebuild);
+        annonce(outDir.toAbsolutePath().normalize(), host, port);
+
+        CountDownLatch stop = new CountDownLatch(1);
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            server.stop(0);
+            stop.countDown();
+        }));
+        try {
+            stop.await();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+    }
+
+    /**
+     * Monte et démarre le serveur, sans bloquer.
+     *
+     * <p>Séparé de {@link #serve} pour que les tests puissent le lancer sur un port choisi
+     * par le système, l'interroger, puis l'arrêter — un serveur qui ne rend jamais la main
+     * ne se teste pas.
+     */
+    static HttpServer start(Path outDir, String host, int port, Callable<Void> rebuild)
+            throws IOException {
         Path root = outDir.toAbsolutePath().normalize();
         InetAddress address = "0.0.0.0".equals(host) || "*".equals(host)
                 ? new InetSocketAddress(port).getAddress()
@@ -113,11 +137,20 @@ public final class LocalServer {
                     text(ex, 400, "l'écriture porte sur une exécution : /__xray/noms/<uuid>");
                     return;
                 }
-                if (!(Json.read(read(ex.getRequestBody())) instanceof Map<?, ?> corps)) {
+                // Un corps illisible est une faute de l'appelant, pas une panne du
+                // serveur : répondre 500 enverrait chercher le problème du mauvais côté.
+                Object lu;
+                try {
+                    lu = Json.read(read(ex.getRequestBody()));
+                } catch (Exception malforme) {
+                    text(ex, 400, "corps illisible : " + malforme.getMessage());
+                    return;
+                }
+                if (!(lu instanceof Map<?, ?> corps)) {
                     text(ex, 400, "le corps attendu est un objet JSON");
                     return;
                 }
-                ecrire(root, uuid, (Map<?, ?>) corps, ex, rebuilder);
+                ecrire(root, uuid, corps, ex, rebuilder);
             } catch (Exception e) {
                 System.err.println("   écriture refusée : " + e.getMessage());
                 text(ex, 500, String.valueOf(e.getMessage()));
@@ -140,18 +173,7 @@ public final class LocalServer {
 
         server.setExecutor(java.util.concurrent.Executors.newFixedThreadPool(4));
         server.start();
-        annonce(root, host, port);
-
-        CountDownLatch stop = new CountDownLatch(1);
-        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-            server.stop(0);
-            stop.countDown();
-        }));
-        try {
-            stop.await();
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
+        return server;
     }
 
     /**

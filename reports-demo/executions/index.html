@@ -144,6 +144,14 @@
   .node.runroot{font-weight:600;padding:5px 7px;margin-top:4px;border-radius:6px;
                 background:var(--panel);border:1px solid var(--border)}
   .node.runroot.on{border-color:var(--accent)}
+  /* La ligne d'exécution porte quatre choses de valeur inégale : le repère, le nom,
+     l'identifiant et le nombre de relevés. Quand la place manque, c'est le NOM qui doit
+     s'élider — les trois autres sont courts, et perdre le compte de mesures au profit de
+     trois lettres de nom de plus n'a aucun sens. */
+  .node.runroot{display:flex;align-items:center;gap:6px}
+  .node.runroot .runname{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis}
+  .node.runroot .runbadge,.node.runroot .uid,.node.runroot .pct2{flex:0 0 auto}
+  .node.runroot .uid{margin-left:0}
   .runbadge{font-size:9.5px;letter-spacing:.6px;text-transform:uppercase;color:var(--accent);
             border:1px solid var(--accent);border-radius:9px;padding:0 5px;vertical-align:1px}
   .pct2{color:var(--muted);font-weight:400;font-size:11px}
@@ -951,7 +959,9 @@ function runLabel(run){
 /** Repose les libellés partout où ils s'affichent, sans reconstruire la vue. */
 function refreshRunLabels(){
   document.querySelectorAll("[data-runname]").forEach(el => {
-    el.textContent = runLabel(D.runs[+el.dataset.runname]);
+    const nom = runLabel(D.runs[+el.dataset.runname]);
+    el.textContent = nom;
+    if (el.title) el.title = nom;
   });
   const c = document.getElementById("crumbname");
   if (c) c.textContent = runLabel(R);
@@ -1439,7 +1449,10 @@ function renderTree(){
     head.className = "node runroot" + (idx === runIndex ? " on" : "");
     head.innerHTML = '<span class="tw">' + (idx === runIndex ? "▾" : "▸") + '</span>' +
                      '<span class="runbadge">exécution</span> ' +
-                     '<span data-runname="' + idx + '">' + esc(runLabel(run)) + '</span>' +
+                     // Le nom est ce qui s'élide : le survol le rend en entier, sinon un
+                     // nom un peu long deviendrait indevinable.
+                     '<span class="runname" data-runname="' + idx + '" title="'
+                     + esc(runLabel(run)) + '">' + esc(runLabel(run)) + '</span>' +
                      (run.uuid ? '<span class="uid" title="Identifiant permanent : '
                                  + esc(run.uuid) + '">' + esc(shortId(run)) + '</span>' : '') +
                      ' <span class="pct2">' + total.toLocaleString("fr") + ' mesures</span>';
