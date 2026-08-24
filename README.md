@@ -225,20 +225,31 @@ d'analyse **une seule fois**, dans `~/.runtime-xray`. Ensuite, plus rien ne sort
 
 Trois façons de s'y prendre, de la plus simple à la plus souple.
 
-#### Un seul fichier : l'édition complète
+#### Un seul fichier : le jar qui porte ses composants
 
 ```bash
-mvn -Pcomplet -DskipTests package
-# → orchestrator/target/runtime-xray-complet.jar (~19 Mo)
+mvn -Pjacoco  -DskipTests package   # → runtime-xray-jacoco.jar   (950 Ko)
+mvn -Pcomplet -DskipTests package   # → runtime-xray-complet.jar  (19 Mo)
 ```
 
-Le même outil, avec ses trois composants embarqués. On le porte sur la machine fermée, on le
-lance : il dépose les composants dans `~/.runtime-xray` au premier lancement, et rien ne sort
-sur le réseau. Rien à copier, rien à décompresser.
+Le même outil, avec ses composants embarqués. On le porte sur la machine fermée, on le lance :
+il les dépose dans `~/.runtime-xray` au premier lancement, et rien ne sort sur le réseau. Rien
+à copier, rien à décompresser.
 
-Ce jar **redistribue** JaCoCo (EPL-2.0), async-profiler et Arthas (Apache-2.0) — c'est ce qui
-le distingue du jar ordinaire, qui ne redistribue rien. Voir [THIRD-PARTY.md](THIRD-PARTY.md).
-Il n'est pas publié sur Maven Central : le jar de 170 Ko reste l'artefact normal.
+| Édition | Poids | Ce qui fonctionne sans réseau |
+|---|---|---|
+| `runtime-xray.jar` | 170 Ko | rien à l'avance : les composants sont à trouver ailleurs |
+| `runtime-xray-jacoco.jar` | 950 Ko | la **couverture** |
+| `runtime-xray-complet.jar` | 19 Mo | la couverture, les **temps** et les **valeurs** |
+
+L'écart entre les deux dernières est Arthas, 17 Mo à lui seul pour la capture des valeurs.
+L'édition légère est le bon défaut quand seule la couverture importe ; ce qui lui manque reste
+récupérable par les chemins ci-dessus, et le message d'erreur le dit.
+
+Ces deux jars **redistribuent** JaCoCo (EPL-2.0), et l'édition complète y ajoute
+async-profiler et Arthas (Apache-2.0) — c'est ce qui les distingue du jar ordinaire, qui ne
+redistribue rien. Voir [THIRD-PARTY.md](THIRD-PARTY.md). Ils ne sont pas publiés sur Maven
+Central : le jar de 170 Ko reste l'artefact normal.
 
 #### Le kit, si l'on veut voir ce qu'on transporte
 
