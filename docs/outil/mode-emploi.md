@@ -18,13 +18,20 @@ curl -LO https://github.com/Beennnn/runtime-xray/releases/download/v1.0.0/runtim
 Un jar déjà construit, à télécharger et lancer. Aucun clone n'est nécessaire. Préparation
 d'une machine sans réseau : [Se procurer l'outil](../../README.md#se-procurer-loutil).
 
-Les trois outils d'observation (JaCoCo, async-profiler, Arthas) sont récupérés **une seule
-fois** depuis un dépôt Maven — celui de l'éditeur, ou le miroir interne de l'entreprise via
-`MAVEN_REPO` — et mis en cache dans `~/.runtime-xray`.
+Les trois outils d'observation (JaCoCo, async-profiler, Arthas) sont cherchés **d'abord sur
+la machine** : le cache `~/.runtime-xray`, un répertoire désigné par `--composants`, le
+voisinage du jar, puis le dépôt Maven local — celui que le moindre `mvn` d'entreprise a déjà
+rempli. Le téléchargement depuis un dépôt Maven, celui de l'éditeur ou le miroir interne via
+`MAVEN_REPO`, n'intervient qu'en dernier recours, et ce qui en vient est mis en cache.
 
 **Au deuxième lancement, plus rien ne sort sur le réseau.** C'est ce qui rend l'outil
-utilisable en environnement déconnecté : on prépare le cache une fois sur une machine qui a
-accès, on transporte le répertoire, et c'est tout.
+utilisable en environnement déconnecté. Trois façons d'y arriver, selon ce dont on dispose :
+préparer le cache d'avance, poser les fichiers à côté du jar, ou emporter une édition qui
+porte ses composants — voir [Préparer une machine sans
+réseau](../../README.md#préparer-une-machine-sans-réseau).
+
+Quand un composant manque vraiment, le message d'erreur liste tous les chemins essayés : sur
+une machine fermée, il est fait pour suffire.
 
 ## Le lancer
 
@@ -167,7 +174,8 @@ Aucune modification du code analysé, aucun changement dans le build.
 | `MAX_SECONDS` / `--max-seconds` | 600 s | Garde-fou : au-delà, l'exécution est interrompue et les rapports sont produits quand même |
 | `WATCH_COUNT` | 10 | Nombre d'appels dont on capture les valeurs |
 | `TRACE_COUNT` | 10 | Nombre d'invocations dont on trace le chemin d'appel. Plus il y en a, plus de lignes portent l'annotation « appelle … » |
-| `MAVEN_REPO` / `--repo` | Maven Central | D'où récupérer les composants d'analyse, une seule fois. **Le seul réglage qui compte pour un réseau fermé** : y mettre le miroir interne |
+| `MAVEN_REPO` / `--repo` | Maven Central | D'où récupérer les composants d'analyse, une seule fois. Sur un réseau fermé, y mettre le miroir interne |
+| `COMPOSANTS` / `--composants` | — | Répertoire où les composants sont **déjà** présents. Ce qu'il contient prime sur tout téléchargement. Les noms de Maven (`org.jacoco.agent-0.8.13-runtime.jar`) comme ceux des distributions officielles (`jacocoagent.jar`) sont acceptés |
 | `--no-values` | — | Ne capture pas les valeurs. Les pourcentages de temps deviennent exacts, puisque plus rien n'instrumente |
 
 ### Ce qu'on accepte de payer
