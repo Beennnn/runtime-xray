@@ -218,10 +218,15 @@ java -jar runtime-xray-cli-1.0.0.jar --java "java -jar target/mon-appli.jar"
 
 Les sources et la javadoc sont jointes au même téléchargement.
 
+Pour une machine où l'on ne pourra rien préparer, **deux autres éditions se construisent
+depuis les sources** : elles portent leurs composants d'analyse et n'ont donc besoin d'aucun
+réseau, jamais — voir [ci-dessous](#un-seul-fichier--le-jar-qui-porte-ses-composants).
+
 ### Préparer une machine sans réseau
 
-C'est le cas d'usage qui a motivé toute l'étude. L'outil télécharge ses trois composants
-d'analyse **une seule fois**, dans `~/.runtime-xray`. Ensuite, plus rien ne sort.
+C'est le cas d'usage qui a motivé toute l'étude. L'outil a besoin de ses trois composants
+d'analyse, et **une seule fois** : ensuite ils vivent dans `~/.runtime-xray` et plus rien ne
+sort sur le réseau. Toute la question est de savoir comment ils arrivent là la première fois.
 
 Trois façons de s'y prendre, de la plus simple à la plus souple.
 
@@ -350,9 +355,12 @@ tourne dans la JVM de Maven — la disposition du projet prend le relais, si ell
 vraiment. `--classes` reste disponible pour analyser autre chose : une dépendance interne
 livrée compilée, un jar « gras », ou un module précis.
 
-Les composants d'analyse sont récupérés une fois depuis un dépôt Maven — celui de l'éditeur
-ou un miroir interne — puis mis en cache dans `~/.runtime-xray`. Les exécutions suivantes
-n'accèdent plus au réseau.
+Les composants d'analyse sont cherchés d'abord **sur la machine** — le cache
+`~/.runtime-xray`, un répertoire désigné par `--composants`, le voisinage du jar, le dépôt
+Maven local, et les composants embarqués si c'est une édition qui en porte. Le
+téléchargement depuis un dépôt Maven, celui de l'éditeur ou un miroir interne, n'est que le
+dernier recours ; ce qui en vient est mis en cache, et les exécutions suivantes n'accèdent
+plus au réseau. Le détail : [Préparer une machine sans réseau](#préparer-une-machine-sans-réseau).
 
 Chaque rapport enregistre son propre contexte : commande lancée, méthode racine, filtres,
 heure de début et de fin, durée, machine, système, version de Java.
@@ -479,6 +487,7 @@ Trois dossiers, selon la question traitée.
 | `orchestrator/` | L'outil : un module Maven sans dépendance d'exécution |
 | `sample-app/` | Le programme de démonstration : un calcul de temps de trajet dont le graphe d'appel dépend du contexte, avec du code volontairement jamais exécuté |
 | `tools/` | Le protocole manuel de l'étude : l'invocation native de chaque outil, conservée pour que les affirmations du comparatif restent vérifiables |
+| `bin/` | Les scripts d'accompagnement : les deux recettes de bout en bout, et l'assemblage du kit hors ligne |
 | `docs/` | L'étude |
 | `site/` | La page d'accueil publiée |
 
