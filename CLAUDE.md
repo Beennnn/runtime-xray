@@ -10,7 +10,7 @@ Le [README](README.md) explique l'outil ; ici, on explique le dépôt.
 
 ```bash
 mvn test                            # 154 tests, aucun n'accède au réseau
-mvn -DskipTests package             # orchestrator/target/runtime-xray.jar   (170 Ko)
+mvn -DskipTests package             # orchestrator/target/runtime-xray.jar   (175 Ko)
 mvn -Pjacoco  -DskipTests package   # runtime-xray-jacoco.jar               (950 Ko)
 mvn -Pcomplet -DskipTests package   # runtime-xray-complet.jar               (19 Mo)
 ```
@@ -94,39 +94,3 @@ machine fermée, c'est lui qui doit suffire à s'en sortir, et il doit le rester
   Text → UTF-8), ou lancer avec `-Dstdout.encoding=cp850`. Ne pas « corriger » cela dans
   le code : quand la sortie part dans un tuyau, la JVM ne peut pas savoir quel jeu de
   caractères le terminal utilisera.
-
----
-
-## État courant — 24 août 2026
-
-`main` est à `1.1.0`, verte, et contient tout ce qui suit : la lecture de la page rendue
-indifférente aux fins de ligne, la résolution locale des composants, les trois éditions,
-le kit hors ligne, la vérification de version, et les deux workflows.
-
-**Il reste une seule chose : pousser l'étiquette `v1.1.0`.**
-
-```bash
-git checkout main && git pull
-git tag -a v1.1.0 -m "runtime-xray 1.1.0" && git push origin v1.1.0
-```
-
-Puis, une fois la release publiée : basculer en `v1.1.0` ce qui est figé sur `v1.0.0`.
-Ces liens pointent volontairement la release **publiée** — les faire mentir d'avance
-donnerait un 404 sur la page d'accueil.
-
-| Où | Quoi |
-|---|---|
-| `README.md` l. 203, 207, 208 | le lien de téléchargement et la commande `curl` |
-| `README.md` l. 213 | la ligne « Version » du tableau |
-| `README.md` l. 278 | la commande d'exemple pour remplir le cache |
-| `docs/outil/mode-emploi.md` l. 15 | la commande `curl` |
-
-Deux autres mentions de `1.0.0` — `README.md` l. 217 et l. 553 — parlent de la licence du
-jar **déjà publié**. Elles restent vraies telles quelles ; décider séparément si la 1.1.0
-se publie sous la même licence avant d'y toucher.
-
-Deux branches distantes sont entièrement contenues dans `main` et peuvent partir :
-`claude/dashboard-test-failures-ji48ko`, `claude/product-improvements-f1f5zd`.
-
-*Cette section décrit un moment, pas le dépôt : la supprimer une fois la v1.1.0 publiée
-et les liens basculés.*
