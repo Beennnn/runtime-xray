@@ -1,0 +1,15 @@
+# Le gabarit de la page et les scripts de recette sont lus par des programmes qui
+# raisonnent en lignes. Une copie de travail en CRLF (le défaut de Git pour Windows)
+# suffisait à faire échouer la lecture des données embarquées : on fige donc LF
+# partout dans la copie de travail, sauf là où l'outil exige CRLF.
+* text=auto eol=lf
+
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+*.png binary
+*.gif binary
+*.jpg binary
+*.ico binary
+*.jar binary
+*.zip binary
