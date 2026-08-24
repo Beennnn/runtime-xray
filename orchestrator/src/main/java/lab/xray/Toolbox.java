@@ -9,6 +9,8 @@ import java.net.http.HttpResponse;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.util.ArrayList;
+import java.util.List;
 import java.time.Duration;
 import java.util.Enumeration;
 import java.util.Locale;
@@ -33,22 +35,79 @@ public final class Toolbox {
 
     private final Path cache;
     private final String repo;
+    /** Répertoires fouillés à plat, dans l'ordre, avant de sortir sur le réseau. */
+    private final List<Path> plats;
+    /** Dépôt Maven local, fouillé selon la disposition groupe/artefact/version. */
+    private final Path depotLocal;
     private final HttpClient http = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(20))
             .followRedirects(HttpClient.Redirect.NORMAL)
             .build();
 
     public Toolbox(String repo) {
-        this.cache = Path.of(System.getProperty("user.home"), ".runtime-xray");
+        this(repo, "");
+    }
+
+    /**
+     * @param composants répertoire indiqué par l'utilisateur ({@code --composants}), ou vide.
+     */
+    public Toolbox(String repo, String composants) {
+        this(repo,
+             Path.of(System.getProperty("user.home"), ".runtime-xray"),
+             emplacements(composants),
+             depotMavenLocal());
+    }
+
+    Toolbox(String repo, Path cache, List<Path> plats, Path depotLocal) {
+        this.cache = cache;
+        this.plats = plats;
+        this.depotLocal = depotLocal;
         this.repo = repo.endsWith("/") ? repo.substring(0, repo.length() - 1) : repo;
     }
 
+    /**
+     * Les endroits où un composant déposé à la main peut se trouver, du plus explicite au
+     * moins probable : ce que l'utilisateur a désigné, puis le voisinage du jar — c'est le
+     * geste naturel quand on transporte l'outil sur une clé.
+     */
+    private static List<Path> emplacements(String composants) {
+        List<Path> dirs = new ArrayList<>();
+        if (composants != null && !composants.isBlank()) dirs.add(Path.of(composants.trim()));
+        String env = System.getenv("RUNTIME_XRAY_COMPOSANTS");
+        if (env != null && !env.isBlank()) dirs.add(Path.of(env.trim()));
+        Path jar = repertoireDuJar();
+        if (jar != null) {
+            dirs.add(jar);
+            dirs.add(jar.resolve("composants"));
+        }
+        return dirs;
+    }
+
+    /** {@code null} hors d'un jar — en test, le code vit dans un répertoire de classes. */
+    private static Path repertoireDuJar() {
+        try {
+            java.net.URL src = Toolbox.class.getProtectionDomain().getCodeSource().getLocation();
+            Path p = Path.of(src.toURI());
+            return Files.isDirectory(p) ? null : p.getParent();
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private static Path depotMavenLocal() {
+        String explicite = System.getenv("MAVEN_REPO_LOCAL");
+        if (explicite != null && !explicite.isBlank()) return Path.of(explicite.trim());
+        return Path.of(System.getProperty("user.home"), ".m2", "repository");
+    }
+
     public Path jacocoAgent() throws IOException, InterruptedException {
-        return artifact("org.jacoco", "org.jacoco.agent", JACOCO_VERSION, "runtime", "jar");
+        return artifact("org.jacoco", "org.jacoco.agent", JACOCO_VERSION, "runtime", "jar",
+                "jacocoagent.jar");
     }
 
     public Path jacocoCli() throws IOException, InterruptedException {
-        return artifact("org.jacoco", "org.jacoco.cli", JACOCO_VERSION, "nodeps", "jar");
+        return artifact("org.jacoco", "org.jacoco.cli", JACOCO_VERSION, "nodeps", "jar",
+                "jacococli.jar");
     }
 
     /**
@@ -62,7 +121,8 @@ public final class Toolbox {
      * trompe, et c'est elle qui reste lisible si la synthèse ne s'ouvre plus.
      */
     public Path asyncProfilerConverter() throws IOException, InterruptedException {
-        return artifact("tools.profiler", "jfr-converter", ASYNC_VERSION, null, "jar");
+        return artifact("tools.profiler", "jfr-converter", ASYNC_VERSION, null, "jar",
+                "jfr-converter.jar");
     }
 
     /**
@@ -78,7 +138,8 @@ public final class Toolbox {
         Path target = cache.resolve("libasyncProfiler-" + ASYNC_VERSION + suffix(entry));
         if (Files.isRegularFile(target)) return target;
 
-        Path jar = artifact("tools.profiler", "async-profiler", ASYNC_VERSION, null, "jar");
+        Path jar = artifact("tools.profiler", "async-profiler", ASYNC_VERSION, null, "jar",
+                "async-profiler.jar");
         try (ZipFile zip = new ZipFile(jar.toFile())) {
             ZipEntry e = zip.getEntry(entry);
             if (e == null) {
@@ -98,7 +159,20 @@ public final class Toolbox {
         Path home = cache.resolve("arthas-" + ARTHAS_VERSION);
         if (Files.isRegularFile(home.resolve("arthas-boot.jar"))) return home;
 
-        Path zip = artifact("com.taobao.arthas", "arthas-packaging", ARTHAS_VERSION, "bin", "zip");
+        // Arthas se distribue aussi décompressé : celui qui l'a déjà sous la main l'a le
+        // plus souvent sous cette forme, et le redemander en archive n'aurait aucun sens.
+        for (Path dir : plats) {
+            for (Path candidat : List.of(dir.resolve("arthas-" + ARTHAS_VERSION),
+                                         dir.resolve("arthas"), dir)) {
+                if (Files.isRegularFile(candidat.resolve("arthas-boot.jar"))) {
+                    System.out.println("   composant local : " + candidat);
+                    return candidat;
+                }
+            }
+        }
+
+        Path zip = artifact("com.taobao.arthas", "arthas-packaging", ARTHAS_VERSION, "bin", "zip",
+                "arthas-bin.zip");
         Files.createDirectories(home);
         unzip(zip, home);
         return home;
@@ -106,25 +180,82 @@ public final class Toolbox {
 
     // ------------------------------------------------------------------ interne
 
-    private Path artifact(String group, String name, String version, String classifier, String ext)
-            throws IOException, InterruptedException {
+    /**
+     * Trouve un composant, sans réseau si possible.
+     *
+     * <p>Le réseau est le dernier recours, jamais le premier réflexe : sur la machine qui
+     * nous intéresse, il n'y en a pas. On regarde donc d'abord le cache, puis ce que
+     * l'utilisateur a déposé à la main, puis le dépôt Maven local — celui que le moindre
+     * {@code mvn} d'entreprise a déjà rempli depuis le miroir interne.
+     *
+     * @param usuel nom du même composant dans la distribution de son éditeur. C'est sous ce
+     *              nom-là qu'on l'a quand on ne l'a pas pris sur Maven : {@code jacocoagent.jar},
+     *              pas {@code org.jacoco.agent-0.8.13-runtime.jar}. On l'accepte, en disant
+     *              que la version n'est alors pas vérifiée.
+     */
+    private Path artifact(String group, String name, String version, String classifier, String ext,
+                          String usuel) throws IOException, InterruptedException {
         String file = name + "-" + version + (classifier == null ? "" : "-" + classifier) + "." + ext;
+        List<String> vus = new ArrayList<>();
+
         Path local = cache.resolve(file);
+        vus.add(local.toString());
         if (Files.isRegularFile(local)) return local;
+
+        for (Path dir : plats) {
+            Path exact = dir.resolve(file);
+            vus.add(exact.toString());
+            if (Files.isRegularFile(exact)) {
+                System.out.println("   composant local : " + exact);
+                return exact;
+            }
+            if (usuel != null) {
+                Path autre = dir.resolve(usuel);
+                vus.add(autre.toString());
+                if (Files.isRegularFile(autre)) {
+                    System.out.println("   composant local : " + autre
+                            + "  (version non vérifiée, " + version + " attendue)");
+                    return autre;
+                }
+            }
+        }
+
+        Path m2 = depotLocal.resolve(group.replace('.', '/')).resolve(name).resolve(version)
+                .resolve(file);
+        vus.add(m2.toString());
+        if (Files.isRegularFile(m2)) {
+            System.out.println("   composant local : " + m2);
+            return m2;
+        }
 
         String url = repo + "/" + group.replace('.', '/') + "/" + name + "/" + version + "/" + file;
         Files.createDirectories(cache);
         Path tmp = Files.createTempFile(cache, "dl-", ".part");
         System.out.println("   téléchargement : " + file);
         HttpRequest req = HttpRequest.newBuilder(URI.create(url)).timeout(Duration.ofMinutes(5)).build();
-        HttpResponse<Path> res = http.send(req, HttpResponse.BodyHandlers.ofFile(tmp));
+        HttpResponse<Path> res;
+        try {
+            res = http.send(req, HttpResponse.BodyHandlers.ofFile(tmp));
+        } catch (IOException echec) {
+            Files.deleteIfExists(tmp);
+            throw new IOException(indisponible(file, url, vus) + "\n   (" + echec + ")");
+        }
         if (res.statusCode() != 200) {
             Files.deleteIfExists(tmp);
-            throw new IOException("téléchargement impossible (" + res.statusCode() + ") : " + url
-                    + "\n   Sur un réseau fermé, indiquer le miroir interne avec MAVEN_REPO.");
+            throw new IOException(indisponible(file, url + " → HTTP " + res.statusCode(), vus));
         }
         Files.move(tmp, local, StandardCopyOption.REPLACE_EXISTING);
         return local;
+    }
+
+    /** Un échec ici arrête tout : le message dit où on a cherché, et comment s'en sortir. */
+    private static String indisponible(String file, String url, List<String> vus) {
+        return "composant introuvable : " + file
+                + "\n   cherché sur le réseau : " + url
+                + "\n   cherché sur le disque :\n      " + String.join("\n      ", vus)
+                + "\n   Sur un réseau fermé : déposer le fichier dans l'un de ces répertoires,"
+                + "\n   le désigner par --composants <répertoire>, ou indiquer le miroir"
+                + "\n   Maven interne par --repo <url> (ou MAVEN_REPO).";
     }
 
     /** Chemin de la bibliothèque native dans le jar, selon le système et l'architecture. */

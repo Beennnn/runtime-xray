@@ -248,6 +248,29 @@ Sur la machine isolée, décompresser et copier `.runtime-xray` dans `$HOME` : l
 n'ouvrira aucune connexion. Si un miroir Maven interne est joignable, `--repo` ou
 `MAVEN_REPO` l'y envoie et le cache se remplit tout seul depuis l'intérieur du réseau.
 
+#### Si les composants sont déjà sur la machine
+
+C'est souvent le cas : un poste qui construit du Java a déjà JaCoCo dans son dépôt Maven
+local, et celui qui a préparé l'intervention a souvent le fichier sur sa clé. L'outil
+regarde donc, **avant** toute sortie sur le réseau :
+
+| Ordre | Endroit | Comment y mettre les fichiers |
+|---|---|---|
+| 1 | `~/.runtime-xray` | le cache que l'outil remplit lui-même |
+| 2 | `--composants <rép>` (ou `COMPOSANTS=`, ou `RUNTIME_XRAY_COMPOSANTS`) | un répertoire désigné |
+| 3 | le répertoire du jar, et son sous-répertoire `composants/` | poser le fichier à côté du jar |
+| 4 | `~/.m2/repository` (ou `MAVEN_REPO_LOCAL`) | rien à faire : c'est le dépôt Maven local |
+| 5 | le réseau | dernier recours |
+
+Les noms attendus sont ceux de Maven (`org.jacoco.agent-0.8.13-runtime.jar`), mais les noms
+des distributions officielles sont acceptés aussi — `jacocoagent.jar`, `jacococli.jar`,
+`arthas-bin.zip`, ou un Arthas déjà décompressé. L'outil dit alors quel fichier il a pris et
+rappelle que la version n'est, dans ce cas, pas vérifiée.
+
+Quand un composant manque vraiment, le message liste tous les chemins essayés et les deux
+issues (`--composants`, `--repo`) : sur une machine fermée, c'est ce message qui doit
+suffire à s'en sortir sans revenir aux sources.
+
 ### Vérifier que ça fonctionne — deux recettes
 
 [`bin/recette-central.sh`](bin/recette-central.sh) récupère l'artefact **publié** dans un

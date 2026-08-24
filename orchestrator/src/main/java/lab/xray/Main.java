@@ -90,6 +90,7 @@ public final class Main {
                 case "--out" -> config.outDir = args[++i];
                 case "--name" -> config.runName = args[++i];
                 case "--repo" -> config.mavenRepo = args[++i];
+                case "--composants" -> config.componentsDir = args[++i];
                 case "--attach-after" -> config.attachAfterSeconds = Integer.parseInt(args[++i]);
                 case "--max-seconds" -> config.maxSeconds = Integer.parseInt(args[++i]);
                 case "--no-values" -> config.captureValues = false;
@@ -153,7 +154,7 @@ public final class Main {
             }
         }
 
-        Toolbox tools = new Toolbox(config.mavenRepo);
+        Toolbox tools = new Toolbox(config.mavenRepo, config.componentsDir);
 
         // Mode « je veux juste les options à coller » : l'outil doit pouvoir s'ajouter à une
         // ligne de commande Java quelconque, y compris une qu'on ne contrôle pas — un
@@ -659,6 +660,9 @@ public final class Main {
                   --print-options      N'exécute rien : affiche les options JVM à ajouter à une
                                        ligne de commande quelconque, puis sortez par --report-only.
                   --repo <url>         Dépôt Maven d'où tirer les composants (miroir interne).
+                  --composants <rép>   Composants déjà présents sur la machine, à prendre
+                                       tels quels. À défaut : le voisinage du jar, puis le
+                                       dépôt Maven local. Le réseau est le dernier recours.
                   --report-only        Assemble la vue depuis des mesures déjà collectées.
                   --serve [port]       Sert le rapport (défaut : 8787) et laisse la page
                                        écrire ses annotations à côté des exécutions, puis la
