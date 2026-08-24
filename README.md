@@ -223,6 +223,25 @@ Les sources et la javadoc sont jointes au même téléchargement.
 C'est le cas d'usage qui a motivé toute l'étude. L'outil télécharge ses trois composants
 d'analyse **une seule fois**, dans `~/.runtime-xray`. Ensuite, plus rien ne sort.
 
+Trois façons de s'y prendre, de la plus simple à la plus souple.
+
+#### Un seul fichier : l'édition complète
+
+```bash
+mvn -Pcomplet -DskipTests package
+# → orchestrator/target/runtime-xray-complet.jar (~19 Mo)
+```
+
+Le même outil, avec ses trois composants embarqués. On le porte sur la machine fermée, on le
+lance : il dépose les composants dans `~/.runtime-xray` au premier lancement, et rien ne sort
+sur le réseau. Rien à copier, rien à décompresser.
+
+Ce jar **redistribue** JaCoCo (EPL-2.0), async-profiler et Arthas (Apache-2.0) — c'est ce qui
+le distingue du jar ordinaire, qui ne redistribue rien. Voir [THIRD-PARTY.md](THIRD-PARTY.md).
+Il n'est pas publié sur Maven Central : le jar de 170 Ko reste l'artefact normal.
+
+#### Le kit, si l'on veut voir ce qu'on transporte
+
 [`bin/kit-hors-ligne.sh`](bin/kit-hors-ligne.sh) assemble le paquet à transporter — le jar,
 les trois composants, leurs empreintes et le mode d'emploi :
 

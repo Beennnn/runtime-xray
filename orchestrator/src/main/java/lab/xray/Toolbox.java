@@ -228,6 +228,10 @@ public final class Toolbox {
             return m2;
         }
 
+        Path embarque = extraitDuJar(file);
+        if (embarque != null) return embarque;
+        vus.add("(embarqué dans le jar : édition complète uniquement)");
+
         String url = repo + "/" + group.replace('.', '/') + "/" + name + "/" + version + "/" + file;
         Files.createDirectories(cache);
         Path tmp = Files.createTempFile(cache, "dl-", ".part");
@@ -246,6 +250,26 @@ public final class Toolbox {
         }
         Files.move(tmp, local, StandardCopyOption.REPLACE_EXISTING);
         return local;
+    }
+
+    /**
+     * L'édition complète du jar porte les composants en ressources. On les dépose alors
+     * dans le cache — un {@code -javaagent} veut un fichier sur le disque, pas une entrée
+     * d'archive, et le CLI de JaCoCo comme Arthas sont lancés en processus séparés.
+     *
+     * @return {@code null} pour le jar ordinaire, qui n'embarque rien.
+     */
+    private Path extraitDuJar(String file) throws IOException {
+        try (InputStream in = Toolbox.class.getResourceAsStream("/lab/xray/composants/" + file)) {
+            if (in == null) return null;
+            Files.createDirectories(cache);
+            Path tmp = Files.createTempFile(cache, "ex-", ".part");
+            System.out.println("   composant embarqué : " + file);
+            Files.copy(in, tmp, StandardCopyOption.REPLACE_EXISTING);
+            Path cible = cache.resolve(file);
+            Files.move(tmp, cible, StandardCopyOption.REPLACE_EXISTING);
+            return cible;
+        }
     }
 
     /** Un échec ici arrête tout : le message dit où on a cherché, et comment s'en sortir. */
