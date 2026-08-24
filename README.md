@@ -200,21 +200,21 @@ Ces résultats valent dans le cadre décrit, et pas au-delà. En particulier :
 ## Se procurer l'outil
 
 **Un jar déjà construit, rien d'autre.** Pas de clone, pas de build, pas de compte :
-[**télécharger `runtime-xray-cli-1.0.0.jar`**](https://github.com/Beennnn/runtime-xray/releases/latest)
+[**télécharger `runtime-xray-cli-1.1.0.jar`**](https://github.com/Beennnn/runtime-xray/releases/latest)
 et le lancer.
 
 ```bash
-curl -LO https://github.com/Beennnn/runtime-xray/releases/download/v1.0.0/runtime-xray-cli-1.0.0.jar
-java -jar runtime-xray-cli-1.0.0.jar --java "java -jar target/mon-appli.jar"
+curl -LO https://github.com/Beennnn/runtime-xray/releases/download/v1.1.0/runtime-xray-cli-1.1.0.jar
+java -jar runtime-xray-cli-1.1.0.jar --java "java -jar target/mon-appli.jar"
 ```
 
 | | |
 |---|---|
-| Version | `1.0.0` |
-| Taille | ~100 Ko |
+| Version | `1.1.0` |
+| Taille | ~175 Ko |
 | Dépendances | aucune, hors du JDK |
 | Java | 21 ou plus |
-| Licence | 0BSD pour le dépôt, MIT pour ce jar `1.0.0` |
+| Licence | 0BSD — la `1.0.0`, elle, avait été publiée sous MIT |
 
 Les sources et la javadoc sont jointes au même téléchargement.
 
@@ -275,7 +275,7 @@ Windows.
 
 ```bash
 # L'autre façon, si une analyse aboutit déjà sur la machine connectée
-java -jar runtime-xray-cli-1.0.0.jar --java "java -version"
+java -jar runtime-xray-cli-1.1.0.jar --java "java -version"
 tar czf runtime-xray-hors-ligne.tgz -C ~ .runtime-xray
 ```
 
