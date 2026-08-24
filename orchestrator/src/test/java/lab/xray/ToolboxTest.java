@@ -111,6 +111,48 @@ class ToolboxTest {
     }
 
     @Test
+    @DisplayName("L'édition complète porte ses composants : ils sont déposés dans le cache")
+    void extractsAComponentEmbeddedInTheJar(@TempDir Path dir) throws Exception {
+        // Le classpath de test porte /lab/xray/composants/jfr-converter-4.1.jar, comme le
+        // ferait le jar construit avec -Pcomplet. Rien sur le disque, dépôt injoignable.
+        Path cache = dir.resolve("cache");
+
+        Path obtenu = outils(cache, List.of(), dir.resolve("m2")).asyncProfilerConverter();
+
+        assertEquals(cache.resolve("jfr-converter-4.1.jar"), obtenu,
+                "un -javaagent veut un fichier : le composant doit atterrir sur le disque");
+        assertTrue(Files.isRegularFile(obtenu));
+        assertTrue(Files.list(cache).noneMatch(f -> f.getFileName().toString().startsWith("ex-")),
+                "aucun fichier de travail ne doit rester derrière");
+    }
+
+    @Test
+    @DisplayName("Les versions du pom ne divergent pas des constantes du code")
+    void thePomVersionsMatchTheCode() throws Exception {
+        // Le profil « complet » embarque ce que dit le pom ; à l'exécution, Toolbox cherche
+        // ce que disent ses constantes. Deux sources qui divergeraient donneraient un jar
+        // d'apparence complète, qui retéléchargerait tout.
+        String pom = Files.readString(Path.of("pom.xml"), StandardCharsets.UTF_8);
+        String code = Files.readString(
+                Path.of("src/main/java/lab/xray/Toolbox.java"), StandardCharsets.UTF_8);
+
+        for (String[] paire : new String[][]{{"jacoco.version", "JACOCO_VERSION"},
+                                             {"arthas.version", "ARTHAS_VERSION"},
+                                             {"async.version", "ASYNC_VERSION"}}) {
+            String duPom = entre(pom, "<" + paire[0] + ">", "</" + paire[0] + ">");
+            String duCode = entre(code, paire[1] + " = \"", "\"");
+            assertEquals(duCode, duPom, paire[0] + " et " + paire[1] + " doivent coïncider");
+        }
+    }
+
+    private static String entre(String texte, String debut, String fin) {
+        int i = texte.indexOf(debut);
+        assertTrue(i >= 0, "marqueur introuvable : " + debut);
+        i += debut.length();
+        return texte.substring(i, texte.indexOf(fin, i));
+    }
+
+    @Test
     @DisplayName("Introuvable, le message dit où l'on a cherché et comment s'en sortir")
     void tellsWhereItLookedWhenNothingIsFound(@TempDir Path dir) {
         Path cache = dir.resolve("cache");
@@ -126,5 +168,6 @@ class ToolboxTest {
                 "les répertoires fouillés doivent être listés : " + message);
         assertTrue(message.contains("--composants") && message.contains("--repo"),
                 "les deux issues doivent être rappelées : " + message);
+        assertTrue(message.contains("embarqué"), "l'édition complète doit être évoquée : " + message);
     }
 }

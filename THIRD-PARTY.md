@@ -24,14 +24,37 @@ toute la chaîne.
 
 ## Outils récupérés à l'exécution
 
-L'outil ne redistribue rien de ce qui suit : il le télécharge depuis un dépôt Maven au
-premier lancement, dans `~/.runtime-xray`.
+Le jar ordinaire (`runtime-xray.jar`, ~170 Ko) ne redistribue rien de ce qui suit : il le
+télécharge depuis un dépôt Maven au premier lancement, dans `~/.runtime-xray`.
 
 | Outil | Licence |
 |---|---|
 | [JaCoCo](https://www.jacoco.org/) | EPL-2.0 |
 | [async-profiler](https://github.com/async-profiler/async-profiler) | Apache-2.0 |
 | [Arthas](https://arthas.aliyun.com/) | Apache-2.0 |
+
+### L'édition complète, elle, les redistribue
+
+`runtime-xray-complet.jar` (~19 Mo, construit par `mvn -Pcomplet package`) **embarque** ces
+trois outils, sous la forme exacte de leurs archives publiées sur Maven Central — aucune
+modification, aucun désassemblage, aucun mélange avec notre code. Il les dépose dans
+`~/.runtime-xray` au premier lancement, puis s'efface du chemin.
+
+Cet artefact existe pour un seul cas : la machine sans réseau, où un fichier unique à porter
+vaut mieux qu'un cache à préparer. Il n'est pas publié sur Maven Central.
+
+Ce qui s'y applique, et qui ne s'applique pas au jar ordinaire :
+
+| Fichier embarqué | Origine | Licence |
+|---|---|---|
+| `lab/xray/composants/org.jacoco.agent-*-runtime.jar`<br>`lab/xray/composants/org.jacoco.cli-*-nodeps.jar` | [JaCoCo](https://www.jacoco.org/) | [EPL-2.0](https://www.eclipse.org/legal/epl-2.0/) |
+| `lab/xray/composants/async-profiler-*.jar`<br>`lab/xray/composants/jfr-converter-*.jar` | [async-profiler](https://github.com/async-profiler/async-profiler) | Apache-2.0 |
+| `lab/xray/composants/arthas-packaging-*-bin.zip` | [Arthas](https://arthas.aliyun.com/) | Apache-2.0 |
+
+L'EPL-2.0 autorise cette redistribution sous forme binaire et demande que la licence
+accompagne les fichiers et que la source reste accessible : les archives sont intactes,
+elles portent leurs propres notices, et les sources de JaCoCo sont publiées par le projet
+lui-même. La licence 0BSD de ce dépôt ne couvre ni ne modifie ces fichiers.
 
 Toute la capacité d'observation vient de ces trois projets. Ce dépôt n'apporte que
 l'assemblage de leurs sorties.
