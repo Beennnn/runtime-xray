@@ -9,6 +9,9 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.jar.Attributes;
+import java.util.jar.JarOutputStream;
+import java.util.jar.Manifest;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -124,6 +127,55 @@ class ToolboxTest {
         assertTrue(Files.isRegularFile(obtenu));
         assertTrue(Files.list(cache).noneMatch(f -> f.getFileName().toString().startsWith("ex-")),
                 "aucun fichier de travail ne doit rester derrière");
+    }
+
+    @Test
+    @DisplayName("Un composant qui déclare la bonne version ne déclenche aucun avertissement")
+    void staysSilentWhenTheBroughtComponentDeclaresTheRightVersion(@TempDir Path dir)
+            throws Exception {
+        Path bon = jarAvecVersion(dir.resolve("jacocoagent.jar"), "0.8.13");
+
+        assertEquals("", Toolbox.mention(bon, "0.8.13"),
+                "avertir quand tout va bien apprend à ne plus lire les avertissements");
+    }
+
+    @Test
+    @DisplayName("Une version différente est nommée, pas seulement soupçonnée")
+    void namesTheVersionWhenItDiffers(@TempDir Path dir) throws Exception {
+        Path ancien = jarAvecVersion(dir.resolve("jacocoagent.jar"), "0.8.11");
+
+        String mention = Toolbox.mention(ancien, "0.8.13");
+
+        assertTrue(mention.contains("0.8.11") && mention.contains("0.8.13"),
+                "les deux versions doivent apparaître : " + mention);
+    }
+
+    @Test
+    @DisplayName("Un fichier qui ne déclare rien reste « non vérifié », sans échouer")
+    void keepsTheOldCautionWhenNothingIsDeclared(@TempDir Path dir) throws Exception {
+        // Les archives d'async-profiler et d'Arthas sont dans ce cas, un fichier tronqué aussi.
+        Path muet = jarAvecVersion(dir.resolve("sans-version.jar"), null);
+        Path pasUnJar = fichier(dir, "texte.jar");
+
+        assertTrue(Toolbox.mention(muet, "4.1").contains("non vérifiée"));
+        assertTrue(Toolbox.mention(pasUnJar, "4.1").contains("non vérifiée"),
+                "ne pas savoir n'est pas un défaut : surtout, ne pas lever d'exception");
+    }
+
+    /** @param version {@code null} pour un jar dont le manifeste n'en déclare aucune. */
+    private Path jarAvecVersion(Path cible, String version) throws IOException {
+        Manifest manifeste = new Manifest();
+        manifeste.getMainAttributes().put(Attributes.Name.MANIFEST_VERSION, "1.0");
+        if (version != null) {
+            manifeste.getMainAttributes().put(Attributes.Name.IMPLEMENTATION_VERSION, version);
+        }
+        Files.createDirectories(cible.getParent());
+        try (JarOutputStream out = new JarOutputStream(Files.newOutputStream(cible), manifeste)) {
+            out.putNextEntry(new java.util.zip.ZipEntry("rien.txt"));
+            out.write("rien".getBytes(StandardCharsets.UTF_8));
+            out.closeEntry();
+        }
+        return cible;
     }
 
     @Test

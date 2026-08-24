@@ -14,6 +14,8 @@ import java.util.List;
 import java.time.Duration;
 import java.util.Enumeration;
 import java.util.Locale;
+import java.util.jar.JarFile;
+import java.util.jar.Manifest;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
@@ -213,8 +215,7 @@ public final class Toolbox {
                 Path autre = dir.resolve(usuel);
                 vus.add(autre.toString());
                 if (Files.isRegularFile(autre)) {
-                    System.out.println("   composant local : " + autre
-                            + "  (version non vérifiée, " + version + " attendue)");
+                    System.out.println("   composant local : " + autre + mention(autre, version));
                     return autre;
                 }
             }
@@ -250,6 +251,43 @@ public final class Toolbox {
         }
         Files.move(tmp, local, StandardCopyOption.REPLACE_EXISTING);
         return local;
+    }
+
+    /**
+     * Ce qu'on ajoute derrière un composant trouvé sous son nom usuel.
+     *
+     * <p>Ce nom-là ne porte pas la version : {@code jacocoagent.jar} peut être n'importe
+     * lequel. Plutôt que d'avertir à tout hasard — ce qui inquiète celui qui a apporté le
+     * bon fichier et n'apprend rien à celui qui s'est trompé — on lit la version que le
+     * fichier déclare lui-même. Silence si elle correspond, avertissement précis sinon.
+     *
+     * @return la mention à afficher, vide quand il n'y a rien à signaler.
+     */
+    static String mention(Path fichier, String attendue) {
+        String declaree = versionDeclaree(fichier);
+        if (declaree == null) {
+            return "  (version non vérifiée, " + attendue + " attendue)";
+        }
+        if (declaree.equals(attendue)) {
+            return "";
+        }
+        return "  (version " + declaree + " apportée, " + attendue + " attendue :"
+                + " les composants d'un même outil doivent s'accorder)";
+    }
+
+    /**
+     * La version que le fichier déclare dans son manifeste, ou {@code null} s'il n'en
+     * déclare aucune — les archives d'async-profiler et d'Arthas sont dans ce cas, et un
+     * fichier illisible aussi. On ne conclut alors rien : ne pas savoir n'est pas un défaut.
+     */
+    private static String versionDeclaree(Path fichier) {
+        try (JarFile jar = new JarFile(fichier.toFile())) {
+            Manifest manifeste = jar.getManifest();
+            if (manifeste == null) return null;
+            return manifeste.getMainAttributes().getValue("Implementation-Version");
+        } catch (IOException | RuntimeException e) {
+            return null;
+        }
     }
 
     /**
