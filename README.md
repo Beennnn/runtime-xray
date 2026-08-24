@@ -489,6 +489,7 @@ Trois dossiers, selon la question traitée.
 | `tools/` | Le protocole manuel de l'étude : l'invocation native de chaque outil, conservée pour que les affirmations du comparatif restent vérifiables |
 | `bin/` | Les scripts d'accompagnement : les deux recettes de bout en bout, et l'assemblage du kit hors ligne |
 | `docs/` | L'étude |
+| `CLAUDE.md` | Ce qu'il faut savoir avant de toucher au dépôt : construire, publier, conventions, travaux en cours |
 | `.github/workflows/` | Les tests à chaque proposition de fusion, et la publication d'une version quand une étiquette `v*` est poussée |
 | `site/` | La page d'accueil publiée |
 
