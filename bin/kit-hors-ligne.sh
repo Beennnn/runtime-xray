@@ -88,6 +88,10 @@ Installation sur la machine isolée
   Puis lancer normalement :  java -jar runtime-xray.jar ...
   L'outil trouve ses composants dans ce cache et n'ouvre aucune connexion.
 
+  Sans rien copier, ça marche aussi : les fichiers de .runtime-xray posés à côté du
+  jar sont pris tels quels, comme ceux d'un répertoire désigné par --composants, et
+  comme ceux du dépôt Maven local (~/.m2/repository) s'il les contient déjà.
+
 Composants
   JaCoCo $JACOCO          couverture   (org.jacoco.agent, org.jacoco.cli)
   async-profiler $ASYNC       temps        (async-profiler, jfr-converter)
