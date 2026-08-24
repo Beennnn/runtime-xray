@@ -79,7 +79,7 @@ python3 - <<'PY'
 import re, pathlib, sys
 p = pathlib.Path("sortie/index.html")
 t = p.read_text()
-m = re.search(r'const D = (\{.*?\});\n', t, re.S)
+m = re.search(r'const D = (\{.*?\});\r?\n', t, re.S)
 sys.exit(0 if m and len(m.group(1)) > 10000 and '"runs"' in m.group(1) else 1)
 PY
 etape $? "la page contient les données de l'exécution, pas un gabarit vide"

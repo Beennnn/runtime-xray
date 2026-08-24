@@ -7,7 +7,7 @@
   <parent>
     <groupId>io.github.beennnn</groupId>
     <artifactId>runtime-xray</artifactId>
-    <version>1.0.0</version>
+    <version>1.1.0</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -22,6 +22,17 @@
     tourne, et une machine qui exécute du Java a un JDK, pas forcément bash ni Python.
   </description>
   <url>https://github.com/Beennnn/runtime-xray</url>
+
+  <!--
+    Les versions des trois composants. Elles ne servent qu'au profil « complet », qui doit
+    embarquer exactement ce que Toolbox ira chercher : ToolboxTest vérifie qu'elles ne
+    divergent pas des constantes du code, seule source de vérité à l'exécution.
+  -->
+  <properties>
+    <jacoco.version>0.8.13</jacoco.version>
+    <arthas.version>4.3.4</arthas.version>
+    <async.version>4.1</async.version>
+  </properties>
 
   <dependencies>
     <!-- Portée test uniquement : le jar livré reste sans aucune dépendance. -->
@@ -54,4 +65,203 @@
       </plugin>
     </plugins>
   </build>
+
+  <profiles>
+    <!--
+      L'édition complète : le même outil, avec ses trois composants d'analyse embarqués,
+      extraits vers ~/.runtime-xray au premier lancement.
+
+      Un seul fichier à porter sur une machine fermée, là où le jar ordinaire suppose
+      d'avoir préparé le cache. Ce n'est pas la construction par défaut : le jar ordinaire
+      pèse 170 Ko et ne redistribue rien, celui-ci pèse 19 Mo et redistribue de l'EPL-2.0
+      et de l'Apache-2.0 (voir THIRD-PARTY.md). Deux artefacts, deux publics.
+
+          mvn -Pcomplet -DskipTests package
+          → orchestrator/target/runtime-xray-complet.jar
+    -->
+    <profile>
+      <id>complet</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-dependency-plugin</artifactId>
+            <version>3.8.1</version>
+            <executions>
+              <execution>
+                <id>composants</id>
+                <phase>prepare-package</phase>
+                <goals><goal>copy</goal></goals>
+                <configuration>
+                  <!-- Les noms de destination sont ceux que Toolbox recompose : le jar
+                       embarqué doit être trouvable exactement comme celui du cache. -->
+                  <outputDirectory>${project.build.directory}/complet/lab/xray/composants</outputDirectory>
+                  <artifactItems>
+                    <artifactItem>
+                      <groupId>org.jacoco</groupId>
+                      <artifactId>org.jacoco.agent</artifactId>
+                      <version>${jacoco.version}</version>
+                      <classifier>runtime</classifier>
+                    </artifactItem>
+                    <artifactItem>
+                      <groupId>org.jacoco</groupId>
+                      <artifactId>org.jacoco.cli</artifactId>
+                      <version>${jacoco.version}</version>
+                      <classifier>nodeps</classifier>
+                    </artifactItem>
+                    <artifactItem>
+                      <groupId>tools.profiler</groupId>
+                      <artifactId>async-profiler</artifactId>
+                      <version>${async.version}</version>
+                    </artifactItem>
+                    <artifactItem>
+                      <groupId>tools.profiler</groupId>
+                      <artifactId>jfr-converter</artifactId>
+                      <version>${async.version}</version>
+                    </artifactItem>
+                    <artifactItem>
+                      <groupId>com.taobao.arthas</groupId>
+                      <artifactId>arthas-packaging</artifactId>
+                      <version>${arthas.version}</version>
+                      <classifier>bin</classifier>
+                      <type>zip</type>
+                    </artifactItem>
+                  </artifactItems>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-resources-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>classes-du-complet</id>
+                <phase>prepare-package</phase>
+                <goals><goal>copy-resources</goal></goals>
+                <configuration>
+                  <outputDirectory>${project.build.directory}/complet</outputDirectory>
+                  <resources>
+                    <resource>
+                      <directory>${project.build.outputDirectory}</directory>
+                      <filtering>false</filtering>
+                    </resource>
+                  </resources>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-jar-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>complet</id>
+                <phase>package</phase>
+                <goals><goal>jar</goal></goals>
+                <configuration>
+                  <classesDirectory>${project.build.directory}/complet</classesDirectory>
+                  <classifier>complet</classifier>
+                  <archive>
+                    <manifest>
+                      <mainClass>lab.xray.Main</mainClass>
+                    </manifest>
+                  </archive>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+
+    <!--
+      L'édition légère : seul JaCoCo est embarqué, soit 900 Ko au lieu de 18 Mo. Arthas
+      pèse à lui seul les trois quarts de l'édition complète, pour la capture des valeurs
+      dont tout le monde n'a pas besoin ; la couverture, elle, est ce qu'on veut presque
+      toujours. Les temps et les valeurs restent récupérables par les autres chemins.
+
+      Le profil répète la mécanique du précédent : la partager demanderait une activation
+      par propriété, que Maven n'honore pas depuis un autre profil.
+
+          mvn -Pjacoco -DskipTests package
+          → orchestrator/target/runtime-xray-jacoco.jar
+    -->
+    <profile>
+      <id>jacoco</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-dependency-plugin</artifactId>
+            <version>3.8.1</version>
+            <executions>
+              <execution>
+                <id>composants</id>
+                <phase>prepare-package</phase>
+                <goals><goal>copy</goal></goals>
+                <configuration>
+                  <outputDirectory>${project.build.directory}/jacoco/lab/xray/composants</outputDirectory>
+                  <artifactItems>
+                    <artifactItem>
+                      <groupId>org.jacoco</groupId>
+                      <artifactId>org.jacoco.agent</artifactId>
+                      <version>${jacoco.version}</version>
+                      <classifier>runtime</classifier>
+                    </artifactItem>
+                    <artifactItem>
+                      <groupId>org.jacoco</groupId>
+                      <artifactId>org.jacoco.cli</artifactId>
+                      <version>${jacoco.version}</version>
+                      <classifier>nodeps</classifier>
+                    </artifactItem>
+                  </artifactItems>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-resources-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>classes-du-jacoco</id>
+                <phase>prepare-package</phase>
+                <goals><goal>copy-resources</goal></goals>
+                <configuration>
+                  <outputDirectory>${project.build.directory}/jacoco</outputDirectory>
+                  <resources>
+                    <resource>
+                      <directory>${project.build.outputDirectory}</directory>
+                      <filtering>false</filtering>
+                    </resource>
+                  </resources>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-jar-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>jacoco</id>
+                <phase>package</phase>
+                <goals><goal>jar</goal></goals>
+                <configuration>
+                  <classesDirectory>${project.build.directory}/jacoco</classesDirectory>
+                  <classifier>jacoco</classifier>
+                  <archive>
+                    <manifest>
+                      <mainClass>lab.xray.Main</mainClass>
+                    </manifest>
+                  </archive>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
 </project>
