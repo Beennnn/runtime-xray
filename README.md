@@ -223,17 +223,30 @@ Les sources et la javadoc sont jointes au même téléchargement.
 C'est le cas d'usage qui a motivé toute l'étude. L'outil télécharge ses trois composants
 d'analyse **une seule fois**, dans `~/.runtime-xray`. Ensuite, plus rien ne sort.
 
-```bash
-# Sur une machine qui a accès, une exécution quelconque suffit à remplir le cache
-java -jar runtime-xray-cli-1.0.0.jar --java "java -version"
+[`bin/kit-hors-ligne.sh`](bin/kit-hors-ligne.sh) assemble le paquet à transporter — le jar,
+les trois composants, leurs empreintes et le mode d'emploi :
 
-# Puis on transporte le répertoire, avec le jar
+```bash
+bin/kit-hors-ligne.sh                                      # depuis Maven Central
+MAVEN_REPO=https://miroir.interne/maven2 bin/kit-hors-ligne.sh   # depuis un miroir
+
+# → target/runtime-xray-kit-hors-ligne.zip (~19 Mo, dont 17 pour Arthas)
+```
+
+Il ne fait que télécharger : ni application à observer, ni analyse à mener à bien. C'est ce
+qui le distingue de l'autre façon de remplir le cache — lancer une analyse quelconque sur une
+machine qui a accès —, laquelle suppose une plateforme où async-profiler existe, donc pas
+Windows.
+
+```bash
+# L'autre façon, si une analyse aboutit déjà sur la machine connectée
+java -jar runtime-xray-cli-1.0.0.jar --java "java -version"
 tar czf runtime-xray-hors-ligne.tgz -C ~ .runtime-xray
 ```
 
-Sur la machine isolée, décompresser dans `$HOME` : l'outil n'ouvrira aucune connexion.
-Si un miroir Maven interne est joignable, `--repo` ou `MAVEN_REPO` l'y envoie et le cache se
-remplit tout seul depuis l'intérieur du réseau.
+Sur la machine isolée, décompresser et copier `.runtime-xray` dans `$HOME` : l'outil
+n'ouvrira aucune connexion. Si un miroir Maven interne est joignable, `--repo` ou
+`MAVEN_REPO` l'y envoie et le cache se remplit tout seul depuis l'intérieur du réseau.
 
 ### Vérifier que ça fonctionne — deux recettes
 
