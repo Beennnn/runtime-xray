@@ -34,7 +34,10 @@ class DashboardTest {
      *  ressemblent à des liens sans en être. */
     private static final Pattern SCRIPT =
             Pattern.compile("<script\\b.*?</script>", Pattern.DOTALL | Pattern.CASE_INSENSITIVE);
-    private static final Pattern DATA = Pattern.compile("const D = (\\{.*?\\});\\n", Pattern.DOTALL);
+    /** La fin de ligne est celle du gabarit tel qu'il a été extrait par git : \R les accepte
+     *  toutes, pour que la lecture ne dépende pas du poste. */
+    private static final Pattern DATA =
+            Pattern.compile("const D = (\\{.*?\\});\\R", Pattern.DOTALL);
 
     // ------------------------------------------------------------------ fixtures
 

@@ -59,7 +59,7 @@ echo "2. La page porte les trois informations, pas un gabarit"
 python3 - <<'PY'
 import json, pathlib, re, sys
 t = pathlib.Path("sortie/index.html").read_text()
-m = re.search(r'const D = (\{.*?\});\n', t, re.S)
+m = re.search(r'const D = (\{.*?\});\r?\n', t, re.S)
 if not m: sys.exit(1)
 d = json.loads(m.group(1))
 run = d["runs"][0]

@@ -218,22 +218,93 @@ java -jar runtime-xray-cli-1.0.0.jar --java "java -jar target/mon-appli.jar"
 
 Les sources et la javadoc sont jointes au même téléchargement.
 
+Pour une machine où l'on ne pourra rien préparer, **deux autres éditions se construisent
+depuis les sources** : elles portent leurs composants d'analyse et n'ont donc besoin d'aucun
+réseau, jamais — voir [ci-dessous](#un-seul-fichier--le-jar-qui-porte-ses-composants).
+
 ### Préparer une machine sans réseau
 
-C'est le cas d'usage qui a motivé toute l'étude. L'outil télécharge ses trois composants
-d'analyse **une seule fois**, dans `~/.runtime-xray`. Ensuite, plus rien ne sort.
+C'est le cas d'usage qui a motivé toute l'étude. L'outil a besoin de ses trois composants
+d'analyse, et **une seule fois** : ensuite ils vivent dans `~/.runtime-xray` et plus rien ne
+sort sur le réseau. Toute la question est de savoir comment ils arrivent là la première fois.
+
+Trois façons de s'y prendre, de la plus simple à la plus souple.
+
+#### Un seul fichier : le jar qui porte ses composants
 
 ```bash
-# Sur une machine qui a accès, une exécution quelconque suffit à remplir le cache
-java -jar runtime-xray-cli-1.0.0.jar --java "java -version"
+mvn -Pjacoco  -DskipTests package   # → runtime-xray-jacoco.jar   (950 Ko)
+mvn -Pcomplet -DskipTests package   # → runtime-xray-complet.jar  (19 Mo)
+```
 
-# Puis on transporte le répertoire, avec le jar
+Le même outil, avec ses composants embarqués. On le porte sur la machine fermée, on le lance :
+il les dépose dans `~/.runtime-xray` au premier lancement, et rien ne sort sur le réseau. Rien
+à copier, rien à décompresser.
+
+| Édition | Poids | Ce qui fonctionne sans réseau |
+|---|---|---|
+| `runtime-xray.jar` | 170 Ko | rien à l'avance : les composants sont à trouver ailleurs |
+| `runtime-xray-jacoco.jar` | 950 Ko | la **couverture** |
+| `runtime-xray-complet.jar` | 19 Mo | la couverture, les **temps** et les **valeurs** |
+
+L'écart entre les deux dernières est Arthas, 17 Mo à lui seul pour la capture des valeurs.
+L'édition légère est le bon défaut quand seule la couverture importe ; ce qui lui manque reste
+récupérable par les chemins ci-dessus, et le message d'erreur le dit.
+
+Ces deux jars **redistribuent** JaCoCo (EPL-2.0), et l'édition complète y ajoute
+async-profiler et Arthas (Apache-2.0) — c'est ce qui les distingue du jar ordinaire, qui ne
+redistribue rien. Voir [THIRD-PARTY.md](THIRD-PARTY.md). Ils ne sont pas publiés sur Maven
+Central : le jar de 170 Ko reste l'artefact normal.
+
+#### Le kit, si l'on veut voir ce qu'on transporte
+
+[`bin/kit-hors-ligne.sh`](bin/kit-hors-ligne.sh) assemble le paquet à transporter — le jar,
+les trois composants, leurs empreintes et le mode d'emploi :
+
+```bash
+bin/kit-hors-ligne.sh                                      # depuis Maven Central
+MAVEN_REPO=https://miroir.interne/maven2 bin/kit-hors-ligne.sh   # depuis un miroir
+
+# → target/runtime-xray-kit-hors-ligne.zip (~19 Mo, dont 17 pour Arthas)
+```
+
+Il ne fait que télécharger : ni application à observer, ni analyse à mener à bien. C'est ce
+qui le distingue de l'autre façon de remplir le cache — lancer une analyse quelconque sur une
+machine qui a accès —, laquelle suppose une plateforme où async-profiler existe, donc pas
+Windows.
+
+```bash
+# L'autre façon, si une analyse aboutit déjà sur la machine connectée
+java -jar runtime-xray-cli-1.0.0.jar --java "java -version"
 tar czf runtime-xray-hors-ligne.tgz -C ~ .runtime-xray
 ```
 
-Sur la machine isolée, décompresser dans `$HOME` : l'outil n'ouvrira aucune connexion.
-Si un miroir Maven interne est joignable, `--repo` ou `MAVEN_REPO` l'y envoie et le cache se
-remplit tout seul depuis l'intérieur du réseau.
+Sur la machine isolée, décompresser et copier `.runtime-xray` dans `$HOME` : l'outil
+n'ouvrira aucune connexion. Si un miroir Maven interne est joignable, `--repo` ou
+`MAVEN_REPO` l'y envoie et le cache se remplit tout seul depuis l'intérieur du réseau.
+
+#### Si les composants sont déjà sur la machine
+
+C'est souvent le cas : un poste qui construit du Java a déjà JaCoCo dans son dépôt Maven
+local, et celui qui a préparé l'intervention a souvent le fichier sur sa clé. L'outil
+regarde donc, **avant** toute sortie sur le réseau :
+
+| Ordre | Endroit | Comment y mettre les fichiers |
+|---|---|---|
+| 1 | `~/.runtime-xray` | le cache que l'outil remplit lui-même |
+| 2 | `--composants <rép>` (ou `COMPOSANTS=`, ou `RUNTIME_XRAY_COMPOSANTS`) | un répertoire désigné |
+| 3 | le répertoire du jar, et son sous-répertoire `composants/` | poser le fichier à côté du jar |
+| 4 | `~/.m2/repository` (ou `MAVEN_REPO_LOCAL`) | rien à faire : c'est le dépôt Maven local |
+| 5 | le réseau | dernier recours |
+
+Les noms attendus sont ceux de Maven (`org.jacoco.agent-0.8.13-runtime.jar`), mais les noms
+des distributions officielles sont acceptés aussi — `jacocoagent.jar`, `jacococli.jar`,
+`arthas-bin.zip`, ou un Arthas déjà décompressé. L'outil dit alors quel fichier il a pris et
+rappelle que la version n'est, dans ce cas, pas vérifiée.
+
+Quand un composant manque vraiment, le message liste tous les chemins essayés et les deux
+issues (`--composants`, `--repo`) : sur une machine fermée, c'est ce message qui doit
+suffire à s'en sortir sans revenir aux sources.
 
 ### Vérifier que ça fonctionne — deux recettes
 
@@ -284,9 +355,12 @@ tourne dans la JVM de Maven — la disposition du projet prend le relais, si ell
 vraiment. `--classes` reste disponible pour analyser autre chose : une dépendance interne
 livrée compilée, un jar « gras », ou un module précis.
 
-Les composants d'analyse sont récupérés une fois depuis un dépôt Maven — celui de l'éditeur
-ou un miroir interne — puis mis en cache dans `~/.runtime-xray`. Les exécutions suivantes
-n'accèdent plus au réseau.
+Les composants d'analyse sont cherchés d'abord **sur la machine** — le cache
+`~/.runtime-xray`, un répertoire désigné par `--composants`, le voisinage du jar, le dépôt
+Maven local, et les composants embarqués si c'est une édition qui en porte. Le
+téléchargement depuis un dépôt Maven, celui de l'éditeur ou un miroir interne, n'est que le
+dernier recours ; ce qui en vient est mis en cache, et les exécutions suivantes n'accèdent
+plus au réseau. Le détail : [Préparer une machine sans réseau](#préparer-une-machine-sans-réseau).
 
 Chaque rapport enregistre son propre contexte : commande lancée, méthode racine, filtres,
 heure de début et de fin, durée, machine, système, version de Java.
@@ -413,8 +487,23 @@ Trois dossiers, selon la question traitée.
 | `orchestrator/` | L'outil : un module Maven sans dépendance d'exécution |
 | `sample-app/` | Le programme de démonstration : un calcul de temps de trajet dont le graphe d'appel dépend du contexte, avec du code volontairement jamais exécuté |
 | `tools/` | Le protocole manuel de l'étude : l'invocation native de chaque outil, conservée pour que les affirmations du comparatif restent vérifiables |
+| `bin/` | Les scripts d'accompagnement : les deux recettes de bout en bout, et l'assemblage du kit hors ligne |
 | `docs/` | L'étude |
+| `.github/workflows/` | Les tests à chaque proposition de fusion, et la publication d'une version quand une étiquette `v*` est poussée |
 | `site/` | La page d'accueil publiée |
+
+**Publier une version** : pousser une étiquette suffit. La construction se fait sur un
+serveur, à partir du code de cette étiquette exactement, et les trois éditions sont
+attachées à la release avec leurs empreintes. Les binaires ne sont jamais versionnés dans
+le dépôt — git garderait chaque exemplaire pour toujours, et un jar complet de 19 Mo
+alourdirait tous les clones à venir.
+
+```bash
+git tag v1.1.0 && git push origin v1.1.0
+```
+
+L'étiquette doit correspondre à la version du pom : sinon la publication s'arrête là, plutôt
+que de déposer un artefact mal nommé.
 
 Pour reproduire la démonstration :
 

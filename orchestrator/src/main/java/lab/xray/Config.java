@@ -96,6 +96,12 @@ public final class Config {
     public boolean captureValues = true;
     /** Dépôt Maven d'où récupérer les composants. Un miroir interne suffit. */
     public String mavenRepo = "https://repo1.maven.org/maven2";
+    /**
+     * Répertoire où chercher les composants déjà présents sur la machine, avant tout
+     * accès au réseau. Ce qu'il contient prime sur ce qui pourrait être téléchargé —
+     * c'est le geste de celui qui les a apportés lui-même.
+     */
+    public String componentsDir = "";
 
     public static Config load(Path file) throws IOException {
         Config c = new Config();
@@ -132,6 +138,7 @@ public final class Config {
             case "OUT_DIR" -> outDir = value;
             case "RUN_NAME" -> runName = value;
             case "MAVEN_REPO" -> mavenRepo = value;
+            case "COMPOSANTS", "COMPONENTS_DIR" -> componentsDir = value;
             case "ATTACH_AFTER" -> attachAfterSeconds = parse(value, attachAfterSeconds);
             case "MAX_SECONDS" -> maxSeconds = parse(value, maxSeconds);
             case "WATCH_COUNT" -> watchCount = parse(value, watchCount);
