@@ -489,7 +489,21 @@ Trois dossiers, selon la question traitée.
 | `tools/` | Le protocole manuel de l'étude : l'invocation native de chaque outil, conservée pour que les affirmations du comparatif restent vérifiables |
 | `bin/` | Les scripts d'accompagnement : les deux recettes de bout en bout, et l'assemblage du kit hors ligne |
 | `docs/` | L'étude |
+| `.github/workflows/` | Les tests à chaque proposition de fusion, et la publication d'une version quand une étiquette `v*` est poussée |
 | `site/` | La page d'accueil publiée |
+
+**Publier une version** : pousser une étiquette suffit. La construction se fait sur un
+serveur, à partir du code de cette étiquette exactement, et les trois éditions sont
+attachées à la release avec leurs empreintes. Les binaires ne sont jamais versionnés dans
+le dépôt — git garderait chaque exemplaire pour toujours, et un jar complet de 19 Mo
+alourdirait tous les clones à venir.
+
+```bash
+git tag v1.1.0 && git push origin v1.1.0
+```
+
+L'étiquette doit correspondre à la version du pom : sinon la publication s'arrête là, plutôt
+que de déposer un artefact mal nommé.
 
 Pour reproduire la démonstration :
 

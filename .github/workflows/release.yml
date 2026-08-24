@@ -1,0 +1,94 @@
+# Publie les trois éditions du jar quand une étiquette de version est poussée.
+#
+# C'est la réponse à « où met-on les binaires ». Pas dans le dépôt : git garde chaque
+# version pour toujours, et un jar complet de 19 Mo alourdirait tous les clones à venir,
+# sans moyen de revenir en arrière sans réécrire l'histoire. Les artefacts vivent donc
+# attachés à une étiquette, construits ici, à partir du code de cette étiquette exactement.
+#
+#   git tag v1.1.0 && git push origin v1.1.0
+name: Publier une version
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write   # pour créer la release et y déposer les fichiers
+
+jobs:
+  publier:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: maven
+
+      # Une étiquette qui ne correspond pas au pom publierait un artefact mal nommé :
+      # mieux vaut échouer ici que le découvrir sur la page des releases.
+      - name: L'étiquette et le pom doivent coïncider
+        run: |
+          POM=$(mvn -B -q help:evaluate -Dexpression=project.version -DforceStdout)
+          TAG=${GITHUB_REF_NAME#v}
+          echo "pom=$POM étiquette=$TAG"
+          [ "$POM" = "$TAG" ] || { echo "::error::pom $POM ≠ étiquette $TAG"; exit 1; }
+          echo "VERSION=$POM" >> "$GITHUB_ENV"
+
+      - name: Les tests
+        run: mvn -B test
+
+      - name: Les trois éditions
+        run: |
+          mvn -B -DskipTests package
+          mvn -B -Pjacoco  -DskipTests package
+          mvn -B -Pcomplet -DskipTests package
+          mkdir -p publication
+          # Le nom porté par la v1.0.0, conservé : c'est celui des liens déjà écrits.
+          cp orchestrator/target/runtime-xray.jar          "publication/runtime-xray-cli-$VERSION.jar"
+          cp orchestrator/target/runtime-xray-jacoco.jar   "publication/runtime-xray-jacoco-$VERSION.jar"
+          cp orchestrator/target/runtime-xray-complet.jar  "publication/runtime-xray-complet-$VERSION.jar"
+
+      # Jointes à la v1.0.0, donc attendues ici. Le nom de construction ne porte pas la
+      # version (finalName), on la remet : une pièce de release sans version ne se range pas.
+      - name: Les sources et la javadoc
+        run: |
+          mvn -B -pl orchestrator source:jar javadoc:jar -DskipTests
+          cp orchestrator/target/runtime-xray-sources.jar "publication/runtime-xray-cli-$VERSION-sources.jar"
+          cp orchestrator/target/runtime-xray-javadoc.jar "publication/runtime-xray-cli-$VERSION-javadoc.jar"
+
+      - name: Les empreintes
+        run: |
+          (cd publication && sha256sum * > SHA256SUMS.txt)
+          ls -la publication
+
+      - name: La release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cat > notes.md <<'NOTES'
+          Trois éditions du même outil. Toutes réclament un JDK 21, et rien d'autre.
+
+          | Édition | Poids | Ce qui fonctionne sans réseau |
+          |---|---|---|
+          | `runtime-xray-cli` | ~170 Ko | rien à l'avance : les composants sont à trouver ailleurs |
+          | `runtime-xray-jacoco` | ~950 Ko | la **couverture** |
+          | `runtime-xray-complet` | ~19 Mo | la couverture, les **temps** et les **valeurs** |
+
+          Les deux dernières embarquent leurs composants d'analyse et les déposent dans
+          `~/.runtime-xray` au premier lancement : aucun accès réseau, jamais. L'écart
+          entre elles est Arthas, 17 Mo à lui seul pour la capture des valeurs. Ce qu'elles
+          redistribuent, et sous quelle licence, est détaillé dans `THIRD-PARTY.md`.
+
+          L'édition ordinaire cherche ses composants sur la machine avant de sortir sur le
+          réseau : cache, `--composants`, voisinage du jar, dépôt Maven local — puis
+          seulement un dépôt Maven distant.
+
+          Empreintes SHA-256 dans `SHA256SUMS.txt`.
+          NOTES
+          gh release create "$GITHUB_REF_NAME" \
+            --title "runtime-xray $VERSION" \
+            --notes-file notes.md \
+            publication/*
