@@ -1,0 +1,61 @@
+# Publie la page d'accueil sur gh-pages quand sa source change.
+#
+# La source vit dans `site/index.html`, sur `main` ; la page servie vit à la racine de
+# `gh-pages`. Rien ne reliait les deux : on recopiait à la main, et le 24 août 2026 on a
+# constaté que la page publiée était en retard d'un paragraphe sur sa source — depuis
+# assez longtemps pour que personne ne sache dire depuis quand. C'est le genre de dérive
+# qui ne se voit pas, puisque les deux fichiers ont l'air d'exister chacun de leur côté.
+#
+# Le déclenchement est étroit à dessein : seule une modification de `site/index.html` sur
+# `main` provoque une publication. `workflow_dispatch` reste là pour republier à la
+# demande, par exemple après un correctif appliqué directement sur `gh-pages`.
+name: Publier la page d'accueil
+
+on:
+  push:
+    branches: ['main']
+    paths: ['site/index.html']
+  workflow_dispatch:
+
+permissions:
+  contents: write   # pour pousser sur gh-pages
+
+# Deux poussées rapprochées sur site/ produiraient deux publications concurrentes, et la
+# seconde échouerait au push sur une branche qui a bougé sous elle.
+concurrency:
+  group: page-accueil
+  cancel-in-progress: false
+
+jobs:
+  publier:
+    runs-on: ubuntu-latest
+    steps:
+      - name: La source, depuis main
+        uses: actions/checkout@v4
+        with:
+          path: source
+
+      # gh-pages porte aussi `demo/`, `jfr/` et `multi/` — des rapports engendrés qui
+      # n'existent nulle part dans `main`. On l'extrait entière et on ne recopie QUE
+      # `index.html` : reconstruire la branche à partir de `site/` les effacerait.
+      - name: La branche publiée
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          path: publie
+
+      - name: Recopier la page, et ne pousser que si elle a changé
+        run: |
+          cp source/site/index.html publie/index.html
+          cd publie
+          if git diff --quiet -- index.html; then
+            echo "La page publiée est déjà à jour — rien à faire."
+            exit 0
+          fi
+          git config user.name  'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html
+          git commit -m "Republier la page d'accueil depuis site/index.html
+
+          Recopie automatique de ${GITHUB_SHA:0:7}, poussé sur main."
+          git push
