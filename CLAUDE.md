@@ -43,6 +43,26 @@ suivante s'ajouterait sans retour possible sans réécrire l'histoire. Les artef
 attachés à une étiquette. Le seul fichier `.jar` suivi est un faux de 40 octets, en
 ressource de test.
 
+## Publier la page d'accueil
+
+Rien à faire : `.github/workflows/page.yml` recopie `site/index.html` vers la racine de
+`gh-pages` dès que la source change sur `main`. La page se modifie donc **dans `site/`**,
+jamais sur `gh-pages`.
+
+Le workflow ne touche qu'`index.html`, et c'est délibéré : `gh-pages` porte aussi `demo/`,
+`jfr/` et `multi/` — des rapports engendrés qui n'existent nulle part dans `main`.
+Reconstruire la branche à partir de `site/` les effacerait.
+
+`workflow_dispatch` republie à la demande, pour le cas où quelqu'un aurait corrigé
+directement sur `gh-pages`. Le déclenchement automatique est étroit — seul
+`site/index.html` le provoque — parce qu'une publication à chaque commit sur `main`
+n'apprendrait rien et ferait du bruit dans l'historique de la branche.
+
+Le mécanisme naît d'une dérive : le 24 août 2026, la page servie était en retard d'un
+paragraphe sur sa source, depuis assez longtemps pour que personne ne sache dire depuis
+quand. Deux fichiers qui ont l'air d'exister chacun de leur côté ne divergent pas
+bruyamment.
+
 ## Comment l'outil trouve ses composants
 
 C'est le mécanisme le plus souvent touché, et celui qui décide si l'outil démarre sur la
