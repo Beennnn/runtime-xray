@@ -490,8 +490,8 @@ Trois dossiers, selon la question traitée.
 | `bin/` | Les scripts d'accompagnement : les deux recettes de bout en bout, et l'assemblage du kit hors ligne |
 | `docs/` | L'étude |
 | `CLAUDE.md` | Ce qu'il faut savoir avant de toucher au dépôt : construire, publier, conventions, travaux en cours |
-| `.github/workflows/` | Les tests à chaque proposition de fusion, et la publication d'une version quand une étiquette `v*` est poussée |
-| `site/` | La page d'accueil publiée |
+| `.github/workflows/` | Les tests à chaque proposition de fusion, la publication d'une version quand une étiquette `v*` est poussée, et celle de la page d'accueil quand sa source change |
+| `site/` | La source de la page d'accueil : `site/index.html` est recopié sur `gh-pages` par un workflow, il n'y a rien à faire à la main |
 
 **Publier une version** : pousser une étiquette suffit. La construction se fait sur un
 serveur, à partir du code de cette étiquette exactement, et les trois éditions sont
