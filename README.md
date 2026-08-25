@@ -200,17 +200,17 @@ Ces résultats valent dans le cadre décrit, et pas au-delà. En particulier :
 ## Se procurer l'outil
 
 **Un jar déjà construit, rien d'autre.** Pas de clone, pas de build, pas de compte :
-[**télécharger `runtime-xray-cli-1.1.0.jar`**](https://github.com/Beennnn/runtime-xray/releases/latest)
+[**télécharger `runtime-xray-cli-1.2.0.jar`**](https://github.com/Beennnn/runtime-xray/releases/latest)
 et le lancer.
 
 ```bash
-curl -LO https://github.com/Beennnn/runtime-xray/releases/download/v1.1.0/runtime-xray-cli-1.1.0.jar
-java -jar runtime-xray-cli-1.1.0.jar --java "java -jar target/mon-appli.jar"
+curl -LO https://github.com/Beennnn/runtime-xray/releases/download/v1.2.0/runtime-xray-cli-1.2.0.jar
+java -jar runtime-xray-cli-1.2.0.jar --java "java -jar target/mon-appli.jar"
 ```
 
 | | |
 |---|---|
-| Version | `1.1.0` |
+| Version | `1.2.0` |
 | Taille | ~175 Ko |
 | Dépendances | aucune, hors du JDK |
 | Java | 21 ou plus |
@@ -275,7 +275,7 @@ Windows.
 
 ```bash
 # L'autre façon, si une analyse aboutit déjà sur la machine connectée
-java -jar runtime-xray-cli-1.1.0.jar --java "java -version"
+java -jar runtime-xray-cli-1.2.0.jar --java "java -version"
 tar czf runtime-xray-hors-ligne.tgz -C ~ .runtime-xray
 ```
 
@@ -500,7 +500,7 @@ le dépôt — git garderait chaque exemplaire pour toujours, et un jar complet 
 alourdirait tous les clones à venir.
 
 ```bash
-git tag v1.1.0 && git push origin v1.1.0
+git tag v1.3.0 && git push origin v1.3.0
 ```
 
 L'étiquette doit correspondre à la version du pom : sinon la publication s'arrête là, plutôt
