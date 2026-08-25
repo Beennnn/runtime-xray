@@ -30,7 +30,7 @@ vraie JVM observée, ce que les tests unitaires ne font jamais.
 Pousser une étiquette suffit — `.github/workflows/release.yml` fait le reste :
 
 ```bash
-git tag -a v1.2.0 -m "runtime-xray 1.2.0" && git push origin v1.2.0
+git tag -a v1.3.0 -m "runtime-xray 1.3.0" && git push origin v1.3.0
 ```
 
 Le workflow refuse de publier si l'étiquette ne correspond pas à la version du `pom.xml`.
