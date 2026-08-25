@@ -12,7 +12,7 @@
 ni Maven, ni rien à installer au préalable.
 
 ```bash
-curl -LO https://github.com/Beennnn/runtime-xray/releases/download/v1.2.0/runtime-xray-cli-1.2.0.jar
+curl -LO https://github.com/Beennnn/runtime-xray/releases/download/v1.2.1/runtime-xray-cli-1.2.1.jar
 ```
 
 Un jar déjà construit, à télécharger et lancer. Aucun clone n'est nécessaire. Préparation
