@@ -409,4 +409,73 @@ class DashboardTest {
         }
         assertTrue(page.contains("id=\"dlmenu\""), "le menu des exports doit être là");
     }
+
+    @Test
+    @DisplayName("La page ne se donne jamais un ascenseur d'ensemble en plus de celui du rapport")
+    void thePageNeverScrollsAsAWhole(@TempDir Path dir) throws Exception {
+        // La mise en page retirait au corps une hauteur d'en-tête écrite en dur — 47 px —
+        // alors que cet en-tête grandit avec ses liens, avec le zoom du navigateur et avec la
+        // police du système : il en mesure 49,75 dans Chromium. Trois pixels suffisaient à
+        // donner à la fenêtre entière un ascenseur qui venait se coller contre celui du
+        // rapport, et c'est celui du rapport — le seul qui serve — qui s'en trouvait masqué.
+        // Ce que ce test garde n'est pas la règle CSS : c'est le refus de deviner une hauteur
+        // qu'on peut mesurer.
+        Path out = dir.resolve("out");
+        Files.createDirectories(out);
+        fixtureRun(out.resolve("runs"), "essai", "UUID-H", true);
+        String page = Files.readString(Dashboard.build(out, List.of(sources(dir)), 8),
+                StandardCharsets.UTF_8);
+        String style = page.substring(page.indexOf("<style>"), page.indexOf("</style>"));
+
+        assertFalse(style.contains("height:calc(100% - "),
+                "une hauteur d'en-tête devinée revient : c'est ce qui faisait le second ascenseur");
+        assertTrue(style.contains("body{display:flex;flex-direction:column;height:100%;overflow:hidden}"),
+                "le corps occupe la fenêtre et ne défile pas : ce sont ses panneaux qui défilent");
+        assertTrue(style.contains("flex:1 1 auto;min-height:0}"),
+                "la zone de travail prend ce que l'en-tête laisse, quelle que soit sa hauteur");
+    }
+
+    @Test
+    @DisplayName("La liste « Jamais exécuté » se replie, sans emporter le compte avec elle")
+    void theNeverExecutedListCanBeFolded(@TempDir Path dir) throws Exception {
+        // Sur un vrai projet cette liste tient des centaines de classes et pousse hors de
+        // l'écran tout ce qui la suit — les méthodes coûteuses, les valeurs capturées, la
+        // réserve — c'est-à-dire ce qu'on est venu chercher. Repliable, elle cesse de coûter
+        // la page entière. Deux choses la rendent utilisable une fois repliée, et ce sont
+        // elles que ce test garde : le compte reste affiché, et le choix est gardé.
+        Path out = dir.resolve("out");
+        Files.createDirectories(out);
+        fixtureRun(out.resolve("runs"), "essai", "UUID-P", true);
+        String page = Files.readString(Dashboard.build(out, List.of(sources(dir)), 8),
+                StandardCharsets.UTF_8);
+
+        assertTrue(page.contains("sectionPliable(\"dead\", \"Jamais exécuté\""),
+                "la section « Jamais exécuté » doit être celle qu'on replie");
+        assertTrue(page.contains("class=\"plicnt\""),
+                "le compte doit rester lisible repliée, sinon replier fait perdre ce qui décide d'ouvrir");
+        assertTrue(page.contains("aria-expanded=") && page.contains("aria-controls=\"pli-"),
+                "un titre qui replie doit s'annoncer comme tel, y compris hors de la souris");
+        assertTrue(page.contains("runtime-xray.plis"),
+                "le choix de repli est un réglage de lecture : il est gardé dans le navigateur");
+    }
+
+    @Test
+    @DisplayName("L'arbre ne prend pas Entrée ni Espace aux commandes de la page")
+    void theTreeDoesNotStealActivationKeys(@TempDir Path dir) throws Exception {
+        // Le parcours de l'arbre au clavier écoutait le document entier et retenait Entrée et
+        // Espace partout hors des champs de saisie. Résultat : aucun bouton de la page ne
+        // s'activait au clavier — ni l'aide, ni les exports, ni le repli des panneaux. Les
+        // flèches, elles, doivent rester à l'arbre : on veut le parcourir sans y revenir à
+        // la souris. C'est ce partage-là que le test garde.
+        Path out = dir.resolve("out");
+        Files.createDirectories(out);
+        fixtureRun(out.resolve("runs"), "essai", "UUID-K", true);
+        String page = Files.readString(Dashboard.build(out, List.of(sources(dir)), 8),
+                StandardCharsets.UTF_8);
+
+        assertTrue(page.contains("t.closest(\"button, a[href], select, summary\")"),
+                "une commande qui a le focus doit garder Entrée et Espace pour elle");
+        assertTrue(page.contains("\"ArrowDown\", \"ArrowUp\", \"ArrowRight\", \"ArrowLeft\""),
+                "les flèches restent au parcours de l'arbre");
+    }
 }

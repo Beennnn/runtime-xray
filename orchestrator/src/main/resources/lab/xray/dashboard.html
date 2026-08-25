@@ -118,8 +118,23 @@
            border-radius:6px;background:var(--panel);padding:12px 15px;color:var(--muted);
            font-size:12.5px;margin-top:22px}
   .reserve b{color:var(--text)}
-  main{display:grid;grid-template-columns:var(--navw,330px) 6px 1fr;height:calc(100% - 47px)}
-  @media(max-width:860px){main{grid-template-columns:1fr;height:auto} .split{display:none}}
+  /* La page occupe la fenêtre et ne défile JAMAIS dans son ensemble : seuls les panneaux
+     qui portent du contenu long ont un ascenseur. La mise en page retirait auparavant au
+     corps une hauteur d'en-tête écrite en dur — 47 px — alors que cet en-tête grandit avec
+     ses liens, avec le zoom du navigateur, avec la police du système, et qu'il se replie
+     sur deux lignes dès que la fenêtre se rétrécit. Un pixel de trop suffisait à donner à
+     la fenêtre entière un ascenseur qui venait se coller contre celui du rapport : deux
+     ascenseurs superposés, dont celui qui sert se retrouvait masqué. Mesurer l'en-tête
+     plutôt que de le deviner supprime la cause. */
+  body{display:flex;flex-direction:column;height:100%;overflow:hidden}
+  header{flex:0 0 auto}
+  main{display:grid;grid-template-columns:var(--navw,330px) 6px 1fr;flex:1 1 auto;min-height:0}
+  /* Sous 860 px les deux panneaux passent l'un sous l'autre : là, il n'y a plus qu'un seul
+     contenu long, et c'est la page qui doit défiler normalement. */
+  @media(max-width:860px){
+    body{display:block;height:auto;overflow:visible}
+    main{grid-template-columns:1fr;height:auto} .split{display:none}
+  }
   /* Séparateurs déplaçables : glisser pour redimensionner, double-cliquer pour replier
      entièrement le panneau voisin — utile quand on veut le code plein écran. */
   .split{background:var(--border);cursor:col-resize;position:relative}
@@ -136,8 +151,12 @@
   .split.h{cursor:row-resize;height:6px}
   .splitlabel{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
               font-size:9px;color:var(--bg);pointer-events:none}
+  /* Le panneau se replie jusqu'à zéro de large. Son contenu, lui, ne se replie pas : le
+     champ de recherche, les boutons et la phrase d'aide se retassaient sur une colonne d'un
+     caractère et débordaient de 371 px sous la fenêtre, qui s'en donnait un ascenseur pour
+     du vide. Replié veut dire caché : on découpe. La liste garde le sien, elle en a un. */
   #nav{border-right:1px solid var(--border);background:var(--panel2);
-       display:flex;flex-direction:column;min-height:0}
+       display:flex;flex-direction:column;min-height:0;overflow:hidden}
   .tabs{display:flex;border-bottom:1px solid var(--border)}
   .tabs button{flex:1;padding:8px 4px;background:none;border:0;border-bottom:2px solid transparent;
                color:var(--muted);font:inherit;font-size:12px;cursor:pointer}
@@ -441,6 +460,22 @@
   .chip.val{background:var(--panel);color:var(--violet);border:1px solid var(--violet)}
   .chip[data-f]:hover{filter:brightness(1.15)}
   .home h2{font-size:17px;margin:22px 0 6px;padding-left:9px;border-left:3px solid var(--accent)}
+  /* Une section repliable : le titre EST le bouton, il n'y a donc rien de plus à viser que
+     ce qu'on lisait déjà. Deux règles de lisibilité — le chevron dit dans quel sens ça va,
+     et le compte reste affiché une fois replié : replier ne doit pas faire disparaître
+     l'information qui décide si on rouvre. */
+  .home .pliable{margin-bottom:18px}
+  .home .pliable h2{margin-bottom:0}
+  .home .pliable > .plicorps{margin:6px 0 0}
+  .home h2 .plibtn{display:flex;align-items:center;gap:8px;width:100%;font:inherit;
+        font-size:inherit;font-weight:inherit;color:inherit;background:none;border:0;
+        padding:0;margin:0;cursor:pointer;text-align:left}
+  .home h2 .plibtn:hover{color:var(--accent)}
+  .plibtn .pliic{flex:0 0 auto;color:var(--muted);font-size:12px;line-height:1;
+        transition:transform .12s}
+  .plibtn[aria-expanded="true"] .pliic{transform:rotate(90deg)}
+  .plibtn:hover .pliic{color:var(--accent)}
+  .plibtn .plicnt{font-size:11.5px;font-weight:400;color:var(--muted)}
   .links2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
   @media(max-width:700px){.links2{grid-template-columns:1fr}}
   a.lk{display:block;border:1px solid var(--border);border-radius:8px;padding:10px 13px;
@@ -1642,6 +1677,12 @@ function parentNode(el){
 document.addEventListener("keydown", e => {
   const t = e.target;
   if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable)) return;
+  // Un bouton ou un lien qui a le focus répond LUI-MÊME à Entrée et à Espace : les lui
+  // prendre pour piloter l'arbre rendait muette au clavier chaque commande de la page —
+  // l'aide, les exports, le repli des panneaux, celui de « Jamais exécuté ». Les flèches,
+  // elles, restent à l'arbre : on veut pouvoir le parcourir sans y revenir à la souris.
+  if (t && t.closest && (e.key === "Enter" || e.key === " ")
+      && t.closest("button, a[href], select, summary")) return;
   if (e.metaKey || e.ctrlKey || e.altKey) return;
   if (!["ArrowDown", "ArrowUp", "ArrowRight", "ArrowLeft", "Enter", " ", "Home", "End"].includes(e.key)) return;
 
@@ -3293,6 +3334,68 @@ function flameColour(propre, known){
   return tons[Math.min(tons.length - 1, Math.round(t * (tons.length - 1)))];
 }
 
+/* -------------------------------------------------------------- sections repliables
+ * La vue d'ensemble se lit du haut vers le bas, et une seule de ses sections peut être
+ * démesurée : « Jamais exécuté » liste les classes analysées qui n'ont rien exécuté, et sur
+ * un vrai projet il y en a des centaines. Elle poussait alors hors de l'écran tout ce qui
+ * la suit — les méthodes les plus coûteuses, les valeurs capturées, la réserve — c'est-à-
+ * dire justement ce qu'on est venu chercher. Or cette liste se consulte une fois : elle n'a
+ * pas à coûter la page entière.
+ *
+ * Repliée, la section garde son titre et son compte, ce qui suffit à décider si on l'ouvre.
+ * Le seuil est un choix : au-delà de PLI_AUTO entrées la section arrive repliée, en deçà
+ * elle reste ouverte — une liste courte se lit d'un coup d'œil, et la replier ferait perdre
+ * un clic pour rien. Ce que l'utilisateur a choisi, lui, est gardé dans le navigateur et
+ * l'emporte toujours sur ce défaut : c'est un réglage de lecture, pas une donnée.
+ */
+const PLI_KEY = "runtime-xray.plis";
+const PLI_AUTO = 40;
+let plis = {};
+try { plis = JSON.parse(localStorage.getItem(PLI_KEY) || "{}"); } catch(e){ plis = {}; }
+function savePlis(){
+  try { localStorage.setItem(PLI_KEY, JSON.stringify(plis)); } catch(e){}
+}
+/** Ouverte ? Le choix gardé s'il existe, sinon le seuil. */
+function pliOuvert(id, taille){
+  return typeof plis[id] === "boolean" ? plis[id] : taille <= PLI_AUTO;
+}
+/**
+ * Le balisage d'une section repliable.
+ *
+ * @param id     identifiant stable — c'est lui qui retrouve le choix gardé
+ * @param titre  le titre, déjà échappé
+ * @param info   l'infobulle du titre, déjà échappée
+ * @param compte ce qui reste lisible une fois replié (« 422 classes »)
+ * @param corps  le contenu, déjà échappé
+ * @param taille le nombre d'entrées, qui décide du repli par défaut
+ */
+function sectionPliable(id, titre, info, compte, corps, taille){
+  const ouvert = pliOuvert(id, taille);
+  return '<section class="pliable">'
+    + '<h2 title="' + info + '">'
+    + '<button type="button" class="plibtn" data-pli="' + id + '"'
+    + ' aria-expanded="' + ouvert + '" aria-controls="pli-' + id + '">'
+    + '<span class="pliic" aria-hidden="true">&#9656;</span>'
+    + '<span>' + titre + '</span>'
+    + '<span class="plicnt">' + compte + '</span>'
+    + '</button></h2>'
+    + '<p class="plicorps" id="pli-' + id + '"' + (ouvert ? '' : ' hidden') + '>'
+    + corps + '</p></section>';
+}
+/** Câble les titres repliables du fragment qu'on vient d'écrire. */
+function cablerPlis(){
+  document.querySelectorAll(".plibtn").forEach(b => {
+    b.onclick = () => {
+      const corps = document.getElementById(b.getAttribute("aria-controls"));
+      const ouvert = b.getAttribute("aria-expanded") !== "true";
+      b.setAttribute("aria-expanded", String(ouvert));
+      corps.hidden = !ouvert;
+      plis[b.dataset.pli] = ouvert;
+      savePlis();
+    };
+  });
+}
+
 function drawHome(){
   document.getElementById("crumb").innerHTML =
     '<span class="pill" title="Ce que cette exécution a fait dans son ensemble : couverture, '
@@ -3328,11 +3431,13 @@ function drawHome(){
    + '<span style="width:'+AGG.pct.toFixed(1)+'%"></span></div>'+
    flameBlock()+
    contextBlock()+
-   (AGG.dead.length ? '<h2 title="Classes analysées dont aucune instruction n\'a été '
-      + 'exécutée : ni la lecture du code, ni un test qui passe ne les font apparaître">'
-      + 'Jamais exécuté</h2><p>'
-      + AGG.dead.map(d=>'<span class="chip dead" title="Cette classe n\'a jamais été '
-      + 'chargée ni exécutée pendant cette mesure">'+esc(d)+'</span>').join("")+'</p>' : '')+
+   (AGG.dead.length ? sectionPliable("dead", "Jamais exécuté",
+      'Classes analysées dont aucune instruction n\'a été exécutée : ni la lecture du code, '
+      + 'ni un test qui passe ne les font apparaître. Cliquer le titre replie la liste.',
+      AGG.dead.length + (AGG.dead.length > 1 ? ' classes' : ' classe'),
+      AGG.dead.map(d=>'<span class="chip dead" title="Cette classe n\'a jamais été '
+      + 'chargée ni exécutée pendant cette mesure">'+esc(d)+'</span>').join(""),
+      AGG.dead.length) : '')+
    '<h2 title="Les méthodes sous lesquelles le plus de temps a été passé, appels compris">'
    + 'Les plus coûteuses</h2><p>'+hot.map(h=>
       '<span class="chip hot" data-f="'+esc(h.frame)+'" title="Ouvrir '
@@ -3359,6 +3464,7 @@ function drawHome(){
     c.style.cursor = "pointer";
     c.onclick = () => { const t = frameInfo(c.dataset.f); if (t) select(t, null); };
   });
+  cablerPlis();
   const oh = document.getElementById("openhelp");
   if (oh) oh.onclick = e => { e.preventDefault(); openHelp(); };
   renderIdentity();
