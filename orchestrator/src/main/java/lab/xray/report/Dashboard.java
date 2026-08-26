@@ -29,6 +29,11 @@ public final class Dashboard {
         return build(commonDir, sourceRoots, valuesPerMethod, PackageFilter.NONE);
     }
 
+    public static Path build(Path commonDir, List<Path> sourceRoots, int valuesPerMethod,
+                             PackageFilter hidden) throws Exception {
+        return build(commonDir, sourceRoots, valuesPerMethod, hidden, null);
+    }
+
     /**
      * @param hidden paquets masqués par la configuration courante. Une exécution qui a
      *               enregistré sa propre liste garde la sienne : c'est celle sous laquelle
@@ -36,7 +41,8 @@ public final class Dashboard {
      *               qu'on ferait aujourd'hui.
      */
     public static Path build(Path commonDir, List<Path> sourceRoots, int valuesPerMethod,
-                             PackageFilter hidden) throws Exception {
+                             PackageFilter hidden, Map<String, Object> lancement)
+            throws Exception {
         Map<String, Object> overrides = Annotations.readCentral(commonDir);
         List<Path> bases = findRuns(commonDir, 0, 3);
         if (bases.isEmpty()) {
@@ -51,9 +57,17 @@ public final class Dashboard {
             runs.add(readRun(base, commonDir, overrides, valuesPerMethod, hidden));
         }
 
+        Sources.Index index = Sources.load(sourceRoots);
+
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("runs", runs);
-        data.put("sources", Sources.load(sourceRoots));
+        data.put("sources", index.parCle());
+        // Le diagnostic voyage AVEC la page, pas seulement à côté : c'est lui qui permet au
+        // panneau de code de dire ce qu'il a cherché quand il n'a rien à montrer. Une page
+        // transmise en pièce jointe reste alors explicable sans son répertoire d'origine.
+        Map<String, Object> diagnostic = Diagnostic.write(commonDir, runs, index, lancement);
+        data.put("diagnostic", sansCode(diagnostic));
+        data.put("fusion", fusionPresente(commonDir, runs.size()));
 
         String template = loadTemplate();
         String page = template.replace("/*__DATA__*/", Json.write(data));
@@ -64,6 +78,36 @@ public final class Dashboard {
         // qu'une forge affiche comme une page et non comme du code source.
         Markdown.write(commonDir, runs);
         return out;
+    }
+
+    /**
+     * Le diagnostic allégé de ce que la page porte déjà.
+     *
+     * <p>Le contexte de chaque exécution et la liste de ses rapports sont dans {@code runs} :
+     * les embarquer une seconde fois doublerait ces données dans une page qui se transmet
+     * en pièce jointe. Le fichier {@code diagnostic.json}, lui, les garde — il se lit seul.
+     */
+    /**
+     * Le rapport JaCoCo de toutes les exécutions réunies, s'il a été produit.
+     *
+     * <p>On rapporte sa présence plutôt que de la déduire du nombre d'exécutions : il peut
+     * manquer pour de bonnes raisons — bytecode inconnu en réassemblage, composant JaCoCo
+     * introuvable — et un lien mort vaut moins que pas de lien.
+     */
+    private static Map<String, Object> fusionPresente(Path commonDir, int executions) {
+        Map<String, Object> m = new LinkedHashMap<>();
+        Path html = commonDir.resolve("jacoco-fusion/html");
+        m.put("couverture", Files.isRegularFile(html.resolve("index.html")));
+        m.put("xml", Files.isRegularFile(html.resolve("jacoco.xml")));
+        m.put("csv", Files.isRegularFile(html.resolve("jacoco.csv")));
+        m.put("executions", executions);
+        return m;
+    }
+
+    private static Map<String, Object> sansCode(Map<String, Object> diagnostic) {
+        Map<String, Object> allege = new LinkedHashMap<>(diagnostic);
+        allege.remove("executions");
+        return allege;
     }
 
     private static Map<String, Object> readRun(Path base, Path commonDir,

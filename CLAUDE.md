@@ -9,7 +9,7 @@ Le [README](README.md) explique l'outil ; ici, on explique le dépôt.
 ## Construire et éprouver
 
 ```bash
-mvn test                            # 157 tests, aucun n'accède au réseau
+mvn test                            # 183 tests, aucun n'accède au réseau
 mvn -DskipTests package             # orchestrator/target/runtime-xray.jar   (175 Ko)
 mvn -Pjacoco  -DskipTests package   # runtime-xray-jacoco.jar               (950 Ko)
 mvn -Pcomplet -DskipTests package   # runtime-xray-complet.jar               (19 Mo)
@@ -100,6 +100,67 @@ machine fermée, c'est lui qui doit suffire à s'en sortir, et il doit le rester
 
 `bin/kit-hors-ligne.sh` assemble le paquet équivalent à emporter, empreintes comprises.
 
+## Quand le rapport ne montre pas ce qu'on attendait
+
+C'est le mode d'échec le plus coûteux de l'outil, parce qu'il est **silencieux** : un panneau
+de code vide se lit exactement comme un panneau qu'on n'a pas su remplir. Trois choses
+distinctes peuvent manquer, elles se corrigent de trois façons opposées, et rien dans la page
+ne permettait de les distinguer.
+
+- **`diagnostic.json`** est écrit à côté de la page à chaque assemblage, sans qu'on le
+  demande. Il porte l'environnement, la configuration du lancement, les racines réellement
+  ouvertes, les exécutions et leurs rapports, et le rapprochement classe par classe. C'est le
+  fichier à réclamer quand quelqu'un signale un rapport décevant — il évite le
+  aller-retour de captures d'écran. Il ne contient **aucun secret** ; un test le garde.
+- **La section « Analyse des sources »** de la vue d'ensemble le rend lisible : l'arbre
+  paquet par paquet, coloré par ce qui manque à chaque classe, et une recherche qui répond à
+  « cette classe, tu l'as trouvée, et où ? ».
+- **Le panneau à la place du code** dit la clé cherchée, les racines consultées et la ligne
+  exacte à ajouter à la configuration.
+
+**Les quatre restrictions ne restreignent pas la même chose**, et c'est la confusion la plus
+fréquente — on élargit un filtre qui n'y était pour rien, on relance, on obtient le même
+rapport. `--sources` ne commande que l'affichage du code ; `--root` la capture des valeurs et
+le filtre de temps ; `--filter` la mesure du temps seule ; `--cover` l'instrumentation JaCoCo.
+Le tableau est dans la page, écrit à partir du symptôme et non de la documentation.
+
+**Quand il manque des sources, l'outil les cherche** — et ne les devine jamais. Deviner une
+racine d'après une convention serait commode là où on n'en a pas besoin, et faux là où on en
+aurait besoin : sur la machine où l'application tourne loin de son code, la convention ne
+désigne rien, ou pire, désigne les sources d'un autre projet. Du code faux affiché en face
+d'une couverture coûte plus cher qu'un panneau vide, parce qu'on le croit.
+
+`Sources.chercherRacines` cherche donc, et compte. Elle explore le voisinage du bytecode
+analysé, celui des racines déjà configurées et le répertoire de lancement — jamais au-delà —
+et ne retient un fichier que si le **paquet qu'il déclare** produit exactement une clé
+manquante. Un homonyme venu d'un autre projet ne compte pas ; un test le garde. Chaque
+proposition arrive avec son chiffre — « cette racine résoudrait 27 des 27 classes sans
+source » — et la ligne `SOURCE_DIRS=` à recopier. Quand rien ne concorde, elle le dit.
+
+**L'index des sources est bâti sur le paquet déclaré**, pas sur le chemin relatif à la racine
+passée. `SOURCE_DIRS` peut donc désigner le projet entier, le répertoire de sources, ou un
+répertoire de paquet : cela retombe sur ses pieds. C'est ce qui a cassé le 26 août 2026 —
+une racine d'un cran trop haute suffisait à décaler l'index entier, donc « Source
+indisponible » sur les 447 classes d'une analyse.
+
+## Couverture cumulée
+
+Une campagne de recette, c'est dix exécutions, et la question posée devant le code est « est-ce
+que **quelque chose** a couvert cette ligne ? ». Deux mécanismes y répondent, et ils sont
+complémentaires :
+
+- **Dans la page**, cocher « cumuler » réunit les exécutions **cochées** et garde pour chaque
+  ligne *laquelle* l'a couverte, en pastilles. Cela marche sur n'importe quel sous-ensemble,
+  hors ligne, sans rien relancer — parce que l'union se calcule sur des données déjà là.
+- **`jacoco-fusion/`** porte le rapport JaCoCo de toutes les exécutions fusionnées
+  (`jacococli merge` puis `report`), pour le chiffre qui fait foi et qu'on transmet. Il perd
+  en revanche l'attribution : une fois les `.exec` additionnés, plus rien ne dit qui a couvert
+  quoi. Il n'est produit qu'à partir de deux exécutions, et seulement si le bytecode est connu.
+
+JaCoCo ne sait pas choisir ses exécutions à l'affichage : son rapport est un rendu statique,
+calculé sur les `.exec` qu'on lui donne. Un sous-ensemble arbitraire demanderait donc un
+rapport par combinaison — c'est précisément ce que le cumul dans la page évite.
+
 ## Conventions
 
 - **Tout est en français** : code, commentaires, messages de commit, noms de tests
@@ -123,6 +184,26 @@ machine fermée, c'est lui qui doit suffire à s'en sortir, et il doit le rester
 - **Pas de mesure de temps sous Windows** : async-profiler ne publie que des binaires
   Linux et macOS. La couverture et les valeurs fonctionnent ; l'outil le dit au lancement
   plutôt que d'échouer.
+- **La CI éprouve les deux systèmes** : `tests.yml` lance `mvn test` sur `ubuntu-latest`
+  ET `windows-latest`, en `fail-fast: false` — savoir qu'un défaut est propre à Windows ou
+  commun aux deux change ce qu'il faut aller regarder. La construction des trois éditions
+  reste sur un seul poste : elle éprouve les profils Maven, rien qui dépende du système.
+  Ajoutée le 26 août 2026, après deux défauts Windows qu'une CI Linux ne pouvait pas voir.
+- **Le tilde n'est un caractère d'interpréteur qu'en tête de mot** : les noms courts 8.3 de
+  Windows en portent un — `C:\Users\RUNNER~1`, `C:\PROGRA~1` — et le compter partout
+  envoyait la commande à `cmd /c`. Elle s'exécutait, mais `ClassSources` n'y lisait plus le
+  `-jar`, donc plus le bytecode : rapport vide, sans explication. Trouvé par le premier
+  passage de la CI Windows, le jour même où elle a été ajoutée.
+- **Chemins Windows dans une liste** : `SOURCE_DIRS` et `CLASSES_DIR` se séparent par `:`,
+  ce qui va de soi sur Unix et pas du tout sur Windows — `C:\projet\src` commence par un `:`
+  qui n'est pas un séparateur. `Config.decouper` rend au chemin le `:` qui suit une lettre
+  seule en tête de segment et précède un séparateur, et accepte `;` en plus. Sans cela, un
+  chemin absolu valide donnait deux entrées inexistantes et l'outil répondait « introuvable »
+  sur un chemin que l'utilisateur avait sous les yeux. Découvert le 26 août 2026, quand la
+  recherche de racines s'est mise à proposer des chemins absolus.
+- **Les tests ne comparent jamais un chemin à un littéral à séparateurs** : `endsWith(
+  "projet/src/main/java")` échoue sous Windows alors que le code a trouvé exactement ce qu'il
+  fallait. Construire le chemin attendu avec `resolve` et comparer les deux.
 - **Terminal Windows** : l'outil écrit en UTF-8. Un terminal en cp850 — le défaut de bien
   des postes — rend les accents illisibles. Corriger côté terminal (mintty → Options →
   Text → UTF-8), ou lancer avec `-Dstdout.encoding=cp850`. Ne pas « corriger » cela dans
