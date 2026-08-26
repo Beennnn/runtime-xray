@@ -594,6 +594,9 @@ public final class Main {
         ctx.put("java", System.getProperty("java.vendor") + " " + System.getProperty("java.version"));
         ctx.put("javaHome", System.getProperty("java.home", ""));
         ctx.put("repertoireTravail", Path.of("").toAbsolutePath().toString());
+        // La capture annonce sa forme : c'est ce qui permet à une version ultérieure
+        // de l'outil de la relire sans rejouer la campagne. Voir Capture.
+        ctx.put(lab.xray.report.Capture.CHAMP, lab.xray.report.Capture.COURANTE);
         Files.writeString(runDir.resolve("run-context.json"), Json.write(ctx), StandardCharsets.UTF_8);
     }
 
