@@ -61,7 +61,7 @@ public final class Dashboard {
 
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("runs", runs);
-        data.put("sources", index.parCle());
+        data.put("sources", sourcesAffichables(runs, index));
         // Le diagnostic voyage AVEC la page, pas seulement à côté : c'est lui qui permet au
         // panneau de code de dire ce qu'il a cherché quand il n'a rien à montrer. Une page
         // transmise en pièce jointe reste alors explicable sans son répertoire d'origine.
@@ -87,6 +87,34 @@ public final class Dashboard {
      * les embarquer une seconde fois doublerait ces données dans une page qui se transmet
      * en pièce jointe. Le fichier {@code diagnostic.json}, lui, les garde — il se lit seul.
      */
+    /**
+     * Les sources que la page peut réellement montrer — et rien d'autre.
+     *
+     * <p>On embarquait l'index entier, c'est-à-dire tout {@code .java} rencontré sous les
+     * racines. Or la vue de code n'ouvre un fichier que par une classe mesurée : une source
+     * absente de la couverture n'a aucun chemin qui y mène, jamais. Elle pesait sans pouvoir
+     * s'afficher.
+     *
+     * <p>Le coût restait invisible tant qu'on désignait le répertoire de sources exact. Il a
+     * éclaté quand l'index s'est mis à accepter n'importe quelle racine : pointer le projet
+     * entier devient commode, et embarque alors les tests, les sources engendrées, les
+     * dépendances déballées. Un rapport de 217 Mo que Firefox renonce à afficher, constaté le
+     * 26 août 2026 ; sur le projet d'exemple, <b>93 % du poids des sources</b> ne pouvait pas
+     * s'afficher.
+     *
+     * <p>Rien de fonctionnel ne part avec : l'index complet reste dans le diagnostic, qui
+     * continue de dire ce qui a été lu et où. Seul ce qui n'avait aucun chemin d'affichage
+     * cesse de voyager.
+     */
+    static Map<String, Object> sourcesAffichables(List<Object> runs, Sources.Index index) {
+        Map<String, Object> retenues = new LinkedHashMap<>();
+        for (String cle : Diagnostic.mesures(runs)) {
+            Object lignes = index.parCle().get(cle);
+            if (lignes != null) retenues.put(cle, lignes);
+        }
+        return retenues;
+    }
+
     /**
      * Le rapport JaCoCo de toutes les exécutions réunies, s'il a été produit.
      *

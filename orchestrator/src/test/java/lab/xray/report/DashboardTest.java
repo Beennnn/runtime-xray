@@ -607,6 +607,41 @@ class DashboardTest {
     }
 
     @Test
+    @DisplayName("Seules les sources affichables voyagent, mais le diagnostic les connaît toutes")
+    @SuppressWarnings("unchecked")
+    void carriesOnlyTheSourcesThePageCanShow(@TempDir Path dir) throws Exception {
+        // Une source qu'aucune classe mesurée ne réclame n'a aucun chemin d'affichage : rien
+        // dans la page n'y mène. L'embarquer, c'est recopier l'arborescence du projet — un
+        // rapport de 217 Mo que Firefox a renoncé à ouvrir, le 26 août 2026.
+        Path out = dir.resolve("out");
+        Files.createDirectories(out);
+        fixtureRun(out.resolve("runs"), "essai", "UUID-P", true);
+        Path src = sources(dir);
+        Files.writeString(src.resolve("app/JamaisMesuree.java"), """
+                package app;
+                class JamaisMesuree { int x() { return 1; } }
+                """, StandardCharsets.UTF_8);
+
+        Map<String, Object> data = dataOf(Dashboard.build(out, List.of(src), 8));
+
+        Map<String, Object> embarquees = (Map<String, Object>) data.get("sources");
+        assertTrue(embarquees.containsKey("app/Moteur.java"), "la classe mesurée garde son code");
+        assertFalse(embarquees.containsKey("app/JamaisMesuree.java"),
+                "une source sans classe mesurée ne peut pas s'afficher, donc ne voyage pas");
+
+        // Mais rien de fonctionnel ne part : le diagnostic sait toujours qu'elle a été lue,
+        // et l'arbre « Où est chaque classe » continue de la situer.
+        Map<String, Object> d = (Map<String, Object>) data.get("diagnostic");
+        Map<String, Object> parNom =
+                (Map<String, Object>) ((Map<String, Object>) d.get("sources")).get("parNom");
+        assertTrue(parNom.containsKey("JamaisMesuree.java"),
+                "le diagnostic doit continuer de dire où chaque fichier a été lu");
+        assertEquals(1L, ((Number) ((Map<String, Object>) d.get("rapprochement"))
+                .get("sourcesSansClasse")).longValue(),
+                "et compter celles qui ne correspondent à aucune classe mesurée");
+    }
+
+    @Test
     @DisplayName("La page sait cumuler la couverture des exécutions cochées, et dire laquelle")
     void thePageCanUnifyCoverageAcrossRuns(@TempDir Path dir) throws Exception {
         Path out = dir.resolve("out");
