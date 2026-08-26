@@ -164,4 +164,63 @@ class ConfigTest {
         assertEquals("a/b/*", described.get("filtreClasses"));
         assertEquals(Boolean.TRUE, described.get("valeursInspectees"));
     }
+
+    // ---------------------------------------- plusieurs chemins, y compris sous Windows
+
+    @Test
+    @DisplayName("Un chemin Windows absolu n'est pas coupé sur la lettre de son lecteur")
+    void aWindowsDriveLetterIsNotASeparator() {
+        // Le séparateur documenté est « : », ce qui va de soi sur Unix et pas du tout sur
+        // Windows : découpé bêtement, C:\projet\src donnait « C » et « \projet\src », deux
+        // chemins qui n'existent pas. L'outil annonçait alors « introuvable » sur un chemin
+        // parfaitement valide que l'utilisateur avait sous les yeux.
+        assertEquals(java.util.List.of("C:\\Users\\moi\\projet\\src\\main\\java"),
+                Config.decouper("C:\\Users\\moi\\projet\\src\\main\\java"));
+
+        assertEquals(java.util.List.of("C:/Users/moi/projet", "D:/autre/module"),
+                Config.decouper("C:/Users/moi/projet;D:/autre/module"),
+                "le point-virgule est le séparateur natif de Windows : on l'accepte");
+    }
+
+    @Test
+    @DisplayName("Sur Unix, « : » reste le séparateur de plusieurs racines")
+    void aColonStillSeparatesRootsOnUnix() {
+        assertEquals(java.util.List.of("src/main/java", "src/generated/java", "/opt/autre/src"),
+                Config.decouper("src/main/java:src/generated/java:/opt/autre/src"));
+        assertEquals(java.util.List.of("a", "b", "c"), Config.decouper("a,b:c"));
+    }
+
+    @Test
+    @DisplayName("Seule une lettre SEULE devant un séparateur de chemin fait un lecteur")
+    void onlyASingleLetterBeforeAPathSeparatorCountsAsADrive() {
+        // Sans quoi « src:autre » ou « lib:cible » seraient recollés en un seul chemin.
+        assertEquals(java.util.List.of("src", "autre"), Config.decouper("src:autre"));
+        assertEquals(java.util.List.of("ab", "/c"), Config.decouper("ab:/c"),
+                "deux lettres ne sont pas un lecteur");
+        assertEquals(java.util.List.of("C", "sans-slash"), Config.decouper("C:sans-slash"),
+                "sans séparateur de chemin derrière, ce « : » sépare bien deux entrées");
+    }
+
+    @Test
+    @DisplayName("Les classes et les sources se découpent de la même façon")
+    void classesAndSourcesAreSplitTheSameWay() {
+        // Les deux réglages s'écrivent pareil, et se trompaient pareil : la correction doit
+        // valoir pour les deux, ou le prochain lecteur croira que l'un des deux est cassé.
+        Config c = new Config();
+        c.classesDir = "C:\\projet\\target\\classes;C:\\projet\\libs\\interne.jar";
+        assertEquals(2, c.classesPaths().size(), "un lecteur ne coupe pas un chemin en deux");
+        assertEquals(Path.of("C:\\projet\\target\\classes"), c.classesPaths().get(0));
+
+        assertEquals(java.util.List.of(Path.of("C:\\projet\\src\\main\\java")),
+                Config.chemins("C:\\projet\\src\\main\\java"));
+    }
+
+    @Test
+    @DisplayName("Une valeur vide ou en blancs ne produit aucun chemin")
+    void blankValuesProduceNoPaths() {
+        assertTrue(Config.chemins("").isEmpty());
+        assertTrue(Config.chemins("  ,  : ").isEmpty(),
+                "des séparateurs sans contenu ne désignent rien");
+        assertTrue(Config.chemins(null).isEmpty());
+    }
 }

@@ -170,11 +170,68 @@ public final class Config {
 
     /** Les entrées de {@link #classesDir}, répertoires ou jar, dans l'ordre donné. */
     public List<Path> classesPaths() {
+        return chemins(classesDir);
+    }
+
+    /**
+     * Une liste de chemins telle qu'on l'écrit dans la configuration — <b>lecteur Windows
+     * compris</b>.
+     *
+     * <p>Le séparateur documenté est {@code :}, ce qui va de soi sur Unix et ne va pas du tout
+     * sur Windows : {@code C:\projet\src} y commence par un {@code :} qui n'est pas un
+     * séparateur. Découpé bêtement, ce chemin donnait deux entrées — {@code C} et
+     * {@code \projet\src} — dont aucune n'existe, et l'outil concluait « répertoire
+     * introuvable » sur un chemin parfaitement valide que l'utilisateur avait sous les yeux.
+     *
+     * <p>Le {@code :} qui suit une lettre seule en tête de segment et précède un séparateur de
+     * chemin est donc rendu au chemin. {@code ;} — le séparateur natif de Windows — et
+     * {@code ,} sont acceptés en plus, parce que c'est ce qu'un utilisateur de Windows écrira
+     * spontanément.
+     */
+    public static List<Path> chemins(String valeur) {
         List<Path> paths = new ArrayList<>();
-        for (String part : classesDir.split("[:,]")) {
+        for (String part : decouper(valeur)) {
             if (!part.isBlank()) paths.add(Path.of(part.trim()));
         }
         return paths;
+    }
+
+    /** Le découpage seul, sans interprétation : c'est lui que les tests éprouvent. */
+    static List<String> decouper(String valeur) {
+        List<String> out = new ArrayList<>();
+        if (valeur == null) return out;
+        StringBuilder courant = new StringBuilder();
+        for (int i = 0; i < valeur.length(); i++) {
+            char c = valeur.charAt(i);
+            boolean separe = (c == ',' || c == ';')
+                    || (c == ':' && !lettreDeLecteur(valeur, i));
+            if (separe) {
+                out.add(courant.toString());
+                courant.setLength(0);
+            } else {
+                courant.append(c);
+            }
+        }
+        out.add(courant.toString());
+        return out;
+    }
+
+    /**
+     * Vrai si ce {@code :} est celui d'un lecteur Windows, et non un séparateur.
+     *
+     * <p>Trois conditions, et il les faut toutes : une lettre juste avant, cette lettre en
+     * tête de segment, et un séparateur de chemin juste après. {@code C:\x} est un lecteur ;
+     * {@code src:autre} ne l'est pas, ni {@code ab:c}.
+     */
+    private static boolean lettreDeLecteur(String v, int i) {
+        if (i < 1 || !Character.isLetter(v.charAt(i - 1))) return false;
+        if (i >= 2) {
+            char avant = v.charAt(i - 2);
+            boolean debutDeSegment = avant == ',' || avant == ';' || avant == ':'
+                    || Character.isWhitespace(avant);
+            if (!debutDeSegment) return false;
+        }
+        return i + 1 < v.length() && (v.charAt(i + 1) == '\\' || v.charAt(i + 1) == '/');
     }
 
     /** Vrai si le niveau demandé va jusqu'à l'échantillonnage des piles. */
@@ -245,7 +302,8 @@ public final class Config {
             #
             # Ne l'écrire que pour analyser AUTRE CHOSE : une dépendance interne livrée
             # compilée, un jar « gras », ou un module précis.
-            # Répertoires ET archives jar sont acceptés, séparés par ':'. Ajouter le jar
+            # Répertoires ET archives jar sont acceptés, séparés par ':' (ou ';' sous
+            # Windows, où un chemin commence par « C: »). Ajouter le jar
             # d'une dépendance interne la fait entrer dans l'analyse au même titre que le
             # code du projet — c'est souvent elle que l'on cherche à comprendre.
             #CLASSES_DIR="target/classes:libs/module-commun-3.2.jar"  # + une dépendance
@@ -276,7 +334,8 @@ public final class Config {
             #ROOT_METHOD=""
 
             # ── Les sources ─────────────────────────────────────────────────── recommandé
-            # Pour afficher le code annoté. Plusieurs racines : séparées par ':'.
+            # Pour afficher le code annoté. Plusieurs racines : séparées par ':' — ou par
+            # ';' sous Windows, où un chemin absolu commence lui-même par « C: ».
             SOURCE_DIRS="src/main/java"
             #SOURCE_DIRS="src/main/java:src/generated/java"
 

@@ -9,7 +9,7 @@ Le [README](README.md) explique l'outil ; ici, on explique le dépôt.
 ## Construire et éprouver
 
 ```bash
-mvn test                            # 176 tests, aucun n'accède au réseau
+mvn test                            # 181 tests, aucun n'accède au réseau
 mvn -DskipTests package             # orchestrator/target/runtime-xray.jar   (175 Ko)
 mvn -Pjacoco  -DskipTests package   # runtime-xray-jacoco.jar               (950 Ko)
 mvn -Pcomplet -DskipTests package   # runtime-xray-complet.jar               (19 Mo)
@@ -184,6 +184,16 @@ rapport par combinaison — c'est précisément ce que le cumul dans la page év
 - **Pas de mesure de temps sous Windows** : async-profiler ne publie que des binaires
   Linux et macOS. La couverture et les valeurs fonctionnent ; l'outil le dit au lancement
   plutôt que d'échouer.
+- **Chemins Windows dans une liste** : `SOURCE_DIRS` et `CLASSES_DIR` se séparent par `:`,
+  ce qui va de soi sur Unix et pas du tout sur Windows — `C:\projet\src` commence par un `:`
+  qui n'est pas un séparateur. `Config.decouper` rend au chemin le `:` qui suit une lettre
+  seule en tête de segment et précède un séparateur, et accepte `;` en plus. Sans cela, un
+  chemin absolu valide donnait deux entrées inexistantes et l'outil répondait « introuvable »
+  sur un chemin que l'utilisateur avait sous les yeux. Découvert le 26 août 2026, quand la
+  recherche de racines s'est mise à proposer des chemins absolus.
+- **Les tests ne comparent jamais un chemin à un littéral à séparateurs** : `endsWith(
+  "projet/src/main/java")` échoue sous Windows alors que le code a trouvé exactement ce qu'il
+  fallait. Construire le chemin attendu avec `resolve` et comparer les deux.
 - **Terminal Windows** : l'outil écrit en UTF-8. Un terminal en cp850 — le défaut de bien
   des postes — rend les accents illisibles. Corriger côté terminal (mintty → Options →
   Text → UTF-8), ou lancer avec `-Dstdout.encoding=cp850`. Ne pas « corriger » cela dans

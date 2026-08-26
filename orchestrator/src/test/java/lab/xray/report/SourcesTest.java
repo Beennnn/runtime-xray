@@ -147,9 +147,12 @@ class SourcesTest {
 
         assertFalse(pistes.isEmpty(), "les deux racines candidates doivent être trouvées");
         Map<String, Object> meilleure = (Map<String, Object>) pistes.get(0);
-        assertTrue(String.valueOf(meilleure.get("racine")).endsWith("projet/src/main/java"),
-                "celle qui résout deux classes passe devant celle qui n'en résout qu'une : "
-                + meilleure.get("racine"));
+        // Comparer sur un chemin construit, jamais sur un littéral à séparateurs : sous
+        // Windows la racine se termine par « projet\src\main\java », et le test échouait
+        // alors que la recherche avait trouvé exactement ce qu'il fallait.
+        assertEquals(dir.resolve("projet/src/main/java").toAbsolutePath().normalize().toString(),
+                meilleure.get("racine"),
+                "celle qui résout deux classes passe devant celle qui n'en résout qu'une");
         assertEquals(2, ((Number) meilleure.get("resout")).intValue());
         assertEquals(2, ((Number) meilleure.get("surTotal")).intValue(),
                 "le compte doit rester lisible : « 2 sur 2 », pas « 2 »");

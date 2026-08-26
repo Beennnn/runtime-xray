@@ -754,11 +754,9 @@ public final class Main {
     }
 
     private static List<Path> sourceRoots(Config config) {
-        List<Path> roots = new ArrayList<>();
-        for (String s : config.sourceDirs.split("[:,]")) {
-            if (!s.isBlank()) roots.add(Path.of(s.trim()));
-        }
-        return roots;
+        // Le découpage vit dans Config : sources et classes s'écrivent de la même façon, et
+        // se trompaient de la même façon sur un chemin Windows absolu.
+        return Config.chemins(config.sourceDirs);
     }
 
     private static String slug(String name) {
@@ -820,11 +818,13 @@ public final class Main {
                   --config <fichier>   Lit les réglages depuis un fichier. GÉNÈRE un gabarit
                                        commenté si le fichier n'existe pas.
                   --java "<commande>"  La commande qui lance l'application, telle quelle.
-                  --classes <chemins>  Répertoires de .class et/ou jar, séparés par ':'.
+                  --classes <chemins>  Répertoires de .class et/ou jar, séparés par ':'
+                                       (ou ';' sous Windows, où « C: » n'est pas coupé).
                                        Obligatoire.
                   --hide "<paquets>"   Paquets à taire comme le JDK, ex. "org.slf4j".
                   --root "<C::m>"      Méthode racine : celle dont on capture les valeurs.
-                  --sources <dirs>     Répertoires de sources, séparés par ':'.
+                  --sources <dirs>     Répertoires de sources, séparés par ':' (ou ';'
+                                       sous Windows, où « C: » n'est pas coupé).
                   --filter "<motif>"   Restreint les mesures de temps, ex. "com/exemple/*".
                   --out <dir>          Répertoire de sortie (défaut : runtime-xray-out).
                   --name "<texte>"     Nom de cette exécution ; elles s'accumulent et la vue
