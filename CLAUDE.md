@@ -184,6 +184,11 @@ rapport par combinaison — c'est précisément ce que le cumul dans la page év
 - **Pas de mesure de temps sous Windows** : async-profiler ne publie que des binaires
   Linux et macOS. La couverture et les valeurs fonctionnent ; l'outil le dit au lancement
   plutôt que d'échouer.
+- **La CI éprouve les deux systèmes** : `tests.yml` lance `mvn test` sur `ubuntu-latest`
+  ET `windows-latest`, en `fail-fast: false` — savoir qu'un défaut est propre à Windows ou
+  commun aux deux change ce qu'il faut aller regarder. La construction des trois éditions
+  reste sur un seul poste : elle éprouve les profils Maven, rien qui dépende du système.
+  Ajoutée le 26 août 2026, après deux défauts Windows qu'une CI Linux ne pouvait pas voir.
 - **Chemins Windows dans une liste** : `SOURCE_DIRS` et `CLASSES_DIR` se séparent par `:`,
   ce qui va de soi sur Unix et pas du tout sur Windows — `C:\projet\src` commence par un `:`
   qui n'est pas un séparateur. `Config.decouper` rend au chemin le `:` qui suit une lettre
