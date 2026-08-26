@@ -437,6 +437,20 @@
      pas une page. */
   /* L'explorateur des sources. Les quatre états ont chacun leur couleur, et c'est la même
      du décompte à la pastille de l'arbre : on suit une couleur, pas un vocabulaire. */
+  /* Une proposition se lit à son chiffre avant de se lire à son chemin : le score est donc
+     ce qui vient en premier, et sa teinte dit s'il faut la croire sans avoir à la comparer. */
+  .pistes{display:grid;gap:10px;margin:10px 0}
+  .piste{border:1px solid var(--border);border-radius:6px;padding:12px 14px;
+         background:var(--panel2)}
+  .piste .tete{display:flex;align-items:baseline;gap:9px;flex-wrap:wrap;margin-bottom:8px}
+  .piste .score{font-weight:700;font-size:14px;padding:2px 9px;border-radius:4px;
+                font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+  .piste .score.ok{color:var(--fullbar);background:var(--full);opacity:.95}
+  .piste .score.moyen{color:var(--partbar);background:var(--part)}
+  .piste .score.faible{color:var(--missbar);background:var(--miss)}
+  .piste .quoi{color:var(--muted);font-size:12.5px}
+  .piste pre.remede{margin:0}
+  .piste .ex{margin-top:7px;font-size:11.5px;color:var(--muted)}
   .pieges{display:grid;gap:1px;background:var(--border);border:1px solid var(--border);
           border-radius:6px;overflow:hidden;margin:8px 0}
   .piege{background:var(--panel2);padding:8px 12px;display:grid;gap:2px;
@@ -2892,6 +2906,7 @@ function constatSourceAbsente(info){
          + 'code de cette classe vient d\'une bibliothèque dont on n\'a pas les sources.</p>';
     }
   }
+  h += pistesSources();
   h += '<p class="apres">Le détail complet — configuration, exécutions, rapprochement classe '
      + 'par classe — est dans <code>diagnostic.json</code>, à côté de cette page.</p>';
   return h + '</div>';
@@ -3690,6 +3705,46 @@ function cablerPlis(){
  * ==================================================================================== */
 
 /**
+ * Les racines proposées, avec ce qui les justifie.
+ *
+ * <p>Un diagnostic qui s'arrête à « il manque des sources » laisse le lecteur devant la même
+ * question qu'avant. L'outil a cherché les fichiers correspondants autour du projet et compté
+ * ce que chaque racine résoudrait : la ligne se recopie, et le compte dit s'il faut la croire.
+ * Une racine qui résout 27 classes sur 27 n'est pas une devinette ; une qui en résout 3 sur
+ * 447 désigne un autre module, et se lit comme telle.
+ */
+function pistesSources(){
+  const pistes = ((D.diagnostic || {}).rapprochement || {}).pistes;
+  if (!pistes) return "";
+  if (!pistes.length){
+    return '<h4>Racines proposées</h4><p class="cause">L\'outil a cherché les fichiers '
+         + '<code>.java</code> correspondants autour du projet et du bytecode analysé : '
+         + '<b>aucun ne porte les paquets attendus</b>. Les sources ne sont pas sur cette '
+         + 'machine, ou hors des répertoires explorés — auquel cas il faut désigner le bon '
+         + 'à la main.</p>';
+  }
+  return '<h4>Racines proposées</h4>'
+    + '<p class="srcline">Cherchées autour du bytecode analysé et du répertoire de lancement, '
+    + 'puis retenues sur preuve : seul compte un fichier dont le <b>paquet déclaré</b> produit '
+    + 'exactement une clé manquante.</p>'
+    + '<div class="pistes">' + pistes.map(p => {
+        const part = p.surTotal ? Math.round(100 * p.resout / p.surTotal) : 0;
+        const ton = part >= 80 ? "ok" : part >= 25 ? "moyen" : "faible";
+        return '<div class="piste">'
+          + '<div class="tete"><span class="score ' + ton + '">' + p.resout + ' / '
+          + p.surTotal + '</span> <span class="quoi">classe(s) sans source que cette racine '
+          + 'résoudrait</span></div>'
+          + '<pre class="remede">SOURCE_DIRS="' + esc(p.racine) + '"</pre>'
+          + (p.exemples && p.exemples.length
+              ? '<div class="ex">par exemple ' + p.exemples.map(e =>
+                  '<code>' + esc(e) + '</code>').join(", ") + '</div>' : '')
+          + '</div>';
+      }).join("") + '</div>'
+    + '<p class="srcline">Plusieurs racines se séparent par <code>:</code> — un projet à '
+    + 'plusieurs modules en demande souvent deux ou trois.</p>';
+}
+
+/**
  * Le volet « sources » du diagnostic.
  *
  * <p>Le fichier imbrique délibérément — {@code sources}, {@code bytecode},
@@ -3973,6 +4028,7 @@ function sourcesBlock(){
           + '<code>--sources</code> en ligne de commande.</p>';
   }
   if (r.conclusion && racines.length) corps += '<p class="cause">' + esc(r.conclusion) + '</p>';
+  corps += pistesSources();
 
   // 3. ce que chaque réglage commande — écrit à partir du symptôme, pas de la doc
   corps += piegesConfig();

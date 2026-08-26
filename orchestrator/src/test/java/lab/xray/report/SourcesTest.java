@@ -129,4 +129,102 @@ class SourcesTest {
                 "un accent dans un commentaire ne doit pas coûter l'affichage du fichier");
         assertFalse(((List<?>) index.parCle().get("app/Accent.java")).isEmpty());
     }
+
+    // ------------------------------------------------- proposer une racine, sans la deviner
+
+    @Test
+    @DisplayName("La racine proposée est celle qui explique le plus de classes manquantes")
+    @SuppressWarnings("unchecked")
+    void proposesTheRootThatExplainsTheMostClasses(@TempDir Path dir) throws Exception {
+        source(dir, "projet/src/main/java/org/exemple/module/Application.java", "org.exemple.module");
+        source(dir, "projet/src/main/java/org/exemple/donnees/Depot.java", "org.exemple.donnees");
+        source(dir, "autre/src/org/exemple/module/Application.java", "org.exemple.module");
+
+        List<Object> pistes = Sources.chercherRacines(
+                new java.util.LinkedHashSet<>(List.of("org/exemple/module/Application.java",
+                                                      "org/exemple/donnees/Depot.java")),
+                List.of(dir));
+
+        assertFalse(pistes.isEmpty(), "les deux racines candidates doivent être trouvées");
+        Map<String, Object> meilleure = (Map<String, Object>) pistes.get(0);
+        assertTrue(String.valueOf(meilleure.get("racine")).endsWith("projet/src/main/java"),
+                "celle qui résout deux classes passe devant celle qui n'en résout qu'une : "
+                + meilleure.get("racine"));
+        assertEquals(2, ((Number) meilleure.get("resout")).intValue());
+        assertEquals(2, ((Number) meilleure.get("surTotal")).intValue(),
+                "le compte doit rester lisible : « 2 sur 2 », pas « 2 »");
+    }
+
+    @Test
+    @DisplayName("Un fichier au bon nom mais au mauvais paquet ne compte pas")
+    void doesNotCreditANamesakeFromAnotherProject(@TempDir Path dir) throws Exception {
+        // C'est CE test qui sépare une proposition d'une devinette. Un Application.java d'un
+        // autre projet afficherait, en face de la couverture, du code qui n'a jamais tourné —
+        // plus coûteux qu'un panneau vide, parce qu'on le croirait.
+        source(dir, "un-autre-projet/src/util/Application.java", "un.autre.projet");
+
+        List<Object> pistes = Sources.chercherRacines(
+                new java.util.LinkedHashSet<>(List.of("org/exemple/module/Application.java")),
+                List.of(dir));
+
+        assertTrue(pistes.isEmpty(),
+                "le nom concorde, le paquet non : rien ne doit être proposé, or " + pistes);
+    }
+
+    @Test
+    @DisplayName("Rien à proposer se dit, plutôt que de se combler")
+    void proposesNothingWhenNothingMatches(@TempDir Path dir) throws Exception {
+        Files.createDirectories(dir.resolve("vide"));
+
+        assertTrue(Sources.chercherRacines(
+                new java.util.LinkedHashSet<>(List.of("org/exemple/module/Application.java")),
+                List.of(dir)).isEmpty());
+        assertTrue(Sources.chercherRacines(java.util.Set.of(), List.of(dir)).isEmpty(),
+                "sans classe manquante, il n'y a rien à chercher");
+    }
+
+    @Test
+    @DisplayName("Chercher sous une base et sous son parent ne parcourt pas deux fois")
+    void searchesAParentOnlyOnce(@TempDir Path dir) throws Exception {
+        Path enfant = dir.resolve("projet/src/main/java");
+        Files.createDirectories(enfant);
+
+        List<Path> retenues = Sources.dedoublonner(List.of(enfant, dir, dir.resolve("projet")));
+
+        assertEquals(1, retenues.size(), "le parent couvre déjà ses descendants : " + retenues);
+        assertEquals(dir.toAbsolutePath().normalize(), retenues.get(0));
+    }
+
+    @Test
+    @DisplayName("La racine proposée est celle qu'il aurait fallu écrire, paquet retiré")
+    @SuppressWarnings("unchecked")
+    void proposesTheRootWithThePackagePathRemoved(@TempDir Path dir) throws Exception {
+        source(dir, "depot/module/src/main/java/org/exemple/module/Application.java", "org.exemple.module");
+
+        List<Object> pistes = Sources.chercherRacines(
+                new java.util.LinkedHashSet<>(List.of("org/exemple/module/Application.java")),
+                List.of(dir));
+
+        Map<String, Object> piste = (Map<String, Object>) pistes.get(0);
+        assertEquals(dir.resolve("depot/module/src/main/java").toAbsolutePath().normalize()
+                        .toString(),
+                piste.get("racine"),
+                "on rend le répertoire de sources, pas celui du fichier");
+        assertEquals(List.of("org/exemple/module/Application.java"), piste.get("exemples"),
+                "la preuve accompagne le chiffre");
+    }
+
+    @Test
+    @DisplayName("Le bytecode et les métadonnées ne sont pas traversés")
+    void doesNotWalkThroughBuildOutputOrVersionControl(@TempDir Path dir) throws Exception {
+        source(dir, ".git/sauvegarde/org/exemple/module/Application.java", "org.exemple.module");
+        source(dir, "classes/org/exemple/module/Application.java", "org.exemple.module");
+        source(dir, "node_modules/paquet/org/exemple/module/Application.java", "org.exemple.module");
+
+        assertTrue(Sources.chercherRacines(
+                new java.util.LinkedHashSet<>(List.of("org/exemple/module/Application.java")),
+                List.of(dir)).isEmpty(),
+                "ces répertoires ne contiennent jamais les sources d'un projet, et ce sont "
+                + "eux qui font exploser le parcours");
+    }
 }

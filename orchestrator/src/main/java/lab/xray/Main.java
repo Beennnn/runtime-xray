@@ -718,12 +718,35 @@ public final class Main {
                         + " classe(s) mesurée(s) ont leur code");
                 if (sans instanceof Number n && n.intValue() > 0) {
                     System.out.println("   " + r.get("conclusion"));
+                    proposerRacines(r.get("pistes"));
                 }
             }
         } catch (Exception e) {
             // Le diagnostic est un confort : son absence ne doit rien empêcher.
         }
         System.out.println("   diagnostic : " + fichier);
+    }
+
+    /**
+     * Les racines trouvées, avec ce qu'elles résoudraient.
+     *
+     * <p>Un diagnostic qui s'arrête à « il manque des sources » laisse le lecteur devant la
+     * même question qu'avant. Celui-ci propose un chemin et le justifie d'un compte : la
+     * ligne se recopie, et le compte dit s'il faut la croire.
+     */
+    private static void proposerRacines(Object pistes) {
+        if (!(pistes instanceof List<?> liste) || liste.isEmpty()) {
+            System.out.println("   aucune source correspondante trouvée autour du projet — "
+                    + "les fichiers .java ne sont pas sur cette machine, ou ailleurs qu'ici.");
+            return;
+        }
+        System.out.println("   racines trouvées, à ajouter à SOURCE_DIRS :");
+        for (Object o : liste) {
+            if (!(o instanceof Map<?, ?> p)) continue;
+            System.out.println("     " + p.get("racine")
+                    + "   (résout " + entier(p.get("resout")) + "/" + entier(p.get("surTotal"))
+                    + " des classes sans source)");
+        }
     }
 
     private static String entier(Object o) {

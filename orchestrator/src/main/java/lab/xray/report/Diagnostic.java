@@ -71,8 +71,16 @@ public final class Diagnostic {
         d.put("sortie", commonDir.toAbsolutePath().normalize().toString());
         d.put("executions", executions(runs));
         d.put("sources", index.diagnostic());
-        d.put("bytecode", bytecode(contexte));
-        d.put("rapprochement", rapprochement(runs, index));
+        List<Object> bytecode = bytecode(contexte);
+        d.put("bytecode", bytecode);
+        Map<String, Object> rapprochement = rapprochement(runs, index);
+        // La recherche ne part que s'il y a quelque chose à chercher : elle parcourt le
+        // disque, et sur un rapport complet elle n'aurait rien à trouver.
+        if (nombre(rapprochement.get("fichiersSansSource")) > 0) {
+            rapprochement.put("pistes", Sources.chercherRacines(
+                    manquantes(runs, index), ouChercher(commonDir, index, bytecode)));
+        }
+        d.put("rapprochement", rapprochement);
 
         Path out = commonDir.resolve("diagnostic.json");
         Files.writeString(out, Json.write(d), StandardCharsets.UTF_8);
@@ -88,19 +96,7 @@ public final class Diagnostic {
      * cas d'une racine mal placée, et il se corrige d'un chemin.
      */
     static Map<String, Object> rapprochement(List<Object> runs, Sources.Index index) {
-        Set<String> attendus = new LinkedHashSet<>();
-        for (Object r : runs) {
-            if (r instanceof Map<?, ?> run && run.get("packages") instanceof Map<?, ?> pkgs) {
-                for (Object classes : pkgs.values()) {
-                    if (!(classes instanceof Iterable<?> list)) continue;
-                    for (Object c : list) {
-                        if (c instanceof Map<?, ?> cls && cls.get("source") instanceof String s) {
-                            attendus.add(s);
-                        }
-                    }
-                }
-            }
-        }
+        Set<String> attendus = mesures(runs);
 
         List<Object> trouves = new ArrayList<>();
         List<Object> manquants = new ArrayList<>();
@@ -123,6 +119,85 @@ public final class Diagnostic {
         m.put("exemplesManquants", manquants);
         m.put("conclusion", conclusion(attendus.size(), nbManquants, index));
         return m;
+    }
+
+    /**
+     * Les fichiers que la couverture dit avoir mesurés, toutes exécutions confondues.
+     *
+     * <p>Toutes, et non celle qu'on regarde : une classe absente d'une exécution mais
+     * présente dans une autre reste une classe dont on veut le code.
+     */
+    static Set<String> mesures(List<Object> runs) {
+        Set<String> attendus = new LinkedHashSet<>();
+        for (Object r : runs) {
+            if (r instanceof Map<?, ?> run && run.get("packages") instanceof Map<?, ?> pkgs) {
+                for (Object classes : pkgs.values()) {
+                    if (!(classes instanceof Iterable<?> list)) continue;
+                    for (Object c : list) {
+                        if (c instanceof Map<?, ?> cls && cls.get("source") instanceof String s) {
+                            attendus.add(s);
+                        }
+                    }
+                }
+            }
+        }
+        return attendus;
+    }
+
+    /** Les clés que la couverture réclame et que l'index n'a pas. */
+    static java.util.Set<String> manquantes(List<Object> runs, Sources.Index index) {
+        java.util.Set<String> out = new LinkedHashSet<>();
+        for (String cle : mesures(runs)) {
+            if (!index.parCle().containsKey(cle)) out.add(cle);
+        }
+        return out;
+    }
+
+    /**
+     * Où chercher les sources qui manquent, du plus probable au moins probable.
+     *
+     * <p>Aucun de ces endroits n'est une convention : ce sont les seuls que l'exécution nous
+     * ait fait connaître. Le bytecode analysé est le meilleur indice de tous — un
+     * {@code <projet>/target/classes} désigne le projet à deux répertoires près, et c'est là
+     * que sont ses sources. La racine déjà configurée en est un autre : quand elle est d'un
+     * cran à côté, le bon répertoire est son voisin immédiat.
+     *
+     * <p>On ne remonte jamais plus haut que ces indices, et jamais vers la racine du disque :
+     * une recherche qui balaie tout finirait par proposer les sources d'un autre projet.
+     */
+    static List<Path> ouChercher(Path commonDir, Sources.Index index, List<Object> bytecode) {
+        List<Path> bases = new ArrayList<>();
+        // 1. autour du bytecode réellement analysé
+        for (Object o : bytecode) {
+            if (o instanceof Map<?, ?> b && b.get("absolu") instanceof String chemin) {
+                remonter(Path.of(chemin), 2, bases);
+            }
+        }
+        // 2. autour des racines de sources déjà données — le cas « d'un cran à côté »
+        for (Object o : index.racines()) {
+            if (o instanceof Map<?, ?> r && r.get("absolue") instanceof String chemin) {
+                remonter(Path.of(chemin), 1, bases);
+            }
+        }
+        // 3. le répertoire depuis lequel l'analyse a été lancée
+        bases.add(Path.of(System.getProperty("user.dir")));
+        // 4. à défaut, le voisinage du rapport lui-même
+        remonter(commonDir, 1, bases);
+        return bases;
+    }
+
+    /** Un chemin et ses ascendants, jusqu'à {@code crans} — jamais au-delà. */
+    private static void remonter(Path depart, int crans, List<Path> bases) {
+        Path p = depart.toAbsolutePath().normalize();
+        if (Files.isRegularFile(p)) p = p.getParent();          // un jar désigne son répertoire
+        for (int i = 0; i <= crans && p != null && p.getParent() != null; i++) {
+            bases.add(p);
+            p = p.getParent();
+        }
+    }
+
+    private static long nombre(Object o) {
+        return o instanceof Number n ? n.longValue() : 0;
     }
 
     /**
