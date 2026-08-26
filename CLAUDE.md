@@ -143,6 +143,29 @@ répertoire de paquet : cela retombe sur ses pieds. C'est ce qui a cassé le 26 
 une racine d'un cran trop haute suffisait à décaler l'index entier, donc « Source
 indisponible » sur les 447 classes d'une analyse.
 
+## La bande d'activité pendant l'attente
+
+`Progression` écrit une ligne qui se réécrit pendant que l'application observée travaille.
+Trois décisions la tiennent, et elles sont liées :
+
+- **Elle ne mesure rien.** Le temps processeur vient de `ProcessHandle.Info.totalCpuDuration`
+  — le système le compte de toute façon — et la taille de `execution.log` d'un fichier déjà
+  écrit. Rien n'est ajouté à la JVM observée. C'était la condition posée : un affichage de
+  confort qui déplacerait la mesure ferait mentir le rapport qu'il accompagne.
+- **Un carré par paquet aurait été plus parlant**, et n'a pas été retenu : les deux seules
+  façons d'obtenir le code réellement atteint en cours de route sont un `-Xlog:class+load`
+  dans `JAVA_TOOL_OPTIONS` — inconnu d'une JVM 8, qui refuserait alors de démarrer, or c'est
+  précisément le parc visé — ou un `output=tcpserver` sur l'agent JaCoCo, qui déplace
+  l'écriture du `.exec` hors du chemin qui fonctionne. Le coût portait sur la capture ; le
+  gain, sur l'affichage.
+- **Le compte est en cœurs occupés**, pas en pourcentage de la machine. Sur un serveur à
+  trente-deux cœurs, une application qui en sature un travaille à plein régime : ramenée à
+  3 %, elle s'afficherait endormie.
+
+Elle se tait hors terminal (`System.console() == null`) : dans un tuyau ou un journal
+d'intégration, une ligne par seconde n'apprend rien et noie le reste. Les caractères
+`· ░ ▒ ▓ █` existent en CP850 comme en UTF-8, pour la même raison que le reste des messages.
+
 ## Couverture cumulée
 
 Une campagne de recette, c'est dix exécutions, et la question posée devant le code est « est-ce

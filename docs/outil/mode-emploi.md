@@ -221,6 +221,30 @@ deux secondes, il n'y a rien à observer. Deux réponses : augmenter la charge d
 Augmenter la charge est préférable — un profil sur deux secondes ne veut pas dire
 grand-chose de toute façon.
 
+### Pendant que ça tourne
+
+Une analyse dure ce que dure l'application observée. Tant qu'elle travaille, une bande
+d'activité se réécrit sur une seule ligne :
+
+```
+   03:12  ··░▒▓███▓▒░··████▓▒·······    cpu 41,3 s | sortie 812,0 Ko
+```
+
+Chaque carré vaut une seconde, et sa densité le nombre de cœurs occupés pendant cette
+seconde-là : `·` rien, `█` plusieurs. On y lit ce qu'on veut savoir sans attendre la fin —
+que le programme travaille encore, qu'il s'est mis à attendre une saisie ou une socket,
+qu'une phase de calcul vient de commencer.
+
+Cette bande **ne mesure rien**. Le temps processeur est celui que le système comptabilise
+de toute façon pour les processus lancés, la taille de sortie celle d'un fichier déjà
+écrit : aucune option n'est ajoutée à la JVM observée, rien n'est échantillonné en plus.
+Le rapport est identique, qu'elle s'affiche ou non.
+
+Elle ne s'affiche que devant un terminal. Redirigée dans un fichier ou lue par une chaîne
+d'intégration, une ligne qui se réécrit chaque seconde ne donnerait que du bruit : dans ce
+cas l'outil se tait, comme avant. `NO_COLOR` retire les couleurs sans retirer les carrés —
+c'est la densité qui porte l'information, la couleur ne fait que la redoubler.
+
 ## Ce qu'on obtient
 
 ```
