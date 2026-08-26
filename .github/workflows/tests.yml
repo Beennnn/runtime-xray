@@ -3,6 +3,17 @@
 # Le dépôt n'en avait aucun : ce qui passait sur le poste de développement passait, et
 # rien ne le vérifiait ailleurs. Les douze échecs qui ont motivé cette branche venaient
 # précisément d'une différence entre postes.
+#
+# Et ils en viennent encore. Le 26 août 2026, un `mvn clean install` sous Windows a fait
+# tomber un test que la CI voyait vert : une assertion comparait un chemin à un littéral
+# écrit en « / ». En cherchant, on a trouvé pire — un chemin absolu Windows était découpé
+# en deux sur le « : » de sa lettre de lecteur, depuis toujours, et l'outil répondait
+# « introuvable » sur un répertoire parfaitement valide. Une CI qui ne tourne que sous
+# Linux ne peut pas voir ces défauts-là ; elle les laisse se découvrir chez l'utilisateur,
+# c'est-à-dire au pire endroit et au pire moment.
+#
+# D'où la matrice. Windows n'est pas une plateforme d'appoint pour cet outil : c'est celle
+# des postes qui l'utilisent.
 name: Tests
 
 on:
@@ -12,7 +23,14 @@ on:
 
 jobs:
   tests:
-    runs-on: ubuntu-latest
+    strategy:
+      # Sans cela, le premier échec annule l'autre poste et on perd la moitié de
+      # l'information : savoir qu'un défaut est PROPRE à Windows, ou commun aux deux,
+      # change entièrement ce qu'il faut aller regarder.
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
 
@@ -24,8 +42,24 @@ jobs:
 
       - run: mvn -B test
 
-      # Les trois éditions se construisent-elles encore ? Un profil cassé ne se verrait
-      # pas autrement : la construction par défaut ne les touche pas.
+  # Les trois éditions se construisent-elles encore ? Un profil cassé ne se verrait pas
+  # autrement : la construction par défaut ne les touche pas.
+  #
+  # Sur un seul poste, et c'est délibéré : ce que cette étape éprouve, ce sont les profils
+  # Maven et l'assemblage des jar — rien qui dépende du système. La refaire sous Windows
+  # doublerait un téléchargement de composants de 19 Mo pour vérifier deux fois la même
+  # chose.
+  editions:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: maven
+
       - name: Les trois éditions se construisent
         run: |
           mvn -B -DskipTests package
