@@ -37,6 +37,20 @@ Le workflow refuse de publier si l'étiquette ne correspond pas à la version du
 Penser donc à monter cette version **avant** d'étiqueter : trois fichiers, `pom.xml`,
 `orchestrator/pom.xml`, `sample-app/pom.xml`.
 
+**Les liens de téléchargement se basculent tout seuls.** La dernière étape de
+`release.yml` réécrit sur `main`, une fois la release créée, l'URL de téléchargement, le
+nom du jar et la ligne « Version » du tableau — dans `README.md` et
+`docs/outil/mode-emploi.md`. Ils désignent la release **publiée**, donc ils ne peuvent
+pas se réécrire avant : nommer d'avance une étiquette qui n'existe pas offre un 404 au
+premier lecteur. Ne pas les toucher à la main entre l'étiquette et la fin du workflow.
+
+Les autres numéros de version du README parlent d'autre chose — la licence MIT de la
+1.0.0 déjà publiée, l'exemple d'étiquetage — et les trois expressions sont écrites
+étroitement pour ne pas y toucher. Leur délimiteur est `#` et non `|` : la ligne
+« Version » est une ligne de tableau Markdown, pleine de barres verticales, et les
+échapper dans une commande délimitée par `|` donne un motif que BSD sed lit de travers —
+essayé, il réécrivait le fichier entier.
+
 **Aucun binaire n'est versionné dans ce dépôt.** Git garde chaque exemplaire pour
 toujours ; le dépôt pèse 3,3 Mo, un seul jar complet le sextuplerait, et chaque version
 suivante s'ajouterait sans retour possible sans réécrire l'histoire. Les artefacts vivent
