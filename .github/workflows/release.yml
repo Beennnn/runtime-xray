@@ -73,7 +73,7 @@ jobs:
 
           | Édition | Poids | Ce qui fonctionne sans réseau |
           |---|---|---|
-          | `runtime-xray-cli` | ~170 Ko | rien à l'avance : les composants sont à trouver ailleurs |
+          | `runtime-xray-cli` | ~175 Ko | rien à l'avance : les composants sont à trouver ailleurs |
           | `runtime-xray-jacoco` | ~950 Ko | la **couverture** |
           | `runtime-xray-complet` | ~19 Mo | la couverture, les **temps** et les **valeurs** |
 
@@ -92,3 +92,44 @@ jobs:
             --title "runtime-xray $VERSION" \
             --notes-file notes.md \
             publication/*
+
+      # Les liens de téléchargement de la documentation désignent la release PUBLIÉE.
+      # Ils se réécrivent donc ici, après coup, jamais avant : nommer d'avance une
+      # étiquette qui n'existe pas offre un 404 au premier lecteur de la page d'accueil.
+      #
+      # Ce geste a été rejoué à la main trois fois en deux jours, à l'identique. C'est la
+      # même dérive que celle qui laissait la page d'accueil en retard sur sa source, et
+      # elle se traite pareil : ce qui se recopie mécaniquement ne doit pas dépendre de
+      # ce que quelqu'un pense à faire.
+      - name: Basculer les liens de la documentation sur main
+        run: |
+          git config user.name  'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git fetch origin main
+          git checkout -B main origin/main
+
+          # Trois formes seulement, et volontairement étroites : l'URL de téléchargement,
+          # le nom du jar, et la ligne « Version » du tableau. Les autres numéros de
+          # version du README parlent d'autre chose — la licence MIT de la 1.0.0 déjà
+          # publiée, l'exemple d'étiquetage — et doivent rester intacts.
+          #
+          # Le délimiteur est « # », pas « | » : la troisième expression contient des
+          # barres verticales (c'est une ligne de tableau Markdown), et les échapper dans
+          # une commande elle-même délimitée par « | » donne un motif que BSD sed lit de
+          # travers — essayé, il réécrivait le fichier entier.
+          sed -i -E \
+            -e "s#releases/download/v[0-9]+\.[0-9]+\.[0-9]+/#releases/download/v$VERSION/#g" \
+            -e "s#runtime-xray-cli-[0-9]+\.[0-9]+\.[0-9]+\.jar#runtime-xray-cli-$VERSION.jar#g" \
+            -e "s#^\| Version \| \`[0-9]+\.[0-9]+\.[0-9]+\` \|\$#| Version | \`$VERSION\` |#" \
+            README.md docs/outil/mode-emploi.md
+
+          if git diff --quiet; then
+            echo "Les liens désignent déjà la $VERSION — rien à basculer."
+            exit 0
+          fi
+
+          git diff --stat
+          git commit -am "Basculer les liens de la documentation sur la $VERSION
+
+          Recopie automatique, déclenchée par la publication de $GITHUB_REF_NAME."
+          git push origin main
