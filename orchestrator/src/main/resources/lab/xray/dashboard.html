@@ -4035,6 +4035,14 @@ function sourcesBlock(){
 
   // 4. l'arbre et sa recherche
   corps += '<h4>Où est chaque classe</h4>'
+        // Les fichiers lus sans classe mesurée ne sont pas dans l'arbre : la page ne porte
+        // que ce qu'elle peut montrer. Leur nombre, lui, dit s'il y a matière à chercher.
+        + (r.sourcesSansClasse
+            ? '<p class="srcline">' + r.sourcesSansClasse + ' fichier(s) source lu(s) ne '
+              + 'correspondent à aucune classe mesurée — code non compilé, hors périmètre, ou '
+              + 'racine trop large. Ils ne sont pas embarqués ici ; <code>diagnostic.json</code> '
+              + 'les recense.</p>'
+            : '')
         + '<p class="srcline">' + Object.entries(ETATS_SOURCE).map(([k, v]) =>
             '<span class="lgd e-' + k + '" title="' + esc(v.aide) + '"><span class="pt"></span>'
             + esc(v.lib) + ' <b>' + c[k] + '</b></span>').join("") + '</p>'
