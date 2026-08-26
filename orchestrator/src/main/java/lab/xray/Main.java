@@ -187,8 +187,12 @@ public final class Main {
             exportRuns(config, outDir);
         }
 
+        fusionnerCouverture(config, tools, outDir);
+
         System.out.println("▶ Assemblage de la vue");
-        Path page = Dashboard.build(outDir, sourceRoots(config), config.watchCount, config.hidden());
+        Path page = Dashboard.build(outDir, sourceRoots(config), config.watchCount,
+                config.hidden(), lancement(config, tools, sourceRoots(config)));
+        direCeQuOnATrouve(outDir);
         System.out.println();
         System.out.println("Terminé — ouvrir : " + page);
 
@@ -207,7 +211,8 @@ public final class Main {
             LocalServer.serve(outDir, serveHost, servePort, () -> {
                 // Après une écriture, la page est reconstruite : l'annotation devient celle
                 // du rapport, et pas seulement celle de ce navigateur.
-                Dashboard.build(outDir, sourceRoots(servi), servi.watchCount, servi.hidden());
+                Dashboard.build(outDir, sourceRoots(servi), servi.watchCount, servi.hidden(),
+                        lancement(servi, tools, sourceRoots(servi)));
                 return null;
             }, acces);
         }
@@ -314,6 +319,94 @@ public final class Main {
         cmd.add(collapsed.toString());
         cmd.add(out.toString());
         exec(cmd);
+    }
+
+    /**
+     * La couverture de toutes les exécutions réunies, telle que JaCoCo la calcule.
+     *
+     * <p>JaCoCo sait fusionner : {@code merge} additionne plusieurs {@code .exec} en un
+     * seul, et le rapport qu'on en tire est celui de la campagne entière — une ligne y est
+     * couverte dès qu'une exécution l'a couverte. C'est exactement la question qu'on se pose
+     * après une recette en dix scénarios, et à laquelle dix rapports séparés ne répondent
+     * pas : il faudrait faire l'union de tête, classe par classe.
+     *
+     * <p>La page fait la même union de son côté, sur les exécutions cochées, et sait dire
+     * <i>laquelle</i> a couvert quoi — ce que la fusion JaCoCo, elle, ne peut plus dire une
+     * fois les mesures additionnées. Les deux se complètent : la page pour comprendre, le
+     * rapport JaCoCo pour le chiffre qui fait foi et qu'on transmet.
+     *
+     * <p>Sans au moins deux exécutions, il n'y a rien à fusionner et on ne produit rien :
+     * un « rapport fusionné » identique au rapport simple ferait croire à une opération.
+     */
+    private static void fusionnerCouverture(Config config, Toolbox tools, Path outDir) {
+        try {
+            List<Path> mesures = new ArrayList<>();
+            for (Path run : runDirectories(outDir)) {
+                Path exec = run.resolve("jacoco/jacoco.exec");
+                if (Files.isRegularFile(exec)) mesures.add(exec);
+            }
+            if (mesures.size() < 2) return;
+            List<Path> classes = config.classesPaths();
+            if (classes.isEmpty()) {
+                System.out.println("▶ Couverture fusionnée : ignorée — le bytecode n'est pas "
+                        + "connu dans ce mode (donner --classes pour l'obtenir)");
+                return;
+            }
+
+            System.out.println("▶ Couverture fusionnée sur " + mesures.size() + " exécutions");
+            Path cli = tools.jacocoCli();
+            Path dir = outDir.resolve("jacoco-fusion");
+            Files.createDirectories(dir);
+            Path fusion = dir.resolve("fusion.exec");
+
+            List<String> merge = new ArrayList<>(List.of(
+                    RunSession.javaExecutable(), "-jar", cli.toString(), "merge"));
+            for (Path m : mesures) merge.add(m.toString());
+            merge.add("--destfile");
+            merge.add(fusion.toString());
+            merge.add("--quiet");
+            exec(merge);
+
+            Path html = dir.resolve("html");
+            Files.createDirectories(html);
+            List<String> report = new ArrayList<>(List.of(
+                    RunSession.javaExecutable(), "-jar", cli.toString(), "report",
+                    fusion.toString(),
+                    "--html", html.toString(),
+                    "--xml", html.resolve("jacoco.xml").toString(),
+                    "--csv", html.resolve("jacoco.csv").toString(),
+                    "--name", "Couverture cumulée — " + mesures.size() + " exécutions",
+                    "--quiet"));
+            for (Path entry : classes) {
+                report.add("--classfiles");
+                report.add(entry.toString());
+            }
+            for (Path src : sourceRoots(config)) {
+                report.add("--sourcefiles");
+                report.add(src.toString());
+            }
+            exec(report);
+        } catch (Exception e) {
+            // La fusion est un supplément : la vue sait déjà cumuler côté page. Son échec
+            // ne doit pas emporter le rapport, il doit se dire.
+            System.out.println("   ⚠️ couverture fusionnée non produite : " + e.getMessage());
+        }
+    }
+
+    /** Les répertoires d'exécution sous la sortie commune, au sens où la vue les entend. */
+    private static List<Path> runDirectories(Path outDir) throws IOException {
+        List<Path> found = new ArrayList<>();
+        if (Files.isRegularFile(outDir.resolve("jacoco/jacoco.exec"))) found.add(outDir);
+        Path runs = outDir.resolve("runs");
+        for (Path dir : List.of(outDir, runs)) {
+            if (!Files.isDirectory(dir)) continue;
+            try (java.util.stream.Stream<Path> enfants = Files.list(dir)) {
+                enfants.filter(Files::isDirectory)
+                       .filter(d -> Files.isRegularFile(d.resolve("jacoco/jacoco.exec")))
+                       .forEach(found::add);
+            }
+        }
+        return found.stream().distinct().toList();
     }
 
     /**
@@ -570,6 +663,71 @@ public final class Main {
         if (!overrides.runName.isBlank()) base.runName = overrides.runName;
         if (!"runtime-xray-out".equals(overrides.outDir)) base.outDir = overrides.outDir;
         if (!overrides.captureValues) base.captureValues = false;
+    }
+
+    /**
+     * Ce que seul le lancement sait, et que le diagnostic doit porter.
+     *
+     * <p>La vue se réassemble depuis le seul répertoire de sortie : elle ignore par
+     * construction avec quelle commande, quelles options et quels composants la mesure a
+     * été faite. Or c'est souvent là qu'est la cause. On le lui donne.
+     *
+     * <p><b>Le jeton du serveur partagé n'y figure pas</b> : ce fichier est fait pour être
+     * transmis, et un secret transmis n'en est plus un.
+     */
+    private static Map<String, Object> lancement(Config config, Toolbox tools,
+                                                 List<Path> sourceRoots) {
+        Map<String, Object> m = new LinkedHashMap<>(config.describe());
+        List<Object> racines = new ArrayList<>();
+        for (Path r : sourceRoots) {
+            Map<String, Object> e = new LinkedHashMap<>();
+            e.put("demandee", r.toString());
+            e.put("absolue", r.toAbsolutePath().normalize().toString());
+            racines.add(e);
+        }
+        m.put("racinesSources", racines);
+        List<Object> classes = new ArrayList<>();
+        for (Path c : config.classesPaths()) {
+            Map<String, Object> e = new LinkedHashMap<>();
+            e.put("chemin", c.toString());
+            e.put("absolu", c.toAbsolutePath().normalize().toString());
+            e.put("existe", Files.exists(c));
+            classes.add(e);
+        }
+        m.put("racinesClasses", classes);
+        m.put("mesureDuTemps", tools.asyncProfilerAvailable());
+        return m;
+    }
+
+    /**
+     * Le constat, sur la console, au moment où il peut encore servir.
+     *
+     * <p>Le fichier de diagnostic est complet, mais on ne va le chercher que si l'on sait
+     * qu'il existe. Deux lignes ici valent mieux qu'une découverte plus tard.
+     */
+    private static void direCeQuOnATrouve(Path outDir) {
+        Path fichier = outDir.resolve("diagnostic.json");
+        try {
+            Object lu = lab.xray.json.Json.read(Files.readString(fichier, StandardCharsets.UTF_8));
+            if (lu instanceof Map<?, ?> d && d.get("rapprochement") instanceof Map<?, ?> r) {
+                Object sans = r.get("fichiersSansSource");
+                // Le lecteur JSON rend des Double : « 0.0/27.0 » se lit comme un défaut de
+                // l'outil avant de se lire comme un compte.
+                System.out.println("   sources : " + entier(r.get("fichiersAvecSource"))
+                        + "/" + entier(r.get("fichiersMesures"))
+                        + " classe(s) mesurée(s) ont leur code");
+                if (sans instanceof Number n && n.intValue() > 0) {
+                    System.out.println("   " + r.get("conclusion"));
+                }
+            }
+        } catch (Exception e) {
+            // Le diagnostic est un confort : son absence ne doit rien empêcher.
+        }
+        System.out.println("   diagnostic : " + fichier);
+    }
+
+    private static String entier(Object o) {
+        return o instanceof Number n ? String.valueOf(n.longValue()) : String.valueOf(o);
     }
 
     private static List<Path> sourceRoots(Config config) {

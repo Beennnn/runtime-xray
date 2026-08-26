@@ -414,6 +414,103 @@
   a.callink:hover{color:var(--accent);background:var(--accent-soft);border-radius:3px}
   .fold{color:var(--muted);font-style:italic;padding:2px 12px;font-size:11.5px;
         background:var(--panel);border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
+  /* Le constat qui remplace le code quand on ne l'a pas : il se lit, donc il respire.
+     Largeur limitée — c'est un paragraphe, pas un tableau — et les chemins passent à la
+     ligne, car un chemin Windows absolu déborde de n'importe quel panneau. */
+  /* Le cumul est un réglage de lecture, pas un filtre de plus : il vit sous les cases
+     des exécutions parce que c'est d'elles qu'il parle. */
+  .runpick .cumulbox{display:block;margin-top:6px;padding-top:6px;font-size:11.5px;
+                     color:var(--muted);border-top:1px solid var(--border);cursor:pointer}
+  .runpick .cumulbox input{vertical-align:-1px;margin-right:4px}
+  /* Une pastille par exécution ayant couvert la ligne. Huit teintes qui bouclent : au-delà
+     de huit exécutions, le numéro et l'infobulle restent la vérité, la couleur n'est qu'un
+     repère. Elles sont volontairement discrètes — le code reste le sujet. */
+  .quiruns{display:inline-flex;gap:2px;margin-right:8px;vertical-align:1px}
+  .runbadge{display:inline-block;min-width:14px;padding:0 3px;border-radius:3px;
+            font-size:9.5px;line-height:14px;text-align:center;font-weight:700;
+            color:#fff;opacity:.85}
+  .runbadge.r0{background:#1a7f37} .runbadge.r1{background:#0969da}
+  .runbadge.r2{background:#8250df} .runbadge.r3{background:#bf3989}
+  .runbadge.r4{background:#9a6700} .runbadge.r5{background:#0f766e}
+  .runbadge.r6{background:#cf222e} .runbadge.r7{background:#57606a}
+  /* Le même constat, réduit : dans la vue d'ensemble il est une section parmi d'autres,
+     pas une page. */
+  /* L'explorateur des sources. Les quatre états ont chacun leur couleur, et c'est la même
+     du décompte à la pastille de l'arbre : on suit une couleur, pas un vocabulaire. */
+  .pieges{display:grid;gap:1px;background:var(--border);border:1px solid var(--border);
+          border-radius:6px;overflow:hidden;margin:8px 0}
+  .piege{background:var(--panel2);padding:8px 12px;display:grid;gap:2px;
+         grid-template-columns:minmax(190px,auto) 1fr;align-items:baseline}
+  .piege code{grid-row:span 2;align-self:start}
+  .piege .agit{color:var(--text);font-size:12.5px}
+  .piege .nagit{color:var(--muted);font-size:12px}
+  .piege .avert{grid-column:2;font-size:12px;margin-top:3px}
+  .piege.alerte{background:var(--accent-soft)}
+  @media (max-width:760px){ .piege{grid-template-columns:1fr}
+                            .piege code{grid-row:auto} .piege .avert{grid-column:1} }
+  .constat.srcrecap h4{margin:18px 0 6px;font-size:12px;letter-spacing:.6px;
+                       text-transform:uppercase;color:var(--muted)}
+  .lgd{display:inline-flex;align-items:center;gap:5px;margin-right:14px;font-size:12px;
+       color:var(--muted);white-space:nowrap}
+  .lgd .pt,.arbsrc .cl .pt{width:8px;height:8px;border-radius:50%;display:inline-block;
+                           flex:0 0 auto}
+  .e-ok .pt,.e-ok.pt{background:var(--fullbar)}
+  .e-sansSrc .pt,.e-sansSrc.pt{background:var(--missbar)}
+  .e-inerte .pt,.e-inerte.pt{background:var(--muted)}
+  .e-orphelin .pt,.e-orphelin.pt{background:var(--violet)}
+  .srcq{margin:8px 0}
+  .srcq input{width:100%;max-width:520px;padding:7px 10px;border-radius:6px;
+              border:1px solid var(--border);background:var(--bg);color:var(--text);
+              font-size:13px;font-family:inherit}
+  .verdict{margin:8px 0;padding:8px 12px;border-radius:6px;background:var(--panel);
+           border-left:3px solid var(--border);color:var(--text)}
+  .verdict.ok{border-left-color:var(--fullbar)}
+  .verdict.ko{border-left-color:var(--missbar)}
+  .arbsrc{margin-top:8px;border:1px solid var(--border);border-radius:6px;
+          max-height:420px;overflow:auto;background:var(--panel2)}
+  .arbsrc .pkgt{display:flex;align-items:center;gap:7px;width:100%;text-align:left;
+                padding:5px 10px;background:none;border:0;border-top:1px solid var(--border);
+                color:var(--text);cursor:pointer;font:inherit;font-size:12.5px}
+  .arbsrc .pkg:first-child .pkgt{border-top:0}
+  .arbsrc .pkgt:hover{background:var(--panel)}
+  /* Le paquet porte la couleur de son pire cas : c'est ce qui permet de descendre droit
+     sur le problème sans tout déplier. */
+  .arbsrc .pkgt.e-ok{border-left:3px solid var(--fullbar)}
+  .arbsrc .pkgt.e-sansSrc{border-left:3px solid var(--missbar)}
+  .arbsrc .pkgt.e-inerte{border-left:3px solid var(--muted)}
+  .arbsrc .pkgt.e-orphelin{border-left:3px solid var(--violet)}
+  .arbsrc .pkgt .ic{color:var(--muted);font-size:10px;width:10px}
+  .arbsrc .pkgt .nm{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+  .arbsrc .pkgt .cnt{color:var(--muted);font-size:11px}
+  .arbsrc .pkgt .cnt.ko{color:var(--missbar)}
+  .arbsrc .cl{display:flex;align-items:center;gap:8px;padding:3px 10px 3px 30px;
+              font-size:12px;color:var(--muted)}
+  .arbsrc .cl:hover{background:var(--panel)}
+  .arbsrc .cl .nm{color:var(--text);
+                  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+  .arbsrc .cl .et{font-size:11px;white-space:nowrap}
+  .arbsrc .cl.e-sansSrc .et{color:var(--missbar)}
+  .arbsrc .cl .ou{margin-left:auto;font-size:11px;opacity:.75;overflow-wrap:anywhere;
+                  text-align:right}
+  .constat.srcrecap{padding:0;max-width:none;font-size:13px}
+  .constat.srcrecap p.srcline{margin:6px 0}
+  .constat{padding:20px 24px;max-width:840px;line-height:1.55;font-size:13px}
+  .constat h3{margin:0 0 12px;font-size:14px;color:var(--text)}
+  .constat p{margin:10px 0;color:var(--muted)}
+  .constat code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+                font-size:12px;color:var(--text);background:var(--panel);
+                border:1px solid var(--border);border-radius:3px;padding:1px 4px;
+                overflow-wrap:anywhere}
+  .constat .cause{color:var(--text)}
+  .constat ul.racines{margin:10px 0;padding-left:18px}
+  .constat ul.racines li{margin:8px 0;color:var(--muted)}
+  .constat .abs{color:var(--muted);font-size:12px;overflow-wrap:anywhere}
+  .constat .ok{color:var(--fullbar)}
+  .constat .ko{color:var(--missbar)}
+  .constat pre.remede{background:var(--panel);border:1px solid var(--border);border-radius:4px;
+                      padding:10px 12px;overflow-x:auto;font-size:12px;color:var(--text)}
+  .constat .apres{margin-top:16px;padding-top:12px;border-top:1px solid var(--border);
+                  font-size:12px}
   #values{background:var(--panel);padding:10px 16px;overflow:auto;
           height:var(--valh,190px);flex:0 0 auto}
   #values:empty{display:none} #values:empty + .legend{border-top:1px solid var(--border)}
@@ -674,6 +771,9 @@
     <div class="runpick" id="runpick" hidden>
       <span class="runlabel" title="Décocher une exécution la retire de la liste du code : une classe n&apos;apparaît que si elle a tourné dans au moins une des exécutions cochées">exécutions affichées</span>
       <div id="runboxes"></div>
+      <label class="cumulbox" title="Afficher sur le code la réunion des exécutions cochées, en indiquant pour chaque ligne laquelle l&apos;a couverte">
+        <input type="checkbox" id="cumulcb"> cumuler la couverture des exécutions cochées
+      </label>
     </div>
     <div class="filterhint" id="filterhint">
       Pour ne plus voir une classe ou un paquet, cliquer <b>filtrer</b> au bout de sa ligne.
@@ -745,6 +845,63 @@ let callIndex = null;
 // coche celles qu'on veut voir. La vue de code, elle, reste rattachée à UNE exécution —
 // couverture et valeurs n'ont de sens que dans celle où l'appel a eu lieu.
 let shownRuns = new Set(D.runs.map((_, i) => i));
+/* ------------------------------------------------------------------ couverture cumulée
+ * Une campagne de recette, ce n'est pas une exécution : c'est dix, et la question qu'on se
+ * pose devant le code est « est-ce que QUELQUE CHOSE a couvert cette ligne ? », pas « est-ce
+ * que la dernière l'a couverte ? ». Lire une exécution à la fois oblige à faire la réunion
+ * de tête, classe par classe, ce que personne ne fait honnêtement au-delà de trois.
+ *
+ * Le cumul réunit donc les exécutions COCHÉES — les mêmes que la liste de gauche — et garde
+ * pour chaque ligne QUI l'a couverte. C'est cette seconde moitié qui vaut le détour : une
+ * ligne couverte par une seule exécution sur dix est un point de passage unique, et une
+ * ligne que personne n'atteint après dix scénarios n'est pas « pas encore testée ».
+ *
+ * Le réglage est volontairement dans la page et non dans la mesure : il se change en un
+ * clic, sans relancer, et l'union se recalcule sur des données déjà là. */
+let cumul = false;
+try { cumul = localStorage.getItem("runtime-xray.cumul") === "1"; } catch(e){}
+if (D.runs.length < 2) cumul = false;
+
+/** Les exécutions cochées, dans l'ordre de la page. */
+function runsCoches(){
+  return D.runs.map((r, i) => i).filter(i => shownRuns.has(i));
+}
+
+/**
+ * La couverture telle que la vue de code doit la lire.
+ *
+ * <p>Hors cumul, c'est celle de l'exécution regardée, inchangée. En cumul, c'est l'union
+ * des exécutions cochées : une ligne est couverte dès qu'une seule l'a couverte, et
+ * partielle tant qu'aucune ne l'a couverte entièrement. Les branches gardent le meilleur
+ * relevé — c'est la même règle que JaCoCo applique en fusionnant deux {@code .exec}.
+ */
+function covPourVue(source){
+  if (!cumul) return (R.coverage[source] || {});
+  const out = {};
+  for (const i of runsCoches()){
+    const cov = D.runs[i].coverage[source];
+    if (!cov) continue;
+    for (const nr of Object.keys(cov)){
+      const c = cov[nr];
+      const e = out[nr] || (out[nr] = { s: "miss", b: null, runs: [] });
+      if (c.s !== "miss") e.runs.push(i);
+      e.s = (e.s === "full" || c.s === "full") ? "full"
+          : (e.s === "part" || c.s === "part") ? "part" : "miss";
+      // La meilleure couverture de branches l'emporte : deux exécutions qui prennent
+      // chacune un côté d'un « if » le couvrent entièrement à elles deux.
+      if (c.b && (!e.b || c.b[0] > e.b[0])) e.b = c.b;
+    }
+  }
+  return out;
+}
+
+/** Les pastilles qui disent quelles exécutions ont couvert une ligne. */
+function pastillesRuns(c){
+  if (!cumul || !c || !c.runs || !c.runs.length) return "";
+  return '<span class="quiruns">' + c.runs.map(i =>
+    '<span class="runbadge r' + (i % 8) + '" title="Couverte dans « ' + esc(runLabel(D.runs[i]))
+    + ' »">' + (i + 1) + '</span>').join("") + '</span>';
+}
 
 /* ---------------------------------------------------------- masquage par apprentissage
  * On n'écrit pas d'avance la liste des paquets qu'on ne veut pas voir : on la découvre en
@@ -1260,6 +1417,15 @@ function refreshRunLabels(){
     restoreExpanded(open);
     reselect();
   });
+  const cb = document.getElementById("cumulcb");
+  cb.checked = cumul;
+  cb.onchange = () => {
+    cumul = cb.checked;
+    try { localStorage.setItem("runtime-xray.cumul", cumul ? "1" : "0"); } catch(e){}
+    refreshHeader();
+    renderLegend();
+    selected ? drawCode() : drawHome();
+  };
 })();
 
 function methodCount(run){
@@ -1352,7 +1518,7 @@ const ICONE_EXPORT =
  * page. Éteintes, elles restent cliquables, et le clic donne la commande qui les produit.
  */
 function fichiersDuRun(){
-  const b = R.chemin || "", a = R.rapports || {};
+  const b = R.chemin || "", a = R.rapports || {}, F = D.fusion || {};
   return [
     {mark: "jacoco", nom: "JaCoCo", items: [
       [a.couverture, b + "jacoco/html/index.html", "Couverture détaillée",
@@ -1363,6 +1529,20 @@ function fichiersDuRun(){
        "La source que cette page lit. Exploitable par un autre outil, ou à la main."],
       [a.jacocoCsv, b + "jacoco/html/jacoco.csv", "Données CSV",
        "Le même contenu, une ligne par classe — pour un tableur."]]},
+    // La fusion ne dépend pas de l'exécution regardée : c'est le rapport de toutes. Elle
+    // apparaît donc à part, et seulement quand JaCoCo l'a réellement produite.
+    ...(F.couverture || F.xml ? [{mark: "jacoco", nom: "Toutes les exécutions réunies",
+     note: "La couverture cumulée telle que JaCoCo la calcule, en fusionnant les mesures "
+         + "des " + (F.executions || 0) + " exécutions. Une ligne y est couverte dès qu'une "
+         + "exécution l'a couverte — mais le rapport ne dit plus laquelle : pour cela, "
+         + "cocher « cumuler » à gauche et lire les pastilles sur le code.",
+     items: [
+      [F.couverture, "jacoco-fusion/html/index.html", "Couverture fusionnée",
+       "Le rapport JaCoCo de la campagne entière, fichier par fichier."],
+      [F.xml, "jacoco-fusion/html/jacoco.xml", "Données XML fusionnées",
+       "La mesure cumulée, exploitable par un autre outil."],
+      [F.csv, "jacoco-fusion/html/jacoco.csv", "Données CSV fusionnées",
+       "Une ligne par classe, pour un tableur."]]}] : []),
     {mark: "async", nom: "async-profiler", items: [
       [a.flamegraph, b + "async-profiler/flamegraph.html", "Profil brut",
        "Le rendu de l'outil lui-même, sans aucun de nos replis ni agrégations."],
@@ -1490,7 +1670,8 @@ function poserMenuExports(){
 
 refreshLinks();
 renderMaskBar();
-document.getElementById("legend").innerHTML =
+function renderLegend(){
+  document.getElementById("legend").innerHTML =
   '<span class="sw" title="Toutes les instructions de la ligne ont été exécutées" ' +
   'style="background:var(--full);border-color:var(--fullbar)"></span>exécutée' +
   '<span class="sw" title="Une partie seulement : typiquement une condition dont une seule ' +
@@ -1498,9 +1679,18 @@ document.getElementById("legend").innerHTML =
   '<span class="sw" title="Aucune instruction de la ligne n\'a été exécutée" ' +
   'style="background:var(--miss);border-color:var(--missbar)"></span>jamais exécutée' +
   ' <span style="opacity:.75">(masquée tant que « Resserré sur la méthode » est actif)</span>' +
+  // En cumul, la couleur ne parle plus d'une exécution mais de leur réunion : le dire ici,
+  // au ras du code, évite de lire un vert pour la dernière exécution alors qu'il vient
+  // d'une autre.
+  (cumul ? ' <span style="color:var(--violet)" title="Les couleurs réunissent les '
+         + 'exécutions cochées ; le numéro devant chaque ligne dit lesquelles l\'ont '
+         + 'couverte">cumul : les pastilles disent quelle exécution a couvert la ligne</span>'
+         : '') +
   '<a class="depot" href="https://github.com/Beennnn/runtime-xray" target="_blank" rel="noopener"' +
   ' title="Le code, les scripts, et comment lancer cet outil sur un autre projet">' +
   'Dépôt du projet ↗</a>';
+}
+renderLegend();
 // La légende ne garde que le code couleur : c'est la seule chose qu'on ne peut pas deviner.
 // Les annotations de ligne se lisent d'elles-mêmes, et le détail vit dans l'aide.
 
@@ -2636,6 +2826,88 @@ function select(info, el, call){
  * pas, et le chemin de ce code est déjà écrit au-dessus. Cliquer un niveau dit « plus
  * jamais celui-là » sans changer de vue ni chercher où le dire.
  */
+/**
+ * Ce qu'on dit à la place du code, quand on ne l'a pas.
+ *
+ * <p>« Source indisponible » est un constat d'échec sans prise : il ne dit ni ce qu'on
+ * cherchait, ni où l'on a regardé, ni quoi corriger. Or l'outil sait les trois. Le panneau
+ * les écrit — la clé attendue, chaque racine avec son chemin absolu et ce qu'elle a rendu,
+ * et, quand un fichier du même nom traîne ailleurs dans l'index, où il est.
+ *
+ * <p>Le cas le plus fréquent — aucune racine passée — se termine par la ligne exacte à
+ * ajouter à la configuration. C'est un message qu'on doit pouvoir suivre sans rien
+ * connaître de l'outil.
+ */
+function constatSourceAbsente(info){
+  const d = diagSources(), racines = d.racines || [];
+  const cle = info.source || "(inconnue)";
+  const nom = cle.split("/").pop();
+  const ailleurs = ((d.parNom || {})[nom]) || [];
+  let h = '<div class="constat">';
+  h += '<h3>Le code de cette classe n\'a pas été trouvé</h3>';
+  const paquet = cle.lastIndexOf("/") > 0 ? dot(cle.slice(0, cle.lastIndexOf("/")))
+                                          : "(paquet par défaut)";
+  h += '<p>La couverture rapporte ce fichier sous la clé <code>'+esc(cle)+'</code> — '
+     + 'c\'est-à-dire le paquet <code>'+esc(paquet)
+     + '</code> et le fichier <code>'+esc(nom)+'</code>. C\'est ce fichier-là qui manque.</p>';
+
+  if (!racines.length){
+    h += '<p class="cause"><b>Aucun répertoire de sources n\'a été passé à l\'outil.</b> '
+       + 'La mesure n\'en a pas besoin, l\'affichage du code annoté si.</p>';
+    h += '<p>Ajouter au fichier de configuration :</p>'
+       + '<pre class="remede">SOURCE_DIRS="'+esc(racineProbable(cle))+'"</pre>'
+       + '<p>ou relancer avec <code>--sources '+esc(racineProbable(cle))+'</code>. '
+       + 'Plusieurs racines se séparent par <code>:</code>. Le niveau exact importe peu : '
+       + 'l\'outil lit le paquet déclaré par chaque fichier, pas son chemin.</p>';
+  } else {
+    h += '<p>Répertoires de sources consultés — '+racines.length+' :</p><ul class="racines">';
+    racines.forEach(r => {
+      h += '<li><code>'+esc(r.demandee)+'</code>'
+         + (r.absolue && r.absolue !== r.demandee ? ' <span class="abs">→ '+esc(r.absolue)+'</span>' : '')
+         + '<br><span class="'+(r.existe ? 'ok' : 'ko')+'">'
+         + (r.existe ? '✓ répertoire lu — '+(r.fichiers||0)+' fichier(s) .java'
+                     : '✗ '+esc(r.motif || 'introuvable'))
+         + '</span>'
+         + (r.motif && r.existe ? '<br><span class="ko">'+esc(r.motif)+'</span>' : '')
+         + '</li>';
+    });
+    h += '</ul>';
+    h += '<p>Total indexé : <b>'+(d.fichiers||0)+'</b> fichier(s) .java'
+       + (d.tronque ? ' <span class="ko">(parcours tronqué : la racine passée est très '
+                    + 'large, l\'index est incomplet)</span>' : '') + '.</p>';
+
+    if (ailleurs.length){
+      h += '<p class="cause">Un fichier nommé <code>'+esc(nom)+'</code> a pourtant été trouvé :</p>'
+         + '<ul class="racines">';
+      ailleurs.forEach(o => {
+        h += '<li><code>'+esc(o.chemin)+'</code><br><span class="abs">paquet déclaré : <b>'
+           + esc(o.paquet || '(aucun)')+'</b> — indexé sous <code>'+esc(o.cle)+'</code></span></li>';
+      });
+      h += '</ul><p>Le paquet déclaré ne correspond pas à celui que la couverture rapporte : '
+         + 'ce n\'est pas la même classe, ou les sources présentes ne sont pas celles du '
+         + 'binaire analysé.</p>';
+    } else if (d.fichiers){
+      h += '<p class="cause">Aucun fichier de ce nom sous ces racines.</p>'
+         + '<p>Les sources indexées ne couvrent pas ce paquet : il manque une racine, ou le '
+         + 'code de cette classe vient d\'une bibliothèque dont on n\'a pas les sources.</p>';
+    }
+  }
+  h += '<p class="apres">Le détail complet — configuration, exécutions, rapprochement classe '
+     + 'par classe — est dans <code>diagnostic.json</code>, à côté de cette page.</p>';
+  return h + '</div>';
+}
+
+/**
+ * La racine à proposer quand rien n'a été passé.
+ *
+ * <p>On ne devine pas le disque : on propose la disposition la plus répandue. Elle est
+ * juste dans la grande majorité des projets, et fausse elle reste un point de départ que
+ * le lecteur corrige d\'un coup d\'œil — ce qu\'un message vide ne permettait pas.
+ */
+function racineProbable(){
+  return "src/main/java";
+}
+
 /** Vrai si la frame désigne du code dont on peut afficher le source. */
 function hasSource(frame){
   const info = frameInfo(frame);
@@ -2730,15 +3002,21 @@ function crumbPackage(cls){
 function draw(){
   const code = document.getElementById("code");
   if (!selected){ drawHome(); return; }
-  const info = selected, src = D.sources[info.source], cov = R.coverage[info.source] || {};
+  const info = selected, src = D.sources[info.source], cov = covPourVue(info.source);
   const myCalls = R.values[info.frame] || [];
   const traced = info.cls === R.tracedClass;
   const samples = AGG.weights[info.frame] || 0;
 
   document.getElementById("crumb").innerHTML =
     '<a class="back" id="backHome" title="Revenir à la vue d\'ensemble">← Vue d\'ensemble</a> <span>›</span> ' +
-    (D.runs.length > 1 ? '<span class="pill" title="Exécution dont proviennent la couverture et les valeurs affichées">'
-        + '<span id="crumbname">' + esc(runLabel(R)) + '</span></span> <span>›</span> ' : '') +
+    (D.runs.length > 1 ? '<span class="pill" title="' + (cumul
+        ? 'Couverture réunie sur les exécutions cochées — les valeurs affichées restent '
+          + 'celles de l\'exécution regardée'
+        : 'Exécution dont proviennent la couverture et les valeurs affichées')
+        + '"' + (cumul ? ' style="color:var(--violet);border-color:var(--violet)"' : '') + '>'
+        + (cumul ? 'cumul de ' + runsCoches().length + ' exécutions'
+                 : '<span id="crumbname">' + esc(runLabel(R)) + '</span>')
+        + '</span> <span>›</span> ' : '') +
     crumbPackage(info.cls) + ' <b>'+
     esc(info.cls.split("/").pop())+'.java</b>'+
     (info.name ? ' <span>›</span> <b>'+esc(info.name)+'()</b>' : '') +
@@ -2760,7 +3038,7 @@ function draw(){
     ouvrirPaquet(a.dataset.p);
   });
 
-  if (!src){ code.innerHTML = '<p style="padding:18px;color:var(--muted)">Source indisponible.</p>';
+  if (!src){ code.innerHTML = constatSourceAbsente(info);
              document.getElementById("values").innerHTML=""; return; }
 
   let from = 0, to = 1e9;
@@ -2801,7 +3079,7 @@ function draw(){
           ' <span class="dur">'+esc(durationRange(a))+'</span>').join(" · ")
           + (all.length > 2 ? ' <span style="opacity:.7">+'+(all.length-2)+'</span>' : ''); }
     html += '<tr class="'+cls+'" id="L'+nr+'"><td class="n">'+nr+'</td><td class="c">'+
-            linkifyCalls(esc(text), nr)+'</td><td class="ann">'+ann+'</td></tr>';
+            linkifyCalls(esc(text), nr)+'</td><td class="ann">'+pastillesRuns(c)+ann+'</td></tr>';
   });
   if (fold) html += '<tr><td colspan="3" class="fold">… '+fold+' ligne(s) jamais exécutée(s)</td></tr>';
   if (narrow && to < src.length)
@@ -3396,6 +3674,363 @@ function cablerPlis(){
   });
 }
 
+/* ====================================================================================
+ * L'ANALYSE DES SOURCES, DÉPLIÉE
+ *
+ * Trois choses différentes peuvent manquer, et un rapport vide leur donne à toutes le même
+ * visage : le bytecode (on n'a pas mesuré la bonne application), la source (on a mesuré la
+ * bonne, on ne sait pas où est son code), ou la classe elle-même (elle n'a jamais tourné).
+ * Elles se corrigent de trois façons opposées, et on ne peut pas choisir sans savoir
+ * laquelle on tient.
+ *
+ * D'où cet explorateur : la ligne réellement exécutée, les racines effectivement ouvertes,
+ * puis l'arbre de TOUT ce qu'on a vu — mesuré, compilé, écrit — chaque classe portant la
+ * couleur de ce qui lui manque. La recherche répond à la question qu'on se pose vraiment
+ * devant un rapport décevant : « et cette classe-là, tu l'as trouvée, oui ou non, et où ? »
+ * ==================================================================================== */
+
+/**
+ * Le volet « sources » du diagnostic.
+ *
+ * <p>Le fichier imbrique délibérément — {@code sources}, {@code bytecode},
+ * {@code rapprochement} sont trois inventaires distincts. Les lire à travers un seul accès
+ * nommé évite de les confondre : les chercher un cran trop haut rendait « 0 racine », donc
+ * un diagnostic qui accusait la configuration alors que tout avait été trouvé.
+ */
+function diagSources(){ return (D.diagnostic || {}).sources || {}; }
+
+/** Les quatre états d'une classe, et ce que chacun veut dire pour qui doit corriger. */
+const ETATS_SOURCE = {
+  ok:      { lib: "mesurée, code affiché",   aide: "La classe a tourné et son fichier source a été trouvé : la vue de code la montre annotée." },
+  sansSrc: { lib: "mesurée, code manquant",  aide: "La classe a tourné, mais aucun fichier source ne lui correspond. C'est ce qui donne « Source indisponible » — il manque une racine de sources." },
+  inerte:  { lib: "compilée, jamais mesurée",aide: "La classe est dans le bytecode analysé mais aucune de ses instructions n'a été exécutée, ou elle a été écartée par un filtre." },
+  orphelin:{ lib: "source seule",            aide: "Un fichier source existe, sans classe correspondante dans le bytecode ni dans la mesure : code non compilé, ou hors du périmètre analysé." }
+};
+
+/**
+ * Tout ce que l'outil a vu, rassemblé par nom de classe.
+ *
+ * <p>Trois inventaires se recoupent ici — les classes mesurées par JaCoCo, les classes
+ * présentes dans le bytecode, les fichiers source indexés. C'est leur intersection, et
+ * surtout leurs différences, qui expliquent un rapport incomplet.
+ */
+let MODELE_SOURCES = null;
+function modeleSources(){
+  if (MODELE_SOURCES) return MODELE_SOURCES;
+  const d = D.diagnostic || {};
+  const parNom = diagSources().parNom || {};
+  const noeuds = {};                       // "org/exemple/module/Application" -> ce qu'on en sait
+  const prendre = n => noeuds[n] || (noeuds[n] = { nom: n, mesuree: false, source: null,
+                                                  chemin: null, racines: [] });
+
+  // 1. ce que la mesure a vu — toutes exécutions confondues : une classe absente d'une
+  //    exécution mais présente dans une autre reste une classe mesurée.
+  D.runs.forEach(run => Object.values(run.packages || {}).forEach(classes =>
+    (classes || []).forEach(c => { const e = prendre(c.name); e.mesuree = true; e.attendu = c.source; })));
+
+  // 2. ce que le bytecode contient, et dans quelle racine
+  (d.bytecode || []).forEach(r => (r.classes || []).forEach(n => {
+    prendre(n).racines.push(r.chemin);
+  }));
+
+  // 3. ce que les sources ont fourni. La clé « paquet/Fichier.java » désigne le fichier,
+  //    pas la classe : on la rattache au nom de classe qu'elle porte le plus probablement.
+  Object.values(parNom).forEach(endroits => endroits.forEach(o => {
+    const nom = o.cle.replace(/\.java$/, "");
+    const e = prendre(nom);
+    e.source = o.cle; e.chemin = o.chemin;
+  }));
+
+  // Une classe mesurée dont le fichier source a été trouvé sous une AUTRE clé (classe
+  // interne, fichier portant plusieurs types) : on rattache par le fichier attendu.
+  const cheminParCle = {};
+  Object.values(parNom).forEach(l => l.forEach(o => { cheminParCle[o.cle] = o.chemin; }));
+  Object.values(noeuds).forEach(e => {
+    if (!e.chemin && e.attendu && cheminParCle[e.attendu]){
+      e.source = e.attendu; e.chemin = cheminParCle[e.attendu];
+    }
+    e.etat = e.mesuree ? (e.chemin ? "ok" : "sansSrc")
+                       : (e.racines.length ? "inerte" : "orphelin");
+  });
+  MODELE_SOURCES = { noeuds, liste: Object.values(noeuds).sort((a,b)=>a.nom<b.nom?-1:1) };
+  return MODELE_SOURCES;
+}
+
+/** Le décompte par état, celui qu'on lit avant d'ouvrir quoi que ce soit. */
+function comptesSources(){
+  const c = { ok:0, sansSrc:0, inerte:0, orphelin:0 };
+  modeleSources().liste.forEach(e => c[e.etat]++);
+  return c;
+}
+
+/**
+ * L'arbre paquet par paquet, chaque classe colorée par ce qui lui manque.
+ *
+ * <p>Un paquet porte la couleur de son pire cas : c'est ce qui permet de descendre droit
+ * sur le problème dans une arborescence de plusieurs centaines de classes, sans tout
+ * déplier. Les paquets entièrement sains restent verts et repliés.
+ */
+function arbreSources(filtre){
+  const f = (filtre || "").toLowerCase();
+  const paquets = {};
+  modeleSources().liste.forEach(e => {
+    if (f && e.nom.toLowerCase().indexOf(f) < 0) return;
+    const i = e.nom.lastIndexOf("/");
+    const pkg = i < 0 ? "(paquet par défaut)" : e.nom.slice(0, i);
+    (paquets[pkg] = paquets[pkg] || []).push(e);
+  });
+  const noms = Object.keys(paquets).sort();
+  if (!noms.length) return '<p class="cause">Aucune classe ne correspond.</p>';
+
+  const pire = liste => liste.some(e => e.etat === "sansSrc") ? "sansSrc"
+                      : liste.some(e => e.etat === "orphelin") ? "orphelin"
+                      : liste.some(e => e.etat === "inerte") ? "inerte" : "ok";
+  return '<div class="arbsrc">' + noms.map(pkg => {
+    const liste = paquets[pkg].sort((a,b)=>a.nom<b.nom?-1:1);
+    const mauvais = liste.filter(e => e.etat === "sansSrc").length;
+    // Déplié d'office quand la recherche est active, ou quand il y a quelque chose à voir.
+    const ouvert = !!f || mauvais > 0;
+    return '<div class="pkg">'
+      + '<button type="button" class="pkgt e-' + pire(liste) + '" data-pkg="' + esc(pkg) + '"'
+      + ' aria-expanded="' + ouvert + '">'
+      + '<span class="ic" aria-hidden="true">' + (ouvert ? "▾" : "▸") + '</span>'
+      + '<span class="nm">' + esc(dot(pkg)) + '</span>'
+      + '<span class="cnt">' + liste.length + '</span>'
+      + (mauvais ? '<span class="cnt ko">' + mauvais + ' sans source</span>' : '')
+      + '</button>'
+      + '<div class="cls"' + (ouvert ? '' : ' hidden') + '>'
+      + liste.map(e => ligneClasseSource(e)).join("")
+      + '</div></div>';
+  }).join("") + '</div>';
+}
+
+function ligneClasseSource(e){
+  const simple = e.nom.split("/").pop();
+  const etat = ETATS_SOURCE[e.etat];
+  return '<div class="cl e-' + e.etat + '" title="' + esc(etat.aide) + '">'
+    + '<span class="pt" aria-hidden="true"></span>'
+    + '<span class="nm">' + esc(simple) + '</span>'
+    + '<span class="et">' + esc(etat.lib) + '</span>'
+    + (e.chemin ? '<span class="ou" title="Fichier source lu par l\'outil">'
+                  + esc(e.chemin) + '</span>' : '')
+    + (!e.chemin && e.racines.length
+        ? '<span class="ou" title="Racine de bytecode où la classe a été trouvée">'
+          + esc(e.racines[0]) + '</span>' : '')
+    + '</div>';
+}
+
+/** Le verdict d'une recherche : trouvée ou non, et où — la question qu'on pose vraiment. */
+function verdictRecherche(q){
+  const f = (q || "").trim().toLowerCase();
+  if (!f) return "";
+  const trouves = modeleSources().liste.filter(e =>
+    e.nom.toLowerCase().indexOf(f) >= 0 || e.nom.split("/").pop().toLowerCase() === f);
+  if (!trouves.length){
+    return '<p class="verdict ko"><b>« ' + esc(q) +' » n\'a été vue nulle part</b> — ni dans '
+         + 'la mesure, ni dans le bytecode analysé, ni dans les sources indexées. La classe '
+         + 'est hors du périmètre : elle n\'a pas été chargée, ou le classpath analysé ne la '
+         + 'contient pas.</p>';
+  }
+  const e = trouves[0];
+  const etat = ETATS_SOURCE[e.etat];
+  return '<p class="verdict ' + (e.etat === "ok" ? "ok" : e.etat === "sansSrc" ? "ko" : "") + '">'
+    + '<b>' + trouves.length + ' correspondance(s)</b> — ' + esc(dot(e.nom)) + ' : '
+    + esc(etat.lib) + '.'
+    + (e.chemin ? ' Source lue ici : <code>' + esc(e.chemin) + '</code>.' : '')
+    + (e.racines.length ? ' Bytecode trouvé ici : <code>' + esc(e.racines[0]) + '</code>.' : '')
+    + '</p>';
+}
+
+/**
+ * Ce que chaque réglage commande RÉELLEMENT — et les confusions qui coûtent une mesure.
+ *
+ * <p>Quatre options restreignent quelque chose, et elles ne restreignent pas la même chose :
+ * l'une la capture des valeurs, l'autre la mesure du temps, la troisième l'instrumentation
+ * de la couverture, la quatrième l'affichage du code. Devant un rapport incomplet, on
+ * soupçonne presque toujours la mauvaise — on élargit un filtre qui n'y était pour rien,
+ * on relance, et on obtient le même rapport.
+ *
+ * <p>Ce tableau est donc écrit à l'envers de la documentation : il part du symptôme. Les
+ * lignes qui portent une alerte sont celles que la configuration de CETTE exécution rend
+ * suspectes, pas des généralités.
+ */
+function piegesConfig(){
+  const lanc = (D.diagnostic || {}).lancement || {};
+  const ctx = R.context || {};
+  const racine = lanc.methodeRacine || ctx.methodeRacine || "";
+  const racines = (diagSources().racines || []).length;
+  const sans = ((D.diagnostic || {}).rapprochement || {}).fichiersSansSource || 0;
+
+  const lignes = [
+    { opt: "--sources / SOURCE_DIRS",
+      quoi: "l'affichage du code annoté, et lui seul",
+      pas: "n'a aucun effet sur la mesure : couverture, temps et valeurs sont identiques sans lui",
+      alerte: (!racines || sans)
+        ? "C'est le seul réglage qui explique « Source indisponible ». La couverture reste "
+          + "juste : ce sont les fichiers .java qui manquent, pas la mesure."
+        : null },
+    { opt: "--root / ROOT_METHOD",
+      quoi: "la capture des valeurs de paramètres (Arthas), et le filtre de temps par défaut",
+      pas: "ne restreint NI la couverture, NI les classes affichées, NI les sources",
+      alerte: (racine && racine.indexOf("::") < 0)
+        ? "« " + esc(racine) + " » ne désigne pas une méthode : le format attendu est "
+          + "paquet.Classe::methode. Sans « :: », aucune valeur n'est capturée."
+        : null },
+    { opt: "--filter / CLASS_FILTER",
+      quoi: "les classes échantillonnées par le profileur — la mesure du TEMPS",
+      pas: "ne change rien à la couverture ni au code affiché",
+      alerte: null },
+    { opt: "--cover / COVER_INCLUDES",
+      quoi: "les classes instrumentées par JaCoCo — la COUVERTURE",
+      pas: "c'est lui, et pas --filter, qui vide un rapport de couverture s'il est trop étroit",
+      alerte: null },
+    { opt: "--classes / CLASSES_DIR",
+      quoi: "le bytecode analysé : d'où viennent les classes du rapport",
+      pas: "pointé sur un jar de dépendance, il noie le code du projet dans des milliers de classes",
+      alerte: null },
+    { opt: "--hide / HIDDEN_PACKAGES",
+      quoi: "ce qui est replié À LA MESURE — le temps est reporté sur l'appelant, pas perdu",
+      pas: "n'efface rien du disque : les rapports bruts des outils gardent tout",
+      alerte: null }
+  ];
+
+  return '<h4>Ce que chaque réglage commande</h4>'
+    + '<p class="srcline">Quatre options restreignent quelque chose de <b>différent</b>. '
+    + 'Élargir la mauvaise redonne exactement le même rapport.</p>'
+    + '<div class="pieges">' + lignes.map(l =>
+        '<div class="piege' + (l.alerte ? ' alerte' : '') + '">'
+        + '<code>' + esc(l.opt) + '</code>'
+        + '<span class="agit">agit sur ' + l.quoi + '</span>'
+        + '<span class="nagit">' + l.pas + '</span>'
+        + (l.alerte ? '<span class="ko avert">⚠ ' + l.alerte + '</span>' : '')
+        + '</div>').join("") + '</div>';
+}
+
+/**
+ * Ce que l'analyse des sources a fait, dit dans la vue d'ensemble.
+ *
+ * <p>L'affichage du code annoté est la partie du rapport qui échoue le plus silencieusement :
+ * elle dépend d'un chemin donné à la main, qui n'est vérifié nulle part, et son échec ne se
+ * voit qu'en ouvrant une classe au hasard. Le résumé est donc mis là où on regarde en
+ * premier, et il est écrit pour être lu même quand tout va bien — « 447 sur 447 » est une
+ * information, pas du bruit.
+ */
+function sourcesBlock(){
+  const d = D.diagnostic;
+  if (!d) return "";
+  const r = d.rapprochement || {}, src = diagSources(), racines = src.racines || [];
+  const total = r.fichiersMesures || 0, avec = r.fichiersAvecSource || 0;
+  const sans = r.fichiersSansSource || 0;
+  const pct = total ? (100 * avec / total) : 0;
+  const c = comptesSources();
+  const lanc = d.lancement || {};
+
+  let corps = '<p class="srcline">' +
+    (total
+      ? '<b class="' + (sans ? 'ko' : 'ok') + '">' + avec + ' sur ' + total + '</b> classe(s) '
+        + 'mesurée(s) ont leur code source dans cette page (' + pct.toFixed(0) + ' %).'
+      : 'Aucune classe mesurée : il n\'y a rien à rapprocher.') + '</p>';
+
+  // 1. la ligne réellement exécutée — celle qu'on croit avoir lancée n'est pas toujours
+  //    celle-là. En réassemblage il n'y a pas de lancement : le contexte de l'exécution,
+  //    lui, l'a gardée, et c'est la même.
+  const commande = lanc.commande || (R.context || {}).commande || "";
+  if (commande){
+    corps += '<h4>Ligne exécutée</h4><pre class="remede">' + esc(commande) + '</pre>';
+  }
+
+  // 2. les racines effectivement ouvertes, bytecode puis sources
+  corps += '<h4>Bytecode analysé</h4>';
+  const bc = d.bytecode || [];
+  corps += bc.length
+    ? '<ul class="racines">' + bc.map(x =>
+        '<li><code>' + esc(x.chemin) + '</code> <span class="abs">(' + esc(x.type) + ')</span>'
+        + '<br><span class="' + (x.existe && x.nombre ? 'ok' : 'ko') + '">'
+        + (x.existe ? '✓ ' + x.nombre + ' classe(s)' + (x.tronque ? ' (liste tronquée)' : '')
+                    : '✗ ' + esc(x.motif || 'introuvable')) + '</span></li>').join("") + '</ul>'
+    : '<p class="cause">Le bytecode analysé n\'est pas connu de ce rapport — il l\'est quand '
+      + 'la mesure est lancée par l\'outil, ou quand <code>--classes</code> est donné à '
+      + 'la réassemblée.</p>';
+
+  corps += '<h4>Sources indexées</h4>';
+  if (racines.length){
+    corps += '<ul class="racines">' + racines.map(x =>
+      '<li><code>' + esc(x.demandee) + '</code>'
+      + (x.absolue && x.absolue !== x.demandee
+          ? ' <span class="abs">→ ' + esc(x.absolue) + '</span>' : '')
+      + '<br><span class="' + (x.existe ? 'ok' : 'ko') + '">'
+      + (x.existe ? '✓ ' + (x.fichiers || 0) + ' fichier(s) .java'
+                  : '✗ ' + esc(x.motif || 'introuvable')) + '</span></li>').join("") + '</ul>';
+    corps += '<p class="srcline">' + (src.fichiers || 0) + ' fichier(s) <code>.java</code> '
+          + 'indexé(s) au total'
+          + (src.tronque ? ' <span class="ko">— parcours tronqué, l\'index est incomplet</span>' : '')
+          + '. Le niveau de la racine importe peu : l\'outil lit le paquet déclaré par chaque '
+          + 'fichier, pas son chemin.</p>';
+  } else {
+    corps += '<p class="cause">Aucun répertoire de sources n\'a été passé à l\'outil : '
+          + 'la mesure n\'en a pas besoin, l\'affichage du code annoté si. '
+          + 'Renseigner <code>SOURCE_DIRS</code> dans la configuration, ou '
+          + '<code>--sources</code> en ligne de commande.</p>';
+  }
+  if (r.conclusion && racines.length) corps += '<p class="cause">' + esc(r.conclusion) + '</p>';
+
+  // 3. ce que chaque réglage commande — écrit à partir du symptôme, pas de la doc
+  corps += piegesConfig();
+
+  // 4. l'arbre et sa recherche
+  corps += '<h4>Où est chaque classe</h4>'
+        + '<p class="srcline">' + Object.entries(ETATS_SOURCE).map(([k, v]) =>
+            '<span class="lgd e-' + k + '" title="' + esc(v.aide) + '"><span class="pt"></span>'
+            + esc(v.lib) + ' <b>' + c[k] + '</b></span>').join("") + '</p>'
+        + '<div class="srcq"><input id="srcsearch" type="search" autocomplete="off"'
+        + ' placeholder="Chercher une classe — dit si on l\'a trouvée, et où"'
+        + ' aria-label="Chercher une classe dans l\'inventaire des sources"></div>'
+        + '<div id="srcverdict"></div>'
+        + '<div id="srctree">' + arbreSources("") + '</div>';
+
+  corps += '<p class="apres">Le détail — configuration du lancement, exécutions, '
+        + 'rapprochement classe par classe — est dans <code>diagnostic.json</code>, '
+        + 'à côté de cette page. C\'est le fichier à joindre pour faire analyser un '
+        + 'rapport qui ne montre pas ce qu\'on attendait.</p>';
+
+  return sectionPliable("sources", "Analyse des sources",
+    "D'où vient le code affiché à côté de la couverture, ce qui manque, et où chaque classe "
+    + "a été trouvée. Cliquer le titre replie la section.",
+    total ? avec + " / " + total : (src.fichiers || 0) + " fichiers",
+    '<div class="constat srcrecap">' + corps + '</div>',
+    // Le repli par défaut suit la taille : on détourne le barème pour qu'il suive
+    // l'anomalie. Rien ne manque → replié ; il manque quelque chose → ouvert, car c'est
+    // alors la première chose à lire.
+    sans || !racines.length ? 0 : 999);
+}
+
+/** Câble la recherche et le dépliage de l'arbre du fragment qu'on vient d'écrire. */
+function cablerExplorateurSources(){
+  const q = document.getElementById("srcsearch");
+  if (!q) return;
+  const tree = document.getElementById("srctree");
+  const verdict = document.getElementById("srcverdict");
+  const cablerPaquets = () => tree.querySelectorAll(".pkgt").forEach(b => b.onclick = () => {
+    const corps = b.nextElementSibling;
+    const ouvert = b.getAttribute("aria-expanded") !== "true";
+    b.setAttribute("aria-expanded", String(ouvert));
+    corps.hidden = !ouvert;
+    b.querySelector(".ic").textContent = ouvert ? "▾" : "▸";
+  });
+  cablerPaquets();
+  let t = null;
+  q.oninput = () => {
+    // Le filtre reconstruit l'arbre entier : on attend une pause de frappe pour ne pas le
+    // refaire à chaque touche sur un inventaire de plusieurs centaines de classes.
+    clearTimeout(t);
+    t = setTimeout(() => {
+      tree.innerHTML = arbreSources(q.value);
+      verdict.innerHTML = verdictRecherche(q.value);
+      cablerPaquets();
+    }, 120);
+  };
+}
+
 function drawHome(){
   document.getElementById("crumb").innerHTML =
     '<span class="pill" title="Ce que cette exécution a fait dans son ensemble : couverture, '
@@ -3431,6 +4066,7 @@ function drawHome(){
    + '<span style="width:'+AGG.pct.toFixed(1)+'%"></span></div>'+
    flameBlock()+
    contextBlock()+
+   sourcesBlock()+
    (AGG.dead.length ? sectionPliable("dead", "Jamais exécuté",
       'Classes analysées dont aucune instruction n\'a été exécutée : ni la lecture du code, '
       + 'ni un test qui passe ne les font apparaître. Cliquer le titre replie la liste.',
@@ -3465,6 +4101,7 @@ function drawHome(){
     c.onclick = () => { const t = frameInfo(c.dataset.f); if (t) select(t, null); };
   });
   cablerPlis();
+  cablerExplorateurSources();
   const oh = document.getElementById("openhelp");
   if (oh) oh.onclick = e => { e.preventDefault(); openHelp(); };
   renderIdentity();

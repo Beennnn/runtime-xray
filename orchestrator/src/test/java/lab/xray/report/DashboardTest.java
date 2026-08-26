@@ -478,4 +478,150 @@ class DashboardTest {
         assertTrue(page.contains("\"ArrowDown\", \"ArrowUp\", \"ArrowRight\", \"ArrowLeft\""),
                 "les flèches restent au parcours de l'arbre");
     }
+
+    // ------------------------------------------------- ce qu'on sait quand ça n'a pas marché
+
+    @Test
+    @DisplayName("Une racine de sources d'un cran trop haute donne quand même le code")
+    @SuppressWarnings("unchecked")
+    void findsSourcesEvenWhenTheRootIsTooHigh(@TempDir Path dir) throws Exception {
+        // Le défaut d'origine : la couverture indexe « app/Moteur.java », l'index indexait
+        // « src/app/Moteur.java » dès que la racine passée était le projet et non le
+        // répertoire de sources. Aucune correspondance, donc « Source indisponible »
+        // partout — et rien pour le comprendre.
+        Path out = dir.resolve("out");
+        Files.createDirectories(out);
+        fixtureRun(out.resolve("runs"), "essai", "UUID-S", true);
+        sources(dir);
+
+        Map<String, Object> data = dataOf(Dashboard.build(out, List.of(dir), 8));
+
+        Map<String, Object> src = (Map<String, Object>) data.get("sources");
+        assertTrue(src.containsKey("app/Moteur.java"),
+                "la clé doit être celle de JaCoCo, pas le chemin depuis la racine : " + src.keySet());
+    }
+
+    @Test
+    @DisplayName("Le diagnostic écrit à côté de la page dit ce qui a été cherché et trouvé")
+    @SuppressWarnings("unchecked")
+    void writesADiagnosticFileNextToThePage(@TempDir Path dir) throws Exception {
+        Path out = dir.resolve("out");
+        Files.createDirectories(out);
+        fixtureRun(out.resolve("runs"), "essai", "UUID-D", true);
+
+        // Volontairement une racine qui ne contient pas la source de la classe mesurée.
+        Dashboard.build(out, List.of(dir.resolve("ailleurs")), 8);
+
+        Path fichier = out.resolve("diagnostic.json");
+        assertTrue(Files.isRegularFile(fichier), "le diagnostic doit exister sans qu'on le demande");
+        Map<String, Object> d = (Map<String, Object>) Json.read(
+                Files.readString(fichier, StandardCharsets.UTF_8));
+
+        assertNotNull(d.get("machine"), "l'environnement explique la moitié des symptômes");
+        assertNotNull(d.get("executions"), "les exécutions et leurs rapports sont dans le fichier");
+        Map<String, Object> rap = (Map<String, Object>) d.get("rapprochement");
+        assertEquals(1L, ((Number) rap.get("fichiersMesures")).longValue());
+        assertEquals(1L, ((Number) rap.get("fichiersSansSource")).longValue());
+        assertNotNull(rap.get("conclusion"), "une phrase qu'on lit en premier");
+        List<Object> manquants = (List<Object>) rap.get("exemplesManquants");
+        assertEquals("app/Moteur.java", ((Map<String, Object>) manquants.get(0)).get("cherche"),
+                "le fichier doit nommer la clé exacte que la couverture réclamait");
+
+        Map<String, Object> sources = (Map<String, Object>) d.get("sources");
+        List<Object> racines = (List<Object>) sources.get("racines");
+        assertEquals(Boolean.FALSE, ((Map<String, Object>) racines.get(0)).get("existe"),
+                "une racine inexistante doit se voir, pas disparaître");
+    }
+
+    @Test
+    @DisplayName("Le diagnostic ne contient aucun secret de serveur")
+    void theDiagnosticCarriesNoSharedSecret(@TempDir Path dir) throws Exception {
+        // Ce fichier est fait pour être transmis. Un jeton qui s'y glisserait circulerait
+        // avec lui, et rien dans la page ne le dirait.
+        Path out = dir.resolve("out");
+        Files.createDirectories(out);
+        fixtureRun(out.resolve("runs"), "essai", "UUID-T", true);
+        Dashboard.build(out, List.of(sources(dir)), 8);
+
+        String texte = Files.readString(out.resolve("diagnostic.json"), StandardCharsets.UTF_8);
+        assertFalse(texte.contains("serve-token") || texte.contains("secret"),
+                "aucun secret ne doit voyager avec le diagnostic");
+    }
+
+    @Test
+    @DisplayName("L'explorateur dit où est chaque classe, et ce que chaque réglage commande")
+    @SuppressWarnings("unchecked")
+    void explainsWhereEachClassWasFound(@TempDir Path dir) throws Exception {
+        // Trois choses peuvent manquer — le bytecode, la source, la classe — et un rapport
+        // vide leur donne le même visage. L'explorateur les sépare ; le tableau des réglages
+        // dit lequel élargir, parce qu'on soupçonne presque toujours le mauvais.
+        Path out = dir.resolve("out");
+        Files.createDirectories(out);
+        fixtureRun(out.resolve("runs"), "essai", "UUID-X", true);
+        Path classes = dir.resolve("classes/app");
+        Files.createDirectories(classes);
+        Files.writeString(classes.resolve("Moteur.class"), "faux bytecode", StandardCharsets.UTF_8);
+
+        Map<String, Object> lancement = new java.util.LinkedHashMap<>();
+        lancement.put("commande", "java -jar app.jar");
+        lancement.put("methodeRacine", "app.Moteur");
+        lancement.put("racinesClasses", List.of(Map.of(
+                "chemin", "classes", "absolu", dir.resolve("classes").toString(), "existe", true)));
+
+        Path page = Dashboard.build(out, List.of(sources(dir)), 8, PackageFilter.NONE, lancement);
+        Map<String, Object> data = dataOf(page);
+        Map<String, Object> d = (Map<String, Object>) data.get("diagnostic");
+
+        List<Object> bytecode = (List<Object>) d.get("bytecode");
+        assertEquals(1, bytecode.size(), "la racine de bytecode doit être recensée");
+        Map<String, Object> racine = (Map<String, Object>) bytecode.get(0);
+        assertEquals(List.of("app/Moteur"), racine.get("classes"),
+                "les classes trouvées sont ce qui permet de répondre « où est-elle ? »");
+
+        String html = Files.readString(page, StandardCharsets.UTF_8);
+        assertTrue(html.contains("function verdictRecherche("),
+                "la recherche doit dire si une classe a été trouvée, et où");
+        assertTrue(html.contains("function arbreSources("),
+                "l'arbre doit exister, coloré par ce qui manque à chaque classe");
+        assertTrue(html.contains("function piegesConfig("),
+                "le tableau des réglages est ce qui évite d'élargir le mauvais filtre");
+        assertTrue(html.contains("ne restreint NI la couverture, NI les classes affichées"),
+                "--root ne doit plus pouvoir être soupçonné d'un rapport sans sources");
+    }
+
+    @Test
+    @DisplayName("Le diagnostic se lit sous « sources », et la page le lit au bon niveau")
+    void thePageReadsTheDiagnosticAtTheRightDepth(@TempDir Path dir) throws Exception {
+        // Lu un cran trop haut, le diagnostic annonçait « 0 racine » alors que tout avait
+        // été trouvé — et accusait la configuration de l'utilisateur.
+        Path out = dir.resolve("out");
+        Files.createDirectories(out);
+        fixtureRun(out.resolve("runs"), "essai", "UUID-N", true);
+        String page = Files.readString(Dashboard.build(out, List.of(sources(dir)), 8),
+                StandardCharsets.UTF_8);
+
+        assertTrue(page.contains("function diagSources(){ return (D.diagnostic || {}).sources || {}; }"),
+                "un seul accès nommé, pour que les trois inventaires ne se confondent pas");
+        assertFalse(page.contains("(D.diagnostic || {}).racines"),
+                "les racines ne vivent pas à la racine du diagnostic");
+    }
+
+    @Test
+    @DisplayName("La page sait cumuler la couverture des exécutions cochées, et dire laquelle")
+    void thePageCanUnifyCoverageAcrossRuns(@TempDir Path dir) throws Exception {
+        Path out = dir.resolve("out");
+        Files.createDirectories(out);
+        fixtureRun(out.resolve("runs"), "un", "UUID-C1", true);
+        fixtureRun(out.resolve("runs"), "deux", "UUID-C2", true);
+        String page = Files.readString(Dashboard.build(out, List.of(sources(dir)), 8),
+                StandardCharsets.UTF_8);
+
+        assertTrue(page.contains("function covPourVue("),
+                "la vue de code doit pouvoir lire une couverture réunie");
+        assertTrue(page.contains("function pastillesRuns("),
+                "réunir sans dire QUI a couvert ferait perdre l'information que la fusion "
+                + "JaCoCo perd déjà");
+        assertTrue(page.contains("runtime-xray.cumul"),
+                "le choix de cumuler est un réglage de lecture : il est gardé");
+    }
 }

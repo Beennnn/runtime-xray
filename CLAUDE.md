@@ -9,7 +9,7 @@ Le [README](README.md) explique l'outil ; ici, on explique le dépôt.
 ## Construire et éprouver
 
 ```bash
-mvn test                            # 157 tests, aucun n'accède au réseau
+mvn test                            # 170 tests, aucun n'accède au réseau
 mvn -DskipTests package             # orchestrator/target/runtime-xray.jar   (175 Ko)
 mvn -Pjacoco  -DskipTests package   # runtime-xray-jacoco.jar               (950 Ko)
 mvn -Pcomplet -DskipTests package   # runtime-xray-complet.jar               (19 Mo)
@@ -99,6 +99,54 @@ elle correspond. Quand rien n'aboutit, le message liste tous les chemins essayé
 machine fermée, c'est lui qui doit suffire à s'en sortir, et il doit le rester.
 
 `bin/kit-hors-ligne.sh` assemble le paquet équivalent à emporter, empreintes comprises.
+
+## Quand le rapport ne montre pas ce qu'on attendait
+
+C'est le mode d'échec le plus coûteux de l'outil, parce qu'il est **silencieux** : un panneau
+de code vide se lit exactement comme un panneau qu'on n'a pas su remplir. Trois choses
+distinctes peuvent manquer, elles se corrigent de trois façons opposées, et rien dans la page
+ne permettait de les distinguer.
+
+- **`diagnostic.json`** est écrit à côté de la page à chaque assemblage, sans qu'on le
+  demande. Il porte l'environnement, la configuration du lancement, les racines réellement
+  ouvertes, les exécutions et leurs rapports, et le rapprochement classe par classe. C'est le
+  fichier à réclamer quand quelqu'un signale un rapport décevant — il évite le
+  aller-retour de captures d'écran. Il ne contient **aucun secret** ; un test le garde.
+- **La section « Analyse des sources »** de la vue d'ensemble le rend lisible : l'arbre
+  paquet par paquet, coloré par ce qui manque à chaque classe, et une recherche qui répond à
+  « cette classe, tu l'as trouvée, et où ? ».
+- **Le panneau à la place du code** dit la clé cherchée, les racines consultées et la ligne
+  exacte à ajouter à la configuration.
+
+**Les quatre restrictions ne restreignent pas la même chose**, et c'est la confusion la plus
+fréquente — on élargit un filtre qui n'y était pour rien, on relance, on obtient le même
+rapport. `--sources` ne commande que l'affichage du code ; `--root` la capture des valeurs et
+le filtre de temps ; `--filter` la mesure du temps seule ; `--cover` l'instrumentation JaCoCo.
+Le tableau est dans la page, écrit à partir du symptôme et non de la documentation.
+
+**L'index des sources est bâti sur le paquet déclaré**, pas sur le chemin relatif à la racine
+passée. `SOURCE_DIRS` peut donc désigner le projet entier, le répertoire de sources, ou un
+répertoire de paquet : cela retombe sur ses pieds. C'est ce qui a cassé le 26 août 2026 —
+une racine d'un cran trop haute suffisait à décaler l'index entier, donc « Source
+indisponible » sur les 447 classes d'une analyse.
+
+## Couverture cumulée
+
+Une campagne de recette, c'est dix exécutions, et la question posée devant le code est « est-ce
+que **quelque chose** a couvert cette ligne ? ». Deux mécanismes y répondent, et ils sont
+complémentaires :
+
+- **Dans la page**, cocher « cumuler » réunit les exécutions **cochées** et garde pour chaque
+  ligne *laquelle* l'a couverte, en pastilles. Cela marche sur n'importe quel sous-ensemble,
+  hors ligne, sans rien relancer — parce que l'union se calcule sur des données déjà là.
+- **`jacoco-fusion/`** porte le rapport JaCoCo de toutes les exécutions fusionnées
+  (`jacococli merge` puis `report`), pour le chiffre qui fait foi et qu'on transmet. Il perd
+  en revanche l'attribution : une fois les `.exec` additionnés, plus rien ne dit qui a couvert
+  quoi. Il n'est produit qu'à partir de deux exécutions, et seulement si le bytecode est connu.
+
+JaCoCo ne sait pas choisir ses exécutions à l'affichage : son rapport est un rendu statique,
+calculé sur les `.exec` qu'on lui donne. Un sous-ensemble arbitraire demanderait donc un
+rapport par combinaison — c'est précisément ce que le cumul dans la page évite.
 
 ## Conventions
 
