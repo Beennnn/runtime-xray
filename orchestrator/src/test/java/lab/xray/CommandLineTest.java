@@ -71,4 +71,25 @@ class CommandLineTest {
         List<String> args = CommandLine.toProcessArgs("a && b");
         assertEquals("a && b", args.get(args.size() - 1));
     }
+
+    @Test
+    @DisplayName("Un tilde au milieu d'un chemin n'est pas un caractère d'interpréteur")
+    void aTildeInsideAPathIsNotAShellCharacter() {
+        // Les noms courts 8.3 de Windows en portent un, et ils sont partout :
+        // C:\Users\RUNNER~1, C:\PROGRA~1. Compter ce tilde comme une demande d'expansion
+        // envoyait la commande à « cmd /c » — elle s'exécutait, mais l'outil n'y lisait
+        // plus le -jar, donc plus le bytecode, donc un rapport vide sans explication.
+        assertFalse(CommandLine.needsShell(
+                "java -jar C:\\Users\\RUNNER~1\\AppData\\Local\\Temp\\appli.jar"));
+        assertEquals(List.of("java", "-jar", "C:\\Users\\RUNNER~1\\appli.jar"),
+                CommandLine.toProcessArgs("java -jar C:\\Users\\RUNNER~1\\appli.jar"));
+    }
+
+    @Test
+    @DisplayName("Un tilde en tête de mot reste une expansion, donc un interpréteur")
+    void aTildeStartingAWordStillNeedsAShell() {
+        // C'est là, et là seulement, qu'un interpréteur l'étend en répertoire personnel.
+        assertTrue(CommandLine.needsShell("java -jar ~/apps/appli.jar"));
+        assertTrue(CommandLine.needsShell("~/bin/java -jar appli.jar"));
+    }
 }
