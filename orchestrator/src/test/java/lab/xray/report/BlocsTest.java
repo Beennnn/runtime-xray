@@ -25,6 +25,8 @@ class BlocsTest {
     private static Map<String, Object> run(String uuid) {
         Map<String, Object> r = new LinkedHashMap<>();
         r.put("uuid", uuid);
+        r.put("nom", "essai");
+        r.put("chemin", "runs/" + uuid + "/");
         r.put("nom", "scénario " + uuid);
         r.put("packages", Map.of("app", List.of(Map.of("name", "app/Moteur"))));
         r.put("coverage", Map.of("app/Moteur.java", Map.of("3", Map.of("s", "full"))));
@@ -40,7 +42,7 @@ class BlocsTest {
         Blocs.ecrire(dir, List.of(run("UUID-1")),
                 Map.of("app/Moteur.java", List.of("package app;", "class Moteur {}")));
 
-        Path bloc = dir.resolve("donnees/src-app.js");
+        Path bloc = dir.resolve("vue/sources/app.js");
         List<String> lignes = Files.readAllLines(bloc, StandardCharsets.UTF_8);
         assertEquals(1, lignes.size(), "une source, une ligne");
         assertTrue(lignes.get(0).startsWith("XR.bloc(\"src\",\"app/Moteur.java\","),
@@ -62,16 +64,23 @@ class BlocsTest {
         Map<String, Object> leger = (Map<String, Object>) ((List<Object>) sommaire.get("runs")).get(0);
         assertTrue(leger.containsKey("nom"), "l'identité de l'exécution reste : elle s'affiche");
         assertTrue(leger.containsKey("packages"), "l'arbre des classes aussi");
-        assertEquals("donnees/run-1.js", leger.get("bloc"), "et le reste s'annonce par son bloc");
+        // Les blocs d'une exécution vivent SOUS elle : copier son répertoire emporte tout
+        // ce qui la concerne, et en retirer une ne laisse pas d'orphelin ailleurs.
+        assertEquals(List.of("runs/UUID-2/vue/couverture.js", "runs/UUID-2/vue/arbre.js",
+                             "runs/UUID-2/vue/valeurs.js", "runs/UUID-2/vue/traces.js"),
+                leger.get("blocs"), "et le reste s'annonce par ses blocs, sous l'exécution");
 
         for (String lourd : List.of("coverage", "calltree", "values", "trace")) {
             assertFalse(leger.containsKey(lourd),
                     lourd + " ne s'affiche qu'après un geste : il n'a pas à être là avant");
         }
-        String bloc = Files.readString(dir.resolve("donnees/run-1.js"), StandardCharsets.UTF_8);
         for (String lourd : List.of("coverage", "calltree", "values", "trace")) {
+            String nom = Map.of("coverage", "couverture.js", "calltree", "arbre.js",
+                    "values", "valeurs.js", "trace", "traces.js").get(lourd);
+            String bloc = Files.readString(dir.resolve("runs/UUID-2/vue/" + nom),
+                    StandardCharsets.UTF_8);
             assertTrue(bloc.contains("\"UUID-2/" + lourd + "\""),
-                    lourd + " doit être dans le bloc, sans quoi il serait perdu");
+                    lourd + " doit être dans son bloc, sans quoi il serait perdu");
         }
     }
 
@@ -85,9 +94,10 @@ class BlocsTest {
         assertEquals("org-exemple-module", Blocs.nomDeFichier("org/exemple/module"));
 
         Blocs.ecrire(dir, List.of(), Map.of("../evade.java", List.of("x")));
-        try (var f = Files.list(dir.resolve("donnees"))) {
-            assertTrue(f.allMatch(p -> p.getParent().equals(dir.resolve("donnees"))),
-                    "tout doit rester sous donnees/");
+        Path sources = dir.resolve("vue/sources");
+        try (var f = Files.list(sources)) {
+            assertTrue(f.allMatch(p -> p.getParent().equals(sources)),
+                    "tout doit rester sous vue/sources/");
         }
     }
 }

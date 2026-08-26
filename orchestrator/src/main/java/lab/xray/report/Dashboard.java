@@ -59,9 +59,11 @@ public final class Dashboard {
 
         Sources.Index index = Sources.load(sourceRoots);
 
-        Map<String, Object> data = new LinkedHashMap<>();
-        data.put("runs", runs);
-        data.put("sources", sourcesAffichables(runs, index));
+        // Le gros part en blocs, chargés à la demande et libérables. Ce qui reste ici est ce
+        // que la PREMIÈRE IMAGE montre : l'identité des exécutions, l'arbre des classes, et
+        // les clés des sources — jamais leur contenu.
+        Map<String, Object> data =
+                new LinkedHashMap<>(Blocs.ecrire(commonDir, runs, sourcesAffichables(runs, index)));
         // Le diagnostic voyage AVEC la page, pas seulement à côté : c'est lui qui permet au
         // panneau de code de dire ce qu'il a cherché quand il n'a rien à montrer. Une page
         // transmise en pièce jointe reste alors explicable sans son répertoire d'origine.

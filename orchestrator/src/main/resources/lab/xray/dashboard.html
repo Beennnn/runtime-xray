@@ -846,6 +846,173 @@ const D = /*__DATA__*/;
 // Plusieurs exécutions peuvent cohabiter dans le même rapport. R désigne celle qu'on
 // regarde ; tout le reste de la page lit R, jamais D directement (sauf les sources,
 // communes à toutes les exécutions).
+/* =====================================================================================
+ * LE CHARGEUR DE BLOCS
+ *
+ * La page ne porte plus que la première image : l'identité des exécutions, l'arbre des
+ * classes, et les CLÉS des sources. Tout ce qui ne s'affiche qu'après un geste — la
+ * couverture ligne à ligne, l'arbre d'appel, les valeurs, le code lui-même — vit dans
+ * donnees/ et n'arrive qu'à la demande.
+ *
+ * Ce sont des <script src>, et non des fetch : ouvert en file:// — le cas normal, on
+ * double-clique sur index.html — un fetch vers un fichier voisin est refusé au titre de
+ * l'origine, et la page resterait vide. Un script, lui, se charge.
+ *
+ * La libération compte autant que le chargement : au-delà du plafond, on efface l'entrée
+ * ET on retire le <script> du DOM. Effacer sans retirer garde le texte source en mémoire,
+ * et le tas ne redescend pas — vérifié.
+ * ===================================================================================== */
+const XR = {
+  cache: new Map(),         // nom du bloc -> ce qu'il a apporté
+  ordre: [],                // du plus ancien au plus récent
+  scripts: new Map(),
+  attente: new Map(),       // un même bloc demandé deux fois n'est chargé qu'une
+  PLAFOND: 6,
+  _recu: null,
+
+  /** Appelé par chaque ligne d'un bloc pendant son chargement. */
+  bloc(type, cle, valeur){
+    if (XR._recu) XR._recu.push([type, cle, valeur]);
+  },
+
+  /* Les chargements se suivent au lieu de se chevaucher, et ce n'est pas un détail : le
+     tampon qui recueille les lignes d'un bloc est unique, et deux scripts en vol se le
+     disputent — le second l'écrase avant que le premier ne se soit vidé. Constaté. Les
+     paralléliser ne gagnerait rien ici : ce sont des fichiers locaux, et la file ne bloque
+     que le temps d'un parse. */
+  _file: Promise.resolve(),
+
+  charger(nom){
+    if (XR.cache.has(nom)) { XR.toucher(nom); return Promise.resolve(); }
+    if (XR.attente.has(nom)) return XR.attente.get(nom);
+    const p = XR._file.then(() => new Promise((ok, ko) => {
+      if (XR.cache.has(nom)) { XR.toucher(nom); ok(); return; }
+      const recu = [];
+      XR._recu = recu;
+      const s = document.createElement("script");
+      s.src = nom;
+      s.onload = () => {
+        XR._recu = null; XR.attente.delete(nom); XR.ranger(nom, recu); ok();
+      };
+      s.onerror = () => {
+        XR._recu = null; XR.attente.delete(nom); s.remove(); XR.scripts.delete(nom);
+        ko(new Error("bloc introuvable : " + nom));
+      };
+      document.head.appendChild(s);
+      XR.scripts.set(nom, s);
+    }));
+    XR.attente.set(nom, p);
+    // La file ne doit pas s'interrompre sur un bloc manquant : le suivant a le droit d'être là.
+    XR._file = p.catch(() => {});
+    return p;
+  },
+
+  /** Range ce qu'un bloc a apporté là où la vue le lit déjà. */
+  ranger(nom, recu){
+    const pose = [];
+    for (const [type, cle, valeur] of recu){
+      if (type === "src"){ D.sources[cle] = valeur; pose.push(["src", cle]); }
+      else if (type === "cumul"){ D.cumul[cle] = valeur; pose.push(["cumul", cle]); }
+      else if (type === "poids"){ D.poids[cle] = valeur; pose.push(["poids", cle]); }
+      else if (type === "presence"){ D.presence[cle] = valeur; pose.push(["presence", cle]); }
+      else if (type === "run"){
+        const [uuid, champ] = cle.split("/");
+        const run = D.runs.find(r => r.uuid === uuid);
+        if (run){ run[champ] = valeur; pose.push(["run", run, champ]); }
+      }
+    }
+    XR.cache.set(nom, pose);
+    // Les index globaux ne vieillissent pas : ils sont petits, ils servent tout le temps, et
+    // les évincer casse le cumul dès qu'on ouvre quelques classes de plus — constaté.
+    if (XR.permanent(nom)) return;
+    XR.toucher(nom);
+    XR.evincer();
+  },
+
+  toucher(nom){
+    if (XR.permanent(nom)) return;
+    XR.ordre = XR.ordre.filter(x => x !== nom); XR.ordre.push(nom);
+  },
+
+  /** Un index global : il croise les exécutions, il est petit, il reste. */
+  permanent(nom){ return nom.startsWith((D.global || "vue/")) && !nom.includes("/sources/"); },
+
+  /**
+   * Oublier les blocs les plus anciens : l'entrée ET le script, sans quoi la mémoire ne
+   * redescend pas.
+   *
+   * <p>Un bloc protégé — celui d'une exécution qu'on est en train de regarder — repart en
+   * fin de file et on <b>continue</b> : s'arrêter là laissait passer tout ce qui le suivait,
+   * et le plafond ne tenait plus. Le compteur borne le tour, faute de quoi une file entière
+   * de blocs protégés tournerait sans fin.
+   */
+  evincer(){
+    let tours = XR.ordre.length;
+    while (XR.ordre.length > XR.PLAFOND && tours-- > 0){
+      const vieux = XR.ordre.shift();
+      if (XR.protege.has(vieux)) { XR.ordre.push(vieux); continue; }
+      for (const pose of (XR.cache.get(vieux) || [])){
+        if (pose[0] === "src") delete D.sources[pose[1]];
+        else if (pose[0] === "cumul") delete D.cumul[pose[1]];
+        else if (pose[0] === "poids") delete D.poids[pose[1]];
+        else if (pose[0] === "presence") delete D.presence[pose[1]];
+        else if (pose[0] === "run") delete pose[1][pose[2]];
+      }
+      XR.cache.delete(vieux);
+      const s = XR.scripts.get(vieux);
+      if (s){ s.remove(); XR.scripts.delete(vieux); }
+    }
+  },
+
+  /** Ce qu'on ne libère pas : ce que la vue est en train de montrer. */
+  protege: new Set(),
+
+  /** Les blocs nécessaires pour afficher ces exécutions — chacune a les siens, sous elle. */
+  async runs(indices){
+    const voulus = [];
+    for (const i of indices) for (const b of ((D.runs[i] || {}).blocs || [])) voulus.push(b);
+    XR.protege = new Set(voulus);
+    await Promise.all(voulus.map(b => XR.charger(b).catch(e => console.error(e))));
+  },
+
+  /** Un index global : il croise les exécutions, donc il vit au-dessus d'elles. */
+  async global(nom){
+    const chemin = (D.global || "vue/") + nom;
+    if (XR.cache.has(chemin)) { XR.toucher(chemin); return; }
+    await XR.charger(chemin).catch(e => console.error(e));
+  },
+
+  /** Le bloc qui porte le code de ce fichier, s'il y en a un. */
+  async source(cle){
+    const bloc = D.sourcesDisponibles[cle];
+    if (bloc && !D.sources[cle]) await XR.charger(bloc);
+  },
+
+  async cumulIndex(){ await XR.global("cumul.js"); },
+  async poidsIndex(){ await XR.global("poids.js"); },
+  async presenceIndex(){ await XR.global("presence.js"); }
+};
+D.sources = {};
+D.cumul = {};
+D.poids = {};
+D.presence = {};
+D.sourcesDisponibles = D.sourcesDisponibles || {};
+
+/* Le format du rapport est exigé : la vue ne porte pas les formes d'hier, puisque les
+   reconstruire ne coûte qu'un --report-only. Mieux vaut le dire que d'afficher de travers. */
+if (D.format !== "2.0"){
+  document.addEventListener("DOMContentLoaded", () => {
+    document.body.innerHTML = '<div style="padding:40px;font:15px/1.6 system-ui;max-width:60ch">'
+      + '<h1 style="font-size:20px">Ce rapport a été engendré par une autre version</h1>'
+      + '<p>La page attend le format <b>2.0</b>, ce rapport annonce <b>'
+      + (D.format ? String(D.format) : 'aucun format') + '</b>.</p>'
+      + '<p>Rien n\'est perdu : les mesures sont intactes sous <code>runs/</code>. Réassembler '
+      + 'la vue suffit, sans relancer l\'application :</p>'
+      + '<pre style="background:#eee;padding:10px;border-radius:6px">java -jar runtime-xray.jar '
+      + '--report-only --out .</pre></div>';
+  });
+}
+
 let runIndex = 0;
 let R = D.runs[0];
 const esc = s => String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
@@ -890,21 +1057,21 @@ function runsCoches(){
  * relevé — c'est la même règle que JaCoCo applique en fusionnant deux {@code .exec}.
  */
 function covPourVue(source){
-  if (!cumul) return (R.coverage[source] || {});
+  if (!cumul) return (R.coverage && R.coverage[source]) || {};
+  // L'union se lit dans un index calculé à l'assemblage : par ligne, deux masques de bits —
+  // qui l'a couverte entièrement, qui partiellement. Réunir un sous-ensemble devient un ET
+  // binaire, une opération par ligne, au lieu d'une recherche par ligne ET par exécution.
+  const index = D.cumul[source];
+  if (!index) return (R.coverage && R.coverage[source]) || {};
+  let masque = 0;
+  for (const i of runsCoches()) masque |= (1 << i);
   const out = {};
-  for (const i of runsCoches()){
-    const cov = D.runs[i].coverage[source];
-    if (!cov) continue;
-    for (const nr of Object.keys(cov)){
-      const c = cov[nr];
-      const e = out[nr] || (out[nr] = { s: "miss", b: null, runs: [] });
-      if (c.s !== "miss") e.runs.push(i);
-      e.s = (e.s === "full" || c.s === "full") ? "full"
-          : (e.s === "part" || c.s === "part") ? "part" : "miss";
-      // La meilleure couverture de branches l'emporte : deux exécutions qui prennent
-      // chacune un côté d'un « if » le couvrent entièrement à elles deux.
-      if (c.b && (!e.b || c.b[0] > e.b[0])) e.b = c.b;
-    }
+  for (const [nr, plein, partiel] of index){
+    const p = plein & masque, q = partiel & masque;
+    if (!p && !q) continue;
+    const bits = p | q, qui = [];
+    for (let i = 0; i < D.runs.length; i++) if (bits & (1 << i)) qui.push(i);
+    out[nr] = { s: p ? "full" : "part", b: null, runs: qui };
   }
   return out;
 }
@@ -1030,6 +1197,9 @@ function ranIn(run, frame){
   return !!(info && info.methods.some(m => m.name === name && m.covered));
 }
 function computeAgg(){
+  // L'arbre d'appel arrive avec le bloc de l'exécution. Tant qu'il n'est pas là, on rend des
+  // compteurs vides plutôt que d'échouer : la vue se redessine dès le bloc chargé.
+  if (!R || !R.calltree) return {cov:0, miss:0, dead:[], weights:{}, methods:0, pct:0, samples:0};
   let cov=0, miss=0; const dead=[];
   for (const classes of Object.values(R.packages))
     for (const c of classes){ cov+=c.covered; miss+=c.missed; if(!c.covered) dead.push(c.simple); }
@@ -1040,6 +1210,8 @@ function computeAgg(){
   return {cov, miss, dead, weights, methods,
           pct: cov+miss ? 100*cov/(cov+miss) : 0, samples: R.calltree.total};
 }
+// Vide au chargement du script : l'arbre d'appel arrive avec le bloc. Recalculé à
+// l'amorçage, en bas de ce fichier, dès que le bloc est là.
 let AGG = computeAgg();
 
 /* ------------------------------------------------------- identité des exécutions
@@ -1422,10 +1594,12 @@ function refreshRunLabels(){
               + esc(shortId(r)) + '</span>' : '') +
     '<span class="cnt" title="Méthodes ayant tourné dans cette exécution">'
     + methodCount(r) + ' méthodes</span></label>').join("");
-  box.querySelectorAll("input[data-run]").forEach(cb => cb.onchange = () => {
+  box.querySelectorAll("input[data-run]").forEach(cb => cb.onchange = async () => {
     const i = +cb.dataset.run;
     cb.checked ? shownRuns.add(i) : shownRuns.delete(i);
     if (!shownRuns.size){ shownRuns.add(i); cb.checked = true; return; }  // jamais rien à voir
+    // Une exécution qu'on coche doit avoir son bloc : la liste lit ses méthodes couvertes.
+    await XR.runs(runsCoches()).catch(e => console.error(e));
     const open = captureExpanded();
     mode === "cls" ? renderClasses() : renderTree();
     restoreExpanded(open);
@@ -1433,12 +1607,16 @@ function refreshRunLabels(){
   });
   const cb = document.getElementById("cumulcb");
   cb.checked = cumul;
-  cb.onchange = () => {
+  cb.onchange = async () => {
     cumul = cb.checked;
     try { localStorage.setItem("runtime-xray.cumul", cumul ? "1" : "0"); } catch(e){}
+    if (cumul) await XR.cumulIndex();
     refreshHeader();
     renderLegend();
-    selected ? drawCode() : drawHome();
+    // draw() choisit lui-même entre le code et la vue d'ensemble. Appeler un « drawCode »
+    // qui n'a jamais existé ne se voyait pas tant qu'aucune classe n'était ouverte — le
+    // cumul depuis la vue d'ensemble passait par drawHome, et le défaut dormait.
+    draw();
   };
 })();
 
@@ -1448,8 +1626,10 @@ function methodCount(run){
   return n;
 }
 
-function switchRun(i, redraw){
-  runIndex = i; R = D.runs[i]; AGG = computeAgg(); methodIndex = null;
+async function switchRun(i, redraw){
+  runIndex = i; R = D.runs[i];
+  await XR.runs([i]).catch(e => console.error(e));
+  AGG = computeAgg(); methodIndex = null;
   scopeFrame = null; ctxIndex = 0;
   const sel = document.getElementById("runsel");
   if (sel && !sel.hidden) sel.value = String(i);
@@ -1737,8 +1917,10 @@ function executedMethods(){
   const merged = new Map();
   for (const i of [...shownRuns].sort()){
     const run = D.runs[i];
-    const weights = {};
-    (function walk(node){ for (const k of node.children){ weights[k.name] = (weights[k.name]||0) + k.total; walk(k); } })(run.calltree);
+    // Le poids d'une méthode dans CETTE exécution se lit dans l'index global, calculé à
+    // l'assemblage. Le déduire ici demanderait l'arbre d'appel de chaque exécution cochée —
+    // donc de toutes les charger pour une liste de six lignes.
+    const weights = (frame) => (D.poids[frame] || [])[i] || 0;
     for (const [cls, info] of Object.entries(run.methods)){
       for (const m of info.methods){
         if (!m.covered) continue;
@@ -1746,7 +1928,7 @@ function executedMethods(){
         if (scoped && !(frame in scoped)) continue;
         if (filter && !(dot(frame).toLowerCase().includes(filter))) continue;
         const seen = merged.get(frame);
-        const samples = weights[frame] || 0;
+        const samples = weights(frame);
         if (!seen){
           merged.set(frame, {frame, cls, name: m.name, line: m.line, source: info.source,
                              methods: info.methods, samples, runs: [i], bestRun: i, best: samples});
@@ -2431,13 +2613,21 @@ function pathsTo(frame, max = 4){
   return {chemins: found.slice(0, max), total: sum, nb: found.length};
 }
 /** Combien de chemins distincts mènent à cette méthode dans une exécution donnée. */
+/**
+ * En combien d'endroits cette exécution appelle cette méthode.
+ *
+ * <p>Lu dans l'index de présence, calculé à l'assemblage : le compter ici demanderait
+ * l'arbre d'appel de l'exécution, donc de charger toutes celles qu'on ne regarde pas pour
+ * afficher une ligne sous celle qu'on regarde.
+ */
 function occurrencesOf(run, frame){
+  const rang = D.runs.indexOf(run);
+  const compte = D.presence[frame];
+  if (compte) return compte[rang] || 0;
+  if (!run.calltree) return 0;      // index absent et bloc non chargé : on n'invente pas
   let n = 0;
   (function walk(node){
-    for (const kid of node.children){
-      if (kid.name === frame) n++;
-      walk(kid);
-    }
+    for (const kid of node.children){ if (kid.name === frame) n++; walk(kid); }
   })(run.calltree);
   return n;
 }
@@ -2727,6 +2917,9 @@ function devoilerDansArbre(frame){
   // dans l'ordre du rapport.
   const ordre = [runIndex].concat(D.runs.map((_, i) => i).filter(i => i !== runIndex));
   for (const idx of ordre){
+    // Seules les exécutions déjà chargées livrent un chemin : les autres se contentent du
+    // compte, que l'index de présence donne sans rien charger.
+    if (!D.runs[idx].calltree) continue;
     const chemin = cheminVers(prunedTree(D.runs[idx]), frame);
     if (!chemin) continue;
     if (idx !== runIndex){
@@ -2830,7 +3023,9 @@ function select(info, el, call){
   if (el) el.classList.add("sel");
   selected = info;
   callIndex = (call === undefined) ? null : call;
-  draw();
+  // Le code de cette classe vit dans un bloc : on l'attend, puis on dessine. C'est le seul
+  // endroit qui en a besoin — l'arbre, lui, se contente des clés.
+  XR.source(info && info.source).then(draw, draw);
   noterVue();
 }
 /**
@@ -2926,7 +3121,9 @@ function racineProbable(){
 /** Vrai si la frame désigne du code dont on peut afficher le source. */
 function hasSource(frame){
   const info = frameInfo(frame);
-  return !!(info && D.sources[info.source]);
+  // Les CLÉS suffisent : demander le contenu pour savoir s'il existe annulerait tout le
+  // bénéfice du découpage, puisque l'arbre pose la question sur chaque nœud.
+  return !!(info && D.sourcesDisponibles[info.source]);
 }
 
 /**
@@ -4822,8 +5019,16 @@ setOption("clean",    {icon: OPT.cible});
 
 // La vue d'entrée suit l'onglet de gauche : s'ouvrir sur le second se lirait comme un
 // état bizarre plutôt que comme un choix.
-renderClasses();
-drawHome();
+// Rien ne s'affiche avant que le bloc de l'exécution regardée soit là : sans son arbre
+// d'appel, la vue d'ensemble n'aurait que des zéros à montrer. C'est la seule attente que
+// l'ouverture impose — tout le reste vient au geste qui le demande.
+(async () => {
+  try { await XR.runs([0]); await XR.poidsIndex(); await XR.presenceIndex(); }
+  catch (e) { console.error(e); }
+  AGG = computeAgg();
+  renderClasses();
+  drawHome();
+})();
 </script>
 </body>
 </html>
