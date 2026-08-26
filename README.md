@@ -371,6 +371,9 @@ projet** et propose les répertoires à ajouter — chacun accompagné de ce qu'
      /home/moi/projet/src/main/java   (résout 27/27 des classes sans source)
 ```
 
+Plusieurs racines se séparent par `:` — ou par `;` sous Windows, où un chemin absolu
+commence lui-même par `C:`. Les deux fonctionnent partout.
+
 Une racine n'est proposée que si le **paquet déclaré** par les fichiers qu'elle contient
 correspond à ce que la couverture réclame : un fichier au bon nom venu d'un autre projet ne
 compte pas. Quand rien ne concorde, l'outil le dit plutôt que d'inventer.
