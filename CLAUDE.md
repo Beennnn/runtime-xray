@@ -9,7 +9,7 @@ Le [README](README.md) explique l'outil ; ici, on explique le dépôt.
 ## Construire et éprouver
 
 ```bash
-mvn test                            # 181 tests, aucun n'accède au réseau
+mvn test                            # 183 tests, aucun n'accède au réseau
 mvn -DskipTests package             # orchestrator/target/runtime-xray.jar   (175 Ko)
 mvn -Pjacoco  -DskipTests package   # runtime-xray-jacoco.jar               (950 Ko)
 mvn -Pcomplet -DskipTests package   # runtime-xray-complet.jar               (19 Mo)
@@ -189,6 +189,11 @@ rapport par combinaison — c'est précisément ce que le cumul dans la page év
   commun aux deux change ce qu'il faut aller regarder. La construction des trois éditions
   reste sur un seul poste : elle éprouve les profils Maven, rien qui dépende du système.
   Ajoutée le 26 août 2026, après deux défauts Windows qu'une CI Linux ne pouvait pas voir.
+- **Le tilde n'est un caractère d'interpréteur qu'en tête de mot** : les noms courts 8.3 de
+  Windows en portent un — `C:\Users\RUNNER~1`, `C:\PROGRA~1` — et le compter partout
+  envoyait la commande à `cmd /c`. Elle s'exécutait, mais `ClassSources` n'y lisait plus le
+  `-jar`, donc plus le bytecode : rapport vide, sans explication. Trouvé par le premier
+  passage de la CI Windows, le jour même où elle a été ajoutée.
 - **Chemins Windows dans une liste** : `SOURCE_DIRS` et `CLASSES_DIR` se séparent par `:`,
   ce qui va de soi sur Unix et pas du tout sur Windows — `C:\projet\src` commence par un `:`
   qui n'est pas un séparateur. `Config.decouper` rend au chemin le `:` qui suit une lettre

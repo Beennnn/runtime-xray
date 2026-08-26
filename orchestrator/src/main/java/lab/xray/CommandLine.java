@@ -18,7 +18,19 @@ import java.util.Locale;
  */
 public final class CommandLine {
 
-    private static final String SHELL_CHARS = "|&;<>$`(){}*?~";
+    private static final String SHELL_CHARS = "|&;<>$`(){}*?";
+
+    /**
+     * Le tilde ne compte qu'en <b>tête de mot</b>, là où un interpréteur l'étendrait.
+     *
+     * <p>Ailleurs, il est littéral — et il est très courant sous Windows, où les noms courts
+     * en 8.3 en portent un : {@code C:\Users\RUNNER~1\AppData}, {@code C:\PROGRA~1}. Le
+     * compter partout envoyait ces commandes-là à {@code cmd /c}, ce qui les exécute très
+     * bien mais rend la ligne illisible pour l'outil : {@link ClassSources} n'y trouve plus
+     * le {@code -jar}, donc plus le bytecode, donc un rapport vide sans que rien ne
+     * l'explique. Constaté le 26 août 2026, au premier passage de la CI sous Windows.
+     */
+    private static final char TILDE = '~';
 
     private CommandLine() {}
 
@@ -31,12 +43,17 @@ public final class CommandLine {
     }
 
     public static boolean needsShell(String command) {
-        boolean inSingle = false, inDouble = false;
+        boolean inSingle = false, inDouble = false, debutDeMot = true;
         for (int i = 0; i < command.length(); i++) {
             char c = command.charAt(i);
-            if (c == '\'' && !inDouble) inSingle = !inSingle;
-            else if (c == '"' && !inSingle) inDouble = !inDouble;
-            else if (!inSingle && !inDouble && SHELL_CHARS.indexOf(c) >= 0) return true;
+            if (c == '\'' && !inDouble) { inSingle = !inSingle; debutDeMot = false; }
+            else if (c == '"' && !inSingle) { inDouble = !inDouble; debutDeMot = false; }
+            else if (inSingle || inDouble) debutDeMot = false;
+            else if (Character.isWhitespace(c)) debutDeMot = true;
+            else {
+                if (c == TILDE ? debutDeMot : SHELL_CHARS.indexOf(c) >= 0) return true;
+                debutDeMot = false;
+            }
         }
         return false;
     }
