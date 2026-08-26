@@ -9,7 +9,7 @@ Le [README](README.md) explique l'outil ; ici, on explique le dépôt.
 ## Construire et éprouver
 
 ```bash
-mvn test                            # 170 tests, aucun n'accède au réseau
+mvn test                            # 176 tests, aucun n'accède au réseau
 mvn -DskipTests package             # orchestrator/target/runtime-xray.jar   (175 Ko)
 mvn -Pjacoco  -DskipTests package   # runtime-xray-jacoco.jar               (950 Ko)
 mvn -Pcomplet -DskipTests package   # runtime-xray-complet.jar               (19 Mo)
@@ -123,6 +123,19 @@ fréquente — on élargit un filtre qui n'y était pour rien, on relance, on ob
 rapport. `--sources` ne commande que l'affichage du code ; `--root` la capture des valeurs et
 le filtre de temps ; `--filter` la mesure du temps seule ; `--cover` l'instrumentation JaCoCo.
 Le tableau est dans la page, écrit à partir du symptôme et non de la documentation.
+
+**Quand il manque des sources, l'outil les cherche** — et ne les devine jamais. Deviner une
+racine d'après une convention serait commode là où on n'en a pas besoin, et faux là où on en
+aurait besoin : sur la machine où l'application tourne loin de son code, la convention ne
+désigne rien, ou pire, désigne les sources d'un autre projet. Du code faux affiché en face
+d'une couverture coûte plus cher qu'un panneau vide, parce qu'on le croit.
+
+`Sources.chercherRacines` cherche donc, et compte. Elle explore le voisinage du bytecode
+analysé, celui des racines déjà configurées et le répertoire de lancement — jamais au-delà —
+et ne retient un fichier que si le **paquet qu'il déclare** produit exactement une clé
+manquante. Un homonyme venu d'un autre projet ne compte pas ; un test le garde. Chaque
+proposition arrive avec son chiffre — « cette racine résoudrait 27 des 27 classes sans
+source » — et la ligne `SOURCE_DIRS=` à recopier. Quand rien ne concorde, elle le dit.
 
 **L'index des sources est bâti sur le paquet déclaré**, pas sur le chemin relatif à la racine
 passée. `SOURCE_DIRS` peut donc désigner le projet entier, le répertoire de sources, ou un

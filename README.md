@@ -362,6 +362,19 @@ rapports présents, rapprochement classe par classe. C'est le fichier à joindre
 demande de l'aide — il porte les réponses qu'on aurait posées en questions. Il ne contient
 ni jeton de serveur, ni valeurs de paramètres capturées.
 
+Quand des classes mesurées n'ont pas leur code, l'outil **cherche les sources autour du
+projet** et propose les répertoires à ajouter — chacun accompagné de ce qu'il résoudrait :
+
+```
+   sources : 0/27 classe(s) mesurée(s) ont leur code
+   racines trouvées, à ajouter à SOURCE_DIRS :
+     /home/moi/projet/src/main/java   (résout 27/27 des classes sans source)
+```
+
+Une racine n'est proposée que si le **paquet déclaré** par les fichiers qu'elle contient
+correspond à ce que la couverture réclame : un fichier au bon nom venu d'un autre projet ne
+compte pas. Quand rien ne concorde, l'outil le dit plutôt que d'inventer.
+
 La même chose se lit dans la page, section **« Analyse des sources »** de la vue d'ensemble :
 la ligne réellement exécutée, les racines de bytecode et de sources avec ce que chacune a
 rendu, un arbre paquet par paquet coloré selon ce qui manque à chaque classe, et une
