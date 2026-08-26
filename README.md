@@ -137,6 +137,17 @@ Le temps de calcul et la mémoire sont relevés à titre indicatif, mais ne font
 des critères de sélection. L'optimisation des performances est un sujet distinct, qui
 suppose que le code soit d'abord compris.
 
+## Ce que l'analyse dynamique apporte
+
+![Le code livré ne dit pas ce qui tourne ; une exécution observée le montre ligne par ligne, avec le temps passé et les valeurs réelles](docs/assets/analyse-dynamique.svg)
+
+Lire le code répond « ça dépend ». L'exécuter en l'observant répond avec des mesures : quelles
+lignes ont tourné, où le temps est parti, quelles valeurs ont circulé. Les trois instruments
+s'attachent à chaud — ni recompilation, ni instrumentation du code source, ni licence, ni
+réseau à l'exécution.
+
+Ce schéma est en SVG : il s'importe tel quel dans une présentation et reste net à toute taille.
+
 ## Démarche
 
 ![La démarche](docs/assets/approach.svg)
