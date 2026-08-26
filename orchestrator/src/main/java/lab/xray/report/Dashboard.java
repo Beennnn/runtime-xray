@@ -76,6 +76,10 @@ public final class Dashboard {
         Path out = commonDir.resolve("index.html");
         Files.writeString(out, page, StandardCharsets.UTF_8);
 
+        // La campagne sur une page, en SVG : la vue interactive répond aux questions qu'on
+        // lui pose, elle ne se transmet pas. Ce schéma-là se colle dans une diapositive.
+        Diagramme.ecrire(commonDir, runs);
+
         // Le même contenu en Markdown, sans surcoût de collecte : c'est le seul format
         // qu'une forge affiche comme une page et non comme du code source.
         Markdown.write(commonDir, runs);
