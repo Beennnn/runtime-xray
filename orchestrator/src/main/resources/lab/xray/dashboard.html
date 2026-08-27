@@ -48,10 +48,18 @@
      alors qu'ils n'étaient qu'informatifs. Leur explication vit dans la légende, en bas. */
   .applogo{display:flex;align-items:center}
   .stat{color:var(--muted);font-size:12.5px} .stat b{color:var(--text)}
-  .runpick{padding:7px 9px;border-bottom:1px solid var(--border);background:var(--accent-soft)}
+  .runpick{padding:7px 9px;border-bottom:1px solid var(--border);background:var(--accent-soft);
+           flex:0 0 auto}
   .runpick[hidden]{display:none}
   .runlabel{font-size:9.5px;letter-spacing:.7px;text-transform:uppercase;color:var(--accent);font-weight:700}
   .runlabel{display:block;margin-bottom:4px}
+  /* Une campagne de recette, c'est trente exécutions : la liste des cases doit défiler chez
+     elle. Sans cette borne, elle gardait sa hauteur de contenu — un élément flex ne se
+     comprime pas sous la sienne — poussait l'arbre des sources hors du panneau, et le
+     `overflow:hidden` de #nav le coupait sans laisser d'ascenseur. On ne voyait plus le code.
+     La borne est en vh pour qu'un grand écran en montre davantage, et l'étiquette comme la
+     case « cumuler » restent dehors : ce sont les repères, ils ne doivent pas défiler. */
+  #runboxes{max-height:32vh;overflow:auto;scrollbar-width:thin;overscroll-behavior:contain}
   #runboxes label{display:flex;align-items:center;gap:6px;font-size:12.5px;padding:2px 0;
                   cursor:pointer;color:var(--text)}
   #runboxes .cnt{color:var(--muted);font-size:11px;margin-left:auto}
