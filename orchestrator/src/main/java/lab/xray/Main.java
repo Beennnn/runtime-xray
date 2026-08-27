@@ -105,6 +105,14 @@ public final class Main {
                 case "--niveau" -> config.level = args[++i];
                 case "--cover" -> config.coverIncludes = args[++i];
                 case "--interval" -> config.sampleIntervalMs = Integer.parseInt(args[++i]);
+                // Le port se colle à l'option, comme pour --serve : « --suivi » seul prend
+                // le port par défaut, et « --suivi 9100 » celui qu'on lui donne.
+                case "--suivi" -> {
+                    config.suiviPort = Suivi.PORT;
+                    if (i + 1 < args.length && args[i + 1].matches("\\d+")) {
+                        config.suiviPort = Integer.parseInt(args[++i]);
+                    }
+                }
                 case "--serve-host" -> serveHost = args[++i];
                 case "--serve-token" -> {
                     // Le secret se colle à l'option, ou se tait : « --serve-token » seul en
@@ -888,6 +896,10 @@ public final class Main {
                   --cover "<motifs>"   Classes que JaCoCo instrumente, ex. "com.exemple.*".
                                        Sans lui, tout ce que la JVM charge est instrumenté.
                   --interval <ms>      Intervalle d'échantillonnage des piles (défaut : 1).
+                  --suivi [port]       Sert une page qui montre l'exécution en cours (défaut :
+                                       8788, boucle locale). Le fichier progression.jsonl, lui,
+                                       s'écrit toujours : « tail -f <out>/progression.jsonl »
+                                       suit l'exécution sans navigateur ni port ouvert.
                   --print-options      N'exécute rien : affiche les options JVM à ajouter à une
                                        ligne de commande quelconque, puis sortez par --report-only.
                   --repo <url>         Dépôt Maven d'où tirer les composants (miroir interne).

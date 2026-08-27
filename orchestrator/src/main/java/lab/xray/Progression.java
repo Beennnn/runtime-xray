@@ -76,8 +76,28 @@ public final class Progression {
      * remplace {@code System.out} par un flux UTF-8, ce qui ne change pas la réponse.
      */
     public static Progression pour(Appendable sortie) {
-        boolean terminal = System.console() != null;
+        boolean terminal = System.console() != null || force();
         return new Progression(sortie, terminal, terminal && System.getenv("NO_COLOR") == null);
+    }
+
+    /**
+     * De quoi réclamer la bande là où la JVM ne voit pas de terminal.
+     *
+     * <p>Un shell qui en lance un autre, qui lance l'outil, met souvent un tuyau au
+     * milieu : {@code System.console()} répond alors {@code null} alors qu'un opérateur
+     * regarde bien un écran au bout. Le défaut reste le silence — c'est le bon défaut,
+     * une ligne par seconde dans un journal d'intégration ne dit rien à personne — mais
+     * celui qui sait qu'il regarde peut le dire.
+     *
+     * <p>{@code RUNTIME_XRAY_PROGRESSION=0} fait l'inverse et impose le silence.
+     */
+    private static boolean force() {
+        return demandee(System.getenv("RUNTIME_XRAY_PROGRESSION"));
+    }
+
+    static boolean demandee(String valeur) {
+        return valeur != null && !valeur.isBlank()
+                && !valeur.equals("0") && !valeur.equalsIgnoreCase("false");
     }
 
     /** Un objet qui n'écrit jamais rien — pour les appelants qui n'ont pas de terminal. */
@@ -93,18 +113,26 @@ public final class Progression {
     /**
      * Un intervalle de plus.
      *
+     * <p>Rend la charge de l'intervalle, en cœurs occupés — <b>même sans terminal</b>. Le
+     * calcul est ici et nulle part ailleurs : {@link Suivi} écrit le même chiffre dans
+     * {@code progression.jsonl}, et deux calculs séparés finiraient par diverger, donnant
+     * un fichier qui contredit la bande sans que rien ne le signale.
+     *
      * @param ecoule     depuis le lancement de l'application observée
      * @param cpuCumule  temps processeur consommé par elle et ses descendants, cumulé
      * @param octets     taille de sa sortie standard telle qu'écrite sur le disque
      */
-    public void avancement(Duration ecoule, Duration cpuCumule, long octets) {
-        if (!active) return;
-        bande.addLast(palier(charge(ecoule, cpuCumule, octets)));
-        while (bande.size() > LARGEUR) bande.removeFirst();
+    public double avancement(Duration ecoule, Duration cpuCumule, long octets) {
+        double coeurs = charge(ecoule, cpuCumule, octets);
         ecoulePrecedent = ecoule;
         cpuPrecedent = cpuCumule;
         octetsPrecedent = octets;
-        ecrire(ligne(ecoule, cpuCumule, octets));
+        if (active) {
+            bande.addLast(palier(coeurs));
+            while (bande.size() > LARGEUR) bande.removeFirst();
+            ecrire(ligne(ecoule, cpuCumule, octets));
+        }
+        return coeurs;
     }
 
     /** Rend la ligne à ce qui suit : la bande ne doit pas rester à moitié écrite. */
