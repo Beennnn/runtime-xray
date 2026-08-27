@@ -2285,7 +2285,10 @@ function renderTree(){
   // plus haut qui soit, celui qui englobe tous les autres. Avec plusieurs exécutions, on
   // les voit côte à côte et on descend dans celle qu'on veut.
   D.runs.forEach((run, idx) => {
-    const total = run.calltree.total || 1;
+    // Les racines sont TOUTES les exécutions, y compris celles dont l'arbre n'est pas chargé
+    // et ne le sera pas : les charger pour afficher un compteur rendrait au premier affichage
+    // tout ce que le chargement tardif économise. Le sommaire porte donc le nombre.
+    const total = (run.calltree ? run.calltree.total : run.mesures) || 1;
     const head = document.createElement("div");
     head.className = "node runroot" + (idx === runIndex ? " on" : "");
     head.innerHTML = '<span class="tw">' + (idx === runIndex ? "▾" : "▸") + '</span>' +
@@ -4325,7 +4328,7 @@ function drawHome(){
      card("c3", ICON.temps, AGG.samples.toLocaleString("fr"), "mesures de temps prises",
        "Nombre de relevés de pile pris par async-profiler pendant l'exécution — un toutes "
        + "les " + (R.intervalMs || 1) + " ms. C'est la base de tous les pourcentages de temps.")+
-     card("c4", ICON.valeurs, Object.values(R.values).reduce((a,v)=>a+v.length,0),
+     card("c4", ICON.valeurs, Object.values(R.values || {}).reduce((a,v)=>a+v.length,0),
        "appels avec leurs valeurs",
        "Nombre d'invocations dont Arthas a relevé les paramètres et le retour. Quelques-unes "
        + "seulement : les capturer coûte cher, elles servent d'exemples, pas de statistique.")+
