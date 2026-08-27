@@ -188,6 +188,7 @@ coup — **[Réduire l'empreinte sur un gros code](empreinte.md)** détaille la 
 | `NIVEAU` / `--niveau` | `complet` | Jusqu'où observer : `couverture` (JaCoCo seul), `arbre` (+ échantillonnage), `complet` (+ valeurs). Le premier réglage à baisser quand la mesure coûte trop cher |
 | `COVER_INCLUDES` / `--cover` | tout | Classes que JaCoCo instrumente, ex. `com.exemple.*`. **Sans lui, toute classe chargée est instrumentée**, dépendances comprises : c'est le poste de coût principal |
 | `SAMPLE_INTERVAL_MS` / `--interval` | 1 ms | Intervalle d'échantillonnage des piles. À 10 ms, dix fois moins de relevés |
+| `SUIVI_PORT` / `--suivi` | — | Port de la page de suivi. Sans lui, rien n'est servi — mais `progression.jsonl` est écrit quand même |
 | `EXPORT` / `--export` | — | Réécrit les mesures pour d'autres outils : `perf`, `cpuprofile`, `lcov`, `valeurs`, ou `tout` — voir [les exports](exports.md) |
 
 ### Les modes qui ne mesurent rien
@@ -197,6 +198,7 @@ coup — **[Réduire l'empreinte sur un gros code](empreinte.md)** détaille la 
 | `--print-options` | Affiche la ligne d'agents à coller dans une commande Java **qu'on ne contrôle pas** — un service systemd, un conteneur, un serveur d'application. L'outil ne lance rien : il vous rend le texte |
 | `--report-only` | Réassemble la page depuis des exécutions déjà sur le disque, sans rien relancer. Utile après avoir annoté une exécution, ou changé les paquets masqués |
 | `--serve [port]` | Sert le rapport (défaut : 8787) et laisse la page **écrire ses annotations** à côté des exécutions, puis la régénère. Plusieurs personnes peuvent annoter à la fois — voir [Annoter les exécutions](annotations.md) |
+| `--suivi [port]` | Sert **une page qui montre l'exécution en cours** (défaut : 8788, boucle locale) : bande d'activité, cœurs occupés, sortie produite, fin du journal. Le fichier `progression.jsonl`, lui, s'écrit **toujours** : `tail -f <out>/progression.jsonl` suit l'exécution sans navigateur ni port ouvert |
 | `--contexte ["question"]` | Écrit sur la sortie standard **un extrait borné du rapport, prêt à donner à lire à un modèle de langage** : les faits qui répondent à la question, leur vocabulaire, et en tête ce qui n'a *pas* été mesuré. N'envoie rien nulle part — voir [Faire lire le rapport par une IA](integration-ia.md) |
 | `--serve-host <hôte>` | Interface d'écoute (défaut : `127.0.0.1`). `0.0.0.0` pour un serveur partagé |
 | `--serve-token [secret]` | Garde le rapport servi par un **secret partagé**, demandé une fois puis retenu douze heures. Sans valeur, un secret est tiré au sort et affiché. `XRAY_SERVE_TOKEN` fait de même sans l'exposer dans `ps`. Sans l'option, rien n'est demandé : à réserver à la boucle locale ou à un réseau déjà filtré — voir [ce que ce secret vaut](annotations.md#ce-que-ce-secret-vaut-et-ce-quil-ne-vaut-pas) |

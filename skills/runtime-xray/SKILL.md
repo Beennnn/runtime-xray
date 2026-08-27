@@ -102,6 +102,44 @@ C'est aussi la réponse quand la commande est **noyée dans des scripts imbriqu�
 n'essaie pas de faire remonter l'intelligence du lancement à travers les couches, on injecte
 les agents une fois, tout en bas.
 
+## Voir ce qui se passe pendant l'exécution
+
+Une analyse dure ce que dure l'application observée. Trois façons de ne pas attendre en
+aveugle, de la plus universelle à la plus lisible.
+
+**1. Le fichier — il marche partout, il n'y a rien à demander.**
+
+```sh
+tail -f runtime-xray-out/progression.jsonl
+```
+
+Une ligne JSON par seconde, écrite de toute façon : secondes écoulées, cœurs occupés,
+palier d'activité, taille de la sortie produite. La dernière ligne porte
+`"evenement":"fin"` — c'est ce qui dit qu'on peut arrêter de regarder. Le chemin ne dépend
+pas du nom de l'exécution.
+
+**2. La bande dans le terminal** — elle s'affiche seule devant un vrai terminal, et se tait
+dans un tuyau. Un shell imbriqué met souvent un tuyau au milieu ; on la réclame alors :
+
+```sh
+RUNTIME_XRAY_PROGRESSION=1 java -jar runtime-xray.jar …
+```
+
+**3. La page, quand on a un navigateur.**
+
+```sh
+java -jar runtime-xray.jar --suivi …          # http://127.0.0.1:8788
+```
+
+Elle montre ce qu'une suite de lignes JSON montre mal : la **forme** de l'exécution — la
+bande d'activité, la courbe des cœurs occupés, la sortie qui grossit ou qui ne grossit
+plus, et la fin du journal de l'application. Boucle locale seulement.
+
+**Aucune des trois ne mesure quoi que ce soit.** Le temps processeur vient de ce que le
+système compte de toute façon, la taille de sortie d'un fichier déjà écrit. Le rapport est
+identique selon qu'on suit l'exécution ou non — un affichage qui déplacerait la mesure
+ferait mentir le rapport qu'il accompagne.
+
 ## Plusieurs exécutions
 
 Les exécutions **s'accumulent** dans le même `--out`. Les nommer, sinon le rapport devient

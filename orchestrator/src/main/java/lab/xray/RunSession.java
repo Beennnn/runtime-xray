@@ -96,8 +96,13 @@ public final class RunSession {
      * Attend la fin de l'application en montrant qu'elle vit.
      *
      * <p>L'attente reste la même — même garde-fou, même verdict ; seul le silence change.
-     * Le sondage régulier n'existe que pour redessiner la bande : sans terminal, on
-     * retombe sur l'attente bloquante d'origine, sans même relever les compteurs.
+     *
+     * <p>Le sondage régulier servait d'abord à redessiner la bande du terminal, et on
+     * retombait sans terminal sur l'attente bloquante. Il sert désormais aussi à écrire
+     * {@code progression.jsonl}, qui, lui, s'écrit <b>toujours</b> : c'est justement quand
+     * il n'y a pas de terminal — un tuyau, un journal d'intégration, des scripts imbriqués
+     * — que personne ne voit plus rien, et que le fichier est la seule réponse. Le sondage
+     * ne coûte que la lecture de compteurs que le système tient de toute façon.
      *
      * <p>Le temps limite se compte sur l'horloge et non sur le nombre de tours : un tour
      * peut durer plus que son intervalle si la machine est chargée, et {@code MAX_SECONDS}
@@ -105,24 +110,31 @@ public final class RunSession {
      */
     private boolean attendre(Process process) throws InterruptedException {
         Progression progression = Progression.pour(System.out);
-        if (!progression.active()) {
-            return process.waitFor(config.maxSeconds, TimeUnit.SECONDS);
-        }
         Path journal = runDir.resolve("execution.log");
         long limite = config.maxSeconds * 1000L;
         long debut = System.nanoTime();
-        while (true) {
-            if (process.waitFor(INTERVALLE_MS, TimeUnit.MILLISECONDS)) {
-                progression.fin();
-                return true;
+        try (Suivi suivi = Suivi.ouvrir(Path.of(config.outDir), runDir,
+                runDir.getFileName().toString(), config.javaCommand, config.suiviPort)) {
+            while (true) {
+                if (process.waitFor(INTERVALLE_MS, TimeUnit.MILLISECONDS)) {
+                    progression.fin();
+                    suivi.fin("terminée, code " + process.exitValue(),
+                            (System.nanoTime() - debut) / 1_000_000_000L);
+                    return true;
+                }
+                long ecoule = (System.nanoTime() - debut) / 1_000_000L;
+                if (ecoule >= limite) {
+                    progression.fin();
+                    suivi.fin("interrompue par le garde-fou", ecoule / 1000L);
+                    return false;
+                }
+                Duration cpu = tempsProcesseur(process);
+                long octets = tailleDe(journal);
+                // Un seul calcul de charge, celui de la bande : le fichier en porte le
+                // résultat plutôt que de le refaire.
+                double coeurs = progression.avancement(Duration.ofMillis(ecoule), cpu, octets);
+                suivi.avancement(Duration.ofMillis(ecoule), cpu, octets, coeurs);
             }
-            long ecoule = (System.nanoTime() - debut) / 1_000_000L;
-            if (ecoule >= limite) {
-                progression.fin();
-                return false;
-            }
-            progression.avancement(Duration.ofMillis(ecoule), tempsProcesseur(process),
-                    tailleDe(journal));
         }
     }
 

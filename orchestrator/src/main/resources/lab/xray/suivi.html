@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>runtime-xray — suivi de l'exécution</title>
+<style>
+  :root{
+    --bg:#fff; --panel:#f6f8fa; --border:#d0d7de; --text:#1f2328;
+    --muted:#59636e; --accent:#0969da; --accent-soft:#ddf4ff;
+    --p0:#8c959f; --p1:#1f9cb5; --p2:#2da44e; --p3:#bf8700; --p4:#cf222e;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --bg:#0d1117; --panel:#151b23; --border:#30363d; --text:#e6edf3;
+      --muted:#9198a1; --accent:#4493f8; --accent-soft:#121d2f;
+      --p0:#484f58; --p1:#39c5cf; --p2:#3fb950; --p3:#d29922; --p4:#f85149;
+    }
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);
+       font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif}
+  header{padding:14px 18px;border-bottom:1px solid var(--border);background:var(--panel);
+         display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+  h1{margin:0;font-size:15px;font-weight:600}
+  h1 small{font-weight:400;color:var(--muted)}
+  .etat{display:inline-flex;align-items:center;gap:7px;padding:3px 11px;border-radius:20px;
+        font-size:12px;font-weight:600;border:1px solid var(--border)}
+  .etat.vit{background:var(--accent-soft);color:var(--accent);border-color:var(--accent)}
+  .etat.finie{background:transparent;color:var(--muted)}
+  .pastille{width:8px;height:8px;border-radius:50%;background:currentColor}
+  .etat.vit .pastille{animation:bat 1.4s ease-in-out infinite}
+  @keyframes bat{0%,100%{opacity:1}50%{opacity:.25}}
+  main{padding:18px;max-width:1100px;margin:0 auto}
+  .cartes{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;
+          margin-bottom:18px}
+  .carte{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:11px 13px}
+  .carte .k{font-size:10px;letter-spacing:.7px;text-transform:uppercase;color:var(--muted);
+            font-weight:700}
+  .carte .v{font-size:23px;font-weight:600;font-variant-numeric:tabular-nums;margin-top:3px}
+  .carte .u{font-size:12px;color:var(--muted);font-weight:400}
+  section{margin-bottom:20px}
+  h2{font-size:12px;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);
+     margin:0 0 8px;font-weight:700}
+  .bande{display:flex;gap:3px;flex-wrap:wrap;background:var(--panel);border:1px solid var(--border);
+         border-radius:8px;padding:11px;min-height:52px;align-content:flex-start}
+  .case{width:13px;height:26px;border-radius:2px;flex:0 0 auto}
+  .l0{background:var(--p0);opacity:.35}
+  .l1{background:var(--p1)} .l2{background:var(--p2)}
+  .l3{background:var(--p3)} .l4{background:var(--p4)}
+  .legende{display:flex;gap:14px;flex-wrap:wrap;margin-top:8px;font-size:11.5px;color:var(--muted)}
+  .legende span{display:inline-flex;align-items:center;gap:5px}
+  .legende i{width:11px;height:11px;border-radius:2px;display:inline-block}
+  canvas{width:100%;height:110px;display:block;background:var(--panel);
+         border:1px solid var(--border);border-radius:8px}
+  pre{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:11px;
+      margin:0;max-height:290px;overflow:auto;font-size:12px;line-height:1.45;
+      font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;white-space:pre-wrap;
+      word-break:break-word}
+  .note{color:var(--muted);font-size:12.5px;margin-top:8px}
+  code{background:var(--panel);border:1px solid var(--border);border-radius:4px;padding:1px 5px;
+       font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px}
+</style>
+</head>
+<body>
+<header>
+  <h1>runtime-xray <small>— suivi de l'exécution</small></h1>
+  <span class="etat finie" id="etat"><span class="pastille"></span><span id="etatTexte">en attente</span></span>
+  <span style="color:var(--muted);font-size:12.5px" id="nom"></span>
+</header>
+<div id="cmd" style="padding:9px 18px;border-bottom:1px solid var(--border);font-size:12px;
+     color:var(--muted);font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+     overflow-x:auto;white-space:nowrap"></div>
+
+<main>
+  <div class="cartes">
+    <div class="carte"><div class="k">Écoulé</div>
+      <div class="v"><span id="ecoule">—</span></div></div>
+    <div class="carte"><div class="k">Cœurs occupés</div>
+      <div class="v"><span id="coeurs">—</span> <span class="u" id="coeursNote"></span></div></div>
+    <div class="carte"><div class="k">Sortie produite</div>
+      <div class="v"><span id="sortie">—</span></div></div>
+    <div class="carte"><div class="k">Relevés</div>
+      <div class="v"><span id="releves">—</span> <span class="u">lignes</span></div></div>
+  </div>
+
+  <section>
+    <h2>Activité, une case par seconde</h2>
+    <div class="bande" id="bande"></div>
+    <div class="legende">
+      <span><i class="l0"></i> endormie</span>
+      <span><i class="l1"></i> très calme</span>
+      <span><i class="l2"></i> modérée</span>
+      <span><i class="l3"></i> soutenue</span>
+      <span><i class="l4"></i> un cœur et demi ou plus</span>
+    </div>
+    <p class="note">Le compte est en <strong>cœurs occupés</strong>, pas en part de la
+      machine : sur un serveur à trente-deux cœurs, une application qui en sature un
+      travaille à plein régime, et s'afficherait endormie si on la ramenait à 3&nbsp;%.</p>
+  </section>
+
+  <section>
+    <h2>Cœurs occupés dans le temps</h2>
+    <canvas id="courbe" width="1000" height="110"></canvas>
+  </section>
+
+  <section>
+    <h2>Fin du journal de l'application <span style="text-transform:none;font-weight:400">(<code>execution.log</code>, 64 Ko max)</span></h2>
+    <pre id="journal">—</pre>
+  </section>
+
+  <p class="note">Cette page relit <code>progression.jsonl</code>, écrit de toute façon à
+    côté du rapport. Elle n'ajoute aucune mesure : le temps processeur est celui que le
+    système compte déjà, la taille de sortie celle d'un fichier déjà écrit. Sans navigateur,
+    <code>tail -f progression.jsonl</code> donne la même chose.</p>
+</main>
+
+<script>
+const $ = s => document.querySelector(s);
+let dernierEvenement = "";
+
+function octets(n){
+  if (n < 1024) return n + " o";
+  if (n < 1024*1024) return (n/1024).toFixed(1).replace(".", ",") + " Ko";
+  return (n/1048576).toFixed(1).replace(".", ",") + " Mo";
+}
+function duree(s){
+  const h = Math.floor(s/3600), m = Math.floor(s%3600/60), r = s%60;
+  return h ? `${h} h ${String(m).padStart(2,"0")} min`
+           : m ? `${m} min ${String(r).padStart(2,"0")} s` : `${r} s`;
+}
+
+function courbe(valeurs){
+  const c = $("#courbe"), ctx = c.getContext("2d");
+  const L = c.width, H = c.height;
+  ctx.clearRect(0,0,L,H);
+  if (!valeurs.length) return;
+  const style = getComputedStyle(document.documentElement);
+  const max = Math.max(1, ...valeurs);
+  const pas = L / Math.max(1, valeurs.length - 1);
+  // Une grille à 1 cœur : sans repère, une courbe normalisée fait passer une charge
+  // dérisoire pour une saturation.
+  ctx.strokeStyle = style.getPropertyValue("--border"); ctx.lineWidth = 1;
+  ctx.beginPath(); const y1 = H - (1/max)*(H-12) - 6;
+  ctx.moveTo(0,y1); ctx.lineTo(L,y1); ctx.stroke();
+  ctx.fillStyle = style.getPropertyValue("--muted"); ctx.font = "10px sans-serif";
+  ctx.fillText("1 cœur", 4, Math.max(10, y1 - 3));
+
+  ctx.beginPath();
+  valeurs.forEach((v,i) => {
+    const x = i*pas, y = H - (v/max)*(H-12) - 6;
+    i ? ctx.lineTo(x,y) : ctx.moveTo(x,y);
+  });
+  ctx.strokeStyle = style.getPropertyValue("--accent"); ctx.lineWidth = 2;
+  ctx.lineJoin = "round"; ctx.stroke();
+  ctx.lineTo(L,H); ctx.lineTo(0,H); ctx.closePath();
+  ctx.fillStyle = style.getPropertyValue("--accent-soft"); ctx.fill();
+}
+
+async function rafraichir(){
+  let lignes = [];
+  try {
+    const t = await (await fetch("progression.jsonl", {cache:"no-store"})).text();
+    lignes = t.split("\n").filter(l => l.trim()).map(l => {
+      try { return JSON.parse(l); } catch (e) { return null; }
+    }).filter(Boolean);
+  } catch (e) { /* le serveur s'est arrêté : on garde le dernier état affiché */ }
+  if (!lignes.length) return;
+
+  // Seulement la dernière exécution : le fichier les accumule, comme le rapport.
+  const derniere = lignes[lignes.length-1].execution;
+  const suite = lignes.filter(l => l.execution === derniere);
+  const av = suite.filter(l => l.evenement === "avancement");
+  const fin = suite.find(l => l.evenement === "fin");
+  const debut = suite.find(l => l.evenement === "demarrage");
+  const cur = av[av.length-1];
+
+  $("#nom").textContent = derniere ? "exécution « " + derniere + " »" : "";
+  // Qui ouvre cette page doit savoir CE QU'ELLE regarde : sans la commande, une exécution
+  // qui avance ne dit pas laquelle avance.
+  $("#cmd").textContent = debut
+      ? "▶ " + (debut.commande || "(commande non renseignée)") + "     → " + (debut.sortie || "")
+      : "";
+  const etat = $("#etat");
+  etat.className = "etat " + (fin ? "finie" : "vit");
+  $("#etatTexte").textContent = fin ? fin.statut : "en cours";
+
+  $("#ecoule").textContent  = duree(fin ? fin.secondes : (cur ? cur.secondes : 0));
+  $("#coeurs").textContent  = cur ? cur.coeurs.toFixed(2).replace(".", ",") : "—";
+  $("#coeursNote").textContent = cur && cur.cpuSecondes ? "· " + cur.cpuSecondes + " s cpu" : "";
+  $("#sortie").textContent  = cur ? octets(cur.sortieOctets) : "—";
+  $("#releves").textContent = av.length;
+
+  // Ne redessiner la bande que quand elle a changé : sinon un clignotement à chaque
+  // seconde, sur une page qu'on regarde justement longtemps.
+  const signature = derniere + ":" + av.length + ":" + (fin ? "f" : "");
+  if (signature !== dernierEvenement) {
+    dernierEvenement = signature;
+    $("#bande").innerHTML = av.slice(-180).map(l =>
+      `<span class="case l${l.palier}" title="${l.secondes} s · ${l.coeurs} cœur(s)"></span>`
+    ).join("");
+    courbe(av.map(l => l.coeurs));
+  }
+
+  try {
+    const j = await (await fetch("execution.log", {cache:"no-store"})).text();
+    $("#journal").textContent = j.trim() || "(l'application n'a encore rien écrit)";
+  } catch (e) { /* idem */ }
+}
+
+rafraichir();
+setInterval(rafraichir, 1000);
+</script>
+</body>
+</html>

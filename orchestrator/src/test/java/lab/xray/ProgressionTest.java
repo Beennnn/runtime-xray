@@ -118,4 +118,19 @@ class ProgressionTest {
         }
         return n;
     }
+
+    @Test
+    @DisplayName("Un shell imbriqué peut réclamer la bande, et aussi la faire taire")
+    void anestedShellCanAskForTheBandAndAlsoSilenceIt() {
+        // Un shell qui en lance un autre met souvent un tuyau au milieu : la JVM ne voit
+        // plus de terminal alors qu'un opérateur regarde bien un écran au bout. Le défaut
+        // reste le silence ; celui qui sait qu'il regarde doit pouvoir le dire.
+        assertFalse(Progression.demandee(null), "sans rien, le défaut ne change pas");
+        assertFalse(Progression.demandee(""));
+        assertFalse(Progression.demandee("0"), "0 impose le silence, il ne le lève pas");
+        assertFalse(Progression.demandee("false"));
+        assertTrue(Progression.demandee("1"));
+        assertTrue(Progression.demandee("oui"),
+                "toute autre valeur vaut demande : on ne fait pas deviner une syntaxe");
+    }
 }
