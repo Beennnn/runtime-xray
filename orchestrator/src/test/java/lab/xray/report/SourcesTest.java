@@ -37,12 +37,12 @@ class SourcesTest {
     @Test
     @DisplayName("La clé vient du paquet déclaré, pas du niveau de la racine passée")
     void keysFollowTheDeclaredPackage(@TempDir Path dir) throws Exception {
-        source(dir, "projet/src/main/java/coo/jocc/mod/AppliBase.java", "coo.jocc.mod");
+        source(dir, "projet/src/main/java/org/exemple/module/Application.java", "org.exemple.module");
 
         // Trois racines, du bon niveau au plus improbable : la clé ne bouge pas.
         for (String racine : List.of("projet/src/main/java", "projet/src", "projet")) {
             Sources.Index index = Sources.load(List.of(dir.resolve(racine)));
-            assertTrue(index.parCle().containsKey("coo/jocc/mod/AppliBase.java"),
+            assertTrue(index.parCle().containsKey("org/exemple/module/Application.java"),
                     "racine « " + racine + " » : la clé doit rester celle de JaCoCo, "
                     + "or on a " + index.parCle().keySet());
         }
@@ -51,11 +51,11 @@ class SourcesTest {
     @Test
     @DisplayName("Une racine SOUS le paquet retombe quand même sur la bonne clé")
     void keysSurviveARootBelowThePackage(@TempDir Path dir) throws Exception {
-        source(dir, "src/coo/jocc/mod/AppliBase.java", "coo.jocc.mod");
+        source(dir, "src/org/exemple/module/Application.java", "org.exemple.module");
 
-        Sources.Index index = Sources.load(List.of(dir.resolve("src/coo/jocc")));
-        assertTrue(index.parCle().containsKey("coo/jocc/mod/AppliBase.java"),
-                "le chemin relatif aurait donné « mod/AppliBase.java », qui ne correspond à rien");
+        Sources.Index index = Sources.load(List.of(dir.resolve("src/org/exemple")));
+        assertTrue(index.parCle().containsKey("org/exemple/module/Application.java"),
+                "le chemin relatif aurait donné « mod/Application.java », qui ne correspond à rien");
     }
 
     @Test
@@ -98,20 +98,20 @@ class SourcesTest {
     @Test
     @DisplayName("Le diagnostic dit où chaque nom de fichier a été trouvé")
     void tellsWhereEachFileNameWasFound(@TempDir Path dir) throws Exception {
-        source(dir, "src/autre/paquet/AppliBase.java", "autre.paquet");
+        source(dir, "src/autre/paquet/Application.java", "autre.paquet");
 
         Sources.Index index = Sources.load(List.of(dir.resolve("src")));
 
-        // Le cas réel : la couverture cherche coo/jocc/mod/AppliBase.java, l'index n'a
+        // Le cas réel : la couverture cherche org/exemple/module/Application.java, l'index n'a
         // qu'un homonyme. C'est cette liste qui permet à la page de le dire.
         @SuppressWarnings("unchecked")
-        List<Object> endroits = (List<Object>) index.parNom().get("AppliBase.java");
+        List<Object> endroits = (List<Object>) index.parNom().get("Application.java");
         assertNotNull(endroits, "un fichier trouvé doit être retrouvable par son nom");
         @SuppressWarnings("unchecked")
         Map<String, Object> ou = (Map<String, Object>) endroits.get(0);
         assertEquals("autre.paquet", ou.get("paquet"));
-        assertEquals("autre/paquet/AppliBase.java", ou.get("cle"));
-        assertTrue(String.valueOf(ou.get("chemin")).endsWith("AppliBase.java"),
+        assertEquals("autre/paquet/Application.java", ou.get("cle"));
+        assertTrue(String.valueOf(ou.get("chemin")).endsWith("Application.java"),
                 "le chemin absolu est ce qu'on recopie pour corriger la configuration");
     }
 
@@ -136,13 +136,13 @@ class SourcesTest {
     @DisplayName("La racine proposée est celle qui explique le plus de classes manquantes")
     @SuppressWarnings("unchecked")
     void proposesTheRootThatExplainsTheMostClasses(@TempDir Path dir) throws Exception {
-        source(dir, "projet/src/main/java/coo/jocc/mod/AppliBase.java", "coo.jocc.mod");
-        source(dir, "projet/src/main/java/coo/jocc/bd/BdBase.java", "coo.jocc.bd");
-        source(dir, "autre/src/coo/jocc/mod/AppliBase.java", "coo.jocc.mod");
+        source(dir, "projet/src/main/java/org/exemple/module/Application.java", "org.exemple.module");
+        source(dir, "projet/src/main/java/org/exemple/donnees/Depot.java", "org.exemple.donnees");
+        source(dir, "autre/src/org/exemple/module/Application.java", "org.exemple.module");
 
         List<Object> pistes = Sources.chercherRacines(
-                new java.util.LinkedHashSet<>(List.of("coo/jocc/mod/AppliBase.java",
-                                                      "coo/jocc/bd/BdBase.java")),
+                new java.util.LinkedHashSet<>(List.of("org/exemple/module/Application.java",
+                                                      "org/exemple/donnees/Depot.java")),
                 List.of(dir));
 
         assertFalse(pistes.isEmpty(), "les deux racines candidates doivent être trouvées");
@@ -161,13 +161,13 @@ class SourcesTest {
     @Test
     @DisplayName("Un fichier au bon nom mais au mauvais paquet ne compte pas")
     void doesNotCreditANamesakeFromAnotherProject(@TempDir Path dir) throws Exception {
-        // C'est CE test qui sépare une proposition d'une devinette. Un AppliBase.java d'un
+        // C'est CE test qui sépare une proposition d'une devinette. Un Application.java d'un
         // autre projet afficherait, en face de la couverture, du code qui n'a jamais tourné —
         // plus coûteux qu'un panneau vide, parce qu'on le croirait.
-        source(dir, "un-autre-projet/src/util/AppliBase.java", "un.autre.projet");
+        source(dir, "un-autre-projet/src/util/Application.java", "un.autre.projet");
 
         List<Object> pistes = Sources.chercherRacines(
-                new java.util.LinkedHashSet<>(List.of("coo/jocc/mod/AppliBase.java")),
+                new java.util.LinkedHashSet<>(List.of("org/exemple/module/Application.java")),
                 List.of(dir));
 
         assertTrue(pistes.isEmpty(),
@@ -180,7 +180,7 @@ class SourcesTest {
         Files.createDirectories(dir.resolve("vide"));
 
         assertTrue(Sources.chercherRacines(
-                new java.util.LinkedHashSet<>(List.of("coo/jocc/mod/AppliBase.java")),
+                new java.util.LinkedHashSet<>(List.of("org/exemple/module/Application.java")),
                 List.of(dir)).isEmpty());
         assertTrue(Sources.chercherRacines(java.util.Set.of(), List.of(dir)).isEmpty(),
                 "sans classe manquante, il n'y a rien à chercher");
@@ -202,10 +202,10 @@ class SourcesTest {
     @DisplayName("La racine proposée est celle qu'il aurait fallu écrire, paquet retiré")
     @SuppressWarnings("unchecked")
     void proposesTheRootWithThePackagePathRemoved(@TempDir Path dir) throws Exception {
-        source(dir, "depot/module/src/main/java/coo/jocc/mod/AppliBase.java", "coo.jocc.mod");
+        source(dir, "depot/module/src/main/java/org/exemple/module/Application.java", "org.exemple.module");
 
         List<Object> pistes = Sources.chercherRacines(
-                new java.util.LinkedHashSet<>(List.of("coo/jocc/mod/AppliBase.java")),
+                new java.util.LinkedHashSet<>(List.of("org/exemple/module/Application.java")),
                 List.of(dir));
 
         Map<String, Object> piste = (Map<String, Object>) pistes.get(0);
@@ -213,19 +213,19 @@ class SourcesTest {
                         .toString(),
                 piste.get("racine"),
                 "on rend le répertoire de sources, pas celui du fichier");
-        assertEquals(List.of("coo/jocc/mod/AppliBase.java"), piste.get("exemples"),
+        assertEquals(List.of("org/exemple/module/Application.java"), piste.get("exemples"),
                 "la preuve accompagne le chiffre");
     }
 
     @Test
     @DisplayName("Le bytecode et les métadonnées ne sont pas traversés")
     void doesNotWalkThroughBuildOutputOrVersionControl(@TempDir Path dir) throws Exception {
-        source(dir, ".git/sauvegarde/coo/jocc/mod/AppliBase.java", "coo.jocc.mod");
-        source(dir, "classes/coo/jocc/mod/AppliBase.java", "coo.jocc.mod");
-        source(dir, "node_modules/paquet/coo/jocc/mod/AppliBase.java", "coo.jocc.mod");
+        source(dir, ".git/sauvegarde/org/exemple/module/Application.java", "org.exemple.module");
+        source(dir, "classes/org/exemple/module/Application.java", "org.exemple.module");
+        source(dir, "node_modules/paquet/org/exemple/module/Application.java", "org.exemple.module");
 
         assertTrue(Sources.chercherRacines(
-                new java.util.LinkedHashSet<>(List.of("coo/jocc/mod/AppliBase.java")),
+                new java.util.LinkedHashSet<>(List.of("org/exemple/module/Application.java")),
                 List.of(dir)).isEmpty(),
                 "ces répertoires ne contiennent jamais les sources d'un projet, et ce sont "
                 + "eux qui font exploser le parcours");
