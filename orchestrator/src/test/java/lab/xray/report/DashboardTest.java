@@ -7,6 +7,7 @@ import org.junit.jupiter.api.io.TempDir;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.Objects;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -672,5 +673,22 @@ class DashboardTest {
                 + "JaCoCo perd déjà");
         assertTrue(page.contains("runtime-xray.cumul"),
                 "le choix de cumuler est un réglage de lecture : il est gardé");
+    }
+
+    @Test
+    @DisplayName("La colonne du code a le droit d'être plus étroite que la ligne la plus longue")
+    void theCodeColumnMayBeNarrowerThanItsLongestLine() throws Exception {
+        // Le minimum implicite d'une colonne de grille est le min-content de son contenu.
+        // Avec « 1fr », une ligne de 450 caractères — il en existe dans du code d'entreprise —
+        // élargissait la colonne à 3680 px dans une fenêtre de 1280 : le code ne défilait pas
+        // horizontalement, et son ascenseur vertical partait à 4016 px, hors de l'écran. On
+        // ne pouvait ni descendre dans le fichier, ni voir la fin de la ligne.
+        String gabarit = new String(Objects.requireNonNull(
+                Dashboard.class.getResourceAsStream("/lab/xray/dashboard.html")).readAllBytes(),
+                StandardCharsets.UTF_8);
+        assertTrue(gabarit.contains("minmax(0, 1fr)"),
+                "sans le zéro, la colonne du code s'élargit au lieu de défiler");
+        assertFalse(gabarit.contains("grid-template-columns:var(--navw,330px) 6px 1fr"),
+                "c'est exactement la forme qui avait poussé l'ascenseur hors de l'écran");
     }
 }
