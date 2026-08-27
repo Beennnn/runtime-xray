@@ -71,6 +71,15 @@ recupere(){ # groupe artefact version classifieur extension
   recupere com.taobao.arthas arthas-packaging "$ARTHAS" bin     zip
 } || { echo "  ❌ un composant manque : kit incomplet, rien n'est assemblé" >&2; exit 1; }
 
+# ------------------------------------------------------------------ compétences
+#
+# Deux fichiers Markdown, sans dépendance. Ils voyagent avec le kit parce que c'est
+# précisément sur la machine isolée qu'on ne peut plus aller lire la documentation.
+
+mkdir -p "$KIT/skills"
+cp -r "$DEPOT/skills/." "$KIT/skills/"
+printf '   %-42s%s\n' "skills/" "conduire une campagne, et lire un rapport"
+
 # ---------------------------------------------------------------- mode d'emploi
 
 cat > "$KIT/LIRE-MOI.txt" <<EOF
@@ -80,6 +89,10 @@ Runtime X-Ray — kit hors ligne
 Contenu
   runtime-xray.jar   l'outil (aucune dépendance : un JDK 21+ suffit)
   .runtime-xray/     les trois composants d'analyse, déjà téléchargés
+  skills/            deux compétences pour un assistant : conduire une campagne,
+                     et lire un rapport sans en tirer de fausse conclusion.
+                     À recopier dans .claude/skills/ du projet, ou à donner
+                     telles quelles — ce sont deux fichiers Markdown.
 
 Installation sur la machine isolée
   Linux / macOS   cp -r .runtime-xray ~/
