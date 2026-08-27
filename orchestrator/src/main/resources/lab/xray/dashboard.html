@@ -136,7 +136,14 @@
      plutôt que de le deviner supprime la cause. */
   body{display:flex;flex-direction:column;height:100%;overflow:hidden}
   header{flex:0 0 auto}
-  main{display:grid;grid-template-columns:var(--navw,330px) 6px 1fr;flex:1 1 auto;min-height:0}
+  /* « minmax(0, 1fr) » et non « 1fr » : le minimum implicite d'une colonne de grille est le
+     min-content de ce qu'elle porte, et une ligne de code de 450 caractères — il en existe —
+     l'élargit alors au lieu de défiler. La colonne débordait de la fenêtre, emportant avec
+     elle l'ascenseur vertical du code hors de l'écran : on ne pouvait plus ni descendre, ni
+     voir la fin de la ligne. Le zéro rend à la colonne le droit d'être plus étroite que son
+     contenu, ce qui est exactement la condition pour que le panneau défile. */
+  main{display:grid;grid-template-columns:var(--navw,330px) 6px minmax(0, 1fr);
+       flex:1 1 auto;min-height:0}
   /* Sous 860 px les deux panneaux passent l'un sous l'autre : là, il n'y a plus qu'un seul
      contenu long, et c'est la page qui doit défiler normalement. */
   @media(max-width:860px){
@@ -349,7 +356,7 @@
   .node.sel .tagval, .node.sel .callbadge{border-color:#fff;color:#fff;background:transparent}
   .node.sel .vkey, .node.sel .vval, .node.sel .veq{color:#fff}
   .grouphead{padding:6px 8px 2px;color:var(--muted);font-size:11px;letter-spacing:.6px;text-transform:uppercase}
-  #detail{display:flex;flex-direction:column;min-height:0}
+  #detail{display:flex;flex-direction:column;min-height:0;min-width:0}
   /* Où l'on est, et comment le code est montré : deux réglages d'une même vue, donc une
      seule ligne. Empilés, ils repoussaient le contenu de deux rangs sans rien dire de plus. */
   .topline{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:8px 16px;
