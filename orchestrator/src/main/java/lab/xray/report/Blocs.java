@@ -375,6 +375,11 @@ public final class Blocs {
         m.put("executions", executions);
         m.put("sourcesAffichables", sources);
         m.put("indexGlobaux", List.of("cumul.js", "poids.js", "presence.js", "sources/"));
+        // Un programme qui découvre ce dossier ne devinera pas qu'il existe une sortie faite
+        // pour lui. Le manifeste est l'endroit où on le lui dit — et « ../ » parce que les
+        // faits parlent de la campagne entière, pas de cette vue-ci.
+        m.put("faits", "../" + Faits.FICHIER);
+        m.put("faitsFormat", Faits.FORMAT);
         Files.writeString(fichier, Json.write(m), StandardCharsets.UTF_8);
     }
 
