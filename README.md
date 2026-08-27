@@ -555,6 +555,7 @@ Trois dossiers, selon la question traitée.
 | [Reprendre le résultat ailleurs](docs/outil/exports.md) | Exports `perf`, `cpuprofile`, LCOV — pour Firefox Profiler, speedscope, un éditeur |
 | [Lire le rapport](docs/outil/lire-le-rapport.md) | Ce que la page montre, ce qu'elle replie, et ce qu'on peut lui demander |
 | [Faire lire le rapport par une IA](docs/outil/integration-ia.md) | `faits.jsonl`, `--contexte`, et les trois niveaux d'effort pour interroger une campagne |
+| [Deux compétences prêtes à l'emploi](skills/README.md) | Ce qu'un assistant doit savoir avant de lancer une campagne, et avant d'en lire une |
 | [Détails techniques](docs/outil/technique.md) | Programme de démonstration et difficultés rencontrées |
 | [Diffusion](docs/outil/distribution.md) | Comment on met l'outil dans les mains de quelqu'un d'autre |
 
@@ -566,6 +567,7 @@ Trois dossiers, selon la question traitée.
 | `sample-app/` | Le programme de démonstration : un calcul de temps de trajet dont le graphe d'appel dépend du contexte, avec du code volontairement jamais exécuté |
 | `tools/` | Le protocole manuel de l'étude : l'invocation native de chaque outil, conservée pour que les affirmations du comparatif restent vérifiables |
 | `bin/` | Les scripts d'accompagnement : les deux recettes de bout en bout, et l'assemblage du kit hors ligne |
+| `skills/` | Deux compétences à recopier dans son projet : conduire une campagne, et lire un rapport — voir [leur README](skills/README.md) |
 | `docs/` | L'étude |
 | `CLAUDE.md` | Ce qu'il faut savoir avant de toucher au dépôt : construire, publier, conventions, travaux en cours |
 | `.github/workflows/` | Les tests à chaque proposition de fusion, la publication d'une version quand une étiquette `v*` est poussée, et celle de la page d'accueil quand sa source change |

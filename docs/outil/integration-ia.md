@@ -117,6 +117,10 @@ Et si l'on travaille déjà avec un assistant qui lit l'espace de travail — da
 dans un terminal — il n'y a même pas ça à faire : lui indiquer `runtime-xray-out/faits.jsonl`
 suffit, le fichier explique son propre vocabulaire.
 
+Deux compétences prêtes à recopier dans `.claude/skills/` portent ce qu'il faut savoir de
+part et d'autre — conduire une campagne, et lire un rapport sans en tirer de fausse
+conclusion : [`skills/`](../../skills/README.md).
+
 **C'est le niveau à essayer d'abord**, et il couvre la plupart des besoins. Les deux suivants
 ne servent que si l'on veut poser la question *sans humain dans la boucle*.
 
