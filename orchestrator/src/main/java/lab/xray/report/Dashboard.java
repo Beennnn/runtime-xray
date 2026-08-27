@@ -69,6 +69,9 @@ public final class Dashboard {
         // transmise en pièce jointe reste alors explicable sans son répertoire d'origine.
         Map<String, Object> diagnostic = Diagnostic.write(commonDir, runs, index, lancement);
         data.put("diagnostic", sansCode(diagnostic));
+        // Le même contenu, mais rangé pour être filtré plutôt que parcouru — voir Faits.
+        // Rien de ce qui précède ne change : ce fichier s'ajoute, il ne remplace pas.
+        Faits.ecrire(commonDir, runs, index, diagnostic);
         data.put("fusion", fusionPresente(commonDir, runs.size()));
 
         String template = loadTemplate();
