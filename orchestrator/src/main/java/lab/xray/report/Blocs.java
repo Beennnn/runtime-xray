@@ -46,7 +46,7 @@ import java.util.TreeMap;
  *
  * <p>Chaque bloc est un fichier {@code .js} dont <b>chaque ligne est un enregistrement</b> :
  *
- * <pre>XR.bloc("src","coo/jocc/mod/AppliBase.java",["package coo.jocc.mod;","…"]);</pre>
+ * <pre>XR.bloc("src","org/exemple/module/Application.java",["package org.exemple.module;","…"]);</pre>
  *
  * <p>Trois propriétés, et il les faut toutes :
  * <ul>

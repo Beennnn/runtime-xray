@@ -3989,7 +3989,7 @@ function modeleSources(){
   if (MODELE_SOURCES) return MODELE_SOURCES;
   const d = D.diagnostic || {};
   const parNom = diagSources().parNom || {};
-  const noeuds = {};                       // "coo/jocc/mod/AppliBase" -> ce qu'on en sait
+  const noeuds = {};                       // "org/exemple/module/Application" -> ce qu'on en sait
   const prendre = n => noeuds[n] || (noeuds[n] = { nom: n, mesuree: false, source: null,
                                                   chemin: null, racines: [] });
 
