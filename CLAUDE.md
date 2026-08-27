@@ -212,6 +212,14 @@ rapport par combinaison — c'est précisément ce que le cumul dans la page év
   commun aux deux change ce qu'il faut aller regarder. La construction des trois éditions
   reste sur un seul poste : elle éprouve les profils Maven, rien qui dépende du système.
   Ajoutée le 26 août 2026, après deux défauts Windows qu'une CI Linux ne pouvait pas voir.
+- **Une run peut ne jamais être planifiée**, et alors rien ne la débloque : le 26 août 2026,
+  l'une est restée « queued » dix-sept heures sans créer un seul job, l'API refusant jusqu'à
+  son annulation. La proposition de fusion attendait derrière une vérification qui ne
+  viendrait jamais. Le `concurrency` de `tests.yml` en fait la sortie de secours : **pousser
+  un commit annule la run précédente et prend sa place**. C'est le seul geste qui marche —
+  ni la relance, ni l'annulation. Et les `timeout-minutes` bornent l'autre forme du même
+  problème : un travail parti pour six heures, le défaut de GitHub. Ne pas attendre une CI
+  muette plus d'une fois : constater, le dire, et pousser.
 - **Le tilde n'est un caractère d'interpréteur qu'en tête de mot** : les noms courts 8.3 de
   Windows en portent un — `C:\Users\RUNNER~1`, `C:\PROGRA~1` — et le compter partout
   envoyait la commande à `cmd /c`. Elle s'exécutait, mais `ClassSources` n'y lisait plus le
