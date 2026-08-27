@@ -201,6 +201,15 @@ coller. Trois décisions le tiennent, chacune gardée par un test dans `Contexte
   en `41.0` : le format ne distingue pas l'entier du flottant, et ce détail fait douter du
   reste.
 
+`skills/` porte deux compétences à recopier dans le `.claude/skills/` d'un projet —
+conduire une campagne, lire un rapport — et le kit hors ligne les emporte, parce que c'est
+sur la machine isolée qu'on ne peut plus aller lire la documentation. Ce sont deux fichiers
+Markdown, mais ils sont **tenus par `SkillsTest`** : toute option qu'ils citent doit exister
+dans le `switch` de `Main`, et la table du vocabulaire doit coïncider avec
+`Faits.VOCABULAIRE`, dans les deux sens. Une option renommée ici et laissée écrite là-bas
+n'échoue nulle part — elle envoie quelqu'un dans le mur avec « Option inconnue » pour toute
+explication, sur la machine où il ne peut rien vérifier.
+
 **L'outil ne parle à personne** : aucun nom de fournisseur, aucune clé, aucun appel réseau.
 Le format des requêtes change tous les six mois ; le besoin de donner un texte borné et
 exact, non. `bin/demander.sh` porte les trois enveloppes du moment (`openai`, `anthropic`,
