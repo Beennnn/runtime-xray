@@ -163,8 +163,29 @@ Trois décisions la tiennent, et elles sont liées :
   3 %, elle s'afficherait endormie.
 
 Elle se tait hors terminal (`System.console() == null`) : dans un tuyau ou un journal
-d'intégration, une ligne par seconde n'apprend rien et noie le reste. Les caractères
+d'intégration, une ligne par seconde n'apprend rien et noie le reste. `RUNTIME_XRAY_PROGRESSION`
+la réclame quand même — un shell qui en lance un autre met souvent un tuyau au milieu alors
+qu'un opérateur regarde bien un écran au bout ; `=0` impose l'inverse. Les caractères
 `· ░ ▒ ▓ █` existent en CP850 comme en UTF-8, pour la même raison que le reste des messages.
+
+## Suivre une exécution qui n'a pas de terminal
+
+C'est le prolongement de la bande, et la réponse au cas qu'elle ne couvrait pas : l'outil
+lancé au fond de scripts imbriqués, sa sortie dans un tuyau, et **personne qui ne voit
+plus rien**.
+
+- **`progression.jsonl` s'écrit toujours**, à la racine de `--out` — donc à un chemin qu'on
+  connaît sans connaître le nom de l'exécution. Une ligne par seconde, `tail -f` suffit. La
+  dernière porte `"evenement":"fin"` : sans elle, un lecteur ne saurait pas s'arrêter.
+- **`--suivi [port]` sert une page** qui relit ce fichier, et rien d'autre. Elle montre ce
+  qu'une suite de lignes JSON montre mal — la *forme* de l'exécution. Boucle locale
+  seulement : elle affiche une commande et la sortie d'une application.
+- **Le calcul de charge est dans `Progression`, et nulle part ailleurs.**
+  `Progression.avancement` le rend, `Suivi` le recopie. Deux calculs séparés finiraient par
+  diverger, et le fichier contredirait la bande sans que rien ne le signale.
+- **Un échec d'écriture du fil n'emporte jamais la mesure** — c'est un confort, elle est ce
+  qu'on est venu chercher ; un test le garde, comme il garde que la fin du journal servie
+  soit bornée à 64 Ko.
 
 ## Couverture cumulée
 
