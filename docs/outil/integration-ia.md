@@ -124,6 +124,30 @@ conclusion : [`skills/`](../../skills/README.md).
 **C'est le niveau à essayer d'abord**, et il couvre la plupart des besoins. Les deux suivants
 ne servent que si l'on veut poser la question *sans humain dans la boucle*.
 
+#### Le cas d'un assistant intégré à l'éditeur
+
+Beaucoup d'assistants d'édition de code se branchent sur **une adresse et un modèle**, dans
+la forme de requête décrite plus bas — c'est le montage le plus répandu, et il n'impose rien
+sur l'éditeur du modèle : une passerelle auto-hébergée s'y déclare comme un service
+commercial.
+
+Pour eux, il n'y a **rien à intégrer** : ils lisent déjà l'espace de travail. Il suffit de
+poser le rapport dedans et de nommer le fichier.
+
+```
+Lis runtime-xray-out/faits.jsonl et dis-moi quelles classes n'ont jamais tourné.
+```
+
+Le fichier porte son propre vocabulaire en première ligne, et la [compétence de
+lecture](../../skills/README.md) porte les pièges — un zéro qui peut vouloir dire « pas
+mesuré », une source introuvable qui n'est jamais « le code n'existe pas ». Recopier les
+deux compétences dans `.claude/skills/` du projet suffit pour que l'assistant les applique
+sans qu'on ait à les rappeler à chaque question.
+
+Le paquet de `--contexte` reste utile quand le rapport est gros : il choisit, borne, et met
+les absences en tête — ce qu'un assistant qui lit un fichier de plusieurs mégaoctets ne fera
+pas de lui-même.
+
 ### Niveau 1 — une commande
 
 `bin/demander.sh` prend une question, produit le contexte par l'outil, le poste, et écrit la

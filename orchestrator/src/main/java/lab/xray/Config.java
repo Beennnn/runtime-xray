@@ -79,6 +79,15 @@ public final class Config {
      * plus direct sur le coût du profil : à 10 ms, dix fois moins de relevés qu'à 1 ms.
      */
     public int sampleIntervalMs = 1;
+
+    /**
+     * Le port de la page de suivi, ou 0 pour ne rien servir.
+     *
+     * <p>Zéro par défaut, et c'est délibéré : {@code progression.jsonl} s'écrit de toute
+     * façon, et ouvrir un port sans qu'on l'ait demandé est une décision qui ne se prend
+     * pas à la place de l'exploitant.
+     */
+    public int suiviPort = 0;
     /**
      * Formats de réécriture demandés — {@code perf}, {@code cpuprofile}, {@code lcov},
      * {@code valeurs}, ou {@code tout}. Vide : aucun export, et rien d'écrit en plus.
@@ -146,6 +155,7 @@ public final class Config {
             case "LEVEL", "NIVEAU" -> level = value;
             case "COVER_INCLUDES" -> coverIncludes = value;
             case "SAMPLE_INTERVAL_MS" -> sampleIntervalMs = parse(value, sampleIntervalMs);
+            case "SUIVI_PORT" -> suiviPort = parse(value, suiviPort);
             case "TRACE_COUNT" -> traceCount = parse(value, traceCount);
             default -> { /* une clé inconnue n'est pas une erreur : le fichier peut servir à autre chose */ }
         }

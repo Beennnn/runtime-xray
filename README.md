@@ -517,6 +517,21 @@ chacune se comprenant seule — y compris ce qui n'a *pas* été mesuré, sans q
 comme un constat. `--contexte "une question"` en tire un extrait borné, prêt à donner à lire :
 [Faire lire le rapport par une IA](docs/outil/integration-ia.md).
 
+### Suivre une exécution pendant qu'elle tourne
+
+![La page de suivi : bande d'activité, cœurs occupés, fin du journal de l'application](docs/assets/shots/suivi-execution.png)
+
+Une analyse dure ce que dure l'application observée. `progression.jsonl` s'écrit **toujours**
+à la racine de la sortie, une ligne JSON par seconde : `tail -f runtime-xray-out/progression.jsonl`
+suffit, y compris là où l'outil est lancé au fond de scripts imbriqués et où plus rien ne
+s'affiche. `--suivi` sert en plus une page qui relit ce même fichier et montre la *forme* de
+l'exécution — l'activité seconde par seconde, les cœurs occupés, la sortie qui grossit ou qui
+ne grossit plus.
+
+**Rien de tout cela ne mesure quoi que ce soit** : le temps processeur est celui que le système
+compte de toute façon, la taille de sortie celle d'un fichier déjà écrit. Le rapport est le même
+selon qu'on suit l'exécution ou non.
+
 [Mode d'emploi complet](docs/outil/mode-emploi.md) — paramètres, fichier de configuration,
 choix de la méthode racine, publication du résultat.
 [Lire le rapport](docs/outil/lire-le-rapport.md) — ce que la page montre, ce qu'elle replie,
