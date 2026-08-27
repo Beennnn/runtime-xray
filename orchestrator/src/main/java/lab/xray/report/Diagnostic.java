@@ -118,6 +118,11 @@ public final class Diagnostic {
         m.put("exemplesTrouves", trouves);
         m.put("exemplesManquants", manquants);
         m.put("conclusion", conclusion(attendus.size(), nbManquants, index));
+        // Les fichiers lus qui ne correspondent à aucune classe mesurée : leur nombre suffit
+        // à la page, qui n'a rien à en montrer. Les énumérer y recopierait l'arborescence.
+        int sansClasse = 0;
+        for (String cle : index.parCle().keySet()) if (!attendus.contains(cle)) sansClasse++;
+        m.put("sourcesSansClasse", sansClasse);
         return m;
     }
 

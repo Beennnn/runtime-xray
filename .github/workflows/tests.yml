@@ -21,6 +21,25 @@ on:
     branches: ['main']
   pull_request:
 
+# Une poussée remplace la run précédente de la même branche, au lieu de s'ajouter à elle.
+#
+# Le 26 août 2026, une run a été créée puis n'a jamais été planifiée : « queued » pendant
+# dix-sept heures, aucun job, l'API refusant jusqu'à son annulation (« Cannot cancel a
+# workflow re-run that has not yet queued »). Elle est restée en vérification en attente
+# sur la proposition de fusion, qui n'a donc jamais pu aboutir, et rien — ni relance, ni
+# annulation — ne permettait d'en sortir. Une seule chose l'a débloquée : pousser un
+# commit de plus.
+#
+# Ce regroupement en fait la sortie de secours officielle : quoi qu'il arrive à une run,
+# la suivante l'annule et prend sa place. La proposition de fusion ne peut plus se
+# retrouver bloquée derrière un fantôme.
+#
+# Sur `main`, on n'annule pas : là, chaque run est la trace d'un état publié, et deux
+# poussées rapprochées doivent laisser deux verdicts.
+concurrency:
+  group: tests-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   tests:
     strategy:
@@ -31,6 +50,10 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest]
     runs-on: ${{ matrix.os }}
+    # Le défaut de GitHub est de six heures. Ces travaux durent moins d'une minute sous
+    # Linux et quelques minutes sous Windows : au-delà de vingt, ce n'est plus une lenteur,
+    # c'est un blocage, et il vaut mieux le voir rouge tout de suite que l'attendre.
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
 
@@ -51,6 +74,9 @@ jobs:
   # chose.
   editions:
     runs-on: ubuntu-latest
+    # Elle télécharge 19 Mo de composants pour l'édition complète : plus large que les
+    # tests, mais très loin des six heures du défaut.
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
 

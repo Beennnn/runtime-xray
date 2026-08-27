@@ -287,10 +287,11 @@ class DashboardTest {
         assertEquals("app/Main.main", elagage.get("racine"));
         assertEquals(List.of("app/Main.main;app/Moteur.ecrire"), elagage.get("coupes"));
 
-        // L'élagage cadre la lecture : la mesure, elle, reste entière.
-        Map<?, ?> arbre = (Map<?, ?>) run.get("calltree");
-        assertEquals(40L, ((Number) arbre.get("total")).longValue(),
-                "le total mesuré ne bouge pas");
+        // L'élagage cadre la lecture : la mesure, elle, reste entière. L'arbre vit sous
+        // l'exécution, dans son bloc — la page ne le porte plus.
+        String arbre = Files.readString(out.resolve(String.valueOf(run.get("chemin")))
+                .resolve("vue/arbre.js"), StandardCharsets.UTF_8);
+        assertTrue(arbre.contains("\"total\":40"), "le total mesuré ne bouge pas : " + arbre);
     }
 
     @Test
@@ -334,18 +335,28 @@ class DashboardTest {
         fixtureRun(out.resolve("runs"), "complet", "UUID-C", true);
 
         Map<String, Object> data = dataOf(Dashboard.build(out, List.of(sources(dir)), 8));
-        assertTrue(((Map<?, ?>) data.get("sources")).containsKey("app/Moteur.java"),
-                "le code doit voyager avec la page, sinon elle est illisible hors du projet");
+
+        // Le rapport est un dossier : la page porte le sommaire, les blocs portent le reste.
+        // Ce qui compte est que RIEN ne manque — pas que tout soit au même endroit.
+        assertTrue(((Map<?, ?>) data.get("sourcesDisponibles")).containsKey("app/Moteur.java"),
+                "la page doit savoir que ce code existe, et où le prendre");
+        assertTrue(Files.readString(out.resolve("vue/sources/app.js"), StandardCharsets.UTF_8)
+                        .contains("class Moteur"),
+                "et le code doit être dans le bloc, sinon le dossier est illisible");
 
         @SuppressWarnings("unchecked")
         Map<String, Object> run = (Map<String, Object>) ((List<Object>) data.get("runs")).get(0);
-        assertNotNull(run.get("coverage"));
-        assertNotNull(run.get("methods"));
-        assertNotNull(run.get("calltree"));
+        assertNotNull(run.get("methods"), "l'arbre des classes s'affiche d'emblée : il reste");
         assertNotNull(run.get("context"));
+        Path vue = out.resolve(String.valueOf(run.get("chemin"))).resolve("vue");
+        for (String bloc : List.of("couverture.js", "arbre.js", "valeurs.js")) {
+            assertTrue(Files.isRegularFile(vue.resolve(bloc)), bloc + " doit être sous l'exécution");
+        }
         assertEquals("app/Moteur", run.get("tracedClass"),
                 "la classe inspectée vient du contexte, pas d'une valeur codée en dur");
-        assertTrue(((Map<?, ?>) run.get("values")).containsKey("app/Moteur.calculer"));
+        assertTrue(Files.readString(vue.resolve("valeurs.js"), StandardCharsets.UTF_8)
+                        .contains("app/Moteur.calculer"),
+                "les valeurs relevées vivent dans le bloc de leur exécution");
     }
 
     @Test
@@ -496,7 +507,7 @@ class DashboardTest {
 
         Map<String, Object> data = dataOf(Dashboard.build(out, List.of(dir), 8));
 
-        Map<String, Object> src = (Map<String, Object>) data.get("sources");
+        Map<String, Object> src = (Map<String, Object>) data.get("sourcesDisponibles");
         assertTrue(src.containsKey("app/Moteur.java"),
                 "la clé doit être celle de JaCoCo, pas le chemin depuis la racine : " + src.keySet());
     }
@@ -604,6 +615,44 @@ class DashboardTest {
                 "un seul accès nommé, pour que les trois inventaires ne se confondent pas");
         assertFalse(page.contains("(D.diagnostic || {}).racines"),
                 "les racines ne vivent pas à la racine du diagnostic");
+    }
+
+    @Test
+    @DisplayName("Seules les sources affichables voyagent, mais le diagnostic les connaît toutes")
+    @SuppressWarnings("unchecked")
+    void carriesOnlyTheSourcesThePageCanShow(@TempDir Path dir) throws Exception {
+        // Une source qu'aucune classe mesurée ne réclame n'a aucun chemin d'affichage : rien
+        // dans la page n'y mène. L'embarquer, c'est recopier l'arborescence du projet — un
+        // rapport de 217 Mo que Firefox a renoncé à ouvrir, le 26 août 2026.
+        Path out = dir.resolve("out");
+        Files.createDirectories(out);
+        fixtureRun(out.resolve("runs"), "essai", "UUID-P", true);
+        Path src = sources(dir);
+        Files.writeString(src.resolve("app/JamaisMesuree.java"), """
+                package app;
+                class JamaisMesuree { int x() { return 1; } }
+                """, StandardCharsets.UTF_8);
+
+        Map<String, Object> data = dataOf(Dashboard.build(out, List.of(src), 8));
+
+        Map<String, Object> embarquees = (Map<String, Object>) data.get("sourcesDisponibles");
+        assertTrue(embarquees.containsKey("app/Moteur.java"), "la classe mesurée garde son code");
+        assertFalse(embarquees.containsKey("app/JamaisMesuree.java"),
+                "une source sans classe mesurée ne peut pas s'afficher, donc ne voyage pas");
+        assertFalse(Files.readString(out.resolve("vue/sources/app.js"), StandardCharsets.UTF_8)
+                        .contains("JamaisMesuree"),
+                "et elle ne doit pas non plus peser dans le bloc");
+
+        // Mais rien de fonctionnel ne part : le diagnostic sait toujours qu'elle a été lue,
+        // et l'arbre « Où est chaque classe » continue de la situer.
+        Map<String, Object> d = (Map<String, Object>) data.get("diagnostic");
+        Map<String, Object> parNom =
+                (Map<String, Object>) ((Map<String, Object>) d.get("sources")).get("parNom");
+        assertTrue(parNom.containsKey("JamaisMesuree.java"),
+                "le diagnostic doit continuer de dire où chaque fichier a été lu");
+        assertEquals(1L, ((Number) ((Map<String, Object>) d.get("rapprochement"))
+                .get("sourcesSansClasse")).longValue(),
+                "et compter celles qui ne correspondent à aucune classe mesurée");
     }
 
     @Test

@@ -193,6 +193,7 @@ public final class Main {
         Path page = Dashboard.build(outDir, sourceRoots(config), config.watchCount,
                 config.hidden(), lancement(config, tools, sourceRoots(config)));
         direCeQuOnATrouve(outDir);
+        direLePoids(page);
         System.out.println();
         System.out.println("Terminé — ouvrir : " + page);
 
@@ -593,6 +594,9 @@ public final class Main {
         ctx.put("java", System.getProperty("java.vendor") + " " + System.getProperty("java.version"));
         ctx.put("javaHome", System.getProperty("java.home", ""));
         ctx.put("repertoireTravail", Path.of("").toAbsolutePath().toString());
+        // La capture annonce sa forme : c'est ce qui permet à une version ultérieure
+        // de l'outil de la relire sans rejouer la campagne. Voir Capture.
+        ctx.put(lab.xray.report.Capture.CHAMP, lab.xray.report.Capture.COURANTE);
         Files.writeString(runDir.resolve("run-context.json"), Json.write(ctx), StandardCharsets.UTF_8);
     }
 
@@ -726,6 +730,36 @@ public final class Main {
         }
         System.out.println("   diagnostic : " + fichier);
     }
+
+    /**
+     * Le poids de la page, dit au moment où il se décide.
+     *
+     * <p>Une page qui grossit ne se signale nulle part : elle s'écrit, l'outil dit
+     * « Terminé », et le défaut n'apparaît que le jour où le navigateur renonce à
+     * l'afficher — sur le poste de quelqu'un d'autre, sans rien pour l'expliquer. C'est
+     * arrivé à 217 Mo. Deux lignes ici valent la découverte.
+     */
+    private static void direLePoids(Path page) {
+        try {
+            long octets = Files.size(page);
+            String taille = octets >= 1 << 20 ? (octets >> 20) + " Mo" : (octets >> 10) + " Ko";
+            System.out.println("   page : " + taille);
+            if (octets > SEUIL_PAGE) {
+                System.out.println("   ⚠️ au-delà de " + (SEUIL_PAGE >> 20) + " Mo, un navigateur "
+                        + "peut renoncer à l'afficher. Les deux causes, dans l'ordre :");
+                System.out.println("      • une racine --sources trop large — seules les classes "
+                        + "mesurées sont embarquées, mais les lire toutes coûte quand même ;");
+                System.out.println("      • le nombre d'exécutions accumulées sous " 
+                        + "<sortie>/runs/ : elles sont toutes embarquées.");
+                System.out.println("      Voir sources.racines et executions dans diagnostic.json.");
+            }
+        } catch (IOException e) {
+            // Le poids est un confort : son absence ne doit rien empêcher.
+        }
+    }
+
+    /** Au-delà, un navigateur commence à peiner — et il faut le dire avant qu'il renonce. */
+    private static final long SEUIL_PAGE = 64L << 20;
 
     /**
      * Les racines trouvées, avec ce qu'elles résoudraient.
