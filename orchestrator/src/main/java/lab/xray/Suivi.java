@@ -153,8 +153,10 @@ public final class Suivi implements AutoCloseable {
                     case "/", "/index.html" -> envoyer(ex, "text/html; charset=utf-8", page());
                     case "/progression.jsonl" -> envoyer(ex, "application/x-ndjson; charset=utf-8",
                             lireOuVide(fichier));
-                    case "/execution.log" -> envoyer(ex, "text/plain; charset=utf-8",
-                            queue(runDir.resolve("execution.log")));
+                    case "/execution.log" -> {
+                        byte[] brut = queue(runDir.resolve("execution.log"));
+                        envoyer(ex, "text/plain; charset=utf-8", enUtf8(brut));
+                    }
                     default -> envoyer(ex, "text/plain; charset=utf-8",
                             "rien ici".getBytes(StandardCharsets.UTF_8));
                 }
@@ -198,6 +200,38 @@ public final class Suivi implements AutoCloseable {
                     java.nio.ByteBuffer.allocate((int) Math.min(taille - depuis, 64 * 1024));
             canal.read(tampon);
             return tampon.array();
+        }
+    }
+
+    /**
+     * Le journal de l'application, rendu lisible sans prétendre savoir dans quel jeu de
+     * caractères il a été écrit.
+     *
+     * <p>L'outil écrit en UTF-8 ; l'application observée, non — elle écrit dans ce que sa
+     * JVM lui a donné, et sur le parc visé c'est souvent CP1252 ou CP850. Servir ces
+     * octets-là en UTF-8 donne du charabia à la place des accents, sur la moitié des
+     * journaux français.
+     *
+     * <p>On ne devine donc qu'une fois, et seulement quand la certitude a échoué : si les
+     * octets forment de l'UTF-8 valide, ils le sont ; sinon on les lit en ISO-8859-1, qui
+     * ne rejette aucun octet et rend les accents des jeux occidentaux. Ce n'est pas exact
+     * dans tous les cas, et le repli est <b>annoncé dans la page</b> plutôt que subi : un
+     * lecteur qui voit un caractère douteux doit savoir que c'est une interprétation.
+     *
+     * <p>Le contraire — deviner en silence — est ce que l'outil refuse ailleurs, pour les
+     * racines de sources. La différence tient à ce que coûte l'erreur : du code faux en
+     * face d'une couverture se croit, un accent de travers se voit.
+     */
+    static byte[] enUtf8(byte[] brut) {
+        if (brut.length == 0) return brut;
+        var strict = StandardCharsets.UTF_8.newDecoder();
+        try {
+            strict.decode(java.nio.ByteBuffer.wrap(brut));
+            return brut;
+        } catch (java.nio.charset.CharacterCodingException pasDeLUtf8) {
+            String texte = new String(brut, StandardCharsets.ISO_8859_1);
+            return ("[runtime-xray : ce journal n'est pas en UTF-8 ; lu en ISO-8859-1]\n"
+                    + texte).getBytes(StandardCharsets.UTF_8);
         }
     }
 

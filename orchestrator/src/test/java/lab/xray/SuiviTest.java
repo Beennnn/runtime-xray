@@ -14,6 +14,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -138,5 +139,24 @@ class SuiviTest {
         assertTrue(page.contains("cœurs occupés"),
                 "le compte est en cœurs, pas en part de machine — et la page doit le dire, "
                 + "sinon on lit une saturation là où il y a un cœur sur trente-deux");
+    }
+
+    @Test
+    @DisplayName("Un journal qui n'est pas en UTF-8 est lu quand même, et le repli est dit")
+    void aLogThatIsNotUtf8IsStillReadAndTheFallbackIsStated() {
+        // L'outil écrit en UTF-8 ; l'application observée écrit dans ce que sa JVM lui a
+        // donné, et sur le parc visé c'est souvent CP1252 ou CP850. Servi tel quel en UTF-8,
+        // « démarrage terminé » devient du charabia sur la moitié des journaux français.
+        byte[] latin1 = "démarrage terminé".getBytes(StandardCharsets.ISO_8859_1);
+        String rendu = new String(Suivi.enUtf8(latin1), StandardCharsets.UTF_8);
+        assertTrue(rendu.contains("démarrage terminé"), "les accents doivent revenir");
+        assertTrue(rendu.contains("ISO-8859-1"),
+                "deviner est acceptable ici, le taire ne l'est pas : un lecteur qui voit un "
+                + "caractère douteux doit savoir que c'est une interprétation");
+
+        // De l'UTF-8 valide n'est jamais touché — pas de repli, pas d'avertissement.
+        byte[] utf8 = "démarrage terminé".getBytes(StandardCharsets.UTF_8);
+        assertArrayEquals(utf8, Suivi.enUtf8(utf8));
+        assertEquals(0, Suivi.enUtf8(new byte[0]).length);
     }
 }
