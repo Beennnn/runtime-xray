@@ -24,6 +24,9 @@ import java.util.concurrent.TimeUnit;
  */
 public final class RunSession {
 
+    /** Le rythme de redessin : assez lent pour ne rien coûter, assez vif pour vivre. */
+    private static final long INTERVALLE_MS = 1000L;
+
     private static final DateTimeFormatter HUMAN =
             DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss", Locale.FRENCH);
 
@@ -41,6 +44,9 @@ public final class RunSession {
         this.tools = tools;
         this.runDir = runDir;
     }
+
+    /** Dernier temps processeur relevé pour chaque processus de l'application observée. */
+    private final java.util.Map<Long, Duration> cpuParProcessus = new java.util.HashMap<>();
 
     /** Les arguments réels de la JVM observée, relevés pendant qu'elle tournait. */
     public final List<String> jvmArguments = new ArrayList<>();
@@ -71,7 +77,7 @@ public final class RunSession {
                 inspectValues(process);
             }
             System.out.println("▶ Attente de la fin de l'exécution");
-            boolean finished = process.waitFor(config.maxSeconds, TimeUnit.SECONDS);
+            boolean finished = attendre(process);
             status = finished
                     ? "terminée normalement (code " + process.exitValue() + ")"
                     : "interrompue après " + config.maxSeconds + " s (garde-fou)";
@@ -84,6 +90,76 @@ public final class RunSession {
         Thread.sleep(1500);
         endedAt = HUMAN.format(LocalDateTime.now());
         durationSeconds = Duration.between(start, LocalDateTime.now()).toSeconds();
+    }
+
+    /**
+     * Attend la fin de l'application en montrant qu'elle vit.
+     *
+     * <p>L'attente reste la même — même garde-fou, même verdict ; seul le silence change.
+     * Le sondage régulier n'existe que pour redessiner la bande : sans terminal, on
+     * retombe sur l'attente bloquante d'origine, sans même relever les compteurs.
+     *
+     * <p>Le temps limite se compte sur l'horloge et non sur le nombre de tours : un tour
+     * peut durer plus que son intervalle si la machine est chargée, et {@code MAX_SECONDS}
+     * est une promesse faite à l'opérateur.
+     */
+    private boolean attendre(Process process) throws InterruptedException {
+        Progression progression = Progression.pour(System.out);
+        if (!progression.active()) {
+            return process.waitFor(config.maxSeconds, TimeUnit.SECONDS);
+        }
+        Path journal = runDir.resolve("execution.log");
+        long limite = config.maxSeconds * 1000L;
+        long debut = System.nanoTime();
+        while (true) {
+            if (process.waitFor(INTERVALLE_MS, TimeUnit.MILLISECONDS)) {
+                progression.fin();
+                return true;
+            }
+            long ecoule = (System.nanoTime() - debut) / 1_000_000L;
+            if (ecoule >= limite) {
+                progression.fin();
+                return false;
+            }
+            progression.avancement(Duration.ofMillis(ecoule), tempsProcesseur(process),
+                    tailleDe(journal));
+        }
+    }
+
+    /**
+     * Le temps processeur consommé par l'application observée, descendants compris.
+     *
+     * <p>Il est déjà compté par le système pour chaque processus : le lire ne mesure rien
+     * de plus et n'approche pas la JVM observée. Les descendants comptent parce que la
+     * commande lancée est souvent un lanceur — {@code mvn}, un script, un wrapper — dont le
+     * travail réel se passe dans un fils.
+     *
+     * <p>On garde le dernier relevé de chaque processus, y compris disparu. Sans cela le
+     * cumul <b>reculerait</b> à la mort de chaque fils, et une phase très active se
+     * lirait comme une phase morte : c'est exactement l'inverse de ce que la bande doit
+     * dire. Un numéro de processus réattribué serait sous-compté ; sur la durée d'une
+     * exécution observée, la confusion est théorique et la conséquence, un carré plus pâle.
+     */
+    private Duration tempsProcesseur(Process process) {
+        releve(process.toHandle());
+        process.descendants().forEach(this::releve);
+        Duration total = Duration.ZERO;
+        for (Duration part : cpuParProcessus.values()) total = total.plus(part);
+        return total;
+    }
+
+    private void releve(ProcessHandle processus) {
+        processus.info().totalCpuDuration().ifPresent(cpu -> cpuParProcessus.merge(
+                processus.pid(), cpu, (ancien, nouveau) ->
+                        nouveau.compareTo(ancien) > 0 ? nouveau : ancien));
+    }
+
+    private static long tailleDe(Path fichier) {
+        try {
+            return Files.size(fichier);
+        } catch (IOException absent) {
+            return 0;
+        }
     }
 
     /**

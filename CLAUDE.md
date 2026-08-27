@@ -143,6 +143,29 @@ répertoire de paquet : cela retombe sur ses pieds. C'est ce qui a cassé le 26 
 une racine d'un cran trop haute suffisait à décaler l'index entier, donc « Source
 indisponible » sur les 447 classes d'une analyse.
 
+## La bande d'activité pendant l'attente
+
+`Progression` écrit une ligne qui se réécrit pendant que l'application observée travaille.
+Trois décisions la tiennent, et elles sont liées :
+
+- **Elle ne mesure rien.** Le temps processeur vient de `ProcessHandle.Info.totalCpuDuration`
+  — le système le compte de toute façon — et la taille de `execution.log` d'un fichier déjà
+  écrit. Rien n'est ajouté à la JVM observée. C'était la condition posée : un affichage de
+  confort qui déplacerait la mesure ferait mentir le rapport qu'il accompagne.
+- **Un carré par paquet aurait été plus parlant**, et n'a pas été retenu : les deux seules
+  façons d'obtenir le code réellement atteint en cours de route sont un `-Xlog:class+load`
+  dans `JAVA_TOOL_OPTIONS` — inconnu d'une JVM 8, qui refuserait alors de démarrer, or c'est
+  précisément le parc visé — ou un `output=tcpserver` sur l'agent JaCoCo, qui déplace
+  l'écriture du `.exec` hors du chemin qui fonctionne. Le coût portait sur la capture ; le
+  gain, sur l'affichage.
+- **Le compte est en cœurs occupés**, pas en pourcentage de la machine. Sur un serveur à
+  trente-deux cœurs, une application qui en sature un travaille à plein régime : ramenée à
+  3 %, elle s'afficherait endormie.
+
+Elle se tait hors terminal (`System.console() == null`) : dans un tuyau ou un journal
+d'intégration, une ligne par seconde n'apprend rien et noie le reste. Les caractères
+`· ░ ▒ ▓ █` existent en CP850 comme en UTF-8, pour la même raison que le reste des messages.
+
 ## Couverture cumulée
 
 Une campagne de recette, c'est dix exécutions, et la question posée devant le code est « est-ce
@@ -189,6 +212,14 @@ rapport par combinaison — c'est précisément ce que le cumul dans la page év
   commun aux deux change ce qu'il faut aller regarder. La construction des trois éditions
   reste sur un seul poste : elle éprouve les profils Maven, rien qui dépende du système.
   Ajoutée le 26 août 2026, après deux défauts Windows qu'une CI Linux ne pouvait pas voir.
+- **Une run peut ne jamais être planifiée**, et alors rien ne la débloque : le 26 août 2026,
+  l'une est restée « queued » dix-sept heures sans créer un seul job, l'API refusant jusqu'à
+  son annulation. La proposition de fusion attendait derrière une vérification qui ne
+  viendrait jamais. Le `concurrency` de `tests.yml` en fait la sortie de secours : **pousser
+  un commit annule la run précédente et prend sa place**. C'est le seul geste qui marche —
+  ni la relance, ni l'annulation. Et les `timeout-minutes` bornent l'autre forme du même
+  problème : un travail parti pour six heures, le défaut de GitHub. Ne pas attendre une CI
+  muette plus d'une fois : constater, le dire, et pousser.
 - **Le tilde n'est un caractère d'interpréteur qu'en tête de mot** : les noms courts 8.3 de
   Windows en portent un — `C:\Users\RUNNER~1`, `C:\PROGRA~1` — et le compter partout
   envoyait la commande à `cmd /c`. Elle s'exécutait, mais `ClassSources` n'y lisait plus le
