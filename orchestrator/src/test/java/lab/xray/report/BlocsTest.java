@@ -100,4 +100,35 @@ class BlocsTest {
                     "tout doit rester sous vue/sources/");
         }
     }
+
+    @Test
+    @DisplayName("Une exécution sans profil garde un arbre vide, et non pas rien")
+    void aRunWithoutAProfileStillCarriesAnEmptyTree() {
+        // Sous Windows, async-profiler ne publie rien : ces exécutions n'ont pas d'arbre
+        // d'appel, et Arthas peut n'avoir rien capturé non plus. Le découpage en blocs a
+        // fait de l'absence un troisième état — ni « chargé », ni « pas encore chargé » —
+        // que trente lecteurs de la page ne connaissaient pas. Trois d'entre eux ont
+        // échoué en cascade, et l'onglet « Exécutions » ne s'affichait plus du tout.
+        Map<String, Object> sansProfil = new LinkedHashMap<>(run("UUID-3"));
+        sansProfil.remove("calltree");
+        sansProfil.remove("values");
+
+        Map<String, Object> leger = Blocs.alleger(sansProfil, "runs/UUID-3/vue/");
+
+        assertEquals(Map.of("name", "tout", "total", 0, "children", List.of()),
+                leger.get("calltree"), "l'arbre absent doit se lire comme un arbre vide");
+        assertEquals(Map.of(), leger.get("values"));
+        assertEquals(0L, leger.get("mesures"));
+        assertFalse(String.valueOf(leger.get("blocs")).contains("arbre.js"),
+                "pas de bloc pour un champ qui n'existe pas : on l'attendrait pour rien");
+    }
+
+    @Test
+    @DisplayName("Le sommaire porte le nombre de mesures, que l'arbre soit chargé ou non")
+    void theSummaryCarriesTheSampleCount() {
+        // L'onglet « Exécutions » affiche ce nombre sur CHAQUE racine, donc sur des
+        // exécutions dont l'arbre n'est pas chargé et ne le sera pas. Aller le chercher
+        // rendrait au premier affichage tout ce que le chargement tardif économise.
+        assertEquals(40L, Blocs.alleger(run("UUID-4"), "runs/UUID-4/vue/").get("mesures"));
+    }
 }
