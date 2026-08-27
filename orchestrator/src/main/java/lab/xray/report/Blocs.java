@@ -153,9 +153,36 @@ public final class Blocs {
             if (!LOURD.contains(cle)) leger.put(cle, e.getValue());
         }
         List<Object> blocs = new ArrayList<>();
-        for (String cle : LOURD) if (run.get(cle) != null) blocs.add(sousRep + FICHIERS.get(cle));
+        for (String cle : LOURD) {
+            if (run.get(cle) != null) blocs.add(sousRep + FICHIERS.get(cle));
+            // Un champ qu'aucune exécution ne portera jamais n'est pas un champ en attente.
+            // Sans profil — sous Windows, où async-profiler ne publie rien — il n'y aura
+            // jamais d'arbre d'appel, et sans Arthas jamais de valeurs. La page distinguait
+            // « chargé » de « pas encore chargé » ; elle n'avait aucune raison de connaître
+            // un troisième état, et le découpage en blocs venait de l'inventer. On écrit
+            // donc la forme vide dans le sommaire : les lecteurs n'ont rien à savoir de
+            // plus, et « pas encore là » redevient le seul cas particulier.
+            else leger.put(cle, VIDE.get(cle));
+        }
         leger.put("blocs", blocs);
+        // Le nombre de relevés d'une exécution tient en un nombre, et l'onglet « Exécutions »
+        // l'affiche sur CHAQUE racine — donc pour des exécutions dont on n'a pas chargé
+        // l'arbre, et qu'on ne chargera pas : les montrer toutes coûterait ce que le
+        // chargement tardif vient d'économiser. Il vit donc dans le sommaire.
+        leger.put("mesures", mesuresDe(run));
         return leger;
+    }
+
+    /** La forme vide de chaque champ lourd : ce qu'un lecteur doit trouver faute de mieux. */
+    private static final Map<String, Object> VIDE = Map.of(
+            "coverage", Map.of(),
+            "calltree", Map.of("name", "tout", "total", 0, "children", List.of()),
+            "values", Map.of(),
+            "trace", Map.of());
+
+    private static long mesuresDe(Map<?, ?> run) {
+        return run.get("calltree") instanceof Map<?, ?> arbre
+                && arbre.get("total") instanceof Number n ? n.longValue() : 0L;
     }
 
     private static void ecrireRun(Path dir, Map<?, ?> run) throws IOException {
