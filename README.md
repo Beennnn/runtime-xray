@@ -512,6 +512,11 @@ java -jar runtime-xray.jar --report-only --out runtime-xray-out --export tout
 Le recensement des formats ouverts — retenus et écartés, avec le motif — est dans
 [Reprendre le résultat dans un autre outil](docs/outil/exports.md).
 
+À côté de la page, `faits.jsonl` porte les mêmes conclusions **en un objet JSON par ligne**,
+chacune se comprenant seule — y compris ce qui n'a *pas* été mesuré, sans quoi un zéro se lit
+comme un constat. `--contexte "une question"` en tire un extrait borné, prêt à donner à lire :
+[Faire lire le rapport par une IA](docs/outil/integration-ia.md).
+
 [Mode d'emploi complet](docs/outil/mode-emploi.md) — paramètres, fichier de configuration,
 choix de la méthode racine, publication du résultat.
 [Lire le rapport](docs/outil/lire-le-rapport.md) — ce que la page montre, ce qu'elle replie,
@@ -549,6 +554,7 @@ Trois dossiers, selon la question traitée.
 | [Réduire l'empreinte](docs/outil/empreinte.md) | Faire tourner l'outil sur un gros code : trois niveaux d'observation, et les leviers |
 | [Reprendre le résultat ailleurs](docs/outil/exports.md) | Exports `perf`, `cpuprofile`, LCOV — pour Firefox Profiler, speedscope, un éditeur |
 | [Lire le rapport](docs/outil/lire-le-rapport.md) | Ce que la page montre, ce qu'elle replie, et ce qu'on peut lui demander |
+| [Faire lire le rapport par une IA](docs/outil/integration-ia.md) | `faits.jsonl`, `--contexte`, et les trois niveaux d'effort pour interroger une campagne |
 | [Détails techniques](docs/outil/technique.md) | Programme de démonstration et difficultés rencontrées |
 | [Diffusion](docs/outil/distribution.md) | Comment on met l'outil dans les mains de quelqu'un d'autre |
 

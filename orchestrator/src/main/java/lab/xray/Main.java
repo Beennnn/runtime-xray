@@ -69,6 +69,7 @@ public final class Main {
         Config config = new Config();
         Path configFile = null;
         boolean printOptionsOnly = false;
+        String contexteQuestion = null;
         boolean reportOnly = false;
         boolean serve = false;
         int servePort = 8787;
@@ -95,6 +96,10 @@ public final class Main {
                 case "--max-seconds" -> config.maxSeconds = Integer.parseInt(args[++i]);
                 case "--no-values" -> config.captureValues = false;
                 case "--print-options" -> printOptionsOnly = true;
+                // Le paquet de contexte : ce qu'il faut savoir pour répondre à une question,
+                // et rien de plus. Aucun réseau, aucun fournisseur — voir Contexte.
+                case "--contexte" -> contexteQuestion =
+                        i + 1 < args.length && !args[i + 1].startsWith("--") ? args[++i] : "";
                 case "--report-only" -> reportOnly = true;
                 case "--export" -> config.exportFormats = args[++i];
                 case "--niveau" -> config.level = args[++i];
@@ -126,6 +131,17 @@ public final class Main {
                     return 2;
                 }
             }
+        }
+
+        // Lire un rapport déjà assemblé ne lance rien et n'écrit rien : ni configuration à
+        // renseigner, ni --java à fournir. D'où cette sortie avant tout le reste — la
+        // réclamer pour une lecture serait le même contresens que de générer un gabarit
+        // devant un --report-only.
+        if (contexteQuestion != null) {
+            System.out.print(lab.xray.report.Contexte.pour(
+                    Path.of(config.outDir), contexteQuestion,
+                    lab.xray.report.Contexte.BUDGET));
+            return 0;
         }
 
         // Le fichier de configuration est GÉNÉRÉ s'il manque : personne ne devrait avoir à
