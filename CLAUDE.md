@@ -184,6 +184,30 @@ JaCoCo ne sait pas choisir ses exécutions à l'affichage : son rapport est un r
 calculé sur les `.exec` qu'on lui donne. Un sous-ensemble arbitraire demanderait donc un
 rapport par combinaison — c'est précisément ce que le cumul dans la page évite.
 
+## Ce qu'on donne à lire à une IA
+
+`faits.jsonl` s'écrit à côté de la page, un objet JSON par ligne, chacune se comprenant
+seule — son vocabulaire est dans sa première ligne, parce qu'une documentation posée à côté
+se perd dans le premier zip. `--contexte "une question"` en tire un extrait borné et prêt à
+coller. Trois décisions le tiennent, chacune gardée par un test dans `ContexteTest` :
+
+- **Ce qui n'a PAS été mesuré passe avant les chiffres**, et n'est jamais élagué par le
+  budget. Un lecteur qui voit les chiffres d'abord les a déjà interprétés quand il arrive
+  aux réserves ; un modèle produira en plus une réponse assurée sur un zéro qui ne mesurait
+  rien.
+- **Rien n'est coupé en silence** — ni par le budget, ni quand une famille est vide. Un bloc
+  vide se lit exactement comme un bloc qu'on n'a pas su remplir, ici comme dans la page.
+- **Les lignes sont recopiées telles quelles.** Relire puis réécrire un JSON rendrait `41`
+  en `41.0` : le format ne distingue pas l'entier du flottant, et ce détail fait douter du
+  reste.
+
+**L'outil ne parle à personne** : aucun nom de fournisseur, aucune clé, aucun appel réseau.
+Le format des requêtes change tous les six mois ; le besoin de donner un texte borné et
+exact, non. `bin/demander.sh` porte les trois enveloppes du moment (`openai`, `anthropic`,
+`gemini`) côte à côte, en une trentaine de lignes chacune — et « openai » y désigne la
+**forme** de la requête, pas le fournisseur. Les valeurs capturées ne sortent jamais : elles
+restent dans leur bloc, sur le disque, et deux tests le gardent.
+
 ## Conventions
 
 - **Tout est en français** : code, commentaires, messages de commit, noms de tests
