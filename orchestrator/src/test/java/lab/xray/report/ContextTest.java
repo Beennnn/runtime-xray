@@ -21,9 +21,9 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Le paquet de contexte est ce qu'un modèle lira <b>à la place</b> du rapport. Ce qu'on en
- * retire, il ne l'apprendra pas ; ce qu'on y met sans le dire, il le prendra pour la vérité
- * entière. D'où ces tests : ils gardent moins un format qu'une honnêteté.
+ * The context pack is what a model will read <b>instead of</b> the report. What is taken out
+ * of it, the model will not learn; what is put in without saying so, it will take for the
+ * whole truth. Hence these tests: they guard less a format than an honesty.
  */
 class ContextTest {
 
@@ -32,14 +32,14 @@ class ContextTest {
         lines.add(Json.write(Map.of("fact", "campaign", "outil", "runtime-xray",
                 "runs", 2, "vocabulary", Facts.VOCABULARY)));
         lines.add(Json.write(Map.of("fact", "unavailable", "run", "B",
-                "what", "time", "why", "aucun relevé de pile n'a été pris",
-                "consequence", "aucun pourcentage de temps n'est calculable",
-                "remedy", "relancer sous Linux")));
+                "what", "time", "why", "no stack sample was taken",
+                "consequence", "no time percentage can be computed",
+                "remedy", "re-run on Linux")));
         lines.add(Json.write(Map.of("fact", "caveat", "run", "A", "what", "time",
-                "caveat", "une partie des relevés a été rattachée à l'appelant")));
+                "caveat", "some of the samples were attributed to the caller")));
         for (int i = 0; i < deadClasses; i++) {
             lines.add(Json.write(Map.of("fact", "class.never_executed",
-                    "classe", "com.example.app.Classe" + i,
+                    "classe", "com.example.app.Class" + i,
                     "runsAnalysed", List.of("A", "B"))));
         }
         Path f = dir.resolve(Facts.FILE);
@@ -48,7 +48,7 @@ class ContextTest {
     }
 
     @Test
-    @DisplayName("Ce qui n'a pas été mesuré vient AVANT les chiffres, jamais après")
+    @DisplayName("What was NOT measured comes BEFORE the figures, never after")
     void whatWasNotMeasuredComesFirst(@TempDir Path dir) throws Exception {
         factsFile(dir, 3);
         String pkg = Context.of(dir, "which classes never ran?",
@@ -56,89 +56,89 @@ class ContextTest {
 
         int unavailabilities = pkg.indexOf("NOT measured");
         int facts = pkg.indexOf("```jsonl");
-        assertTrue(unavailabilities > 0, "la section doit exister");
+        assertTrue(unavailabilities > 0, "the section must exist");
         assertTrue(unavailabilities < facts,
-                "un lecteur qui voit les chiffres d'abord les a déjà interprétés quand il "
-                + "arrive aux réserves : l'ordre EST l'information");
-        assertTrue(pkg.contains("aucun relevé de pile n'a été pris"));
-        assertTrue(pkg.contains("une partie des relevés a été rattachée à l'appelant"),
-                "une réserve porte sur une mesure qui existe : elle compte aussi");
+                "a reader who sees the figures first has already interpreted them by the "
+                + "time they reach the caveats: the order IS the information");
+        assertTrue(pkg.contains("no stack sample was taken"));
+        assertTrue(pkg.contains("some of the samples were attributed to the caller"),
+                "a caveat bears on a measurement that exists: it counts too");
     }
 
     @Test
-    @DisplayName("Le budget serré n'écarte jamais une indisponibilité, seulement des mesures")
+    @DisplayName("A tight budget never drops an unavailability, only measurements")
     void theBudgetNeverDropsAnUnavailability(@TempDir Path dir) throws Exception {
         factsFile(dir, 400);
-        // Un budget qui ne laisse passer que l'en-tête : c'est le cas limite qui décide.
+        // A budget that lets only the header through: this is the edge case that decides.
         String pkg = Context.of(dir, "classes jamais exécutées", 3_000);
 
-        assertTrue(pkg.contains("aucun relevé de pile n'a été pris"),
-                "l'absence de mesure est ce qui empêche une conclusion fausse : elle reste, "
-                + "même quand tout le reste est coupé");
+        assertTrue(pkg.contains("no stack sample was taken"),
+                "a missing measurement is what prevents a false conclusion: it stays, "
+                + "even when everything else is cut");
         assertTrue(pkg.contains("left out"),
-                "une troncature muette fait conclure sur un échantillon en croyant voir tout");
+                "a silent truncation makes one conclude on a sample believing one sees everything");
         assertTrue(pkg.contains("INCOMPLETE"));
         assertTrue(pkg.length() < 3_000 + 2_000,
-                "le budget doit être tenu à l'avertissement près, sinon il ne sert à rien");
+                "the budget must be held to within the warning, otherwise it serves no purpose");
     }
 
     @Test
-    @DisplayName("Le vocabulaire et les pièges de lecture voyagent avec les faits")
+    @DisplayName("The vocabulary and the reading traps travel with the facts")
     void theLegendTravelsWithTheData(@TempDir Path dir) throws Exception {
         factsFile(dir, 2);
         String pkg = Context.of(dir, "", Context.BUDGET);
 
-        // Un modèle qui n'a jamais vu ce format doit pouvoir le lire : on joint la légende,
-        // pas un lien vers elle.
+        // A model that has never seen this format must be able to read it: we attach the
+        // legend, not a link to it.
         assertTrue(pkg.contains("class.never_executed"));
         assertTrue(pkg.contains("Three reading traps"));
         assertTrue(pkg.contains("does not mean \"never ran\""));
         assertTrue(pkg.contains("says nothing about whether it is correct"),
-                "un taux de couverture pris pour une note de qualité est l'erreur la plus "
-                + "banale, et un modèle la commet aussi");
+                "a coverage rate taken for a quality grade is the most ordinary mistake, "
+                + "and a model makes it too");
     }
 
     @Test
-    @DisplayName("Une question qu'on ne sait pas classer donne la vue d'ensemble, pas le vide")
+    @DisplayName("A question one cannot classify gives the overview, not emptiness")
     void anUnrecognisedQuestionStillGetsAnAnswerablePack(@TempDir Path dir) throws Exception {
         factsFile(dir, 2);
         String pkg = Context.of(dir, "est-ce que ce truc marche bien ?", Context.BUDGET);
         assertTrue(pkg.contains("class.never_executed"),
-                "faute de mieux on donne de quoi répondre, plutôt qu'un paquet vide");
+                "for want of better, we give something to answer with, rather than an empty pack");
     }
 
     @Test
-    @DisplayName("Sans rapport assemblé, on dit quoi faire — on n'invente pas un contexte")
+    @DisplayName("Without an assembled report, we say what to do — we invent no context")
     void withoutAReportItSaysWhatToDo(@TempDir Path dir) {
         Exception e = assertThrows(Exception.class,
                 () -> Context.of(dir, "une question", Context.BUDGET));
         assertTrue(String.valueOf(e.getMessage()).contains("--report-only"),
-                "le message doit porter le geste qui débloque");
+                "the message must carry the gesture that unblocks");
     }
 
     @Test
-    @DisplayName("Un bloc de faits vide s'explique, sinon il se lit comme une extraction ratée")
+    @DisplayName("An empty fact fence explains itself, otherwise it reads as a failed extraction")
     void anEmptyFenceExplainsItself(@TempDir Path dir) throws Exception {
-        // La campagne contient des faits, mais aucun de la famille demandée. Sans un mot, le
-        // lecteur ne peut pas trancher entre « il n'y en a pas » et « l'outil a échoué » :
-        // deux conclusions opposées à partir du même vide.
+        // The campaign holds facts, but none of the family asked for. Without a word, the
+        // reader cannot decide between "there are none" and "the tool failed": two opposite
+        // conclusions from the same emptiness.
         factsFile(dir, 0);
         String pkg = Context.of(dir, "which classes never ran?",
                 Context.BUDGET);
 
         assertTrue(pkg.contains("No fact of these families"));
         assertTrue(pkg.contains("Families present in the file"),
-                "dire ce qu'il Y A permet de conclure que le reste manque vraiment");
+                "saying what IS there is what allows concluding that the rest really is missing");
         assertTrue(pkg.contains("unavailable"),
-                "la liste des familles présentes doit être celle du fichier, pas une devinette");
+                "the list of families present must be the file's, not a guess");
     }
 
     @Test
-    @DisplayName("Un compte entier s'écrit 29, jamais 29.0 — dans l'en-tête comme dans les faits")
+    @DisplayName("An integer count is written 29, never 29.0 — in the header as in the facts")
     void anIntegerCountIsWrittenAsAnInteger(@TempDir Path dir) throws Exception {
-        // Le JSON relu rend tout nombre en double : un aller-retour transforme 41 en 41.0.
-        // Ce n'est pas faux, mais c'est le détail qui fait douter du reste — chez un lecteur
-        // humain comme chez un modèle.
+        // JSON read back renders every number as a double: a round trip turns 41 into 41.0.
+        // It is not wrong, but it is the detail that casts doubt on the rest — for a human
+        // reader as much as for a model.
         Path f = factsFile(dir, 0);
         Files.writeString(f, Files.readString(f, StandardCharsets.UTF_8)
                 + "{\"fact\":\"method.hot\",\"method\":\"com.example.app.Repository.load\","
@@ -147,17 +147,17 @@ class ContextTest {
         String pkg = Context.of(dir, "where does the time go?", Context.BUDGET);
         assertTrue(pkg.contains("runs : 2"));
         assertFalse(pkg.contains("runs : 2.0"));
-        assertTrue(pkg.contains("\"samples\":41"), "la ligne d'origine est recopiée telle quelle");
+        assertTrue(pkg.contains("\"samples\":41"), "the original line is copied as it is");
         assertFalse(pkg.contains("41.0"));
         assertTrue(pkg.contains("\"pct\":100.0"),
-                "et un flottant reste un flottant : on recopie, on ne reformate pas");
+                "and a float stays a float: we copy, we do not reformat");
     }
 
     @Test
-    @DisplayName("Aucune valeur capturée ne part vers un service tiers")
+    @DisplayName("No captured value ever leaves for a third-party service")
     void noCapturedValueEverLeaves(@TempDir Path dir) throws Exception {
-        // Les faits n'en portent pas — un test de Facts le garde. Celui-ci garde le maillon
-        // suivant : ce qui SORT de la machine vers un modèle, parfois hébergé ailleurs.
+        // The facts carry none — a Facts test guards that. This one guards the next link:
+        // what LEAVES the machine for a model, sometimes hosted elsewhere.
         Path f = factsFile(dir, 1);
         Files.writeString(f, Files.readString(f, StandardCharsets.UTF_8)
                 + Json.write(Map.of("fact", "classe", "classe", "com.example.app.A",
@@ -166,16 +166,16 @@ class ContextTest {
         String pkg = Context.of(dir, "couverture", Context.BUDGET);
         assertFalse(pkg.contains("motDePasse"));
         assertFalse(pkg.contains("params"),
-                "les valeurs de paramètres restent dans leur bloc, sur le disque");
+                "parameter values stay in their block, on disk");
     }
 
     @Test
-    @DisplayName("Nommer les familles prime sur la question, et le résultat ne dépend plus des mots")
+    @DisplayName("Naming the families wins over the question, and the result no longer depends on words")
     void namingTheFamiliesWinsOverTheQuestion(@TempDir Path dir) throws Exception {
         factsFile(dir, 2);
-        // Une question dont les mots-clés désignent le temps, mais un script qui demande
-        // les classes mortes : c'est la demande explicite qui doit gagner, sans quoi le
-        // script produirait autre chose que ce qu'il croit lire.
+        // A question whose keywords point at time, but a script asking for the dead
+        // classes: the explicit request must win, otherwise the script would produce
+        // something other than what it believes it is reading.
         Context.Pack p = Context.of(dir, "where does the time go?",
                 List.of("class.never_executed"), Context.BUDGET);
 
@@ -183,32 +183,33 @@ class ContextTest {
         assertEquals(List.of("class.never_executed"), p.families());
         assertTrue(p.text().contains("class.never_executed"));
         assertFalse(p.text().contains("methode.chaude\""),
-                "la question ne doit plus rien choisir quand on a nommé les familles");
-        // Elle continue en revanche de voyager : c'est son autre rôle.
+                "the question must choose nothing once the families are named");
+        // It does keep travelling, though: that is its other role.
         assertTrue(p.text().contains("where does the time go?"));
     }
 
     @Test
-    @DisplayName("Une famille inconnue s'arrête net, avec la liste de celles qui existent")
+    @DisplayName("An unknown family stops dead, with the list of the ones that exist")
     void anUnknownFamilyStopsAndListsTheRealOnes(@TempDir Path dir) throws Exception {
         factsFile(dir, 1);
-        // L'inverse du texte libre, et délibérément : une phrase vient d'un humain qui
-        // cherche, une famille vient d'un script. Un script qui se trompe a un défaut, et
-        // le lui taire produirait un paquet silencieusement différent de son attente.
+        // The opposite of free text, and deliberately so: a sentence comes from a human
+        // searching, a family comes from a script. A script that gets it wrong has a defect,
+        // and keeping quiet about it would produce a pack silently different from what it
+        // expects.
         Exception e = assertThrows(Exception.class, () -> Context.of(dir, "",
                 List.of("classes.mortes"), Context.BUDGET));
         assertTrue(String.valueOf(e.getMessage()).contains("classes.mortes"));
         assertTrue(String.valueOf(e.getMessage()).contains("class.never_executed"),
-                "dire ce qui existe, pas seulement que ce qu'on a donné n'existe pas");
+                "say what exists, not only that what was given does not");
     }
 
     @Test
-    @DisplayName("L'opérateur sait ce qui a été compris de sa question, ou qu'elle ne l'a pas été")
+    @DisplayName("The operator learns what was understood of their question, or that it was not")
     void theOperatorLearnsWhatWasUnderstood(@TempDir Path dir) throws Exception {
         factsFile(dir, 1);
-        // Le cœur du problème : une question en toutes lettres A L'AIR d'être comprise.
-        // Sans ce retour, personne ne sait que « quelles classes n'ont jamais tourné ? »
-        // se réduit au seul mot « jamais ».
+        // The heart of the problem: a question written out in full LOOKS understood.
+        // Without this feedback, nobody knows that "which classes never ran?" boils down to
+        // the single word "never".
         Context.Pack recognised = Context.of(dir, "which classes never ran?",
                 List.of(), Context.BUDGET);
         assertEquals(Context.Origin.KEYWORDS, recognised.origin());
@@ -218,52 +219,52 @@ class ContextTest {
                 List.of(), Context.BUDGET);
         assertEquals(Context.Origin.OVERVIEW, silent.origin());
         assertTrue(silent.announcement().contains("no keyword recognised"),
-                "un repli qui passe pour une lecture réussie est pire que pas de repli");
-        assertFalse(silent.families().isEmpty(), "on répond quand même");
+                "a fallback that passes for a successful reading is worse than no fallback");
+        assertFalse(silent.families().isEmpty(), "we answer all the same");
     }
 
     @Test
-    @DisplayName("Tout mot-clé anglais est écrit dans l'aide : sinon il est introuvable")
+    @DisplayName("Every English keyword is written in the help: otherwise it cannot be found")
     void everyEnglishKeywordIsWrittenInTheHelp() throws Exception {
-        // Le reproche fait à cette option est qu'elle n'est pas découvrable : « --help » ne
-        // peut pas énumérer ce qui marche. Il le peut, à condition que la table ne pourrisse
-        // pas — et une table de documentation ne casse aucun build.
+        // The reproach made to this option is that it is not discoverable: "--help" cannot
+        // enumerate what works. It can, provided the table does not rot — and a documentation
+        // table breaks no build.
         String help = help();
         for (Map.Entry<String, String[]> e : Context.WORDS.entrySet()) {
             for (String word : e.getValue()) {
-                assertTrue(help.contains(word), "le mot-clé « " + word + " » déclenche « "
-                        + e.getKey() + " » mais n'est écrit nulle part dans l'aide : "
-                        + "personne ne peut le deviner");
+                assertTrue(help.contains(word), "keyword \"" + word + "\" triggers \""
+                        + e.getKey() + "\" but is written nowhere in the help: "
+                        + "nobody can guess it");
             }
         }
     }
 
     @Test
-    @DisplayName("Les mots français marchent sans être documentés, et l'aide le dit")
+    @DisplayName("The French words work without being documented, and the help says so")
     void theFrenchWordsWorkWithoutBeingDocumented() throws Exception {
-        // L'outil parle anglais : une seconde table dans l'aide la rendrait illisible pour
-        // ceux à qui elle s'adresse. Mais taire complètement leur existence ferait croire à
-        // un francophone que sa question n'a pas été lue.
+        // The tool speaks English: a second table in the help would make it unreadable for
+        // those it addresses. But keeping their existence entirely quiet would make a French
+        // speaker believe their question was not read.
         assertEquals(Context.WORDS.keySet(), Context.WORDS_FR.keySet(),
-                "chaque famille documentée doit avoir ses mots français, et l'inverse");
+                "every documented family must have its French words, and the converse");
         assertEquals(List.of("class.never_executed"),
                 Context.recognisedFamilies("quelles classes n'ont jamais tourné ?"));
         assertEquals(List.of("method.hot"), Context.recognisedFamilies("quel est le coût ?"),
-                "les accents ne doivent pas empêcher la reconnaissance");
+                "accents must not prevent recognition");
         assertTrue(help().contains("French words are recognised too"),
-                "leur existence doit être dite, même sans la table");
+                "their existence must be stated, even without the table");
     }
 
     @Test
-    @DisplayName("Un mot-clé ouvre un mot : « screenshot » ne déclenche pas « hot »")
+    @DisplayName("A keyword opens a word: \"screenshot\" does not trigger \"hot\"")
     void aKeywordOpensAWordItIsNotFoundAnywhere() {
-        // Chercher n'importe où dans la chaîne paraissait plus généreux et se retournait
-        // contre nous. Le passage à l'anglais aggravait le défaut : « hot » vit dans
-        // « screenshot », « rate » dans « generate », « cout » dans « écouter ».
+        // Searching anywhere in the string looked more generous and turned against us. The
+        // switch to English made the defect worse: "hot" lives inside "screenshot", "rate"
+        // inside "generate", "cout" inside "écouter".
         assertTrue(Context.recognisedFamilies("show me a screenshot").isEmpty());
         assertTrue(Context.recognisedFamilies("generate a report").isEmpty());
         assertTrue(Context.recognisedFamilies("je veux écouter les journaux").isEmpty());
-        // Les flexions, elles, restent attrapées : c'est tout l'intérêt d'un début de mot.
+        // Inflections, on the other hand, are still caught: that is the whole point of a word start.
         assertEquals(List.of("source.missing", "source.hint"),
                 Context.recognisedFamilies("il manque des sources"));
         assertEquals(List.of("class.never_executed"),
@@ -271,12 +272,12 @@ class ContextTest {
     }
 
     @Test
-    @DisplayName("Un rapport 1.0 renvoie à --report-only, faute d'un migrateur qui n'existe pas")
+    @DisplayName("A 1.0 report points at --report-only, for want of a migrator that does not exist")
     void aFormatOneReportPointsAtReportOnly(@TempDir Path dir) throws Exception {
-        // Il n'y a pas d'outil de migration, et c'est un constat : faits.jsonl est dérivé
-        // des mesures, donc --report-only le réécrit entièrement dans le format courant,
-        // avec au passage tous les correctifs accumulés. Un migrateur n'aurait renommé que
-        // des clés dans un fichier resté périmé par ailleurs.
+        // There is no migration tool, and that is a finding: faits.jsonl is derived from
+        // the measurements, so --report-only rewrites it entirely in the current format,
+        // picking up every accumulated fix along the way. A migrator would only have renamed
+        // keys in a file left stale in every other respect.
         Files.writeString(dir.resolve(Facts.FILE),
                 "{\"fait\":\"campagne\",\"outil\":\"runtime-xray\"}\n"
                 + "{\"fait\":\"classe.jamais_executee\",\"classe\":\"a.B\"}\n",
@@ -286,10 +287,10 @@ class ContextTest {
         Exception withSamples = assertThrows(Exception.class,
                 () -> Context.of(dir, "", Context.BUDGET));
         assertTrue(String.valueOf(withSamples.getMessage()).contains("--report-only"),
-                "les mesures sont là : le geste qui débloque est de régénérer");
+                "the measurements are there: the gesture that unblocks is to regenerate");
 
-        // Amputée de runs/, rien ne peut être régénéré — et le dire vaut mieux que
-        // proposer une commande qui échouera.
+        // With runs/ gone, nothing can be regenerated — and saying so is worth more than
+        // offering a command that will fail.
         Files.delete(dir.resolve("runs"));
         Exception withoutSamples = assertThrows(Exception.class,
                 () -> Context.of(dir, "", Context.BUDGET));
@@ -298,10 +299,10 @@ class ContextTest {
     }
 
     @Test
-    @DisplayName("Les noms de familles de la 1.0 restent acceptés par --families")
+    @DisplayName("The 1.0 family names are still accepted by --families")
     void theFormatOneFamilyNamesAreStillAccepted(@TempDir Path dir) throws Exception {
-        // Un script de recette écrit contre la 1.0 ne doit pas s'arrêter parce que le
-        // format a changé de langue.
+        // An acceptance script written against 1.0 must not stop because the format changed
+        // language.
         factsFile(dir, 2);
         Context.Pack p = Context.of(dir, "", List.of("classe.jamais_executee"),
                 Context.BUDGET);
