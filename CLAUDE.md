@@ -247,9 +247,18 @@ restent dans leur bloc, sur le disque, et deux tests le gardent.
 
 ## Conventions
 
-- **Tout est en français** : code, commentaires, messages de commit, noms de tests
-  affichés (`@DisplayName`). Les noms de méthodes de test restent en anglais, comme
-  l'exige la lisibilité des rapports JUnit.
+- **L'outil parle anglais ; le dépôt est encore en français.** La bascule est décidée et
+  se fait par étapes — l'aide, les exemples et les mots-clés y sont déjà passés, les
+  messages console, la vue, le format et le code suivront. En attendant, deux règles
+  cohabitent sans se contredire : **tout ce que l'utilisateur voit est en anglais**, et le
+  reste — code, commentaires, `@DisplayName`, messages de commit — **reste en français
+  jusqu'à ce que son étape arrive**. Les exemples, eux, sont en anglais **partout**, y
+  compris dans une prose française : `com.example.app`, `--contexte "which classes never
+  ran?"`. Un exemple français dans une documentation anglaise est ce qui se remarque en
+  premier.
+- **Un nom d'option français reste accepté pour toujours**, silencieusement, quand son
+  équivalent anglais arrivera. Les scripts déjà déployés ne cassent jamais. Seul
+  `faits.jsonl` cassera, en format 2.0, et c'est assumé : il a trois jours.
 - **Un commit explique pourquoi**, pas ce que le diff montre déjà. Le sujet est une
   phrase, pas une étiquette.
 - **Un test garde une décision.** Les tests d'ici ne vérifient pas des lignes mais des

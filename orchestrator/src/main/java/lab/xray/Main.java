@@ -140,8 +140,12 @@ public final class Main {
                     }
                 }
                 default -> {
-                    System.err.println("Option inconnue : " + a);
-                    usage();
+                    // Le message court, et le renvoi — pas l'aide entière. Déverser cent
+                    // lignes sur la sortie standard chasse de l'écran la seule ligne qui
+                    // explique le problème, et l'utilisateur ne voit que la fin de l'aide,
+                    // c'est-à-dire ce qui ne le concerne pas.
+                    System.err.println("runtime-xray: unknown option: " + a);
+                    System.err.println("Try \"runtime-xray --help\" for the list of options.");
                     return 2;
                 }
             }
@@ -876,83 +880,102 @@ public final class Main {
 
     private static void usage() {
         System.out.println("""
-                Runtime X-Ray — voir ce qu'une exécution Java a réellement fait.
+                Runtime X-Ray \u2014 see what a Java run actually did.
 
-                  java -jar runtime-xray.jar --config mon-projet.conf
+                SYNOPSIS
+                  runtime-xray --java <command> [options]          measure a run
+                  runtime-xray --print-options [options]           prepare a JVM you don't launch
+                  runtime-xray --report-only [options]             rebuild the report, run nothing
+                  runtime-xray --contexte [<question>] [options]   extract a bounded excerpt
+                  runtime-xray --serve [<port>] [options]          serve the report, allow notes
+
+                EXAMPLES
+                  java -jar runtime-xray.jar --config my-project.conf
                   java -jar runtime-xray.jar --java "java -jar app.jar" --classes target/classes \\
-                                             --root "com.exemple.Moteur::calculer" --sources src/main/java
+                                             --root "com.example.Engine::compute" --sources src/main/java
 
-                Options
-                  --config <fichier>   Lit les réglages depuis un fichier. GÉNÈRE un gabarit
-                                       commenté si le fichier n'existe pas.
-                  --java "<commande>"  La commande qui lance l'application, telle quelle.
-                  --classes <chemins>  Répertoires de .class et/ou jar, séparés par ':'
-                                       (ou ';' sous Windows, où « C: » n'est pas coupé).
-                                       Obligatoire.
-                  --hide "<paquets>"   Paquets à taire comme le JDK, ex. "org.slf4j".
-                  --root "<C::m>"      Méthode racine : celle dont on capture les valeurs.
-                  --sources <dirs>     Répertoires de sources, séparés par ':' (ou ';'
-                                       sous Windows, où « C: » n'est pas coupé).
-                  --filter "<motif>"   Restreint les mesures de temps, ex. "com/exemple/*".
-                  --out <dir>          Répertoire de sortie (défaut : runtime-xray-out).
-                  --name "<texte>"     Nom de cette exécution ; elles s'accumulent et la vue
-                                       permet de passer de l'une à l'autre.
-                  --attach-after <s>   Délai avant l'inspection des valeurs (défaut : 8).
-                  --max-seconds <s>    Garde-fou sur la durée (défaut : 600).
-                  --no-values          N'inspecte pas les valeurs : mesures de temps exactes.
-                  --niveau <n>         Jusqu'où observer : couverture (JaCoCo seul), arbre
-                                       (+ échantillonnage), complet (+ valeurs). Défaut :
-                                       complet. Le levier à baisser sur un gros code.
-                  --cover "<motifs>"   Classes que JaCoCo instrumente, ex. "com.exemple.*".
-                                       Sans lui, tout ce que la JVM charge est instrumenté.
-                  --interval <ms>      Intervalle d'échantillonnage des piles (défaut : 1).
-                  --suivi [port]       Sert une page qui montre l'exécution en cours (défaut :
-                                       8788, boucle locale). Le fichier progression.jsonl, lui,
-                                       s'écrit toujours : « tail -f <out>/progression.jsonl »
-                                       suit l'exécution sans navigateur ni port ouvert.
-                  --print-options      N'exécute rien : affiche les options JVM à ajouter à une
-                                       ligne de commande quelconque, puis sortez par --report-only.
-                  --repo <url>         Dépôt Maven d'où tirer les composants (miroir interne).
-                  --composants <rép>   Composants déjà présents sur la machine, à prendre
-                                       tels quels. À défaut : le voisinage du jar, puis le
-                                       dépôt Maven local. Le réseau est le dernier recours.
-                  --contexte ["q"]     N'exécute rien : écrit sur la sortie standard un extrait
-                                       borné du rapport, prêt à donner à lire. La question
-                                       CHOISIT les faits joints — par simples mots-clés, pas par
-                                       compréhension — et elle est recopiée dans le paquet.
-                                       Les familles retenues sont annoncées sur la sortie
-                                       d'erreur. Mots reconnus, par famille jointe :
-                                         classe.jamais_executee  jamais, mort, morte, inutilis,
-                                                                 non couvert, pas couvert,
-                                                                 dead, unused
-                                         couverture.execution    couvert, couverture, coverage,
-                                         + classe                taux, pourcent
-                                         methode.chaude          temps, lent, lente, coût, cout,
-                                                                 chaud, perf, rapide, profil
-                                         source.introuvable      source, introuvable, manque,
-                                         + piste.source          manquant, racine, code
-                                         execution               exécution, execution, campagne,
-                                                                 quand, machine, commande
-                                       Aucun mot reconnu : vue d'ensemble, et c'est dit.
-                  --familles a,b       Nomme les familles de faits à joindre, au lieu de les
-                                       déduire de la question. Chemin des scripts : le résultat
-                                       ne dépend plus des mots employés. Une famille inconnue
-                                       s'arrête, avec la liste de celles qui existent.
-                  --report-only        Assemble la vue depuis des mesures déjà collectées.
-                  --serve [port]       Sert le rapport (défaut : 8787) et laisse la page
-                                       écrire ses annotations à côté des exécutions, puis la
-                                       régénère. Plusieurs personnes peuvent annoter à la fois.
-                  --serve-host <hôte>  Interface d'écoute (défaut : 127.0.0.1). Mettre
-                                       0.0.0.0 pour un serveur partagé.
-                  --serve-token [s]    Garde le rapport servi par un secret partagé, demandé
-                                       une fois puis retenu 12 h. Sans valeur, un secret est
-                                       tiré au sort et affiché. XRAY_SERVE_TOKEN fait de
-                                       même sans l'exposer dans « ps ». Sans cette option,
-                                       rien n'est demandé : à réserver à la boucle locale ou
-                                       à un réseau déjà filtré.
-                  --export <formats>   Réécrit les mesures pour d'autres outils : perf,
-                                       cpuprofile, lcov, valeurs — ou « tout ». Les fichiers
-                                       vont dans <exécution>/exports/.
+                MEASURING
+                  --config <file>      Read settings from a file. GENERATES a commented
+                                       template when the file does not exist.
+                  --java "<command>"   The command that launches the application, verbatim.
+                  --classes <paths>    Directories of .class files and/or jars, separated by
+                                       ':' (or ';' on Windows, where "C:" is not split).
+                  --root "<C::m>"      Root method: the one whose argument values are captured.
+                  --sources <dirs>     Source roots, separated by ':' (or ';' on Windows).
+                  --filter "<glob>"    Restrict timing measurements, e.g. "com/example/*".
+                  --hide "<packages>"  Packages to fold away like the JDK, e.g. "org.slf4j".
+                  --out <dir>          Output directory (default: runtime-xray-out).
+                  --name "<text>"      Name for this run; runs accumulate and the report lets
+                                       you switch between them.
+                  --niveau <level>     How deep to observe: couverture (JaCoCo only), arbre
+                                       (+ stack sampling), complet (+ values). Default:
+                                       complet. The first knob to turn down on a large codebase.
+                  --cover "<globs>"    Classes JaCoCo instruments, e.g. "com.example.*".
+                                       Without it every class the JVM loads is instrumented.
+                  --interval <ms>      Stack sampling interval (default: 1).
+                  --attach-after <s>   Delay before inspecting values (default: 8).
+                  --max-seconds <s>    Guard rail on the run duration (default: 600).
+                  --no-values          Do not inspect values: timings become exact.
+                  --export <formats>   Rewrite measurements for other tools: perf, cpuprofile,
+                                       lcov, valeurs \u2014 or "tout". Files go to <run>/exports/.
+
+                WATCHING A RUN
+                  --suivi [port]       Serve a page showing the run in progress (default:
+                                       8788, loopback only). progression.jsonl is written
+                                       either way: "tail -f <out>/progression.jsonl" follows
+                                       the run with no browser and no open port.
+
+                READING A REPORT \u2014 these run nothing
+                  --report-only        Rebuild the report from measurements already on disk.
+                  --contexte ["q"]     Write a bounded excerpt of the report to standard
+                                       output, ready to hand to a reader. The question SELECTS
+                                       the facts \u2014 by plain keywords, not by understanding
+                                       \u2014 and travels inside the excerpt. The families kept
+                                       are announced on standard error. Keywords, by family:
+                                         classe.jamais_executee  never, dead, unused, uncovered,
+                                                                 not covered
+                                         couverture.execution    cover, coverage, percent
+                                         + classe
+                                         methode.chaude          time, slow, hot, cost, perf,
+                                                                 fast, profil
+                                         source.introuvable      source, missing, root
+                                         + piste.source
+                                         execution               run, campaign, when, machine,
+                                                                 command
+                                       A keyword matches the START of a word, so "screenshot"
+                                       does not match "hot". French words are recognised too.
+                                       No keyword matched: the overview, and it says so.
+                  --familles a,b       Name the fact families to include instead of deriving
+                                       them from the question. The scripting path: the result
+                                       no longer depends on the words used. An unknown family
+                                       stops, listing the ones that exist.
+
+                SERVING
+                  --serve [port]       Serve the report (default: 8787) and let the page write
+                                       its annotations next to the runs, then rebuild it.
+                                       Several people can annotate at once.
+                  --serve-host <host>  Listening interface (default: 127.0.0.1). Use 0.0.0.0
+                                       for a shared server.
+                  --serve-token [s]    Guard the served report with a shared secret, asked once
+                                       then remembered for 12 h. With no value, a secret is
+                                       drawn at random and printed. XRAY_SERVE_TOKEN does the
+                                       same without exposing it in "ps". Without this option
+                                       nothing is asked: keep it to loopback or an already
+                                       filtered network.
+
+                FINDING THE ANALYSIS COMPONENTS
+                  --composants <dir>   Components already present on the machine, taken as is.
+                                       Otherwise: next to the jar, then the local Maven
+                                       repository. The network is the last resort.
+                  --repo <url>         Maven repository to fetch components from (internal
+                                       mirror). Used only when everything else failed.
+
+                  --print-options      Run nothing: print the JVM options to add to any command
+                                       line, then assemble with --report-only.
+
+                EXIT STATUS
+                  0  success, or --help
+                  2  bad usage: unknown option, unknown fact family
                 """);
     }
 }

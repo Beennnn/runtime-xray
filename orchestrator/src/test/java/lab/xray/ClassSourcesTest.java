@@ -51,8 +51,8 @@ class ClassSourcesTest {
     void findsClassesInJarsAndDirectories(@TempDir Path dir) throws IOException {
         Path fromJar = dir.resolve("depuis-jar.class");
         assertTrue(Main.copyClassBytes(
-                List.of(jarWith(dir, "lib.jar", "org/exemple/Noyau.class")),
-                "org/exemple/Noyau.class", fromJar));
+                List.of(jarWith(dir, "lib.jar", "com/example/Noyau.class")),
+                "com/example/Noyau.class", fromJar));
         assertEquals(BYTES.length, Files.size(fromJar));
 
         Path fromDir = dir.resolve("depuis-repertoire.class");
@@ -67,9 +67,9 @@ class ClassSourcesTest {
     void mixesBothKinds(@TempDir Path dir) throws IOException {
         List<Path> sources = List.of(
                 dirWith(dir, "classes", "app/Calcul.class"),
-                jarWith(dir, "lib.jar", "org/exemple/Noyau.class"));
+                jarWith(dir, "lib.jar", "com/example/Noyau.class"));
         assertTrue(Main.copyClassBytes(sources, "app/Calcul.class", dir.resolve("a.class")));
-        assertTrue(Main.copyClassBytes(sources, "org/exemple/Noyau.class", dir.resolve("b.class")));
+        assertTrue(Main.copyClassBytes(sources, "com/example/Noyau.class", dir.resolve("b.class")));
     }
 
     @Test
@@ -88,8 +88,8 @@ class ClassSourcesTest {
     @Test
     @DisplayName("Une classe est trouvée dans un jar applicatif rangé à la Spring Boot")
     void findsClassesUnderBootInfClasses(@TempDir Path dir) throws IOException {
-        Path app = jarWith(dir, "appli.jar", "BOOT-INF/classes/com/exemple/Moteur.class");
-        assertTrue(Main.copyClassBytes(List.of(app), "com/exemple/Moteur.class",
+        Path app = jarWith(dir, "appli.jar", "BOOT-INF/classes/com/example/Moteur.class");
+        assertTrue(Main.copyClassBytes(List.of(app), "com/example/Moteur.class",
                 dir.resolve("o.class")), "le préfixe BOOT-INF/classes doit être traversé");
     }
 
@@ -100,14 +100,14 @@ class ClassSourcesTest {
         // Sans descente, tout le code des dépendances manquerait au rapport ciblé, alors que
         // l'outil de couverture, lui, le voit — les deux rapports diraient des choses
         // différentes du même code.
-        Path inner = jarWith(dir, "interne.jar", "org/exemple/Noyau.class");
+        Path inner = jarWith(dir, "interne.jar", "com/example/Noyau.class");
         Path outer = dir.resolve("appli.jar");
         try (OutputStream os = Files.newOutputStream(outer); ZipOutputStream zip = new ZipOutputStream(os)) {
             zip.putNextEntry(new ZipEntry("BOOT-INF/lib/interne.jar"));
             zip.write(Files.readAllBytes(inner));
             zip.closeEntry();
         }
-        assertTrue(Main.copyClassBytes(List.of(outer), "org/exemple/Noyau.class",
+        assertTrue(Main.copyClassBytes(List.of(outer), "com/example/Noyau.class",
                 dir.resolve("o.class")), "le jar imbriqué doit être ouvert");
     }
 
@@ -125,8 +125,8 @@ class ClassSourcesTest {
     @DisplayName("Une classe absente partout est signalée, pas inventée")
     void missingClassReturnsFalse(@TempDir Path dir) throws IOException {
         assertFalse(Main.copyClassBytes(
-                List.of(jarWith(dir, "lib.jar", "org/exemple/Autre.class")),
-                "org/exemple/Absent.class", dir.resolve("o.class")));
+                List.of(jarWith(dir, "lib.jar", "com/example/Autre.class")),
+                "com/example/Absent.class", dir.resolve("o.class")));
     }
 
     @Test
@@ -144,7 +144,7 @@ class ClassSourcesTest {
     @Test
     @DisplayName("Le jar lancé est retenu, lu sur les arguments réels de la JVM")
     void discoversTheLaunchedJar(@TempDir Path dir) throws IOException {
-        Path jar = jarWith(dir, "appli.jar", "com/exemple/Main.class");
+        Path jar = jarWith(dir, "appli.jar", "com/example/Main.class");
         List<Path> found = ClassSources.discover(
                 List.of("-Xmx2g", "-jar", jar.toString(), "--profil", "recette"), "", dir);
         assertEquals(List.of(jar), found);
@@ -161,13 +161,13 @@ class ClassSourcesTest {
         String cp = String.join(File.pathSeparator,
                 classes.toString(), dep.toString(), autre.toString());
         assertEquals(List.of(classes, autre),
-                ClassSources.discover(List.of("-cp", cp, "com.exemple.Main"), "", dir));
+                ClassSources.discover(List.of("-cp", cp, "com.example.Main"), "", dir));
     }
 
     @Test
     @DisplayName("Le -jar l'emporte sur le classpath : c'est lui qui porte le code")
     void jarWinsOverClasspath(@TempDir Path dir) throws IOException {
-        Path jar = jarWith(dir, "appli.jar", "com/exemple/Main.class");
+        Path jar = jarWith(dir, "appli.jar", "com/example/Main.class");
         Path classes = dirWith(dir, "classes", "app/Autre.class");
         List<Path> found = ClassSources.discover(
                 List.of("-cp", classes.toString(), "-jar", jar.toString()), "", dir);
@@ -177,7 +177,7 @@ class ClassSourcesTest {
     @Test
     @DisplayName("Sans arguments lisibles, la commande configurée sert de secours")
     void fallsBackToTheConfiguredCommand(@TempDir Path dir) throws IOException {
-        Path jar = jarWith(dir, "appli.jar", "com/exemple/Main.class");
+        Path jar = jarWith(dir, "appli.jar", "com/example/Main.class");
         assertEquals(List.of(jar),
                 ClassSources.discover(List.of(), "java -jar " + jar, dir));
     }

@@ -40,7 +40,7 @@ une machine fermée, il est fait pour suffire.
 ```bash
 java -jar runtime-xray.jar \
   --java "java -jar target/mon-appli.jar" \
-  --root "com.exemple.moteur.Calculateur::calculer" \
+  --root "com.example.moteur.Calculateur::calculer" \
   --classes target/mon-appli.jar \
   --sources src/main/java
 ```
@@ -144,7 +144,7 @@ Fonctionne donc avec :
 
 ```bash
 --java "java -jar app.jar"
---java "mvn -q exec:java -Dexec.mainClass=com.exemple.Main"
+--java "mvn -q exec:java -Dexec.mainClass=com.example.Main"
 --java "./gradlew run"
 --java "./scripts/demarrer-en-recette.sh"
 ```
@@ -162,7 +162,7 @@ Aucune modification du code analysé, aucun changement dans le build.
 | `ROOT_METHOD` / `--root` | — | `paquet.Classe::methode` : la fonction racine, la seule dont les valeurs de paramètres seront capturées |
 | `SOURCE_DIRS` / `--sources` | — | Les sources, pour afficher le code annoté. Plusieurs racines : séparées par `:` |
 | `HIDDEN_PACKAGES` / `--hide` | — | Paquets à taire comme le JDK, ex. `org.slf4j`. Leur temps revient à l'appelant |
-| `CLASS_FILTER` / `--filter` | — | Restreint les mesures de temps au code applicatif, ex. `com/exemple/*`. Déduit du paquet de `ROOT_METHOD` si absent |
+| `CLASS_FILTER` / `--filter` | — | Restreint les mesures de temps au code applicatif, ex. `com/example/*`. Déduit du paquet de `ROOT_METHOD` si absent |
 | `OUT_DIR` / `--out` | — | Répertoire de sortie (défaut `runtime-xray-out`) |
 | `RUN_NAME` / `--name` | — | Nom lisible de *cette* exécution. Elles s'accumulent, et la vue permet de passer de l'une à l'autre |
 
@@ -186,7 +186,7 @@ coup — **[Réduire l'empreinte sur un gros code](empreinte.md)** détaille la 
 | Paramètre | Défaut | À quoi il sert |
 |---|---|---|
 | `NIVEAU` / `--niveau` | `complet` | Jusqu'où observer : `couverture` (JaCoCo seul), `arbre` (+ échantillonnage), `complet` (+ valeurs). Le premier réglage à baisser quand la mesure coûte trop cher |
-| `COVER_INCLUDES` / `--cover` | tout | Classes que JaCoCo instrumente, ex. `com.exemple.*`. **Sans lui, toute classe chargée est instrumentée**, dépendances comprises : c'est le poste de coût principal |
+| `COVER_INCLUDES` / `--cover` | tout | Classes que JaCoCo instrumente, ex. `com.example.*`. **Sans lui, toute classe chargée est instrumentée**, dépendances comprises : c'est le poste de coût principal |
 | `SAMPLE_INTERVAL_MS` / `--interval` | 1 ms | Intervalle d'échantillonnage des piles. À 10 ms, dix fois moins de relevés |
 | `SUIVI_PORT` / `--suivi` | — | Port de la page de suivi. Sans lui, rien n'est servi — mais `progression.jsonl` est écrit quand même |
 | `EXPORT` / `--export` | — | Réécrit les mesures pour d'autres outils : `perf`, `cpuprofile`, `lcov`, `valeurs`, ou `tout` — voir [les exports](exports.md) |
@@ -199,7 +199,7 @@ coup — **[Réduire l'empreinte sur un gros code](empreinte.md)** détaille la 
 | `--report-only` | Réassemble la page depuis des exécutions déjà sur le disque, sans rien relancer. Utile après avoir annoté une exécution, ou changé les paquets masqués |
 | `--serve [port]` | Sert le rapport (défaut : 8787) et laisse la page **écrire ses annotations** à côté des exécutions, puis la régénère. Plusieurs personnes peuvent annoter à la fois — voir [Annoter les exécutions](annotations.md) |
 | `--suivi [port]` | Sert **une page qui montre l'exécution en cours** (défaut : 8788, boucle locale) : bande d'activité, cœurs occupés, sortie produite, fin du journal. Le fichier `progression.jsonl`, lui, s'écrit **toujours** : `tail -f <out>/progression.jsonl` suit l'exécution sans navigateur ni port ouvert |
-| `--contexte ["question"]` | Écrit sur la sortie standard **un extrait borné du rapport, prêt à donner à lire à un modèle de langage** : les faits qui répondent à la question, leur vocabulaire, et en tête ce qui n'a *pas* été mesuré. N'envoie rien nulle part. Les familles retenues sont **annoncées sur la sortie d'erreur** : `--help` donne la table des mots reconnus — voir [Faire lire le rapport par une IA](integration-ia.md) |
+| `--contexte ["question"]` | Écrit sur la sortie standard **un extrait borné du rapport, prêt à donner à lire à un modèle de langage** : les faits qui répondent à la question, leur vocabulaire, et en tête ce qui n'a *pas* été mesuré. N'envoie rien nulle part. Les familles retenues sont **annoncées sur la sortie d'erreur** ; `--help` donne la table des mots reconnus, **en anglais** — le français marche aussi, sans être documenté — voir [Faire lire le rapport par une IA](integration-ia.md) |
 | `--familles a,b` | Nomme les familles de faits à joindre **au lieu de les déduire de la question**. C'est le chemin des scripts : le résultat ne dépend plus des mots employés. Une famille inconnue s'arrête, avec la liste de celles qui existent |
 | `--serve-host <hôte>` | Interface d'écoute (défaut : `127.0.0.1`). `0.0.0.0` pour un serveur partagé |
 | `--serve-token [secret]` | Garde le rapport servi par un **secret partagé**, demandé une fois puis retenu douze heures. Sans valeur, un secret est tiré au sort et affiché. `XRAY_SERVE_TOKEN` fait de même sans l'exposer dans `ps`. Sans l'option, rien n'est demandé : à réserver à la boucle locale ou à un réseau déjà filtré — voir [ce que ce secret vaut](annotations.md#ce-que-ce-secret-vaut-et-ce-quil-ne-vaut-pas) |

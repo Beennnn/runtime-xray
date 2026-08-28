@@ -23,17 +23,17 @@ Un seul réglage les commande : `--niveau`.
 ```bash
 # 1. le moins cher — la couverture seule
 java -jar runtime-xray.jar --niveau couverture \
-  --java "java -jar app.jar" --cover "com.exemple.*" --sources src/main/java
+  --java "java -jar app.jar" --cover "com.example.*" --sources src/main/java
 
 # 2. + l'arbre d'appel, échantillonné toutes les 10 ms
 java -jar runtime-xray.jar --niveau arbre --interval 10 \
-  --java "java -jar app.jar" --cover "com.exemple.*" --filter "com/exemple/*" \
+  --java "java -jar app.jar" --cover "com.example.*" --filter "com/example/*" \
   --sources src/main/java
 
 # 3. + les valeurs d'une méthode (défaut)
 java -jar runtime-xray.jar --niveau complet \
-  --java "java -jar app.jar" --root "com.exemple.Moteur::calculer" \
-  --cover "com.exemple.*" --sources src/main/java
+  --java "java -jar app.jar" --root "com.example.Engine::compute" \
+  --cover "com.example.*" --sources src/main/java
 ```
 
 | Niveau | JaCoCo | async-profiler | Arthas | Ce que la page montre |
@@ -57,7 +57,7 @@ charge quinze mille classes, l'essentiel du surcoût vient de code que personne 
 lire.
 
 ```bash
---cover "com.exemple.*:com.exemple.commun.*"
+--cover "com.example.*:com.example.commun.*"
 ```
 
 Le format est celui de l'agent JaCoCo : des motifs de noms de classes séparés par `:`. Ce
@@ -82,7 +82,7 @@ pour chasser une microseconde, ça l'est.
 
 ### 3. Restreindre le profil — `--filter`
 
-Indépendant du précédent : `--filter "com/exemple/*"` dit à async-profiler de ne conserver
+Indépendant du précédent : `--filter "com/example/*"` dit à async-profiler de ne conserver
 que les piles qui traversent ce paquet. Le coût du réveil reste, mais le fichier produit et
 le temps d'assemblage de la page s'effondrent.
 
@@ -123,7 +123,7 @@ java -jar runtime-xray.jar --report-only --out mesures --sources src/main/java
 
 ## Une marche à suivre, sur une application qu'on ne connaît pas
 
-1. **Couverture seule, sur le code du projet.** `--niveau couverture --cover "com.exemple.*"`.
+1. **Couverture seule, sur le code du projet.** `--niveau couverture --cover "com.example.*"`.
    Rien d'autre. On obtient ce qui a tourné et ce qui n'a jamais tourné, pour un surcoût
    qu'une application de production supporte généralement sans réglage.
 2. **Ajouter l'arbre, espacé.** `--niveau arbre --interval 10`. On voit la forme du

@@ -91,7 +91,7 @@ class BlocsTest {
         // « ../.. » : on filtre, on ne substitue pas.
         assertEquals("a-b-c", Blocs.nomDeFichier("a/../b\\c"));
         assertEquals("divers", Blocs.nomDeFichier("../.."));
-        assertEquals("org-exemple-module", Blocs.nomDeFichier("org/exemple/module"));
+        assertEquals("com-example-app", Blocs.nomDeFichier("com/example/app"));
 
         Blocs.ecrire(dir, List.of(), Map.of("../evade.java", List.of("x")));
         Path sources = dir.resolve("vue/sources");

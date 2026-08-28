@@ -61,7 +61,7 @@ class PackageFilterTest {
     void neverHidesUnrelatedCode() {
         PackageFilter f = PackageFilter.of("org.slf4j, org.apache.commons");
         assertFalse(f.hidden("lab/sample/comfort/Breaks.count"));
-        assertFalse(f.hidden("com/exemple/moteur/Calcul.calculer"));
+        assertFalse(f.hidden("com/example/moteur/Calcul.calculer"));
     }
 
     @Test

@@ -62,7 +62,7 @@ class CommandLineTest {
     @DisplayName("Un métacaractère à l'intérieur de guillemets n'impose pas l'interpréteur")
     void quotedMetacharacterIsNotAShellConstruct() {
         // Le motif d'un filtre contient une étoile : ce n'est pas une construction de shell.
-        assertFalse(CommandLine.needsShell("java -Dfilter=\"com/exemple/*\" -jar app.jar"));
+        assertFalse(CommandLine.needsShell("java -Dfilter=\"com/example/*\" -jar app.jar"));
     }
 
     @Test

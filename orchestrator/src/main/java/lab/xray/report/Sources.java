@@ -43,7 +43,7 @@ public final class Sources {
      */
     private static final int MAX_FICHIERS = 20_000;
 
-    /** {@code package org.exemple.module;} — la première ligne qui en a la forme fait foi. */
+    /** {@code package com.example.app;} — la première ligne qui en a la forme fait foi. */
     private static final Pattern PAQUET =
             Pattern.compile("^\\s*package\\s+([\\p{L}_$][\\p{L}\\p{N}_$]*(?:\\s*\\.\\s*[\\p{L}_$][\\p{L}\\p{N}_$]*)*)\\s*;");
 
@@ -311,7 +311,7 @@ public final class Sources {
      * Le fichier porte le bon nom : reste à savoir s'il porte le bon paquet.
      *
      * <p>C'est ce test qui sépare une proposition d'une devinette. Un {@code Application.java}
-     * trouvé dans un autre projet ne déclarera pas {@code org.exemple.module}, donc ne comptera pas.
+     * trouvé dans un autre projet ne déclarera pas {@code com.example.app}, donc ne comptera pas.
      */
     private static void crediter(Path fichier, String nom, java.util.Set<String> manquantes,
                                  Map<String, int[]> credits, Map<String, List<String>> preuves) {

@@ -39,7 +39,7 @@ recopie sans y toucher.
 ## La seule décision qui demande réflexion : `--root`
 
 ```sh
---root "com.exemple.Traitement::executer"
+--root "com.example.Traitement::executer"
 ```
 
 C'est **le point d'entrée métier** : la méthode dont on veut savoir avec quoi elle a été
@@ -75,7 +75,7 @@ Sur un gros code, ne pas tout prendre du premier coup.
 --niveau arbre          # + échantillonnage des piles
 --niveau complet        # + valeurs (défaut)
 
---cover "com.exemple.*" # ← le poste de coût principal
+--cover "com.example.*" # ← le poste de coût principal
 --interval 10           # échantillonnage à 10 ms au lieu de 1 ms
 ```
 

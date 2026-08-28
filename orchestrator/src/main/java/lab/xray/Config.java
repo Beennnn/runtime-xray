@@ -69,7 +69,7 @@ public final class Config {
      */
     public String level = "complet";
     /**
-     * Classes que JaCoCo instrumente, au format de son agent — {@code com.exemple.*}, plusieurs
+     * Classes que JaCoCo instrumente, au format de son agent — {@code com.example.*}, plusieurs
      * motifs séparés par {@code :}. Vide : tout ce que la JVM charge, y compris les
      * bibliothèques tierces, ce qui est le plus coûteux et rarement le plus utile.
      */
@@ -301,7 +301,7 @@ public final class Config {
             # sont injectés par JAVA_TOOL_OPTIONS, que toute JVM lit à son démarrage.
             JAVA_CMD="java -jar target/mon-appli.jar"
             #JAVA_CMD="java -Xmx2g -jar target/mon-appli.jar --profil recette --jeu 42"
-            #JAVA_CMD="mvn -q exec:java -Dexec.mainClass=com.exemple.Main"
+            #JAVA_CMD="mvn -q exec:java -Dexec.mainClass=com.example.Main"
             #JAVA_CMD="./gradlew run --args='--profil recette'"
             #JAVA_CMD="./scripts/demarrer-en-recette.sh"
 
@@ -339,8 +339,8 @@ public final class Config {
             # Format paquet.Classe::methode. Choisir un point d'entrée MÉTIER : un traitement,
             # un calcul, une commande — pas un main, pas un accesseur.
             # Laisser vide pour n'obtenir que la couverture et les temps.
-            ROOT_METHOD="com.exemple.moteur.Calculateur::calculer"
-            #ROOT_METHOD="com.exemple.api.CommandeService::valider"
+            ROOT_METHOD="com.example.moteur.Calculateur::calculer"
+            #ROOT_METHOD="com.example.api.CommandeService::valider"
             #ROOT_METHOD=""
 
             # ── Les sources ─────────────────────────────────────────────────── recommandé
@@ -360,7 +360,7 @@ public final class Config {
             # Restreint les mesures de temps au code applicatif. Sans lui, la majorité des
             # relevés concernent le compilateur interne de la JVM : exact, mais illisible.
             # Déduit du paquet de ROOT_METHOD s'il est absent.
-            #CLASS_FILTER="com/exemple/*"
+            #CLASS_FILTER="com/example/*"
 
             # ── Sortie et garde-fous ────────────────────────────────────────── facultatif
             OUT_DIR="runtime-xray-out"
@@ -394,7 +394,7 @@ public final class Config {
             # Classes que JaCoCo instrumente, au format de son agent (motifs séparés par ':').
             # Sans ce réglage, TOUTE classe chargée est instrumentée, dépendances comprises :
             # c'est le poste de coût principal sur une application d'entreprise.
-            #COVER_INCLUDES="com.exemple.*:com.exemple.commun.*"
+            #COVER_INCLUDES="com.example.*:com.example.commun.*"
 
             # Intervalle d'échantillonnage des piles, en millisecondes. Le multiplier par dix
             # divise par dix le nombre de relevés — et le coût qui va avec.
