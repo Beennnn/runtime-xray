@@ -295,13 +295,17 @@ pousser, en relevant les chaînes affichées et en n'en gardant aucune français
 
 ## Conventions
 
-- **L'outil parle anglais ; le dépôt est en train de suivre.** La bascule est décidée et
-  se fait par étapes — l'aide, les exemples, les mots-clés, le format des faits, la vue,
-  les messages console et **les noms du code** y sont déjà passés ; restent les
-  commentaires et les `@DisplayName`, qui sont l'étape en cours. En attendant, deux règles
-  cohabitent sans se contredire : **tout ce que l'utilisateur voit est en anglais**, et ce
-  qui reste — commentaires, `@DisplayName`, messages de commit — **reste en français
-  jusqu'à ce que son étape arrive**. Les exemples, eux, sont en anglais **partout**, y
+- **L'outil parle anglais, et le code aussi désormais.** La bascule s'est faite par
+  étapes — l'aide, les exemples, les mots-clés, le format des faits, la vue, les messages
+  console, puis les noms du code, ses commentaires et ses `@DisplayName`, y compris ceux
+  de `sample-app`, dont le code s'affiche dans le rapport. **Tout nouveau code s'écrit
+  donc en anglais**, commentaires et `@DisplayName` compris.
+
+  Trois choses restent en français, chacune pour une raison : le **gabarit**
+  `dashboard.html`, parce que c'est la traduction qui parcourt son DOM et non l'inverse
+  (voir « La langue de la vue ») ; les **scripts de `bin/`** et la **documentation**, qui
+  s'adressent à qui reprend le dépôt et non à qui lance l'outil ; les **messages de
+  commit**, pour la même raison. Les exemples, eux, sont en anglais **partout**, y
   compris dans une prose française : `com.example.app`, `--contexte "which classes never
   ran?"`. Un exemple français dans une documentation anglaise est ce qui se remarque en
   premier.
