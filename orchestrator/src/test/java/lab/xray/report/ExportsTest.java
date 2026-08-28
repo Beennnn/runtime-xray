@@ -141,9 +141,9 @@ class ExportsTest {
         // of samples that says nothing about its size.
         long bytes = Files.size(run.resolve("exports/profil.perf.txt"));
         assertTrue(bytes < 40L * 1024 * 1024,
-                "the file clearly exceeds the cap: " + bytes / (1024 * 1024) + " Mo");
+                "the file clearly exceeds the cap: " + bytes / (1024 * 1024) + " MB");
         assertTrue(bytes > 16L * 1024 * 1024,
-                "thinned far more than necessary: " + bytes / (1024 * 1024) + " Mo");
+                "thinned far more than necessary: " + bytes / (1024 * 1024) + " MB");
 
         assertTrue(cold > 0, "the light branch has vanished — that is what truncation used to do");
         double share = (double) cold / total;

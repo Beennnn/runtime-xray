@@ -18,12 +18,12 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * La machine visée n'a pas de réseau : c'est le cas d'usage qui a motivé l'outil. Ce que
- * ces tests éprouvent n'est donc pas le téléchargement, mais tout ce qui permet de s'en
- * passer — et la qualité du message quand on ne peut vraiment pas.
+ * The target machine has no network: that is the use case that motivated the tool. What
+ * these tests exercise is therefore not the download, but everything that makes it possible
+ * to do without — and the quality of the message when one really cannot.
  *
- * <p>Le dépôt est partout pointé sur une adresse morte : un test qui passerait en sortant
- * sur le réseau ne prouverait rien.
+ * <p>The repository is pointed at a dead address everywhere: a test that passed by going
+ * out on the network would prove nothing.
  */
 class ToolboxTest {
 
@@ -41,7 +41,7 @@ class ToolboxTest {
     }
 
     @Test
-    @DisplayName("Un composant déposé à côté du jar est pris tel quel, sans réseau")
+    @DisplayName("A component placed beside the jar is taken as it is, without the network")
     void takesComponentPlacedNextToTheJar(@TempDir Path dir) throws Exception {
         Path brings = file(dir.resolve("voisinage"), "org.jacoco.agent-0.8.13-runtime.jar");
 
@@ -52,10 +52,10 @@ class ToolboxTest {
     }
 
     @Test
-    @DisplayName("Il est aussi reconnu sous le nom que lui donne son éditeur")
+    @DisplayName("It is also recognised under the name its publisher gives it")
     void acceptsTheNameFromTheOfficialDistribution(@TempDir Path dir) throws Exception {
-        // Celui qui a « le fichier de JaCoCo » sous la main l'a pris dans la distribution
-        // de JaCoCo, pas sur Maven : il s'appelle jacocoagent.jar, et rien d'autre.
+        // Whoever has "the JaCoCo file" to hand took it from JaCoCo's distribution, not
+        // from Maven: it is called jacocoagent.jar, and nothing else.
         Path brings = file(dir.resolve("voisinage"), "jacocoagent.jar");
 
         Toolbox t = tools(dir.resolve("cache"), List.of(dir.resolve("voisinage")),
@@ -65,7 +65,7 @@ class ToolboxTest {
     }
 
     @Test
-    @DisplayName("À défaut, le dépôt Maven local de la machine fait l'affaire")
+    @DisplayName("Failing that, the machine's local Maven repository will do")
     void fallsBackToTheLocalMavenRepository(@TempDir Path dir) throws Exception {
         Path m2 = dir.resolve("m2");
         Path brings = file(m2.resolve("org/jacoco/org.jacoco.cli/0.8.13"),
@@ -77,7 +77,7 @@ class ToolboxTest {
     }
 
     @Test
-    @DisplayName("Le cache de l'outil garde la priorité sur tout le reste")
+    @DisplayName("The tool's own cache keeps priority over everything else")
     void theToolsOwnCacheComesFirst(@TempDir Path dir) throws Exception {
         Path cache = dir.resolve("cache");
         Path expected = file(cache, "jfr-converter-4.1.jar");
@@ -90,7 +90,7 @@ class ToolboxTest {
     }
 
     @Test
-    @DisplayName("Un Arthas déjà décompressé est reconnu, sous ses deux noms de répertoire")
+    @DisplayName("An already unpacked Arthas is recognised, under both its directory names")
     void findsAnAlreadyUnpackedArthas(@TempDir Path dir) throws Exception {
         Path neighbourhood = dir.resolve("voisinage");
         file(neighbourhood.resolve("arthas"), "arthas-boot.jar");
@@ -101,7 +101,7 @@ class ToolboxTest {
     }
 
     @Test
-    @DisplayName("Les répertoires sont fouillés dans l'ordre annoncé : le premier gagne")
+    @DisplayName("The directories are searched in the announced order: the first one wins")
     void searchesInTheAnnouncedOrder(@TempDir Path dir) throws Exception {
         Path designates = dir.resolve("designe");
         Path neighbourhood = dir.resolve("voisinage");
@@ -114,10 +114,10 @@ class ToolboxTest {
     }
 
     @Test
-    @DisplayName("L'édition complète porte ses composants : ils sont déposés dans le cache")
+    @DisplayName("The complete edition carries its components: they are dropped into the cache")
     void extractsAComponentEmbeddedInTheJar(@TempDir Path dir) throws Exception {
-        // Le classpath de test porte /lab/xray/componentsDir/jfr-converter-4.1.jar, comme le
-        // ferait le jar construit avec -Pcomplet. Rien sur le disque, dépôt injoignable.
+        // The test classpath carries /lab/xray/composants/jfr-converter-4.1.jar, as the jar
+        // built with -Pcomplet would. Nothing on disk, repository unreachable.
         Path cache = dir.resolve("cache");
 
         Path obtained = tools(cache, List.of(), dir.resolve("m2")).asyncProfilerConverter();
@@ -126,7 +126,7 @@ class ToolboxTest {
                 "un -javaagent veut un fichier : le composant doit atterrir sur le disque");
         assertTrue(Files.isRegularFile(obtained));
         assertTrue(Files.list(cache).noneMatch(f -> f.getFileName().toString().startsWith("ex-")),
-                "aucun fichier de travail ne doit rester derrière");
+                "no working file must be left behind");
     }
 
     @Test

@@ -16,9 +16,9 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Les blocs doivent tenir trois promesses à la fois, et c'est leur conjonction qui décide du
- * format : lisibles à la ligne de commande, chargeables depuis {@code file://}, et libérables.
- * Un test par promesse — perdre l'une d'elles rendrait le format inutile.
+ * The blocks must keep three promises at once, and it is their conjunction that decides the
+ * format: readable at the command line, loadable from {@code file://}, and releasable. One
+ * test per promise — losing any one of them would make the format useless.
  */
 class BlocksTest {
 
@@ -37,7 +37,7 @@ class BlocksTest {
     }
 
     @Test
-    @DisplayName("Une ligne par enregistrement : les blocs se lisent à la ligne de commande")
+    @DisplayName("One line per record: the blocks read at the command line")
     void oneRecordPerLineSoTheBlocksStayGreppable(@TempDir Path dir) throws Exception {
         Blocks.write(dir, List.of(run("UUID-1")),
                 Map.of("app/Moteur.java", List.of("package app;", "class Moteur {}")));
@@ -46,33 +46,33 @@ class BlocksTest {
         List<String> lines = Files.readAllLines(block, StandardCharsets.UTF_8);
         assertEquals(1, lines.size(), "une source, une ligne");
         assertTrue(lines.get(0).startsWith("XR.bloc(\"src\",\"app/Moteur.java\","),
-                "la clé doit être en tête, pour qu'un grep la trouve : " + lines.get(0));
+                "the key must come first, so that a grep finds it: " + lines.get(0));
         assertTrue(lines.get(0).endsWith(");"), "et la ligne doit se refermer");
 
-        // Retirer l'enrobage doit rendre du JSON pur — c'est ce qui donne jq gratuitement.
+        // Stripping the wrapper must give pure JSON — that is what gives jq for free.
         String json = lines.get(0).replaceFirst("^XR\\.bloc\\(", "[").replaceFirst("\\);$", "]");
         assertEquals(List.of("src", "app/Moteur.java", List.of("package app;", "class Moteur {}")),
                 lab.xray.json.Json.read(json));
     }
 
     @Test
-    @DisplayName("Le sommaire garde ce qui s'affiche d'emblée, et renvoie le reste au bloc")
+    @DisplayName("The summary keeps what shows at once, and sends the rest to the block")
     @SuppressWarnings("unchecked")
     void theSummaryKeepsOnlyWhatTheFirstPaintNeeds(@TempDir Path dir) throws Exception {
         Map<String, Object> summary = Blocks.write(dir, List.of(run("UUID-2")), Map.of());
 
         Map<String, Object> light = (Map<String, Object>) ((List<Object>) summary.get("runs")).get(0);
-        assertTrue(light.containsKey("nom"), "l'identité de l'exécution reste : elle s'affiche");
+        assertTrue(light.containsKey("nom"), "the run's identity stays: it is displayed");
         assertTrue(light.containsKey("packages"), "l'arbre des classes aussi");
-        // Les blocs d'une exécution vivent SOUS elle : copier son répertoire emporte tout
-        // ce qui la concerne, et en retirer une ne laisse pas d'orphelin ailleurs.
+        // A run's blocks live UNDER it: copying its directory takes with it everything
+        // that concerns it, and removing one leaves no orphan elsewhere.
         assertEquals(List.of("runs/UUID-2/vue/couverture.js", "runs/UUID-2/vue/arbre.js",
                              "runs/UUID-2/vue/valeurs.js", "runs/UUID-2/vue/traces.js"),
-                light.get("blocs"), "et le reste s'annonce par ses blocs, sous l'exécution");
+                light.get("blocs"), "and the rest announces itself through its blocks, under the run");
 
         for (String lourd : List.of("coverage", "calltree", "values", "trace")) {
             assertFalse(light.containsKey(lourd),
-                    lourd + " ne s'affiche qu'après un geste : il n'a pas à être là avant");
+                    lourd + " only shows after a gesture: it does not have to be there before");
         }
         for (String lourd : List.of("coverage", "calltree", "values", "trace")) {
             String name = Map.of("coverage", "couverture.js", "calltree", "arbre.js",
@@ -80,15 +80,15 @@ class BlocksTest {
             String block = Files.readString(dir.resolve("runs/UUID-2/vue/" + name),
                     StandardCharsets.UTF_8);
             assertTrue(block.contains("\"UUID-2/" + lourd + "\""),
-                    lourd + " doit être dans son bloc, sans quoi il serait perdu");
+                    lourd + " must be in its block, without which it would be lost");
         }
     }
 
     @Test
-    @DisplayName("Un nom de paquet ne peut pas écrire hors du répertoire des blocs")
+    @DisplayName("A package name cannot write outside the blocks directory")
     void aPackageNameCannotEscapeTheBlockDirectory(@TempDir Path dir) throws Exception {
-        // Les paquets sont sages, mais une clé inattendue ne doit pas pouvoir désigner
-        // « ../.. » : on filtre, on ne substitue pas.
+        // Packages are well behaved, but an unexpected key must not be able to name
+        // "../..": we filter, we do not substitute.
         assertEquals("a-b-c", Blocks.fileName("a/../b\\c"));
         assertEquals("divers", Blocks.fileName("../.."));
         assertEquals("com-example-app", Blocks.fileName("com/example/app"));
@@ -102,13 +102,13 @@ class BlocksTest {
     }
 
     @Test
-    @DisplayName("Une exécution sans profil garde un arbre vide, et non pas rien")
+    @DisplayName("A run without a profile keeps an empty tree, and not nothing")
     void aRunWithoutAProfileStillCarriesAnEmptyTree() {
-        // Sous Windows, async-profiler ne publie rien : ces exécutions n'ont pas d'arbre
-        // d'appel, et Arthas peut n'avoir rien capturé non plus. Le découpage en blocs a
-        // fait de l'absence un troisième état — ni « chargé », ni « pas encore chargé » —
-        // que trente lecteurs de la page ne connaissaient pas. Trois d'entre eux ont
-        // échoué en cascade, et l'onglet « Exécutions » ne s'affichait plus du tout.
+        // On Windows async-profiler publishes nothing: those runs have no call tree, and
+        // Arthas may have captured nothing either. Splitting into blocks turned absence
+        // into a third state — neither "loaded" nor "not loaded yet" — which thirty readers
+        // of the page did not know about. Three of them failed in cascade, and the "Runs"
+        // tab stopped showing at all.
         Map<String, Object> withoutProfile = new LinkedHashMap<>(run("UUID-3"));
         withoutProfile.remove("calltree");
         withoutProfile.remove("values");
@@ -124,11 +124,11 @@ class BlocksTest {
     }
 
     @Test
-    @DisplayName("Le sommaire porte le nombre de mesures, que l'arbre soit chargé ou non")
+    @DisplayName("The summary carries the sample count, whether the tree is loaded or not")
     void theSummaryCarriesTheSampleCount() {
-        // L'onglet « Exécutions » affiche ce nombre sur CHAQUE racine, donc sur des
-        // exécutions dont l'arbre n'est pas chargé et ne le sera pas. Aller le chercher
-        // rendrait au premier affichage tout ce que le chargement tardif économise.
+        // The "Runs" tab shows that number on EVERY root, so on runs whose tree is not
+        // loaded and will not be. Going to fetch it would give back to the first paint
+        // everything the lazy loading saves.
         assertEquals(40L, Blocks.thin(run("UUID-4"), "runs/UUID-4/vue/").get("mesures"));
     }
 }
