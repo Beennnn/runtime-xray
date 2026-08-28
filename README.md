@@ -124,7 +124,7 @@ reference to any particular environment.
 | Parameter | Consequence for the selection |
 |---|---|
 | Offline execution | Rules out hosted services. Downloading the components beforehand stays possible |
-| Java 21 at least | Java 21 is the current industrial standard, after Java 8 then Java 11 in recent years: it is the base targeted. Java 25 is evaluated as well, and the difference measured is reported in the [results](docs/resultat/resultats.md#gains-dun-portage-vers-java-25) |
+| Java 21 at least | Java 21 is the current industrial standard, after Java 8 then Java 11 in recent years: it is the base targeted. Java 25 is evaluated as well, and the difference measured is reported in the [results](docs/resultat/resultats.md#gains-from-a-port-to-java-25-no-gain-visible-in-the-report) |
 | A common IDE | IntelliJ as the reference, without depending on it: the paid edition is not assumed available |
 | Two audiences | A developer in their environment, and a non-technical reader in front of a document passed on to them |
 | One-off diagnosis | No server to deploy or maintain |

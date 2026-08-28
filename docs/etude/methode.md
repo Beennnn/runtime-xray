@@ -97,5 +97,5 @@ d'enregistrement pour 10 s, le profil d'abord dominé par la fabrication du jeu 
 
 ## 7. Ce qui reste à faire
 
-Voir [les résultats](../resultat/resultats.md#ce-qui-reste-à-faire-pour-trancher) — les actions humaines,
+Voir [les résultats](../resultat/resultats.md#what-remains-to-be-done-to-settle-it) — les actions humaines,
 essais commerciaux en tête, sont listées là.

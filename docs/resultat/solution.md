@@ -1,41 +1,41 @@
-# La solution retenue — une exécution, trois outils, une vue
+# The solution retained — one run, three tools, one view
 
-> Sans licence · hors ligne · 0 € · vérifié de bout en bout sous Java 21.
+> No licence · offline · €0 · verified end to end under Java 21.
 
-**[→ Voir la vue intégrée](https://beennnn.github.io/runtime-xray/multi/)**
+**[→ See the integrated view](https://beennnn.github.io/runtime-xray/multi/)**
 
-![Vue d'ensemble](../assets/shots/vue-accueil.png)
+![Overview](../assets/shots/vue-accueil.png)
 
-*À l'ouverture : ce que l'exécution a produit, et à gauche **la liste de tout le code qui a
-tourné**, du plus coûteux au moins coûteux. Pas d'arbre à descendre — la liste est
-exhaustive, établie par JaCoCo.*
+*On opening: what the run produced, and on the left **the list of all the code that ran**,
+from the most costly to the least. No tree to descend — the list is exhaustive, established
+by JaCoCo.*
 
-![Le détail d'une méthode](../assets/shots/vue-integree.png)
+![A method in detail](../assets/shots/vue-integree.png)
 
-*Un clic ouvre le code : lignes exécutées en vert, annotations violettes indiquant quel
-appel part de quelle ligne et en combien de temps, et en bas les valeurs réellement passées.
-Le bouton « ne montrer que ce qui tourne sous cette méthode » restreint la liste de gauche
-à ce périmètre.*
+*One click opens the code: executed lines in green, purple annotations saying which call
+leaves from which line and in how long, and at the bottom the values actually passed. The
+"show only what runs under this method" button restricts the left-hand list to that
+perimeter.*
 
-## Les trois outils et leur rôle
+## The three tools and their roles
 
-| | Outil | Ce qu'il apporte | Ce qu'il ne sait pas faire |
+| | Tool | What it brings | What it cannot do |
 |---|---|---|---|
-| <img src="assets/icons/jacoco.svg" width="22"> | **JaCoCo** | Les lignes exécutées, à la ligne près, et surtout **celles qui ne l'ont jamais été** | Rien sur le temps ni sur l'ordre des appels |
-| <img src="assets/icons/async-profiler.svg" width="22"> | **async-profiler** | L'**arbre d'appel** agrégé sur toute l'exécution, avec la part de temps de chaque branche | Ne prouve jamais qu'un code n'a pas tourné (il échantillonne) |
-| <img src="assets/icons/arthas.svg" width="22"> | **Arthas** | Les **valeurs des paramètres**, et l'arbre d'**un seul** appel avec ses numéros de ligne | Pas de rapport transmissible : c'est une console |
+| <img src="../assets/icons/jacoco.svg" width="22"> | **JaCoCo** | The executed lines, to the line, and above all **the ones that never were** | Nothing about time, nothing about the order of calls |
+| <img src="../assets/icons/async-profiler.svg" width="22"> | **async-profiler** | The **call tree** aggregated over the whole run, with each branch's share of the time | Never proves that a piece of code did not run (it samples) |
+| <img src="../assets/icons/arthas.svg" width="22"> | **Arthas** | The **parameter values**, and the tree of **one single** call with its line numbers | No report to hand on: it is a console |
 
-Les trois se complètent exactement : ce que l'un ignore, un autre le couvre.
+The three complement each other exactly: what one ignores, another covers.
 
-## Le protocole : une seule exécution
+## The protocol: one single run
 
-[`tools/run-all.sh`](../../tools/run-all.sh) lance **un seul processus** avec les deux agents
-attachés au démarrage, puis y branche Arthas pendant que les appels ont lieu :
+[`tools/run-all.sh`](../../tools/run-all.sh) launches **one single process** with both agents
+attached at startup, then plugs Arthas into it while the calls are happening:
 
 ```
-java -javaagent:jacoco-agent.jar=destfile=…          ← instrumente le bytecode
-     -agentpath:libasyncProfiler.dylib=start,…       ← échantillonne les piles
-     -jar sample-app.jar --iterations 24000000       ← le temps de s'attacher
+java -javaagent:jacoco-agent.jar=destfile=…          ← instruments the bytecode
+     -agentpath:libasyncProfiler.dylib=start,…       ← samples the stacks
+     -jar sample-app.jar --iterations 24000000       ← time enough to attach
                                                      ↳ arthas-boot --arthas-home … -f watch-params.as
 ```
 
@@ -43,102 +43,101 @@ java -javaagent:jacoco-agent.jar=destfile=…          ← instrumente le byteco
 ./tools/run-all.sh
 ```
 
-### Pourquoi une seule passe, alors qu'Arthas perturbe la mesure
+### Why a single pass, when Arthas disturbs the measurement
 
-La question mérite d'être tranchée explicitement, parce que la perturbation est réelle et
-importante — mais elle ne touche **pas** ce que le projet cherche.
+The question deserves to be settled explicitly, because the disturbance is real and large —
+but it does **not** touch what the project is after.
 
-Voici, objectif par objectif, ce que la passe unique donne :
+Here is, objective by objective, what the single pass gives:
 
-| Objectif | État en passe unique | Vérifié comment |
+| Objective | State in a single pass | Verified how |
 |---|---|---|
-| **1 — lignes exécutées** | ✅ **intact** | Le script contrôle à chaque exécution que la classe observée conserve sa couverture. Arthas la *retransforme*, ce qui aurait pu l'effacer : ce n'est pas le cas |
-| **1 — arbre d'appel (la forme)** | ✅ **intact** | La structure des appels reste complète : `RoutePlanner → legMinutes → Terrain…`. Rien ne disparaît |
-| **2 — valeurs des paramètres** | ✅ intact | C'est justement Arthas qui les fournit |
-| *pourcentages de temps* | ⚠️ **faussés** | Plus de 80 % des échantillons tombaient dans l'instrumentation d'Arthas (`SpyAPI.atBeforeInvoke` 41 %, `atAfterInvoke` 40 %) |
+| **1 — executed lines** | ✅ **intact** | The script checks at every run that the observed class keeps its coverage. Arthas *retransforms* it, which could have wiped it out: it does not |
+| **1 — call tree (the shape)** | ✅ **intact** | The structure of the calls stays complete: `RoutePlanner → legMinutes → Terrain…`. Nothing disappears |
+| **2 — parameter values** | ✅ intact | Arthas is precisely what supplies them |
+| *time percentages* | ⚠️ **skewed** | More than 80 % of the samples fell inside Arthas's instrumentation (`SpyAPI.atBeforeInvoke` 41 %, `atAfterInvoke` 40 %) |
 
-**Ce qui est dégradé est le seul indicateur qui ne soit pas un critère du projet.** Le
-temps de calcul a été explicitement classé hors critères : l'optimisation des performances
-est un sujet distinct, à traiter plus tard, une fois le code compris et reconçu. Sacrifier
-la précision d'une mesure de temps pour obtenir les trois données en un seul lancement est
-donc un bon échange.
+**What is degraded is the one indicator that is not a criterion of the project.** Computation
+time was explicitly ruled out of the criteria: optimising performance is a separate subject,
+to be taken up later, once the code is understood and redesigned. Sacrificing the precision
+of a time measurement to obtain all three kinds of data in a single launch is therefore a
+good trade.
 
-### L'atténuation appliquée
+### The mitigation applied
 
-Plutôt que d'afficher un profil trompeur, la vue intégrée **replie les frames d'Arthas sur
-la méthode applicative qui les a déclenchées**. Les échantillons restent comptés, mais
-attribués au code métier plutôt qu'à l'outil d'observation : la forme de la distribution
-est restituée, et l'arbre redevient lisible.
+Rather than displaying a misleading profile, the integrated view **folds Arthas's frames
+back onto the application method that triggered them**. The samples stay counted, but
+attributed to the business code rather than to the observation tool: the shape of the
+distribution is restored, and the tree becomes readable again.
 
-Une bannière affiche la réserve en haut de la vue, avec la part d'échantillons concernée —
-on ne masque pas le problème, on l'annonce.
+A banner shows the caveat at the top of the view, with the share of samples concerned — the
+problem is not hidden, it is announced.
 
-**Réserve qui subsiste** : le coût affiché de la *méthode observée* reste surestimé, car on
-mesure aussi le travail de l'instrumentation. Les autres méthodes ne sont pas affectées.
+**A caveat that remains**: the displayed cost of the *observed method* stays overestimated,
+because the instrumentation's own work is measured too. The other methods are unaffected.
 
-### Si les pourcentages doivent être justes
+### If the percentages have to be right
 
 ```bash
-java -jar runtime-xray.jar --java "…" --no-values      # mesure seule, profil propre
-java -jar runtime-xray.jar --java "…" --root "…"       # inspection, sur une seconde passe
+java -jar runtime-xray.jar --java "…" --no-values      # measurement alone, clean profile
+java -jar runtime-xray.jar --java "…" --root "…"       # inspection, on a second pass
 ```
 
-Deux exécutions du même scénario déterministe : la mesure d'abord, sans rien qui
-instrumente, puis l'inspection. À réserver au jour où l'on s'intéressera vraiment aux
-temps — c'est-à-dire pas dans le cadre de cette étude, où le temps n'est pas un critère.
+Two runs of the same deterministic scenario: the measurement first, with nothing
+instrumenting, then the inspection. To keep for the day time really matters — that is to
+say, not within this study, where time is not a criterion.
 
-### Ce qui a été vérifié, et qui n'allait pas de soi
+### What was verified, and did not go without saying
 
-**Les trois agents cohabitent sans corrompre la couverture.** Arthas retransforme les
-classes qu'il observe, alors que JaCoCo les a déjà instrumentées — la couverture aurait pu
-être perdue sur ces classes précises. Le contrôle est donc automatique, à chaque lancement :
+**The three agents cohabit without corrupting the coverage.** Arthas retransforms the
+classes it observes, when JaCoCo has already instrumented them — the coverage could have
+been lost on those precise classes. The check is therefore automatic, at every launch:
 
 ```
-▶ Contrôle d'intégrité : la couverture a-t-elle survécu à la retransformation d'Arthas ?
-   RoutePlanner : 93 instructions couvertes — OK
+▶ Integrity check: did the coverage survive Arthas's retransformation?
+   RoutePlanner: 93 instructions covered — OK
 ```
 
-## La vue intégrée
+## The integrated view
 
-L'orchestrateur produit **un fichier HTML autonome** à partir des sorties machine des trois
-outils. Il ne mesure rien : il assemble.
+The orchestrator produces **one self-contained HTML file** from the three tools' machine
+outputs. It measures nothing: it assembles.
 
-| Source lue | Ce qu'elle alimente dans la vue |
+| Source read | What it feeds in the view |
 |---|---|
-| `jacoco.xml` | La couleur des lignes, et la ligne de début de chaque méthode |
-| `profil.collapsed` | L'arbre d'appel et les pourcentages |
-| `trace-calltree.txt` | Les annotations « quel appel part de cette ligne, en combien de temps » |
-| `watch-params.txt` | Le panneau des valeurs réellement passées |
-| les `.java` du projet | Le code affiché |
+| `jacoco.xml` | The colour of the lines, and the starting line of each method |
+| `profil.collapsed` | The call tree and the percentages |
+| `trace-calltree.txt` | The "which call leaves from this line, in how long" annotations |
+| `watch-params.txt` | The panel of the values actually passed |
+| the project's `.java` files | The code displayed |
 
-### Ce qu'elle permet
+### What it allows
 
-- **Deux navigations, au choix** : par **arbre d'appel** (on suit l'exécution) ou par
-  **packages et classes** (on cherche un fichier précis). Les deux mènent à la même vue de
-  code.
-- **Tout sous les yeux** : en sélectionnant un nœud, on voit d'un coup les lignes
-  exécutées, les appels qui en partent, leur coût, et les valeurs passées.
-- **Masquer le code non exécuté** : une case à cocher retire du rapport les classes jamais
-  atteintes et masque les lignes mortes, en indiquant combien ont été repliées. C'est la
-  réponse à « exporter un résultat nettoyé, sans être pollué par le code inutilisé ».
-- **Autonome** : un seul fichier, aucune ressource externe, aucun serveur — il s'ouvre
-  hors ligne et s'envoie en pièce jointe.
+- **Two navigations, as you like**: by **call tree** (one follows the run) or by **packages
+  and classes** (one looks for a precise file). Both lead to the same code view.
+- **Everything under the eye**: selecting a node shows at once the executed lines, the calls
+  that leave from them, their cost, and the values passed.
+- **Hiding code that did not run**: a checkbox removes from the report the classes never
+  reached and hides the dead lines, saying how many were folded away. That is the answer to
+  "export a cleaned-up result, without being polluted by unused code".
+- **Self-contained**: one single file, no external resource, no server — it opens offline and
+  is sent as an attachment.
 
-### Ses limites, énoncées
+### Its limits, stated
 
-- Les annotations de ligne ne couvrent que la méthode tracée par Arthas — tracer tout le
-  code produirait un volume ingérable (129 Mo pour 10 s sur une seule méthode chaude).
-- Les valeurs affichées sont celles de **quelques appels**, pas une agrégation par valeur.
-  C'est précisément ce que les outils commerciaux savent faire en plus.
-- L'arbre d'appel est **échantillonné** : une méthode rare peut n'y pas figurer. Pour
-  savoir ce qui n'a jamais tourné, c'est la couverture qui fait foi, pas l'arbre.
+- The line annotations cover only the method traced by Arthas — tracing all the code would
+  produce an unmanageable volume (129 MB for 10 s on a single hot method).
+- The values displayed are those of **a few calls**, not an aggregation by value. That is
+  precisely what commercial tools can do on top.
+- The call tree is **sampled**: a rare method may not figure in it. To know what never ran,
+  it is the coverage that is authoritative, not the tree.
 
-## Ce que ça coûte
+## What it costs
 
 | | |
 |---|---|
-| Licences | **0 €** |
-| Connexion pendant l'exécution | **aucune** |
-| Connexion pour installer | oui, une fois — JaCoCo et Arthas depuis Maven Central ou un miroir interne, async-profiler par le gestionnaire de paquets. Le critère portant sur l'exécution, ce n'est pas une contrainte |
-| Installation | trois outils, tous scriptés dans [`tools/`](../../tools) |
-| Exécution | deux lancements du programme, ~30 s chacun |
+| Licences | **€0** |
+| Connection during the run | **none** |
+| Connection to install | yes, once — JaCoCo and Arthas from Maven Central or an internal mirror, async-profiler through the package manager. The criterion bearing on the run, this is not a constraint |
+| Installation | three tools, all scripted in [`tools/`](../../tools) |
+| Run | two launches of the program, ~30 s each |

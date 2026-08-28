@@ -39,11 +39,11 @@ Même programme, même durée :
 la pile, dont on infère statistiquement où passe le temps) ; Java 25 *instrumente* les
 méthodes nommées dans le filtre et compte **chaque** invocation. Changement de nature, pas
 de réglage. En contrepartie l'instrumentation perturbe le JIT et fait exploser le volume —
-détail et limites dans [les résultats](../../resultat/resultats.md#pourquoi-java-25-est-plus-précis--le-mécanisme).
+détail et limites dans [les résultats](../../resultat/resultats.md#why-java-25-is-more-precise--the-mechanism).
 
 Sous Java 21, JFR ne fournit que de l'échantillonnage — moins bien qu'async-profiler, pour
 plus de complexité. **Sous Java 25, il devient un outil de premier plan sans rien
-installer.** Voir [les gains d'un portage](../../resultat/resultats.md#gains-dun-portage-vers-java-25).
+installer.** Voir [les gains d'un portage](../../resultat/resultats.md#gains-from-a-port-to-java-25-no-gain-visible-in-the-report).
 
 ## Ce qu'il sait faire
 
