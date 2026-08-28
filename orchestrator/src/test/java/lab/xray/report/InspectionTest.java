@@ -26,7 +26,7 @@ class InspectionTest {
 
     private static final String ESC = "\u001B";
 
-    /** Un relevé conforme à ce que produit l'inspecteur, indentation comprise. */
+    /** A reading conforming to what the inspector produces, indentation included. */
     private static final String SAMPLE = """
             method=lab.sample.RoutePlanner.legMinutes location=AtExit
             ts=2026-08-20 21:08:16.440; [cost=1.240042ms] result=@ArrayList[

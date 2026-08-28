@@ -16,17 +16,18 @@
 
   <name>Runtime X-Ray CLI</name>
   <description>
-    L'orchestrateur : lance une application Java sous observation, récupère les composants
-    d'analyse depuis un dépôt Maven, et assemble leurs sorties en une page unique.
-    AUCUNE dépendance hors du JDK — c'est le point : l'outil doit tourner là où l'application
-    tourne, et une machine qui exécute du Java a un JDK, pas forcément bash ni Python.
+    The orchestrator: launches a Java application under observation, fetches the analysis
+    components from a Maven repository, and assembles their outputs into a single page.
+    NO dependency outside the JDK — that is the point: the tool must run where the
+    application runs, and a machine that executes Java has a JDK, not necessarily bash or
+    Python.
   </description>
   <url>https://github.com/Beennnn/runtime-xray</url>
 
   <!--
-    Les versions des trois composants. Elles ne servent qu'au profil « complet », qui doit
-    embarquer exactement ce que Toolbox ira chercher : ToolboxTest vérifie qu'elles ne
-    divergent pas des constantes du code, seule source de vérité à l'exécution.
+    The three components' versions. They serve only the "complet" profile, which must embed
+    exactly what Toolbox will go looking for: ToolboxTest checks that they do not diverge
+    from the code's constants, the only source of truth at run time.
   -->
   <properties>
     <jacoco.version>0.8.13</jacoco.version>
@@ -35,7 +36,7 @@
   </properties>
 
   <dependencies>
-    <!-- Portée test uniquement : le jar livré reste sans aucune dépendance. -->
+    <!-- Test scope only: the delivered jar stays with no dependency at all. -->
     <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter</artifactId>
@@ -68,13 +69,13 @@
 
   <profiles>
     <!--
-      L'édition complète : le même outil, avec ses trois composants d'analyse embarqués,
-      extraits vers ~/.runtime-xray au premier lancement.
+      The complete edition: the same tool, with its three analysis components embedded,
+      extracted to ~/.runtime-xray at first launch.
 
-      Un seul fichier à porter sur une machine fermée, là où le jar ordinaire suppose
-      d'avoir préparé le cache. Ce n'est pas la construction par défaut : le jar ordinaire
-      pèse 170 Ko et ne redistribue rien, celui-ci pèse 19 Mo et redistribue de l'EPL-2.0
-      et de l'Apache-2.0 (voir THIRD-PARTY.md). Deux artefacts, deux publics.
+      A single file to carry onto a closed machine, where the ordinary jar supposes the cache
+      has been prepared. It is not the default build: the ordinary jar weighs 170 KB and
+      redistributes nothing, this one weighs 19 MB and redistributes EPL-2.0 and Apache-2.0
+      (see THIRD-PARTY.md). Two artefacts, two audiences.
 
           mvn -Pcomplet -DskipTests package
           → orchestrator/target/runtime-xray-complet.jar
@@ -93,8 +94,8 @@
                 <phase>prepare-package</phase>
                 <goals><goal>copy</goal></goals>
                 <configuration>
-                  <!-- Les noms de destination sont ceux que Toolbox recompose : le jar
-                       embarqué doit être trouvable exactement comme celui du cache. -->
+                  <!-- The destination names are the ones Toolbox recomposes: the embedded
+                       jar must be findable exactly like the one in the cache. -->
                   <outputDirectory>${project.build.directory}/complet/lab/xray/composants</outputDirectory>
                   <artifactItems>
                     <artifactItem>
@@ -176,13 +177,13 @@
     </profile>
 
     <!--
-      L'édition légère : seul JaCoCo est embarqué, soit 900 Ko au lieu de 18 Mo. Arthas
-      pèse à lui seul les trois quarts de l'édition complète, pour la capture des valeurs
-      dont tout le monde n'a pas besoin ; la couverture, elle, est ce qu'on veut presque
-      toujours. Les temps et les valeurs restent récupérables par les autres chemins.
+      The light edition: only JaCoCo is embedded, so 900 KB instead of 18 MB. Arthas weighs
+      three quarters of the complete edition on its own, for capturing values that not
+      everybody needs; the coverage, for its part, is what one wants almost always. The times
+      and the values stay obtainable by the other paths.
 
-      Le profil répète la mécanique du précédent : la partager demanderait une activation
-      par propriété, que Maven n'honore pas depuis un autre profil.
+      The profile repeats the previous one's machinery: sharing it would demand an activation
+      by property, which Maven does not honour from another profile.
 
           mvn -Pjacoco -DskipTests package
           → orchestrator/target/runtime-xray-jacoco.jar

@@ -89,7 +89,7 @@ class ExportsTest {
             Map<String, Object> node = (Map<String, Object>) o;
             for (Object child : (List<Object>) node.getOrDefault("children", List.of())) {
                 assertTrue(ids.contains((Double) child),
-                        "un nœud renvoie vers un enfant absent : le lecteur ne l'ouvrira pas");
+                        "a node points at a missing child: the reader will not open it");
             }
         }
         List<Object> samples = (List<Object>) profile.get("samples");

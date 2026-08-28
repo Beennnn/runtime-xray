@@ -120,7 +120,7 @@ class SourcesTest {
     void readsSourcesThatAreNotUtf8(@TempDir Path dir) throws Exception {
         Path f = dir.resolve("src/app/Accent.java");
         Files.createDirectories(f.getParent());
-        Files.write(f, ("package app;\n// données déjà mesurées\n"
+        Files.write(f, ("package app;\n// data already measured\n"
                 + "class Accent {}\n").getBytes(java.nio.charset.StandardCharsets.ISO_8859_1));
 
         Sources.Index index = Sources.load(List.of(dir.resolve("src")));

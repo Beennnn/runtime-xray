@@ -138,8 +138,8 @@ function courbe(valeurs){
   const style = getComputedStyle(document.documentElement);
   const max = Math.max(1, ...valeurs);
   const pas = L / Math.max(1, valeurs.length - 1);
-  // Une grille à 1 cœur : sans repère, une courbe normalisée fait passer une charge
-  // dérisoire pour une saturation.
+  // A grid at 1 core: with no landmark, a normalised curve makes a derisory load look like
+  // saturation.
   ctx.strokeStyle = style.getPropertyValue("--border"); ctx.lineWidth = 1;
   ctx.beginPath(); const y1 = H - (1/max)*(H-12) - 6;
   ctx.moveTo(0,y1); ctx.lineTo(L,y1); ctx.stroke();
@@ -164,10 +164,10 @@ async function rafraichir(){
     lignes = t.split("\n").filter(l => l.trim()).map(l => {
       try { return JSON.parse(l); } catch (e) { return null; }
     }).filter(Boolean);
-  } catch (e) { /* le serveur s'est arrêté : on garde le dernier état affiché */ }
+  } catch (e) { /* the server stopped: we keep the last state displayed */ }
   if (!lignes.length) return;
 
-  // Seulement la dernière exécution : le fichier les accumule, comme le rapport.
+  // Only the last run: the file accumulates them, like the report.
   const derniere = lignes[lignes.length-1].run;
   const suite = lignes.filter(l => l.run === derniere);
   const av = suite.filter(l => l.event === "progress");
@@ -176,8 +176,8 @@ async function rafraichir(){
   const cur = av[av.length-1];
 
   $("#nom").textContent = derniere ? "run \u201c" + derniere + "\u201d" : "";
-  // Qui ouvre cette page doit savoir CE QU'ELLE regarde : sans la commande, une exécution
-  // qui avance ne dit pas laquelle avance.
+  // Whoever opens this page must know WHAT it is looking at: with no command, a run that
+  // advances does not say which one is advancing.
   $("#cmd").textContent = debut
       ? "▶ " + (debut.command || "(command not recorded)") + "     → " + (debut.output || "")
       : "";
@@ -191,8 +191,8 @@ async function rafraichir(){
   $("#sortie").textContent  = cur ? octets(cur.outputBytes) : "—";
   $("#releves").textContent = av.length;
 
-  // Ne redessiner la bande que quand elle a changé : sinon un clignotement à chaque
-  // seconde, sur une page qu'on regarde justement longtemps.
+  // Redraw the band only when it has changed: otherwise a flicker every second, on a page
+  // one looks at for a long time precisely.
   const signature = derniere + ":" + av.length + ":" + (fin ? "f" : "");
   if (signature !== dernierEvenement) {
     dernierEvenement = signature;

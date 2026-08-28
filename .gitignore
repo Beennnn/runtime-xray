@@ -6,23 +6,23 @@ target/
 .vscode/
 .DS_Store
 
-# Enregistrements JFR : binaires, ~10 Mo pour 10 s d'exécution, illisibles hors JMC,
-# et leur contenu aléatoire déclenche le scanner de secrets de GitHub (faux positif
-# « Grafana token » constaté le 2026-08-20). Les extraits texte, eux, sont versionnés.
+# JFR recordings: binary, ~10 MB for 10 s of running, unreadable outside JMC, and their
+# random content triggers GitHub's secret scanner (a "Grafana token" false positive seen on
+# 2026-08-20). The text extracts, for their part, are versioned.
 *.jfr
 
-# Clés de licence : jamais dans le dépôt (il est public, et git garde l'historique).
-# Elles vivent hors arborescence git — voir docs/etude/cles-evaluation.md
+# Licence keys: never in the repository (it is public, and git keeps the history).
+# They live outside any git tree — see docs/etude/cles-evaluation.md
 *.license
 *.key
 licence*.sh
 license*.sh
 .env.local
 
-# Sorties d'exécution : c'est le répertoire de sortie PAR DÉFAUT de l'outil, donc celui
-# où atterrit une analyse lancée depuis un clone du dépôt. Un rapport porte les noms de
-# classes, les numéros de ligne et les VALEURS DE PARAMÈTRES du code analysé : lancé sur
-# une application réelle, il n'a rien à faire dans un dépôt public. Ignoré pour qu'aucun
-# `git add -A` ne puisse l'y mettre. Les exécutions de démonstration conservées comme
-# pièces de l'étude sont dans reports-demo/executions/, hors de ce chemin.
+# Run outputs: this is the tool's DEFAULT output directory, hence the one an analysis
+# launched from a clone of the repository lands in. A report carries the class names, the
+# line numbers and the PARAMETER VALUES of the analysed code: run on a real application, it
+# has no business in a public repository. Ignored so that no `git add -A` can put it there.
+# The demonstration runs kept as evidence for the study are in reports-demo/executions/,
+# outside this path.
 runtime-xray-out/

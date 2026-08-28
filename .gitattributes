@@ -1,7 +1,7 @@
-# Le gabarit de la page et les scripts de recette sont lus par des programmes qui
-# raisonnent en lignes. Une copie de travail en CRLF (le défaut de Git pour Windows)
-# suffisait à faire échouer la lecture des données embarquées : on fige donc LF
-# partout dans la copie de travail, sauf là où l'outil exige CRLF.
+# The page template and the acceptance scripts are read by programs that reason in lines. A
+# working copy in CRLF (Git for Windows's default) was enough to make reading the embedded
+# data fail: so we freeze LF everywhere in the working copy, except where the tool demands
+# CRLF.
 * text=auto eol=lf
 
 *.bat text eol=crlf

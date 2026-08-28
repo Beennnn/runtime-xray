@@ -136,7 +136,7 @@ class FollowTest {
         assertFalse(page.contains("<script src="),
                 "nothing to go and fetch: the page must show whole or not at all");
         assertTrue(page.contains("busy cores"),
-                "le compte est en cœurs, pas en part de machine — et la page doit le dire, "
+                "the count is in cores, not in a share of the machine — and the page must say so, "
                 + "otherwise one reads saturation where there is one core out of thirty-two");
     }
 
