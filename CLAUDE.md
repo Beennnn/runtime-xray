@@ -358,6 +358,34 @@ pousser, en relevant les chaînes affichées et en n'en gardant aucune français
 - **Les tests ne comparent jamais un chemin à un littéral à séparateurs** : `endsWith(
   "projet/src/main/java")` échoue sous Windows alors que le code a trouvé exactement ce qu'il
   fallait. Construire le chemin attendu avec `resolve` et comparer les deux.
+- **Le rapport engendre beaucoup de petits fichiers, et c'est ce qui coûte sur un poste
+  bardé d'agents de sécurité.** Le compte croît avec le nombre de classes analysées, pas
+  avec le volume : JaCoCo écrit deux fichiers HTML par classe, l'outil lui en fait produire
+  **deux sites** par exécution — le complet et le ciblé — et y ajoute une copie du bytecode
+  de chaque classe exécutée dans `classes-executees/`. Sur une grosse application, une
+  campagne de plusieurs exécutions se compte en centaines de milliers de fichiers, de
+  quelques kilo-octets chacun.
+
+  Sur Linux, les ouvrir prend quelques secondes. Sur un poste où chaque ouverture de
+  fichier traverse une pile de filtres, cela prend des minutes — et **la machine n'y peut
+  rien** : la latence se paie en série, une ouverture après l'autre, donc ni la mémoire ni
+  les cœurs ne la rachètent. Ce n'est pas propre à Git Bash : un archiveur natif souffre
+  autant, ce qui écarte la traduction POSIX de MSYS2 comme cause. La JVM y échappe parce
+  qu'elle ouvre peu de fichiers et garde ses handles.
+
+  Deux choses à savoir avant d'y toucher, et elles ne sont pas de même nature.
+  **`classes-executees/` est un résidu** : il n'existe que pour être passé en
+  `--classfiles` au rapport ciblé, et n'est effacé qu'au début de l'exécution suivante,
+  jamais après usage — c'est un oubli. **Les deux sites HTML ne servent pas à la page** :
+  elle rend la couverture depuis `jacoco.xml`, que `Coverage.parse` lit directement ; le
+  HTML n'est qu'un lien, et le chiffre qui fait foi est celui de `jacoco-fusion/`. Les
+  rendre optionnels diviserait le compte par plusieurs — mais c'est une décision, pas une
+  correction, et `CharacterisationTest` épingle les fichiers produits. Le cas « pas de
+  HTML » est déjà géré : `Dashboard` n'écrit le lien que si `index.html` existe, et un test
+  construit exprès une exécution sans rapports.
+
+  En attendant, `runs/` est le bon candidat à une exclusion : un répertoire unique, qui ne
+  contient que des artefacts engendrés, dont rien n'est exécuté et tout est reproductible.
 - **Terminal Windows** : l'outil écrit en UTF-8. Un terminal en cp850 — le défaut de bien
   des postes — rend les accents illisibles. Corriger côté terminal (mintty → Options →
   Text → UTF-8), ou lancer avec `-Dstdout.encoding=cp850`. Ne pas « corriger » cela dans
