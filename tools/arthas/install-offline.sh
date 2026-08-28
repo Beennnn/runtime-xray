@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
-# Installation d'Arthas SANS passer par arthas.aliyun.com.
+# Installing Arthas WITHOUT going through arthas.aliyun.com.
 #
-# Le lanceur `arthas-boot` télécharge normalement ses modules chez l'éditeur, ce qui le
-# rend inutilisable en environnement déconnecté. Le paquet complet est pourtant publié
-# sur Maven Central : il suffit de le déposer à l'endroit attendu, et le lanceur ne sort
-# plus jamais sur le réseau (option --arthas-home).
+# The `arthas-boot` launcher normally downloads its modules from the publisher, which makes
+# it unusable in a disconnected environment. The complete package is nevertheless published
+# on Maven Central: it is enough to lay it down at the expected place, and the launcher never
+# goes out on the network again (the --arthas-home option).
 #
-# En environnement réellement coupé : récupérer une fois le zip depuis un poste connecté
-# (ou depuis le miroir Maven interne), le transporter, et rejouer la partie unzip.
+# In a genuinely cut-off environment: fetch the zip once from a connected machine (or from
+# the internal Maven mirror), carry it across, and replay the unzip part.
 set -euo pipefail
 
 ARTHAS_VERSION="4.3.4"
@@ -16,7 +16,7 @@ HOME_DIR="$HOME/.arthas/lib/${ARTHAS_VERSION}/arthas"
 
 cd "$REPO_ROOT"
 if [ -f "$HOME_DIR/arthas-boot.jar" ]; then
-  echo "Arthas ${ARTHAS_VERSION} déjà installé dans $HOME_DIR"
+  echo "Arthas ${ARTHAS_VERSION} already installed in $HOME_DIR"
   exit 0
 fi
 
@@ -26,4 +26,4 @@ mvn -q dependency:copy \
 
 mkdir -p "$HOME_DIR"
 unzip -oq "$REPO_ROOT/target/agents/arthas-packaging-${ARTHAS_VERSION}-bin.zip" -d "$HOME_DIR"
-echo "Arthas ${ARTHAS_VERSION} installé dans $HOME_DIR"
+echo "Arthas ${ARTHAS_VERSION} installed in $HOME_DIR"
