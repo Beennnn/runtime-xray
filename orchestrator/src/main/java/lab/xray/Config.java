@@ -12,36 +12,35 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Les réglages d'une analyse.
+ * The settings of one analysis.
  *
- * <p>Le fichier de configuration est un simple {@code clé="valeur"} par ligne — pas de
- * YAML, pas de TOML : le format doit se lire et s'écrire à la main sans documentation,
- * et se relire ici sans bibliothèque.
+ * <p>The configuration file is a plain {@code key="value"} per line — no YAML, no TOML:
+ * the format must read and write by hand without documentation, and read back here
+ * without a library.
  *
- * <p>Quand le fichier attendu n'existe pas, on en écrit un {@linkplain #writeTemplate
- * gabarit commenté} plutôt que d'afficher une erreur : personne ne devrait avoir à
- * deviner des noms de clés.
+ * <p>When the expected file does not exist, a {@linkplain #writeTemplate commented
+ * template} is written rather than an error shown: nobody should have to guess key names.
  */
 public final class Config {
 
     public String javaCommand = "";
     public String rootMethod = "";
     /**
-     * Où trouver le bytecode analysé : répertoires de classes <b>et/ou</b> archives jar,
-     * séparés par {@code :} ou {@code ,}.
+     * Where to find the analysed bytecode: class directories <b>and/or</b> jar archives,
+     * separated by {@code :} or {@code ,}.
      *
-     * <p>Les jar comptent autant que les répertoires : le code que l'on cherche à
-     * comprendre est souvent une dépendance interne livrée sous cette forme — un module
-     * commun, une bibliothèque maison — et c'est justement celui dont personne n'a le
-     * modèle mental. L'outil de couverture sait lire les deux ; il n'y avait aucune raison
-     * de n'en accepter qu'un.
+     * <p>Jars count as much as directories: the code one is trying to understand is often
+     * an internal dependency delivered in that form — a shared module, a home-grown library
+     * — and it is precisely the one nobody has a mental model of. The coverage tool can
+     * read both; there was no reason to accept only one.
      */
     public String classesDir = "";
     /**
-     * Paquets à taire, au même titre que le JDK — {@code org.slf4j, io.netty}…
+     * Packages to keep quiet about, on the same footing as the JDK —
+     * {@code org.slf4j, io.netty}…
      *
-     * <p>Voir {@link PackageFilter} pour ce que « taire » veut dire exactement (le temps
-     * est reporté sur l'appelant, il n'est pas perdu).
+     * <p>See {@link PackageFilter} for what "keep quiet about" means exactly (the time is
+     * carried over to the caller, it is not lost).
      */
     public String hiddenPackages = "";
     public String sourceDirs = "";
@@ -52,33 +51,33 @@ public final class Config {
     public int maxSeconds = 600;
     public int watchCount = 10;
     /**
-     * Ce qu'on accepte de payer pour observer, par ordre de priorité des informations.
+     * What one accepts to pay in order to observe, in order of priority of the information.
      *
-     * <p>Sur un code d'entreprise, tout mesurer d'un coup n'est pas toujours tenable : la
-     * couverture instrumente chaque classe chargée, l'échantillonnage réveille la JVM mille
-     * fois par seconde, et la capture des valeurs intercepte chaque entrée d'une méthode.
-     * Les trois informations n'ont pourtant pas la même valeur : savoir <b>ce qui a tourné</b>
-     * passe avant savoir <b>qui appelle qui</b>, qui passe avant <b>avec quelles valeurs</b>.
-     * Le niveau retenu dit jusqu'où on va.
+     * <p>On enterprise code, measuring everything at once is not always tenable: coverage
+     * instruments every class loaded, sampling wakes the JVM a thousand times a second, and
+     * value capture intercepts every entry into a method. The three pieces of information
+     * are not worth the same, though: knowing <b>what ran</b> comes before knowing <b>who
+     * calls whom</b>, which comes before <b>with which values</b>. The level chosen says
+     * how far one goes.
      *
      * <ul>
-     *   <li>{@code couverture} — JaCoCo seul ;</li>
-     *   <li>{@code arbre} — plus l'échantillonnage des piles ;</li>
-     *   <li>{@code complet} — plus la capture des valeurs (défaut).</li>
+     *   <li>{@code coverage} — JaCoCo alone;</li>
+     *   <li>{@code tree} — plus stack sampling;</li>
+     *   <li>{@code full} — plus value capture (the default).</li>
      * </ul>
      */
     public String level = "complet";
 
-    /** Les trois niveaux, sous leur nom interne. */
+    /** The three levels, under their internal name. */
     public static final java.util.List<String> LEVELS =
             java.util.List.of("couverture", "arbre", "complet");
 
     /**
-     * Le niveau ramené à son nom interne.
+     * The level brought back to its internal name.
      *
-     * <p>L'outil parle anglais : {@code coverage}, {@code tree}, {@code full}. Les noms
-     * français restent acceptés, à vie et sans être documentés — un script déployé avant
-     * la bascule ne doit jamais cesser de marcher pour une question de langue.
+     * <p>The tool speaks English: {@code coverage}, {@code tree}, {@code full}. The French
+     * names stay accepted, for life and undocumented — a script deployed before the switch
+     * must never stop working over a question of language.
      */
     public static String level(String value) {
         String v = value == null ? "" : value.trim().toLowerCase(java.util.Locale.ROOT);
@@ -90,46 +89,46 @@ public final class Config {
         };
     }
     /**
-     * Classes que JaCoCo instrumente, au format de son agent — {@code com.example.*}, plusieurs
-     * motifs séparés par {@code :}. Vide : tout ce que la JVM charge, y compris les
-     * bibliothèques tierces, ce qui est le plus coûteux et rarement le plus utile.
+     * Classes JaCoCo instruments, in its agent's format — {@code com.example.*}, several
+     * patterns separated by {@code :}. Empty: everything the JVM loads, third-party
+     * libraries included, which is the most expensive and rarely the most useful.
      */
     public String coverIncludes = "";
     /**
-     * Intervalle d'échantillonnage des piles, en millisecondes. L'augmenter est le levier le
-     * plus direct sur le coût du profil : à 10 ms, dix fois moins de relevés qu'à 1 ms.
+     * The stack sampling interval, in milliseconds. Raising it is the most direct lever on
+     * the profile's cost: at 10 ms, ten times fewer samples than at 1 ms.
      */
     public int sampleIntervalMs = 1;
 
     /**
-     * Le port de la page de suivi, ou 0 pour ne rien servir.
+     * The follow page's port, or 0 to serve nothing.
      *
-     * <p>Zéro par défaut, et c'est délibéré : {@code progression.jsonl} s'écrit de toute
-     * façon, et ouvrir un port sans qu'on l'ait demandé est une décision qui ne se prend
-     * pas à la place de l'exploitant.
+     * <p>Zero by default, and deliberately so: {@code progression.jsonl} is written anyway,
+     * and opening a port without being asked to is a decision one does not take on the
+     * operator's behalf.
      */
     public int followPort = 0;
     /**
-     * Formats de réécriture demandés — {@code perf}, {@code cpuprofile}, {@code lcov},
-     * {@code valeurs}, ou {@code tout}. Vide : aucun export, et rien d'écrit en plus.
+     * Rewrite formats requested — {@code perf}, {@code cpuprofile}, {@code lcov},
+     * {@code values}, or {@code all}. Empty: no export, and nothing written extra.
      */
     public String exportFormats = "";
     /**
-     * Nombre d'invocations dont on trace l'arbre d'appel.
+     * How many invocations have their call tree traced.
      *
-     * <p>Chaque invocation empruntant des branches différentes, ce nombre détermine
-     * combien de lignes du code pourront être annotées : avec une seule, on ne voit que
-     * le chemin de cet appel-là. Le coût est faible — une invocation tracée fait quelques
-     * dizaines de lignes de sortie — donc la valeur par défaut est généreuse.
+     * <p>Since each invocation takes different branches, this number decides how many lines
+     * of code can be annotated: with only one, one sees the path of that call alone. The
+     * cost is low — one traced invocation makes a few dozen lines of output — so the
+     * default is generous.
      */
     public int traceCount = 10;
     public boolean captureValues = true;
-    /** Dépôt Maven d'où récupérer les componentsDir. Un miroir interne suffit. */
+    /** The Maven repository to fetch the components from. An internal mirror is enough. */
     public String mavenRepo = "https://repo1.maven.org/maven2";
     /**
-     * Répertoire où chercher les componentsDir déjà présents sur la machine, avant tout
-     * accès au réseau. Ce qu'il contient prime sur ce qui pourrait être téléchargé —
-     * c'est le geste de celui qui les a apportés lui-même.
+     * Directory to look in for components already present on the machine, before any
+     * network access. What it holds takes priority over what might be downloaded — it is
+     * the gesture of whoever brought them along.
      */
     public String componentsDir = "";
 
@@ -148,7 +147,7 @@ public final class Config {
     }
 
     private static String unquote(String v) {
-        // On coupe un éventuel commentaire de fin de ligne, mais seulement hors guillemets.
+        // A trailing comment is cut off, but only outside quotes.
         if (v.startsWith("\"")) {
             int end = v.indexOf('"', 1);
             return end > 0 ? v.substring(1, end) : v.substring(1);
@@ -178,7 +177,7 @@ public final class Config {
             case "SAMPLE_INTERVAL_MS" -> sampleIntervalMs = parse(value, sampleIntervalMs);
             case "FOLLOW_PORT", "SUIVI_PORT" -> followPort = parse(value, followPort);
             case "TRACE_COUNT" -> traceCount = parse(value, traceCount);
-            default -> { /* une clé inconnue n'est pas une erreur : le fichier peut servir à autre chose */ }
+            default -> { /* an unknown key is not an error: the file can serve other purposes */ }
         }
     }
 
@@ -190,7 +189,7 @@ public final class Config {
         }
     }
 
-    /** Le filtre de profil se déduit du paquet de la méthode racine, faute de consigne. */
+    /** The profile filter is deduced from the root method's package, failing an instruction. */
     public String effectiveFilter() {
         if (!classFilter.isBlank()) return classFilter;
         if (rootMethod.isBlank()) return "";
@@ -199,25 +198,25 @@ public final class Config {
         return dot < 0 ? "" : cls.substring(0, dot).replace('.', '/') + "/*";
     }
 
-    /** Les entrées de {@link #classesDir}, répertoires ou jar, dans l'ordre donné. */
+    /** The entries of {@link #classesDir}, directories or jars, in the order given. */
     public List<Path> classesPaths() {
         return paths(classesDir);
     }
 
     /**
-     * Une liste de chemins telle qu'on l'écrit dans la configuration — <b>lecteur Windows
-     * compris</b>.
+     * A list of paths as it is written in the configuration — <b>Windows drive letters
+     * included</b>.
      *
-     * <p>Le séparateur documenté est {@code :}, ce qui va de soi sur Unix et ne va pas du tout
-     * sur Windows : {@code C:\projet\src} y commence par un {@code :} qui n'est pas un
-     * séparateur. Découpé bêtement, ce chemin donnait deux entrées — {@code C} et
-     * {@code \projet\src} — dont aucune n'existe, et l'outil concluait « répertoire
-     * introuvable » sur un chemin parfaitement valide que l'utilisateur avait sous les yeux.
+     * <p>The documented separator is {@code :}, which goes without saying on Unix and not
+     * at all on Windows: {@code C:\project\src} starts there with a {@code :} that is not a
+     * separator. Split naively, that path gave two entries — {@code C} and
+     * {@code \project\src} — neither of which exists, and the tool concluded "directory not
+     * found" about a perfectly valid path the user had in front of them.
      *
-     * <p>Le {@code :} qui suit une lettre seule en tête de segment et précède un séparateur de
-     * chemin est donc rendu au chemin. {@code ;} — le séparateur natif de Windows — et
-     * {@code ,} sont acceptés en plus, parce que c'est ce qu'un utilisateur de Windows écrira
-     * spontanément.
+     * <p>A {@code :} that follows a single letter at the start of a segment and precedes a
+     * path separator is therefore given back to the path. {@code ;} — Windows's native
+     * separator — and {@code ,} are accepted as well, because that is what a Windows user
+     * will write spontaneously.
      */
     public static List<Path> paths(String value) {
         List<Path> paths = new ArrayList<>();
@@ -227,7 +226,7 @@ public final class Config {
         return paths;
     }
 
-    /** Le découpage seul, sans interprétation : c'est lui que les tests éprouvent. */
+    /** The splitting alone, without interpretation: it is what the tests exercise. */
     static List<String> split(String value) {
         List<String> out = new ArrayList<>();
         if (value == null) return out;
@@ -248,11 +247,11 @@ public final class Config {
     }
 
     /**
-     * Vrai si ce {@code :} est celui d'un lecteur Windows, et non un séparateur.
+     * True when this {@code :} belongs to a Windows drive, and is not a separator.
      *
-     * <p>Trois conditions, et il les faut toutes : une lettre juste avant, cette lettre en
-     * tête de segment, et un séparateur de chemin juste après. {@code C:\x} est un lecteur ;
-     * {@code src:autre} ne l'est pas, ni {@code ab:c}.
+     * <p>Three conditions, and all three are needed: a letter just before, that letter at
+     * the start of a segment, and a path separator just after. {@code C:\x} is a drive;
+     * {@code src:other} is not, nor is {@code ab:c}.
      */
     private static boolean driveLetter(String v, int i) {
         if (i < 1 || !Character.isLetter(v.charAt(i - 1))) return false;
@@ -265,12 +264,12 @@ public final class Config {
         return i + 1 < v.length() && (v.charAt(i + 1) == '\\' || v.charAt(i + 1) == '/');
     }
 
-    /** Vrai si le niveau demandé va jusqu'à l'échantillonnage des piles. */
+    /** True when the level requested goes as far as stack sampling. */
     public boolean profileWanted() {
         return !"couverture".equals(level(level));
     }
 
-    /** Vrai si le niveau demandé va jusqu'à la capture des valeurs. */
+    /** True when the level requested goes as far as value capture. */
     public boolean valuesWanted() {
         String l = level.trim();
         return captureValues && ("complet".equals(level(l)) || l.isBlank());
@@ -293,8 +292,8 @@ public final class Config {
         m.put("paquetsMasques", hiddenPackages.isBlank() ? null : hiddenPackages);
         m.put("repertoiresSources", sourceDirs.isBlank() ? null : sourceDirs);
         m.put("valeursInspectees", valuesWanted() && !rootMethod.isBlank());
-        // Le niveau et ses réglages voyagent avec l'exécution : sans eux, un rapport moins
-        // fourni qu'un autre se lit comme une mesure ratée plutôt que comme un choix.
+        // The level and its settings travel with the run: without them, a report less
+        // full than another reads as a failed measurement rather than as a choice.
         m.put("niveau", level);
         m.put("classesInstrumentees", coverIncludes.isBlank() ? null : coverIncludes);
         m.put("intervalleMs", sampleIntervalMs);
