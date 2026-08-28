@@ -68,16 +68,23 @@ public final class Exports {
 
         Format(String option) { this.option = option; }
 
+        /** Les noms anglais, canoniques. Les français restent acceptés, à vie. */
+        private static final java.util.Map<String, String> ALIAS =
+                java.util.Map.of("values", "valeurs");
+
         public static Format of(String name) {
+            String n = name.trim().toLowerCase(java.util.Locale.ROOT);
+            n = ALIAS.getOrDefault(n, n);
             for (Format f : values()) {
-                if (f.option.equalsIgnoreCase(name.trim())) return f;
+                if (f.option.equalsIgnoreCase(n)) return f;
             }
-            throw new IllegalArgumentException("format d'export inconnu : " + name
-                    + " (attendus : perf, cpuprofile, lcov, valeurs, ou tout)");
+            throw new IllegalArgumentException("unknown export format: " + name
+                    + " (expected: perf, cpuprofile, lcov, values, or all)");
         }
 
         public static Set<Format> parse(String list) {
-            if (list.isBlank() || list.trim().equalsIgnoreCase("tout")) {
+            String t = list.trim().toLowerCase(java.util.Locale.ROOT);
+            if (list.isBlank() || t.equals("all") || t.equals("tout")) {
                 return Set.of(values());
             }
             Set<Format> out = new java.util.LinkedHashSet<>();
@@ -162,12 +169,12 @@ public final class Exports {
             }
         }
         if (allegement.allege()) {
-            System.out.println("   export perf allégé : " + emitted + " échantillons sur "
+            System.out.println("   perf export thinned out: " + emitted + " samples out of "
                     + allegement.total + " (" + Math.round(allegement.facteur * 100)
-                    + " %) — ce format réécrit la pile entière à chaque relevé, et il ferait "
-                    + allegement.octets / (1024 * 1024) + " Mo autrement.");
-            System.out.println("      La forme du profil est gardée ; les parts très faibles "
-                    + "peuvent disparaître. Le cpuprofile, lui, porte tout.");
+                    + " %) — this format rewrites the whole stack at every sample, and would\n"
+                    + "      otherwise weigh " + allegement.octets / (1024 * 1024) + " MB.");
+            System.out.println("      The shape of the profile is kept; very small shares "
+                    + "may vanish. The cpuprofile, itself, carries everything.");
         }
         return out;
     }

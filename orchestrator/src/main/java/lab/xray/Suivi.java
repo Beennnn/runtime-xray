@@ -88,8 +88,8 @@ public final class Suivi implements AutoCloseable {
             } catch (IOException e) {
                 // Un port pris ne doit pas coûter l'exécution : l'observation vaut mieux
                 // que son affichage, et le fichier reste écrit de toute façon.
-                System.out.println("   suivi non servi sur le port " + port + " ("
-                        + e.getMessage() + ") — " + FICHIER + " est écrit quand même");
+                System.out.println("   follow page not served on port " + port + " ("
+                        + e.getMessage() + ") — " + FICHIER + " is written anyway");
             }
         }
         Suivi suivi = new Suivi(fichier, execution, serveur);
@@ -167,8 +167,8 @@ public final class Suivi implements AutoCloseable {
         });
         server.setExecutor(null);
         server.start();
-        System.out.println("   suivi en direct : http://127.0.0.1:" + port
-                + "   (ou : tail -f " + fichier + ")");
+        System.out.println("   live follow: http://127.0.0.1:" + port
+                + "   (or: tail -f " + fichier + ")");
         return server;
     }
 

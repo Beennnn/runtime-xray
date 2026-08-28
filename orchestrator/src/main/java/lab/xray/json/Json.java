@@ -114,7 +114,7 @@ public final class Json {
 
         Object value() {
             skipWhitespace();
-            if (i >= s.length()) throw new IllegalArgumentException("JSON tronqué");
+            if (i >= s.length()) throw new IllegalArgumentException("truncated JSON");
             char c = s.charAt(i);
             return switch (c) {
                 case '{' -> object();
@@ -177,7 +177,7 @@ public final class Json {
                     default -> sb.append(e);
                 }
             }
-            throw new IllegalArgumentException("chaîne JSON non terminée");
+            throw new IllegalArgumentException("unterminated JSON string");
         }
 
         Object number() {
@@ -187,7 +187,7 @@ public final class Json {
         }
 
         Object literal(String word, Object value) {
-            if (!s.startsWith(word, i)) throw new IllegalArgumentException("littéral JSON inattendu");
+            if (!s.startsWith(word, i)) throw new IllegalArgumentException("unexpected JSON literal");
             i += word.length();
             return value;
         }

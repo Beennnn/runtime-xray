@@ -381,7 +381,7 @@ class DashboardTest {
         Path out = dir.resolve("vide");
         Exception e = org.junit.jupiter.api.Assertions.assertThrows(Exception.class,
                 () -> Dashboard.build(out, List.of(), 8));
-        assertTrue(e.getMessage().contains("aucune exécution"), e.getMessage());
+        assertTrue(e.getMessage().contains("no run found"), e.getMessage());
     }
 
     @Test

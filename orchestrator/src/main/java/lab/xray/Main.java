@@ -41,7 +41,7 @@ public final class Main {
             System.exit(run(args));
         } catch (Exception e) {
             System.err.println();
-            System.err.println("Échec : " + e.getMessage());
+            System.err.println("Error: " + e.getMessage());
             System.exit(1);
         }
     }
@@ -92,28 +92,28 @@ public final class Main {
                 case "--out" -> config.outDir = args[++i];
                 case "--name" -> config.runName = args[++i];
                 case "--repo" -> config.mavenRepo = args[++i];
-                case "--composants" -> config.componentsDir = args[++i];
+                case "--components", "--composants" -> config.componentsDir = args[++i];
                 case "--attach-after" -> config.attachAfterSeconds = Integer.parseInt(args[++i]);
                 case "--max-seconds" -> config.maxSeconds = Integer.parseInt(args[++i]);
                 case "--no-values" -> config.captureValues = false;
                 case "--print-options" -> printOptionsOnly = true;
                 // Le paquet de contexte : ce qu'il faut savoir pour répondre à une question,
                 // et rien de plus. Aucun réseau, aucun fournisseur — voir Contexte.
-                case "--contexte" -> contexteQuestion =
+                case "--context", "--contexte" -> contexteQuestion =
                         i + 1 < args.length && !args[i + 1].startsWith("--") ? args[++i] : "";
                 // Le chemin des scripts : nommer les familles plutôt que de faire
                 // interpréter une phrase, dont le résultat n'est reproductible que tant
                 // qu'on ne touche pas aux mots-clés.
-                case "--familles" -> contexteFamilles =
+                case "--families", "--familles" -> contexteFamilles =
                         java.util.List.of(args[++i].split("\\s*,\\s*"));
                 case "--report-only" -> reportOnly = true;
                 case "--export" -> config.exportFormats = args[++i];
-                case "--niveau" -> config.level = args[++i];
+                case "--level", "--niveau" -> config.level = args[++i];
                 case "--cover" -> config.coverIncludes = args[++i];
                 case "--interval" -> config.sampleIntervalMs = Integer.parseInt(args[++i]);
                 // Le port se colle à l'option, comme pour --serve : « --suivi » seul prend
                 // le port par défaut, et « --suivi 9100 » celui qu'on lui donne.
-                case "--suivi" -> {
+                case "--follow", "--suivi" -> {
                     config.suiviPort = Suivi.PORT;
                     if (i + 1 < args.length && args[i + 1].matches("\\d+")) {
                         config.suiviPort = Integer.parseInt(args[++i]);
@@ -183,7 +183,7 @@ public final class Main {
             // un gabarit à sa place l'était encore plus.
             Path def = Path.of(DEFAULT_CONFIG);
             if (Files.isRegularFile(def)) {
-                System.out.println("▶ Configuration lue : " + DEFAULT_CONFIG);
+                System.out.println("▶ Configuration read from: " + DEFAULT_CONFIG);
                 config = Config.load(def);
             } else {
                 Config.writeTemplate(def);
@@ -203,7 +203,7 @@ public final class Main {
         }
 
         require(!config.javaCommand.isBlank() || reportOnly, "--java est obligatoire");
-        require(List.of("couverture", "arbre", "complet").contains(config.level.trim()),
+        require(Config.NIVEAUX.contains(Config.niveau(config.level)),
                 "--niveau attend couverture, arbre ou complet (reçu : " + config.level + ")");
         // Les classes servent à MESURER. Réassembler une vue depuis des mesures existantes
         // n'en a aucun besoin.
@@ -227,13 +227,13 @@ public final class Main {
 
         fusionnerCouverture(config, tools, outDir);
 
-        System.out.println("▶ Assemblage de la vue");
+        System.out.println("▶ Building the report");
         Path page = Dashboard.build(outDir, sourceRoots(config), config.watchCount,
                 config.hidden(), lancement(config, tools, sourceRoots(config)));
         direCeQuOnATrouve(outDir);
         direLePoids(page);
         System.out.println();
-        System.out.println("Terminé — ouvrir : " + page);
+        System.out.println("Done — open: " + page);
 
         if (serve) {
             Config servi = config;
@@ -243,9 +243,9 @@ public final class Main {
                 // Affiché une fois, ici et nulle part ailleurs : il n'est écrit dans aucun
                 // fichier, et le serveur ne le réaffichera pas.
                 System.out.println();
-                System.out.println("▶ Secret partagé tiré au sort : " + secret);
-                System.out.println("   À transmettre aux personnes qui doivent accéder au "
-                        + "rapport.");
+                System.out.println("▶ Shared secret drawn at random: " + secret);
+                System.out.println("   Pass it to whoever needs access to the "
+                        + "report.");
             }
             LocalServer.serve(outDir, serveHost, servePort, () -> {
                 // Après une écriture, la page est reconstruite : l'annotation devient celle
@@ -270,29 +270,29 @@ public final class Main {
         Path runDir = outDir.resolve("runs").resolve(stamp + slug(config.runName));
         Files.createDirectories(runDir);
 
-        System.out.println("▶ Exécution « " + name + " » — identifiant " + uuid);
+        System.out.println("▶ Run \"" + name + "\" — id " + uuid);
 
         RunSession session = new RunSession(config, tools, runDir);
         session.execute();
 
         resolveClasses(config, session);
 
-        System.out.println("▶ Rendu de la couverture");
+        System.out.println("▶ Rendering coverage");
         renderCoverage(config, tools, runDir);
 
-        System.out.println("▶ Rendu du profil par son propre outil");
+        System.out.println("▶ Rendering the profile with its own tool");
         renderProfileViews(tools, runDir);
 
         writeContext(config, runDir, uuid, name, session);
 
         System.out.println();
-        System.out.println("   Pour nommer, décrire ou étiqueter cette exécution plus tard, "
-                + "ajouter dans " + outDir.resolve("noms.json") + " :");
-        System.out.println("     { \"" + uuid + "\": \"un nom plus parlant\" }");
-        System.out.println("   ou, pour tout renseigner :");
+        System.out.println("   To name, describe or tag this run later, add to "
+                + outDir.resolve("noms.json") + ":");
+        System.out.println("     { \"" + uuid + "\": \"a more telling name\" }");
+        System.out.println("   or, to fill in everything:");
         System.out.println("     { \"" + uuid + "\": { \"nom\": \"…\", \"description\": \"…\","
                 + " \"etiquettes\": { \"ticket\": \"ABC-123\", \"recette\": \"\" } } }");
-        System.out.println("   La vue sait aussi les saisir et rendre ce fichier.");
+        System.out.println("   The report can also capture them and write this file.");
     }
 
     /**
@@ -308,15 +308,15 @@ public final class Main {
         List<Path> found = ClassSources.discover(session.jvmArguments, config.javaCommand,
                 Path.of("").toAbsolutePath());
         if (found.isEmpty()) {
-            System.out.println("   ⚠️ impossible de déterminer où sont les classes — "
-                    + "la couverture sera vide. Préciser --classes (un répertoire, un jar, "
-                    + "ou une liste séparée par ':')");
+            System.out.println("   ⚠️ cannot determine where the classes are — "
+                    + "coverage will be empty. Give --classes (a directory, a jar, "
+                    + "or a list separated by ':')");
             return;
         }
         config.classesDir = found.stream().map(Path::toString)
                 .collect(java.util.stream.Collectors.joining(":"));
-        System.out.println("▶ Classes analysées : " + config.classesDir
-                + "  (déduit de l'exécution — --classes pour en ajouter ou en changer)");
+        System.out.println("▶ Classes analysed: " + config.classesDir
+                + "  (inferred from the run — --classes to add to or change them)");
     }
 
     /**
@@ -345,8 +345,8 @@ public final class Main {
             convert(converter, collapsed, runDir.resolve("async-profiler/flamegraph-inverse.html"),
                     List.of("--reverse", "--title", "Profil inversé — qui appelle quoi"));
         } catch (Exception e) {
-            System.out.println("   ⚠️ rendu natif indisponible (" + e.getMessage()
-                    + ") — les piles brutes restent dans profil.collapsed");
+            System.out.println("   ⚠️ native rendering unavailable (" + e.getMessage()
+                    + ") — the raw stacks remain in profil.collapsed");
         }
     }
 
@@ -387,12 +387,12 @@ public final class Main {
             if (mesures.size() < 2) return;
             List<Path> classes = config.classesPaths();
             if (classes.isEmpty()) {
-                System.out.println("▶ Couverture fusionnée : ignorée — le bytecode n'est pas "
-                        + "connu dans ce mode (donner --classes pour l'obtenir)");
+                System.out.println("▶ Merged coverage: skipped — the bytecode is not "
+                        + "known in this mode (give --classes to get it)");
                 return;
             }
 
-            System.out.println("▶ Couverture fusionnée sur " + mesures.size() + " exécutions");
+            System.out.println("▶ Merged coverage over " + mesures.size() + " runs");
             Path cli = tools.jacocoCli();
             Path dir = outDir.resolve("jacoco-fusion");
             Files.createDirectories(dir);
@@ -428,7 +428,7 @@ public final class Main {
         } catch (Exception e) {
             // La fusion est un supplément : la vue sait déjà cumuler côté page. Son échec
             // ne doit pas emporter le rapport, il doit se dire.
-            System.out.println("   ⚠️ couverture fusionnée non produite : " + e.getMessage());
+            System.out.println("   ⚠️ merged coverage not produced: " + e.getMessage());
         }
     }
 
@@ -456,7 +456,7 @@ public final class Main {
     private static void renderCoverage(Config config, Toolbox tools, Path runDir) throws Exception {
         Path exec = runDir.resolve("jacoco/jacoco.exec");
         if (!Files.isRegularFile(exec)) {
-            System.out.println("   ⚠️ aucune donnée de couverture — l'application a-t-elle démarré ?");
+            System.out.println("   ⚠️ no coverage data — did the application start?");
             return;
         }
         Path cli = tools.jacocoCli();
@@ -501,7 +501,7 @@ public final class Main {
             focusedCmd.add(src.toString());
         }
         exec(focusedCmd);
-        System.out.println("   " + kept + " classes exécutées retenues pour le rapport ciblé");
+        System.out.println("   " + kept + " executed classes kept for the focused report");
     }
 
     @SuppressWarnings("unchecked")
@@ -647,7 +647,7 @@ public final class Main {
      */
     private static void exportRuns(Config config, Path outDir) throws Exception {
         Set<Exports.Format> formats = Exports.Format.parse(config.exportFormats);
-        System.out.println("▶ Export vers " + formats.stream().map(f -> f.option).sorted()
+        System.out.println("▶ Exporting to " + formats.stream().map(f -> f.option).sorted()
                 .collect(java.util.stream.Collectors.joining(", ")));
         Path runs = outDir.resolve("runs");
         if (!Files.isDirectory(runs)) return;
@@ -655,7 +655,7 @@ public final class Main {
             for (Path run : dirs.filter(Files::isDirectory).sorted().toList()) {
                 for (Path written : Exports.write(run, formats, 1, config.watchCount)) {
                     System.out.println("   " + written + " ("
-                            + Files.size(written) / 1024 + " Ko)");
+                            + Files.size(written) / 1024 + " KB)");
                 }
             }
         }
@@ -671,25 +671,25 @@ public final class Main {
         Files.createDirectories(runDir.resolve("async-profiler"));
         String options = new RunSession(config, tools, runDir).agentOptions();
         System.out.println();
-        System.out.println("Options à ajouter à N'IMPORTE QUELLE ligne de commande Java :");
+        System.out.println("Options to add to ANY Java command line:");
         System.out.println();
         System.out.println("  " + options);
         System.out.println();
-        System.out.println("Ou, sans toucher à la ligne de commande, par l'environnement :");
+        System.out.println("Or, without touching the command line, through the environment:");
         System.out.println();
         System.out.println("  export JAVA_TOOL_OPTIONS=\"" + options + "\"");
         System.out.println();
-        System.out.println("Puis, une fois l'application arrêtée, assembler la vue :");
+        System.out.println("Then, once the application has stopped, build the report:");
         System.out.println();
         System.out.println("  java -jar runtime-xray.jar --report-only --out " + config.outDir
-                + " --classes <répertoire de classes> --sources <sources>");
+                + " --classes <classes directory> --sources <sources>");
     }
 
     private static void announceTemplate(Path file, String relaunch) {
-        System.out.println("Fichier de configuration généré : " + file);
+        System.out.println("Configuration file generated: " + file);
         System.out.println();
-        System.out.println("   Il contient les valeurs par défaut, des commentaires et des exemples.");
-        System.out.println("   Renseigner au minimum JAVA_CMD, puis relancer :");
+        System.out.println("   It holds the defaults, comments and examples.");
+        System.out.println("   Fill in JAVA_CMD at least, then run again:");
         System.out.println();
         System.out.println("     java -jar runtime-xray.jar " + relaunch);
     }
@@ -755,9 +755,9 @@ public final class Main {
                 Object sans = r.get("fichiersSansSource");
                 // Le lecteur JSON rend des Double : « 0.0/27.0 » se lit comme un défaut de
                 // l'outil avant de se lire comme un compte.
-                System.out.println("   sources : " + entier(r.get("fichiersAvecSource"))
+                System.out.println("   sources: " + entier(r.get("fichiersAvecSource"))
                         + "/" + entier(r.get("fichiersMesures"))
-                        + " classe(s) mesurée(s) ont leur code");
+                        + " measured class(es) have their source");
                 if (sans instanceof Number n && n.intValue() > 0) {
                     System.out.println("   " + r.get("conclusion"));
                     proposerRacines(r.get("pistes"));
@@ -766,7 +766,7 @@ public final class Main {
         } catch (Exception e) {
             // Le diagnostic est un confort : son absence ne doit rien empêcher.
         }
-        System.out.println("   diagnostic : " + fichier);
+        System.out.println("   diagnostic: " + fichier);
     }
 
     /**
@@ -781,15 +781,15 @@ public final class Main {
         try {
             long octets = Files.size(page);
             String taille = octets >= 1 << 20 ? (octets >> 20) + " Mo" : (octets >> 10) + " Ko";
-            System.out.println("   page : " + taille);
+            System.out.println("   page: " + taille);
             if (octets > SEUIL_PAGE) {
-                System.out.println("   ⚠️ au-delà de " + (SEUIL_PAGE >> 20) + " Mo, un navigateur "
-                        + "peut renoncer à l'afficher. Les deux causes, dans l'ordre :");
-                System.out.println("      • une racine --sources trop large — seules les classes "
-                        + "mesurées sont embarquées, mais les lire toutes coûte quand même ;");
-                System.out.println("      • le nombre d'exécutions accumulées sous " 
-                        + "<sortie>/runs/ : elles sont toutes embarquées.");
-                System.out.println("      Voir sources.racines et executions dans diagnostic.json.");
+                System.out.println("   ⚠️ beyond " + (SEUIL_PAGE >> 20) + " MB a browser "
+                        + "may give up rendering it. The two causes, in order:");
+                System.out.println("      • a --sources root that is too wide — only measured classes "
+                        + "are embedded, but reading them all still costs;");
+                System.out.println("      • the number of runs accumulated under " 
+                        + "<out>/runs/: all of them are embedded.");
+                System.out.println("      See sources.racines and executions in diagnostic.json.");
             }
         } catch (IOException e) {
             // Le poids est un confort : son absence ne doit rien empêcher.
@@ -808,16 +808,16 @@ public final class Main {
      */
     private static void proposerRacines(Object pistes) {
         if (!(pistes instanceof List<?> liste) || liste.isEmpty()) {
-            System.out.println("   aucune source correspondante trouvée autour du projet — "
-                    + "les fichiers .java ne sont pas sur cette machine, ou ailleurs qu'ici.");
+            System.out.println("   no matching source found around the project — "
+                    + "the .java files are not on this machine, or not here.");
             return;
         }
-        System.out.println("   racines trouvées, à ajouter à SOURCE_DIRS :");
+        System.out.println("   roots found, to add to SOURCE_DIRS:");
         for (Object o : liste) {
             if (!(o instanceof Map<?, ?> p)) continue;
             System.out.println("     " + p.get("racine")
-                    + "   (résout " + entier(p.get("resout")) + "/" + entier(p.get("surTotal"))
-                    + " des classes sans source)");
+                    + "   (resolves " + entier(p.get("resout")) + "/" + entier(p.get("surTotal"))
+                    + " of the classes without source)");
         }
     }
 
@@ -856,7 +856,7 @@ public final class Main {
             throw new IOException("commande interrompue : " + String.join(" ", cmd));
         }
         if (p.exitValue() != 0) {
-            throw new IOException("échec (code " + p.exitValue() + ") : " + String.join(" ", cmd));
+            throw new IOException("failed (exit " + p.exitValue() + ") : " + String.join(" ", cmd));
         }
     }
 
@@ -886,7 +886,7 @@ public final class Main {
                   runtime-xray --java <command> [options]          measure a run
                   runtime-xray --print-options [options]           prepare a JVM you don't launch
                   runtime-xray --report-only [options]             rebuild the report, run nothing
-                  runtime-xray --contexte [<question>] [options]   extract a bounded excerpt
+                  runtime-xray --context [<question>] [options]    extract a bounded excerpt
                   runtime-xray --serve [<port>] [options]          serve the report, allow notes
 
                 EXAMPLES
@@ -907,9 +907,9 @@ public final class Main {
                   --out <dir>          Output directory (default: runtime-xray-out).
                   --name "<text>"      Name for this run; runs accumulate and the report lets
                                        you switch between them.
-                  --niveau <level>     How deep to observe: couverture (JaCoCo only), arbre
-                                       (+ stack sampling), complet (+ values). Default:
-                                       complet. The first knob to turn down on a large codebase.
+                  --level <level>      How deep to observe: coverage (JaCoCo only), tree
+                                       (+ stack sampling), full (+ values). Default:
+                                       full. French names still work. The first knob to turn down on a large codebase.
                   --cover "<globs>"    Classes JaCoCo instruments, e.g. "com.example.*".
                                        Without it every class the JVM loads is instrumented.
                   --interval <ms>      Stack sampling interval (default: 1).
@@ -917,17 +917,17 @@ public final class Main {
                   --max-seconds <s>    Guard rail on the run duration (default: 600).
                   --no-values          Do not inspect values: timings become exact.
                   --export <formats>   Rewrite measurements for other tools: perf, cpuprofile,
-                                       lcov, valeurs \u2014 or "tout". Files go to <run>/exports/.
+                                       lcov, values \u2014 or "all". Files go to <run>/exports/.
 
                 WATCHING A RUN
-                  --suivi [port]       Serve a page showing the run in progress (default:
+                  --follow [port]      Serve a page showing the run in progress (default:
                                        8788, loopback only). progression.jsonl is written
                                        either way: "tail -f <out>/progression.jsonl" follows
                                        the run with no browser and no open port.
 
                 READING A REPORT \u2014 these run nothing
                   --report-only        Rebuild the report from measurements already on disk.
-                  --contexte ["q"]     Write a bounded excerpt of the report to standard
+                  --context ["q"]      Write a bounded excerpt of the report to standard
                                        output, ready to hand to a reader. The question SELECTS
                                        the facts \u2014 by plain keywords, not by understanding
                                        \u2014 and travels inside the excerpt. The families kept
@@ -945,7 +945,7 @@ public final class Main {
                                        A keyword matches the START of a word, so "screenshot"
                                        does not match "hot". French words are recognised too.
                                        No keyword matched: the overview, and it says so.
-                  --familles a,b       Name the fact families to include instead of deriving
+                  --families a,b       Name the fact families to include instead of deriving
                                        them from the question. The scripting path: the result
                                        no longer depends on the words used. An unknown family
                                        stops, listing the ones that exist.
@@ -964,7 +964,7 @@ public final class Main {
                                        filtered network.
 
                 FINDING THE ANALYSIS COMPONENTS
-                  --composants <dir>   Components already present on the machine, taken as is.
+                  --components <dir>   Components already present on the machine, taken as is.
                                        Otherwise: next to the jar, then the local Maven
                                        repository. The network is the last resort.
                   --repo <url>         Maven repository to fetch components from (internal

@@ -157,8 +157,8 @@ class ToolboxTest {
         Path muet = jarAvecVersion(dir.resolve("sans-version.jar"), null);
         Path pasUnJar = fichier(dir, "texte.jar");
 
-        assertTrue(Toolbox.mention(muet, "4.1").contains("non vérifiée"));
-        assertTrue(Toolbox.mention(pasUnJar, "4.1").contains("non vérifiée"),
+        assertTrue(Toolbox.mention(muet, "4.1").contains("not verified"));
+        assertTrue(Toolbox.mention(pasUnJar, "4.1").contains("not verified"),
                 "ne pas savoir n'est pas un défaut : surtout, ne pas lever d'exception");
     }
 
