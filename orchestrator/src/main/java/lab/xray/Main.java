@@ -424,7 +424,7 @@ public final class Main {
                     "--html", html.toString(),
                     "--xml", html.resolve("jacoco.xml").toString(),
                     "--csv", html.resolve("jacoco.csv").toString(),
-                    "--name", "Couverture cumulée — " + samples.size() + " exécutions",
+                    "--name", "Cumulative coverage — " + samples.size() + " runs",
                     "--quiet"));
             for (Path entry : classes) {
                 report.add("--classfiles");

@@ -16,28 +16,27 @@
 
   <name>sample-app</name>
   <description>
-    Application-cible analysée par tous les outils. Le code metier n'a aucune
-    dependance : ce qu'un profiler affiche doit venir de CE code, pas du bruit
-    d'un framework.
+    The target application analysed by all the tools. The business code has no dependency
+    at all: what a profiler displays must come from THIS code, not from a framework's noise.
 
-    Trois dependances existent neanmoins, chacune pour montrer un cas que le
-    code local ne peut pas produire :
-      - commons-lang3 : du code a analyser qui ne vient PAS d'un repertoire de
-        classes mais d'un jar, comme une dependance interne livree compilee ;
-      - slf4j-api + slf4j-simple : une bibliotheque hors JDK, visible dans
-        l'arbre d'appel, et que l'on veut pouvoir masquer par configuration.
+    Three dependencies exist nevertheless, each one to show a case the local code cannot
+    produce:
+      - commons-lang3: code to analyse that comes NOT from a directory of classes but from a
+        jar, like an internal dependency delivered compiled;
+      - slf4j-api + slf4j-simple: a library outside the JDK, visible in the call tree, and
+        one that we want to be able to hide by configuration.
   </description>
 
   <properties>
     <exec.mainClass>lab.sample.Main</exec.mainClass>
-    <!-- Ce module est le support de démonstration de l'étude. Il n'a d'intérêt que dans ce
-         dépôt : le publier sous un espace de noms permanent ajouterait un artefact que
-         personne ne pourrait plus retirer.
+    <!-- This module is the study's demonstration support. It is of interest only in this
+         repository: publishing it under a permanent namespace would add an artefact nobody
+         could ever withdraw.
 
-         DEUX propriétés, et les deux sont nécessaires. maven.deploy.skip arrête le deploy
-         standard ; il ne suffit PAS, car le plugin de publication Central constitue son
-         paquet de son côté — vérifié : sample-app s'y trouvait malgré le skip. C'est
-         skipPublishing qui l'en retire. -->
+         TWO properties, and both are necessary. maven.deploy.skip stops the standard deploy;
+         it is NOT enough, because the Central publishing plugin builds its bundle on its own
+         side — verified: sample-app was in it despite the skip. It is skipPublishing that
+         takes it out. -->
     <maven.deploy.skip>true</maven.deploy.skip>
     <skipPublishing>true</skipPublishing>
     <commons-lang3.version>3.17.0</commons-lang3.version>
@@ -73,11 +72,11 @@
           <archive>
             <manifest>
               <mainClass>${exec.mainClass}</mainClass>
-              <!-- Les dependances restent des jar SEPARES, a cote du notre, plutot que
-                   fondues dans un jar unique. C'est deliberé : l'etude a besoin d'un
-                   chemin stable vers le jar d'une dependance pour le donner a analyser
+              <!-- The dependencies stay SEPARATE jars, beside ours, rather than melted into
+                   a single one. This is deliberate: the study needs a stable path to a
+                   dependency's jar in order to give it to be analysed
                    (CLASSES_DIR="target/classes:target/libs/commons-lang3-x.y.z.jar").
-                   Un jar-uber effacerait justement la distinction qu'on veut montrer. -->
+                   An uber-jar would erase precisely the distinction we want to show. -->
               <addClasspath>true</addClasspath>
               <classpathPrefix>libs/</classpathPrefix>
             </manifest>
