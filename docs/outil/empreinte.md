@@ -1,153 +1,150 @@
-# Réduire l'empreinte sur un gros code
+# Reducing the footprint on a large codebase
 
-> Les trois informations recherchées n'ont ni la même valeur, ni le même coût. Sur une
-> application d'entreprise, on ne les prend pas toutes du premier coup : on descend d'un
-> niveau, on mesure, et on remonte si l'application le supporte.
+> The three pieces of information sought have neither the same value nor the same cost. On
+> an enterprise application one does not take them all on the first go: one goes down a
+> level, measures, and comes back up if the application takes it.
 
-## L'ordre de priorité, et pourquoi c'est celui-là
+## The order of priority, and why it is that one
 
-| | Information | Ce qu'elle coûte | Ce qu'on perd sans elle |
+| | Information | What it costs | What is lost without it |
 |---|---|---|---|
-| 1 | **La couverture** — quelles lignes ont tourné | Instrumentation du bytecode au chargement, puis un compteur par branche | Tout. C'est la seule information **exhaustive** : elle voit les méthodes brèves, celles qu'un profileur rate par construction |
-| 2 | **L'arbre d'appel** — qui appelle qui | Un réveil de la JVM à chaque intervalle d'échantillonnage | La forme du programme. On sait ce qui a tourné, pas ce qui a déclenché quoi |
-| 3 | **Les valeurs** — avec quels paramètres | Une interception à chaque entrée et sortie de la méthode observée | L'explication des écarts. C'est utile, mais seulement une fois qu'on sait où regarder |
+| 1 | **Coverage** — which lines ran | Instrumenting the bytecode at load time, then a counter per branch | Everything. It is the only **exhaustive** information: it sees the brief methods, the ones a profiler misses by construction |
+| 2 | **The call tree** — who calls whom | Waking the JVM at every sampling interval | The shape of the program. One knows what ran, not what set off what |
+| 3 | **The values** — with which arguments | An interception at every entry and exit of the observed method | The explanation of the differences. It is useful, but only once one knows where to look |
 
-Cet ordre n'est pas une préférence : il suit ce que chaque mesure **remplace**. Sans
-couverture, ni le profil ni les valeurs ne disent ce qui n'a *pas* tourné — et le code mort
-est souvent ce qu'on cherchait. Sans valeurs, la couverture et l'arbre restent lisibles.
+That order is not a preference: it follows what each measurement **replaces**. Without
+coverage, neither the profile nor the values say what did *not* run — and dead code is often
+what one was after. Without values, coverage and the tree stay readable.
 
-## Les trois niveaux
+## The three levels
 
-Un seul réglage les commande : `--niveau`.
+A single setting commands them: `--level`.
 
 ```bash
-# 1. le moins cher — la couverture seule
-java -jar runtime-xray.jar --niveau couverture \
+# 1. the cheapest — coverage alone
+java -jar runtime-xray.jar --level coverage \
   --java "java -jar app.jar" --cover "com.example.*" --sources src/main/java
 
-# 2. + l'arbre d'appel, échantillonné toutes les 10 ms
-java -jar runtime-xray.jar --niveau arbre --interval 10 \
+# 2. + the call tree, sampled every 10 ms
+java -jar runtime-xray.jar --level tree --interval 10 \
   --java "java -jar app.jar" --cover "com.example.*" --filter "com/example/*" \
   --sources src/main/java
 
-# 3. + les valeurs d'une méthode (défaut)
-java -jar runtime-xray.jar --niveau complet \
+# 3. + one method's values (the default)
+java -jar runtime-xray.jar --level full \
   --java "java -jar app.jar" --root "com.example.Engine::compute" \
   --cover "com.example.*" --sources src/main/java
 ```
 
-| Niveau | JaCoCo | async-profiler | Arthas | Ce que la page montre |
+| Level | JaCoCo | async-profiler | Arthas | What the page shows |
 |---|---|---|---|---|
-| `couverture` | oui | **non** | **non** | Le code exécuté, ligne à ligne, et le code mort |
-| `arbre` | oui | oui | **non** | Idem, plus l'arbre d'appel et la part de temps |
-| `complet` *(défaut)* | oui | oui | oui | Idem, plus les valeurs reçues par la méthode racine |
+| `coverage` | yes | **no** | **no** | The executed code, line by line, and the dead code |
+| `tree` | yes | yes | **no** | The same, plus the call tree and the share of time |
+| `full` *(default)* | yes | yes | yes | The same, plus the values received by the root method |
 
-Le niveau retenu est **écrit dans le contexte de l'exécution** et affiché dans la page. Sans
-cela, un rapport moins fourni qu'un autre se lirait comme une mesure ratée plutôt que comme
-un choix.
+The level chosen is **written into the run's context** and shown in the page. Without that, a
+report less full than another would read as a failed measurement rather than as a choice.
 
-## Les leviers, du plus efficace au plus fin
+## The levers, from the most effective to the finest
 
-### 1. Restreindre l'instrumentation — `--cover`
+### 1. Restrict the instrumentation — `--cover`
 
-C'est le poste de coût principal, et le plus souvent oublié. Sans consigne, JaCoCo
-instrumente **toute classe chargée par la JVM** : votre code, mais aussi le cadriciel, le
-client HTTP, le pilote de base de données, le moteur de rendu. Sur une application qui
-charge quinze mille classes, l'essentiel du surcoût vient de code que personne ne compte
-lire.
+This is the main cost centre, and the one most often forgotten. With no instruction, JaCoCo
+instruments **every class the JVM loads**: your code, but also the framework, the HTTP
+client, the database driver, the rendering engine. On an application that loads fifteen
+thousand classes, most of the overhead comes from code nobody intends to read.
 
 ```bash
---cover "com.example.*:com.example.commun.*"
+--cover "com.example.*:com.example.shared.*"
 ```
 
-Le format est celui de l'agent JaCoCo : des motifs de noms de classes séparés par `:`. Ce
-qui n'y correspond pas n'est ni instrumenté, ni ralenti, ni compté.
+The format is the JaCoCo agent's: class-name patterns separated by `:`. What does not match
+is neither instrumented, nor slowed down, nor counted.
 
-**C'est aussi ce qui rend le taux de couverture lisible** : le dénominateur devient le code
-du projet, au lieu de tout ce que la JVM a chargé.
+**It is also what makes the coverage rate readable**: the denominator becomes the project's
+code, instead of everything the JVM loaded.
 
-### 2. Espacer les relevés — `--interval`
+### 2. Space out the samples — `--interval`
 
-L'échantillonnage réveille la JVM à intervalle fixe, mille fois par seconde par défaut.
-Passer à 10 ms divise par dix le nombre de relevés — et le surcoût qui va avec.
+Sampling wakes the JVM at a fixed interval, a thousand times a second by default. Going to
+10 ms divides the number of samples — and the overhead that goes with it — by ten.
 
 ```bash
---interval 10     # 100 relevés par seconde au lieu de 1000
---interval 20     # 50 relevés par seconde
+--interval 10     # 100 samples per second instead of 1000
+--interval 20     # 50 samples per second
 ```
 
-Ce qu'on perd : la finesse. Une méthode qui ne consomme que 0,1 % du temps peut ne
-plus apparaître du tout. Pour comprendre la forme d'un programme, c'est sans conséquence ;
-pour chasser une microseconde, ça l'est.
+What is lost: fineness. A method that consumes only 0.1 % of the time may no longer appear at
+all. To understand the shape of a program, that has no consequence; to chase a microsecond,
+it does.
 
-### 3. Restreindre le profil — `--filter`
+### 3. Restrict the profile — `--filter`
 
-Indépendant du précédent : `--filter "com/example/*"` dit à async-profiler de ne conserver
-que les piles qui traversent ce paquet. Le coût du réveil reste, mais le fichier produit et
-le temps d'assemblage de la page s'effondrent.
+Independent of the previous one: `--filter "com/example/*"` tells async-profiler to keep only
+the stacks that pass through that package. The cost of waking up stays, but the file produced
+and the time to assemble the page collapse.
 
-Sans consigne, le filtre se déduit du paquet de la méthode racine.
+With no instruction, the filter is derived from the root method's package.
 
-### 4. Renoncer aux valeurs — `--niveau arbre` ou `--no-values`
+### 4. Give up the values — `--level tree` or `--no-values`
 
-La capture des valeurs est le seul dispositif qui **intercepte** au lieu d'observer : il
-s'insère à l'entrée et à la sortie de la méthode désignée. Sur une méthode appelée des
-millions de fois, c'est le poste le plus visible — et [la réserve affichée dans le
-rapport](lire-le-rapport.md) rappelle qu'il fausse la mesure du temps de cette méthode.
+Value capture is the only mechanism that **intercepts** instead of observing: it inserts
+itself at the entry and exit of the named method. On a method called millions of times, it is
+the most visible cost — and [the caveat shown in the report](lire-le-rapport.md) is a
+reminder that it distorts the measurement of that method's time.
 
-Deux conséquences pratiques :
+Two practical consequences:
 
-- pour des **temps justes**, mesurer sans les valeurs, puis les capturer dans un second
-  lancement ;
-- pour un **premier contact** avec une application inconnue, `--niveau arbre` suffit
-  largement : on ne sait pas encore quelle méthode observer.
+- for **accurate times**, measure without the values, then capture them in a second run;
+- for a **first contact** with an unknown application, `--level tree` is plenty: one does not
+  yet know which method to observe.
 
-### 5. Baisser le volume capturé — `WATCH_COUNT`, `TRACE_COUNT`
+### 5. Lower the captured volume — `WATCH_COUNT`, `TRACE_COUNT`
 
-Dans le fichier de configuration : le nombre d'appels dont on garde les valeurs (10 par
-défaut) et le nombre d'invocations dont on trace l'arbre. Les baisser à 3 réduit la durée
-d'attachement de l'outil de capture.
+In the configuration file: the number of calls whose values are kept (10 by default) and the
+number of invocations whose tree is traced. Lowering them to 3 shortens how long the capture
+tool stays attached.
 
-### 6. Ne pas relancer l'application — `--print-options`
+### 6. Do not relaunch the application — `--print-options`
 
-Une application longue à démarrer, un service géré par systemd, un conteneur : la relancer
-sous l'outil coûte plus cher que la mesure elle-même. `--print-options` donne les options
-JVM à ajouter à la ligne de commande existante ; l'assemblage de la page se fait ensuite
-avec `--report-only`.
+An application slow to start, a service managed by systemd, a container: relaunching it under
+the tool costs more than the measurement itself. `--print-options` gives the JVM options to
+add to the existing command line; assembling the page is done afterwards with
+`--report-only`.
 
 ```bash
-java -jar runtime-xray.jar --print-options --out mesures --classes app.jar
-# … ajouter les options affichées au service, le laisser tourner, l'arrêter …
-java -jar runtime-xray.jar --report-only --out mesures --sources src/main/java
+java -jar runtime-xray.jar --print-options --out measurements --classes app.jar
+# … add the options shown to the service, let it run, stop it …
+java -jar runtime-xray.jar --report-only --out measurements --sources src/main/java
 ```
 
-## Une marche à suivre, sur une application qu'on ne connaît pas
+## A procedure, on an application one does not know
 
-1. **Couverture seule, sur le code du projet.** `--niveau couverture --cover "com.example.*"`.
-   Rien d'autre. On obtient ce qui a tourné et ce qui n'a jamais tourné, pour un surcoût
-   qu'une application de production supporte généralement sans réglage.
-2. **Ajouter l'arbre, espacé.** `--niveau arbre --interval 10`. On voit la forme du
-   programme et les endroits où le temps se consomme.
-3. **Choisir une méthode et l'observer.** C'est seulement là que `--root` a un sens : on
-   sait maintenant laquelle regarder, et pourquoi.
+1. **Coverage alone, on the project's code.** `--level coverage --cover "com.example.*"`.
+   Nothing else. One gets what ran and what never ran, for an overhead a production
+   application generally takes without any tuning.
+2. **Add the tree, spaced out.** `--level tree --interval 10`. One sees the shape of the
+   program and the places where the time is consumed.
+3. **Choose a method and observe it.** Only then does `--root` make sense: one now knows
+   which one to look at, and why.
 
-Si la mesure reste trop chère au niveau 1, le problème n'est plus le réglage : c'est le
-périmètre. Restreindre `--cover` à un module, ou mesurer sur un scénario plus court, sont
-les deux seules réponses honnêtes.
+If the measurement is still too expensive at level 1, the problem is no longer the settings:
+it is the perimeter. Restricting `--cover` to one module, or measuring on a shorter scenario,
+are the only two honest answers.
 
-## Réserves
+## Caveats
 
-- **Les surcoûts ne sont pas chiffrés ici.** Ils dépendent du code observé, de la machine et
-  de la JVM ; annoncer un pourcentage pris ailleurs serait exactement le genre d'affirmation
-  que [la méthode](../etude/methode.md) interdit. Ce qui est établi, c'est **l'ordre** des
-  postes de coût, et le fait que chaque levier agit sur celui qu'on nomme.
-- **Ces conseils n'ont pas été rejoués sur une application de plusieurs milliers de
-  classes** — c'est une limite déjà énoncée dans [le README](../../README.md#portée-et-limites-de-létude).
-  Les leviers sont ceux que les outils sous-jacents documentent ; l'effet mesuré sur un code
-  industriel reste à observer.
+- **The overheads are not quantified here.** They depend on the observed code, the machine
+  and the JVM; announcing a percentage taken from elsewhere would be exactly the kind of
+  claim [the method](../etude/methode.md) forbids. What is established is the **order** of
+  the cost centres, and the fact that each lever acts on the one it names.
+- **These pieces of advice have not been replayed on an application of several thousand
+  classes** — a limit already stated in [the README](../../README.md#portée-et-limites-de-létude).
+  The levers are the ones the underlying tools document; the effect measured on an industrial
+  codebase remains to be observed.
 
-## À lire ensuite
+## What to read next
 
-- [Mode d'emploi](mode-emploi.md) — tous les paramètres
-- [Reprendre le résultat dans un autre outil](exports.md) — perf, cpuprofile, LCOV
-- [Lire le rapport](lire-le-rapport.md) — ce que la page montre et ce qu'elle replie
+- [Manual](mode-emploi.md) — every setting
+- [Taking the result into another tool](exports.md) — perf, cpuprofile, LCOV
+- [Reading the report](lire-le-rapport.md) — what the page shows and what it folds away
