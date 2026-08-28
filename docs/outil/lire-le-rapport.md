@@ -10,6 +10,13 @@
 La page est autonome : un fichier HTML sans dépendance, qui s'ouvre depuis un disque, une
 pièce jointe ou une forge. Elle n'appelle rien sur le réseau.
 
+Elle **s'ouvre en anglais** — un rapport se joint à un ticket et se lit par quelqu'un qui
+n'a pas lancé la mesure. Le sélecteur `EN | FR` de l'en-tête bascule tout ce qu'elle
+affiche, d'un clic et sans rien recharger ; le choix est gardé pour les ouvertures
+suivantes, et un navigateur qui annonce le français l'obtient d'emblée. Le code source
+montré à côté de la couverture n'est, lui, jamais traduit : c'est celui de l'application
+observée. Les copies d'écran de ce document sont en français.
+
 > **Au survol, tout s'explique.** Chiffres, pastilles, colonnes, boutons, barres de la
 > flamme, cases à cocher : chaque élément porte une infobulle qui dit ce qu'il montre, ou
 > ce qu'il fait si on clique. Ce document donne le raisonnement ; la page donne le détail

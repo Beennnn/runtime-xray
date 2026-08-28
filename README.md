@@ -359,6 +359,9 @@ java -jar runtime-xray.jar \
 
 Le rapport est écrit dans `runtime-xray-out/index.html`.
 
+La page s'ouvre **en anglais** ; le sélecteur `EN | FR` de son en-tête bascule tout ce
+qu'elle affiche, et un navigateur qui annonce le français l'obtient d'emblée.
+
 `--sources` ne commande que **l'affichage du code annoté** : sans lui, la mesure est
 identique, mais chaque classe s'ouvre sur un panneau qui explique ce qui manque plutôt que
 sur du code. Le niveau du répertoire n'a pas d'importance — l'outil lit le paquet déclaré par

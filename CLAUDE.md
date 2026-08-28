@@ -253,11 +253,45 @@ exact, non. `bin/demander.sh` porte les trois enveloppes du moment (`openai`, `a
 **forme** de la requête, pas le fournisseur. Les valeurs capturées ne sortent jamais : elles
 restent dans leur bloc, sur le disque, et deux tests le gardent.
 
+## La langue de la vue
+
+La page s'ouvre **en anglais**. Un rapport s'envoie, se joint à un ticket, se lit par
+quelqu'un qui n'a pas lancé la mesure : rien ne dit qu'il parle français. Le sélecteur
+`EN | FR` de l'en-tête rend le français à qui le veut, et un navigateur qui annonce le
+français l'obtient d'emblée. Tout autre navigateur lit l'anglais — il n'y a pas de
+troisième langue, et il n'y en aura pas. Deux lettres, pas de drapeau : un drapeau nomme un
+pays, pas une langue.
+
+**Le gabarit est resté en français, et c'est la traduction qui parcourt le DOM.** La page
+fait cinq mille lignes et la moitié de son texte est composée dans des concaténations de
+balises ; y semer des clés aurait demandé de toucher chacune de ces lignes — donc de risquer
+un `id`, un sélecteur ou une comparaison sur chaque — pour un gain nul. Le dictionnaire vit
+dans un bloc à part, à la fin du fichier, et rien d'autre n'a bougé. Trois règles le tiennent :
+
+- **On ne traduit que des chaînes entières et connues.** Pas de remplacement de mots. Un nom
+  de classe, une valeur capturée, une ligne de code de l'application observée ne sont jamais
+  un libellé du dictionnaire. La **cellule de code** est en plus écartée du parcours — et
+  elle seule, parce que les replis et les annotations d'appel de la même ligne sont, eux, du
+  texte de l'outil. Les libellés de l'arbre le sont aussi : une classe nommée `Comment` ne
+  doit pas devenir `How`.
+- **Le français d'origine est gardé**, pas retraduit à l'envers. Un aller-retour sur un
+  dictionnaire non injectif perdrait du texte ; là il rend l'original à l'octet près.
+- **Un `title` réécrit après coup est surveillé comme un nœud ajouté.** La page en réaffecte
+  plusieurs — le bouton « tout déplier » change le sien à chaque bascule — et cela ne crée
+  aucun nœud, donc ne se voit pas dans `childList`.
+
+**Le décrochage est le mode d'échec, et il est silencieux** : quelqu'un reformule un libellé
+dans le gabarit, le dictionnaire ne le connaît plus, et la vue anglaise affiche du français
+sans que rien ne le signale. `VueLangueTest` vérifie pour cela le corps statique en entier —
+chaque phrase française qu'il porte doit avoir sa traduction. Le reste du texte naît en
+JavaScript et ne se relève qu'au rendu : la vérification s'y fait au navigateur, avant de
+pousser, en relevant les chaînes affichées et en n'en gardant aucune française.
+
 ## Conventions
 
 - **L'outil parle anglais ; le dépôt est encore en français.** La bascule est décidée et
-  se fait par étapes — l'aide, les exemples et les mots-clés y sont déjà passés, les
-  messages console, la vue, le format et le code suivront. En attendant, deux règles
+  se fait par étapes — l'aide, les exemples, les mots-clés, le format des faits et la vue y
+  sont déjà passés, les messages console et le code suivront. En attendant, deux règles
   cohabitent sans se contredire : **tout ce que l'utilisateur voit est en anglais**, et le
   reste — code, commentaires, `@DisplayName`, messages de commit — **reste en français
   jusqu'à ce que son étape arrive**. Les exemples, eux, sont en anglais **partout**, y

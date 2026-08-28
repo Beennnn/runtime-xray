@@ -343,6 +343,12 @@ Ce que la page montre exactement, ce qu'elle replie et pourquoi, comment filtrer
 d'un clic et comment déplier une boucle passage par passage : **[Lire le
 rapport](lire-le-rapport.md)**.
 
+**La page s'ouvre en anglais**, et le sélecteur `EN | FR` de l'en-tête bascule tout ce
+qu'elle affiche — sans rien recharger, sans rien perdre. Un navigateur qui annonce le
+français l'obtient d'emblée ; tout autre lit l'anglais. Le choix est gardé pour les
+ouvertures suivantes. Le code source affiché, lui, n'est jamais traduit : c'est celui de
+l'application observée.
+
 ### Le contexte est écrit dans le rapport
 
 Programme lancé et ses arguments, méthode racine, heure de début et de fin, durée,

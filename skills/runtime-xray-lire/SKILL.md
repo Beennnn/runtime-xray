@@ -18,7 +18,8 @@ n'est pas la page.
 
 **Ne pas lire `index.html` pour répondre à une question.** C'est une application, pas des
 données : le code y est rangé pour être affiché, pas pour être interrogé, et les gros blocs
-sont dans `vue/`.
+sont dans `vue/`. La page s'ouvre en anglais, avec un sélecteur `EN | FR` dans
+son en-tête — utile à dire à qui la reçoit, inutile pour répondre à une question.
 
 ## Le chemin le plus court
 
