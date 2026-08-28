@@ -176,7 +176,7 @@ plus rien**.
 
 - **`progression.jsonl` s'écrit toujours**, à la racine de `--out` — donc à un chemin qu'on
   connaît sans connaître le nom de l'exécution. Une ligne par seconde, `tail -f` suffit. La
-  dernière porte `"evenement":"fin"` : sans elle, un lecteur ne saurait pas s'arrêter.
+  dernière porte `"event":"end"` : sans elle, un lecteur ne saurait pas s'arrêter.
 - **`--suivi [port]` sert une page** qui relit ce fichier, et rien d'autre. Elle montre ce
   qu'une suite de lignes JSON montre mal — la *forme* de l'exécution. Boucle locale
   seulement : elle affiche une commande et la sortie d'une application.
@@ -225,6 +225,14 @@ coller. Trois décisions le tiennent, chacune gardée par un test dans `Contexte
   l'interprétation. Une famille inconnue s'arrête là où une phrase inconnue donne la vue
   d'ensemble : la première vient d'un script qui a un défaut, la seconde d'un humain qui
   cherche.
+- **Le format des faits est en 2.0, et il n'y a pas de migrateur.** Ce n'est pas un oubli :
+  `faits.jsonl` est *dérivé* des mesures de `runs/`, comme la page, le diagnostic et les
+  blocs. Un `--report-only` le réécrit entièrement dans le format courant, avec au passage
+  tous les correctifs accumulés — un migrateur n'aurait renommé que des clés dans un fichier
+  resté périmé par ailleurs, et il aurait fallu le maintenir puis penser à le supprimer. Un
+  rapport 1.0 est donc *refusé* à la lecture, avec la commande qui le régénère ; et quand
+  `runs/` a disparu, le message le dit au lieu de proposer une commande qui échouerait. Les
+  noms de familles de la 1.0 restent acceptés par `--families`, à vie.
 - **Les lignes sont recopiées telles quelles.** Relire puis réécrire un JSON rendrait `41`
   en `41.0` : le format ne distingue pas l'entier du flottant, et ce détail fait douter du
   reste.

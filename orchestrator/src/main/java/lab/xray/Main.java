@@ -932,15 +932,14 @@ public final class Main {
                                        the facts \u2014 by plain keywords, not by understanding
                                        \u2014 and travels inside the excerpt. The families kept
                                        are announced on standard error. Keywords, by family:
-                                         classe.jamais_executee  never, dead, unused, uncovered,
+                                         class.never_executed    never, dead, unused, uncovered,
                                                                  not covered
-                                         couverture.execution    cover, coverage, percent
-                                         + classe
-                                         methode.chaude          time, slow, hot, cost, perf,
+                                         coverage.run + class    cover, coverage, percent
+                                         method.hot              time, slow, hot, cost, perf,
                                                                  fast, profil
-                                         source.introuvable      source, missing, root
-                                         + piste.source
-                                         execution               run, campaign, when, machine,
+                                         source.missing          source, missing, root
+                                         + source.hint
+                                         run                     run, campaign, when, machine,
                                                                  command
                                        A keyword matches the START of a word, so "screenshot"
                                        does not match "hot". French words are recognised too.
@@ -948,7 +947,9 @@ public final class Main {
                   --families a,b       Name the fact families to include instead of deriving
                                        them from the question. The scripting path: the result
                                        no longer depends on the words used. An unknown family
-                                       stops, listing the ones that exist.
+                                       stops, listing the ones that exist. The format 1.0
+                                       names (classe.jamais_executee, methode.chaude, …)
+                                       are still accepted.
 
                 SERVING
                   --serve [port]       Serve the report (default: 8787) and let the page write

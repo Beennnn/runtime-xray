@@ -30,7 +30,7 @@ import java.util.TreeMap;
  * compagnon à ouvrir. On peut en lire dix lignes au milieu et les comprendre.
  *
  * <pre>
- * grep '"classe.jamais_executee"' faits.jsonl | head -50
+ * grep '"class.never_executed"' faits.jsonl | head -50
  * jq -r 'select(.fait=="indisponibilite") | .pourquoi' faits.jsonl
  * </pre>
  *
@@ -55,7 +55,7 @@ import java.util.TreeMap;
 public final class Faits {
 
     /** Le vocabulaire des faits. Il ne bouge qu'en ajoutant, jamais en renommant. */
-    public static final String FORMAT = "1.0";
+    public static final String FORMAT = "2.0";
 
     /** Le fichier, à la racine de la sortie : c'est la première chose qu'un outil ouvre. */
     public static final String FICHIER = "faits.jsonl";
@@ -73,28 +73,26 @@ public final class Faits {
      */
     static final Map<String, String> VOCABULAIRE = new LinkedHashMap<>();
     static {
-        VOCABULAIRE.put("campagne", "l'en-tête : outil, version, date, et où trouver le reste");
-        VOCABULAIRE.put("execution", "une exécution observée : identité, commande, machine");
-        VOCABULAIRE.put("indisponibilite",
-                "une mesure qui N'A PAS été prise, et pourquoi — à lire AVANT tout chiffre "
-                + "à zéro, qui sans cela se confond avec « n'a pas tourné »");
-        VOCABULAIRE.put("reserve", "une mesure prise, mais dont l'outil limite lui-même la portée");
-        VOCABULAIRE.put("couverture.execution",
-                "instructions couvertes sur le total, pour une exécution (mesure JaCoCo)");
-        VOCABULAIRE.put("classe",
-                "une classe et sa meilleure couverture sur la campagne, avec les exécutions "
-                + "qui l'ont couverte");
-        VOCABULAIRE.put("classe.jamais_executee",
-                "une classe analysée qu'aucune exécution n'a atteinte — le fait le plus "
-                + "souvent cherché");
-        VOCABULAIRE.put("methode.chaude",
-                "une méthode parmi les plus coûteuses en temps, en relevés de pile");
-        VOCABULAIRE.put("source.introuvable",
-                "un fichier dont la couverture est connue mais pas le code : racine de "
-                + "sources non configurée, jamais « code inexistant »");
-        VOCABULAIRE.put("piste.source",
-                "une racine à ajouter à SOURCE_DIRS, avec le nombre de fichiers qu'elle "
-                + "résoudrait — la seule information directement actionnable du lot");
+        VOCABULAIRE.put("campaign", "the header: tool, version, date, and where to find the rest");
+        VOCABULAIRE.put("run", "one observed run: identity, command, machine");
+        VOCABULAIRE.put("unavailable",
+                "a measurement that was NOT taken, and why — read BEFORE any zero, which "
+                + "otherwise reads exactly like \"never ran\"");
+        VOCABULAIRE.put("caveat", "a measurement that was taken, but whose reach the tool limits");
+        VOCABULAIRE.put("coverage.run",
+                "instructions covered out of the total, for one run (JaCoCo measurement)");
+        VOCABULAIRE.put("class",
+                "a class and its best coverage over the campaign, with the runs that covered it");
+        VOCABULAIRE.put("class.never_executed",
+                "an analysed class no run ever reached — the fact most often looked for");
+        VOCABULAIRE.put("method.hot",
+                "a method among the most costly in time, counted in stack samples");
+        VOCABULAIRE.put("source.missing",
+                "a file whose coverage is known but not its code: source root not configured, "
+                + "never \"the code does not exist\"");
+        VOCABULAIRE.put("source.hint",
+                "a root to add to SOURCE_DIRS, with the number of files it would resolve — "
+                + "the only directly actionable item of the lot");
     }
 
     private Faits() {}
@@ -135,17 +133,17 @@ public final class Faits {
 
     private static Map<String, Object> campagne(Path commonDir, List<Object> runs,
                                                 Map<String, Object> diagnostic) {
-        Map<String, Object> f = fait("campagne");
-        f.put("formatFaits", FORMAT);
-        f.put("formatRapport", Blocs.FORMAT);
-        f.put("outil", diagnostic.get("outil"));
+        Map<String, Object> f = fait("campaign");
+        f.put("factsFormat", FORMAT);
+        f.put("reportFormat", Blocs.FORMAT);
+        f.put("tool", diagnostic.get("outil"));
         f.put("version", diagnostic.get("version"));
         f.put("date", diagnostic.get("date"));
-        f.put("sortie", commonDir.toAbsolutePath().normalize().toString());
-        f.put("executions", runs.size());
+        f.put("output", commonDir.toAbsolutePath().normalize().toString());
+        f.put("runs", runs.size());
         // Où aller quand un fait ne suffit pas. Un lecteur qui arrive par ce fichier n'a
         // aucune raison de deviner que la page et le diagnostic existent.
-        f.put("aussi", Map.of(
+        f.put("alsoSee", Map.of(
                 "page", "index.html",
                 "diagnostic", "diagnostic.json",
                 "markdown", "rapport.md",
@@ -154,17 +152,17 @@ public final class Faits {
         // fichier — c'est le cas d'un dossier zippé, ou d'un programme qui n'a lu que la
         // tête — doit pouvoir en comprendre le reste sans documentation extérieure. Une
         // documentation séparée se perd ; celle-ci voyage avec la donnée.
-        f.put("vocabulaire", VOCABULAIRE);
+        f.put("vocabulary", VOCABULAIRE);
         return f;
     }
 
     private static Map<String, Object> execution(Map<?, ?> run) {
-        Map<String, Object> f = fait("execution");
-        f.put("execution", run.get("uuid"));
-        f.put("nom", run.get("nom"));
-        f.put("chemin", run.get("chemin"));
-        f.put("mesures", releves(run));
-        f.put("intervalleMs", run.get("intervalMs"));
+        Map<String, Object> f = fait("run");
+        f.put("run", run.get("uuid"));
+        f.put("name", run.get("nom"));
+        f.put("path", run.get("chemin"));
+        f.put("measurements", releves(run));
+        f.put("intervalMs", run.get("intervalMs"));
         if (run.get("context") instanceof Map<?, ?> ctx) {
             for (String cle : List.of("commande", "machine", "systeme", "java", "debut",
                     "fin", "duree", "statut", "methodeRacine")) {
@@ -188,36 +186,35 @@ public final class Faits {
         String uuid = String.valueOf(run.get("uuid"));
 
         if (releves(run) == 0) {
-            Map<String, Object> f = fait("indisponibilite");
-            f.put("execution", uuid);
-            f.put("quoi", "temps");
-            f.put("pourquoi", "aucun relevé de pile n'a été pris : async-profiler ne publie "
-                    + "que des binaires Linux et macOS, et le niveau « couverture » ne "
-                    + "l'active pas");
-            f.put("consequence", "aucun pourcentage de temps n'est calculable pour cette "
-                    + "exécution ; un temps à zéro n'y signifie pas « jamais appelé »");
-            f.put("remede", "relancer sous Linux ou macOS, en niveau « arbre » ou « complet »");
+            Map<String, Object> f = fait("unavailable");
+            f.put("run", uuid);
+            f.put("what", "time");
+            f.put("why", "no stack sample was taken: async-profiler only publishes Linux "
+                    + "and macOS binaries, and the \"coverage\" level does not enable it");
+            f.put("consequence", "no time percentage can be computed for this run; a zero "
+                    + "time here does not mean \"never called\"");
+            f.put("remedy", "run again on Linux or macOS, at level \"tree\" or \"full\"");
             out.add(f);
         }
         if (vide(run.get("values"))) {
-            Map<String, Object> f = fait("indisponibilite");
-            f.put("execution", uuid);
-            f.put("quoi", "valeurs");
-            f.put("pourquoi", "Arthas n'a capturé aucun appel : soit --root n'a pas été "
-                    + "donné, soit l'application s'est terminée avant l'attachement");
-            f.put("consequence", "aucune valeur de paramètre n'est disponible ; cela ne dit "
-                    + "rien sur ce qui a été exécuté");
-            f.put("remede", "relancer avec --root paquet.Classe::methode, ou baisser "
+            Map<String, Object> f = fait("unavailable");
+            f.put("run", uuid);
+            f.put("what", "values");
+            f.put("why", "Arthas captured no call: either --root was not given, or the "
+                    + "application finished before attachment");
+            f.put("consequence", "no argument value is available; this says nothing about what "
+                    + "was executed");
+            f.put("remedy", "run again with --root package.Class::method, or lower "
                     + "--attach-after");
             out.add(f);
         }
         if (vide(run.get("coverage"))) {
-            Map<String, Object> f = fait("indisponibilite");
-            f.put("execution", uuid);
-            f.put("quoi", "couverture");
-            f.put("pourquoi", "aucune donnée JaCoCo pour cette exécution");
-            f.put("consequence", "ni couverture ni liste de classes exécutées");
-            f.put("remede", "vérifier que l'agent a bien été chargé — voir diagnostic.json");
+            Map<String, Object> f = fait("unavailable");
+            f.put("run", uuid);
+            f.put("what", "coverage");
+            f.put("why", "no JaCoCo data for this run");
+            f.put("consequence", "neither coverage nor a list of executed classes");
+            f.put("remedy", "check that the agent was actually loaded — see diagnostic.json");
             out.add(f);
         }
         return out;
@@ -229,10 +226,10 @@ public final class Faits {
         for (String cle : List.of("profileNote", "stacksNote")) {
             Object note = run.get(cle);
             if (note == null || String.valueOf(note).isBlank()) continue;
-            Map<String, Object> f = fait("reserve");
-            f.put("execution", run.get("uuid"));
-            f.put("quoi", "temps");
-            f.put("reserve", note);
+            Map<String, Object> f = fait("caveat");
+            f.put("run", run.get("uuid"));
+            f.put("what", "time");
+            f.put("caveat", note);
             out.add(f);
         }
         return out;
@@ -248,12 +245,12 @@ public final class Faits {
                 manquees += entier(c.get("missed"));
             }
         }
-        Map<String, Object> f = fait("couverture.execution");
-        f.put("execution", run.get("uuid"));
-        f.put("instructionsCouvertes", couvertes);
+        Map<String, Object> f = fait("coverage.run");
+        f.put("run", run.get("uuid"));
+        f.put("instructionsCovered", couvertes);
         f.put("instructionsTotal", couvertes + manquees);
         f.put("pct", pourcent(couvertes, couvertes + manquees));
-        f.put("mesure", "jacoco.instructions");
+        f.put("measure", "jacoco.instructions");
         return f;
     }
 
@@ -285,9 +282,9 @@ public final class Faits {
                     Map<String, Object> f = parClasse.get(nom);
                     if (f == null || entier(f.get("instructionsCouvertes")) < couv) {
                         f = f == null ? new LinkedHashMap<>() : f;
-                        f.put("classe", nom.replace('/', '.'));
-                        f.put("fichier", c.get("source"));
-                        f.put("instructionsCouvertes", couv);
+                        f.put("class", nom.replace('/', '.'));
+                        f.put("file", c.get("source"));
+                        f.put("instructionsCovered", couv);
                         f.put("instructionsTotal", total);
                         f.put("pct", pourcent(couv, total));
                         parClasse.put(nom, f);
@@ -299,16 +296,16 @@ public final class Faits {
         List<Map<String, Object>> out = new ArrayList<>();
         for (Map.Entry<String, Map<String, Object>> e : parClasse.entrySet()) {
             Set<String> qui = couvrantes.getOrDefault(e.getKey(), Set.of());
-            Map<String, Object> f = fait(qui.isEmpty() ? "classe.jamais_executee" : "classe");
+            Map<String, Object> f = fait(qui.isEmpty() ? "class.never_executed" : "class");
             f.putAll(e.getValue());
             // Triées : sans cela, deux campagnes des mêmes exécutions donnent des lignes
             // différentes selon l'ordre de lecture des répertoires, et plus rien ne se
             // compare — or comparer deux rapports est exactement ce qu'on veut pouvoir faire.
-            f.put("executionsCouvrantes", triees(qui));
-            f.put("executionsAnalysee", triees(analysees.getOrDefault(e.getKey(), Set.of())));
+            f.put("runsCovering", triees(qui));
+            f.put("runsAnalysed", triees(analysees.getOrDefault(e.getKey(), Set.of())));
             Object cle = e.getValue().get("fichier");
-            f.put("sourceDisponible", cle != null && index.parCle().containsKey(String.valueOf(cle)));
-            f.put("mesure", "jacoco.instructions");
+            f.put("sourceAvailable", cle != null && index.parCle().containsKey(String.valueOf(cle)));
+            f.put("measure", "jacoco.instructions");
             out.add(f);
         }
         return out;
@@ -327,12 +324,12 @@ public final class Faits {
                 .sorted(Map.Entry.<String, Long>comparingByValue().reversed())
                 .limit(MAX_METHODES_CHAUDES)
                 .forEach(e -> {
-                    Map<String, Object> f = fait("methode.chaude");
-                    f.put("execution", run.get("uuid"));
-                    f.put("methode", e.getKey().replace('/', '.'));
-                    f.put("releves", e.getValue());
+                    Map<String, Object> f = fait("method.hot");
+                    f.put("run", run.get("uuid"));
+                    f.put("method", e.getKey().replace('/', '.'));
+                    f.put("samples", e.getValue());
                     f.put("pct", pourcent(e.getValue(), total));
-                    f.put("mesure", "async-profiler.echantillons");
+                    f.put("measure", "async-profiler.echantillons");
                     out.add(f);
                 });
         return out;
@@ -357,12 +354,12 @@ public final class Faits {
         for (String cle : Diagnostic.mesures(runs)) {
             if (index.parCle().containsKey(cle)) continue;
             if (out.size() >= MAX_SOURCES_MANQUANTES) break;
-            Map<String, Object> f = fait("source.introuvable");
-            f.put("cle", cle);
-            f.put("consequence", "la couverture de ce fichier est connue, son code ne l'est "
-                    + "pas : la vue de code ne peut rien montrer");
-            f.put("remede", "ajouter la racine qui contient ce paquet à SOURCE_DIRS "
-                    + "— voir les faits « piste.source »");
+            Map<String, Object> f = fait("source.missing");
+            f.put("key", cle);
+            f.put("consequence", "the coverage of this file is known, its code is not: the code "
+                    + "view has nothing to show");
+            f.put("remedy", "add the root holding this package to SOURCE_DIRS — see the "
+                    + "\"source.hint\" facts");
             out.add(f);
         }
         return out;
@@ -376,7 +373,7 @@ public final class Faits {
         if (!(r.get("pistes") instanceof List<?> liste)) return out;
         for (Object p : liste) {
             if (!(p instanceof Map<?, ?> piste)) continue;
-            Map<String, Object> f = fait("piste.source");
+            Map<String, Object> f = fait("source.hint");
             f.putAll((Map<String, Object>) piste);
             out.add(f);
         }
@@ -393,7 +390,7 @@ public final class Faits {
 
     private static Map<String, Object> fait(String nom) {
         Map<String, Object> f = new LinkedHashMap<>();
-        f.put("fait", nom);
+        f.put("fact", nom);
         return f;
     }
 

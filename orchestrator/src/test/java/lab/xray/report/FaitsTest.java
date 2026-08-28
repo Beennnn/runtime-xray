@@ -59,7 +59,7 @@ class FaitsTest {
     }
 
     private static List<Map<String, Object>> de(List<Map<String, Object>> faits, String nom) {
-        return faits.stream().filter(f -> nom.equals(f.get("fait"))).toList();
+        return faits.stream().filter(f -> nom.equals(f.get("fact"))).toList();
     }
 
     private static Path ecrire(Path dir, List<Object> runs) throws Exception {
@@ -75,14 +75,14 @@ class FaitsTest {
 
         assertTrue(faits.size() > 5, "on attend au moins l'en-tête, les exécutions et les classes");
         for (Map<String, Object> fait : faits) {
-            assertTrue(fait.containsKey("fait"), "chaque ligne dit ce qu'elle est : " + fait);
+            assertTrue(fait.containsKey("fact"), "chaque ligne dit ce qu'elle est : " + fait);
         }
         // Une mesure sans son unité oblige le lecteur à deviner, et il devinera.
-        for (Map<String, Object> fait : de(faits, "classe")) {
-            assertEquals("jacoco.instructions", fait.get("mesure"));
+        for (Map<String, Object> fait : de(faits, "class")) {
+            assertEquals("jacoco.instructions", fait.get("measure"));
         }
-        for (Map<String, Object> fait : de(faits, "methode.chaude")) {
-            assertEquals("async-profiler.echantillons", fait.get("mesure"));
+        for (Map<String, Object> fait : de(faits, "method.hot")) {
+            assertEquals("async-profiler.echantillons", fait.get("measure"));
         }
     }
 
@@ -94,13 +94,13 @@ class FaitsTest {
         // n'a jamais tourné », et un lecteur tranchera dans le mauvais sens.
         List<Map<String, Object>> faits = lire(ecrire(dir, List.of(run("A", true), run("B", false))));
 
-        List<Map<String, Object>> absences = de(faits, "indisponibilite");
+        List<Map<String, Object>> absences = de(faits, "unavailable");
         assertEquals(2, absences.size(), "le temps et les valeurs manquent, tous deux à dire");
         for (Map<String, Object> a : absences) {
-            assertEquals("B", a.get("execution"), "seule B est concernée : A a tout mesuré");
-            assertTrue(String.valueOf(a.get("pourquoi")).length() > 20);
+            assertEquals("B", a.get("run"), "seule B est concernée : A a tout mesuré");
+            assertTrue(String.valueOf(a.get("why")).length() > 20);
             assertTrue(a.containsKey("consequence"), "dire ce qu'on ne peut PAS en conclure");
-            assertTrue(a.containsKey("remede"));
+            assertTrue(a.containsKey("remedy"));
         }
     }
 
@@ -109,17 +109,17 @@ class FaitsTest {
     void aClassNeverReachedIsItsOwnFact(@TempDir Path dir) throws Exception {
         List<Map<String, Object>> faits = lire(ecrire(dir, List.of(run("A", true), run("B", true))));
 
-        List<Map<String, Object>> jamais = de(faits, "classe.jamais_executee");
+        List<Map<String, Object>> jamais = de(faits, "class.never_executed");
         assertEquals(1, jamais.size());
-        assertEquals("app.Jamais", jamais.get(0).get("classe"));
-        assertEquals(List.of(), jamais.get(0).get("executionsCouvrantes"));
+        assertEquals("app.Jamais", jamais.get(0).get("class"));
+        assertEquals(List.of(), jamais.get(0).get("runsCovering"));
         // Triées : deux campagnes des mêmes exécutions doivent donner les mêmes lignes,
         // sinon comparer deux rapports devient impossible.
-        assertEquals(List.of("A", "B"), jamais.get(0).get("executionsAnalysee"));
+        assertEquals(List.of("A", "B"), jamais.get(0).get("runsAnalysed"));
 
-        List<Map<String, Object>> couvertes = de(faits, "classe");
+        List<Map<String, Object>> couvertes = de(faits, "class");
         assertEquals(1, couvertes.size());
-        assertEquals(List.of("A", "B"), couvertes.get(0).get("executionsCouvrantes"));
+        assertEquals(List.of("A", "B"), couvertes.get(0).get("runsCovering"));
     }
 
     @Test
@@ -129,15 +129,15 @@ class FaitsTest {
         // un dossier recopié. Celle-ci voyage avec la donnée.
         List<Map<String, Object>> faits = lire(ecrire(dir, List.of(run("A", true))));
         Map<String, Object> tete = faits.get(0);
-        assertEquals("campagne", tete.get("fait"));
+        assertEquals("campaign", tete.get("fact"));
 
         @SuppressWarnings("unchecked")
-        Map<String, Object> vocabulaire = (Map<String, Object>) tete.get("vocabulaire");
+        Map<String, Object> vocabulaire = (Map<String, Object>) tete.get("vocabulary");
         for (Map<String, Object> f : faits) {
-            assertTrue(vocabulaire.containsKey(String.valueOf(f.get("fait"))),
-                    "un fait que le vocabulaire n'explique pas est muet : " + f.get("fait"));
+            assertTrue(vocabulaire.containsKey(String.valueOf(f.get("fact"))),
+                    "un fait que le vocabulaire n'explique pas est muet : " + f.get("fact"));
         }
-        assertTrue(tete.get("aussi") instanceof Map, "où trouver la page et le diagnostic");
+        assertTrue(tete.get("alsoSee") instanceof Map, "où trouver la page et le diagnostic");
     }
 
     @Test

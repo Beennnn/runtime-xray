@@ -84,14 +84,14 @@ class CaracterisationTest {
 
     /** Le compte de faits par famille, aujourd'hui. */
     private static final Map<String, Integer> FAITS_ATTENDUS = new TreeMap<>(Map.of(
-            "campagne", 1,
-            "classe", 1,
-            "classe.jamais_executee", 1,
-            "couverture.execution", 2,
-            "execution", 2,
-            "indisponibilite", 2,
-            "methode.chaude", 4,
-            "source.introuvable", 1));
+            "campaign", 1,
+            "class", 1,
+            "class.never_executed", 1,
+            "coverage.run", 2,
+            "run", 2,
+            "unavailable", 2,
+            "method.hot", 4,
+            "source.missing", 1));
 
     /** Les options que la ligne de commande accepte, aujourd'hui. */
     private static final List<String> OPTIONS_ATTENDUES = List.of(
@@ -119,15 +119,15 @@ class CaracterisationTest {
 
         Map<String, Integer> comptes = new TreeMap<>();
         for (Map<String, Object> f : faits) {
-            comptes.merge(String.valueOf(f.get("fait")), 1, Integer::sum);
+            comptes.merge(String.valueOf(f.get("fact")), 1, Integer::sum);
         }
         assertEquals(FAITS_ATTENDUS, comptes,
                 "renommer une famille est prévu ; en perdre une, en dupliquer une, ou cesser "
                 + "d'en écrire une ne l'est pas");
 
-        assertEquals(List.of("app.Jamais"), valeurs(faits, "classe.jamais_executee", "classe"),
+        assertEquals(List.of("app.Jamais"), valeurs(faits, "class.never_executed", "class"),
                 "la classe morte est LE fait que l'outil existe pour donner");
-        assertEquals(List.of("app.Moteur"), valeurs(faits, "classe", "classe"));
+        assertEquals(List.of("app.Moteur"), valeurs(faits, "class", "class"));
     }
 
     @Test
@@ -136,11 +136,11 @@ class CaracterisationTest {
         List<Map<String, Object>> faits = faits(assembler(dir));
         List<Map<String, Object>> couvertures = new ArrayList<>();
         for (Map<String, Object> f : faits) {
-            if ("couverture.execution".equals(f.get("fait"))) couvertures.add(f);
+            if ("coverage.run".equals(f.get("fact"))) couvertures.add(f);
         }
         assertEquals(2, couvertures.size());
         for (Map<String, Object> c : couvertures) {
-            assertEquals(9L, nombre(c.get("instructionsCouvertes")));
+            assertEquals(9L, nombre(c.get("instructionsCovered")));
             assertEquals(22L, nombre(c.get("instructionsTotal")));
             assertEquals(40.9, ((Number) c.get("pct")).doubleValue(), 0.001,
                     "un pourcentage qui glisse à la faveur d'un renommage est le pire des "
@@ -256,7 +256,7 @@ class CaracterisationTest {
                                         String champ) {
         List<String> out = new ArrayList<>();
         for (Map<String, Object> f : faits) {
-            if (famille.equals(f.get("fait"))) out.add(String.valueOf(f.get(champ)));
+            if (famille.equals(f.get("fact"))) out.add(String.valueOf(f.get(champ)));
         }
         Collections.sort(out);
         return out;

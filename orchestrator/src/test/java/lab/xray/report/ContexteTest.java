@@ -29,18 +29,18 @@ class ContexteTest {
 
     private static Path fichierDeFaits(Path dir, int classesMortes) throws Exception {
         List<String> lignes = new ArrayList<>();
-        lignes.add(Json.write(Map.of("fait", "campagne", "outil", "runtime-xray",
-                "executions", 2, "vocabulaire", Faits.VOCABULAIRE)));
-        lignes.add(Json.write(Map.of("fait", "indisponibilite", "execution", "B",
-                "quoi", "temps", "pourquoi", "aucun relevé de pile n'a été pris",
+        lignes.add(Json.write(Map.of("fact", "campaign", "outil", "runtime-xray",
+                "runs", 2, "vocabulary", Faits.VOCABULAIRE)));
+        lignes.add(Json.write(Map.of("fact", "unavailable", "run", "B",
+                "what", "time", "why", "aucun relevé de pile n'a été pris",
                 "consequence", "aucun pourcentage de temps n'est calculable",
-                "remede", "relancer sous Linux")));
-        lignes.add(Json.write(Map.of("fait", "reserve", "execution", "A", "quoi", "temps",
-                "reserve", "une partie des relevés a été rattachée à l'appelant")));
+                "remedy", "relancer sous Linux")));
+        lignes.add(Json.write(Map.of("fact", "caveat", "run", "A", "what", "time",
+                "caveat", "une partie des relevés a été rattachée à l'appelant")));
         for (int i = 0; i < classesMortes; i++) {
-            lignes.add(Json.write(Map.of("fait", "classe.jamais_executee",
+            lignes.add(Json.write(Map.of("fact", "class.never_executed",
                     "classe", "com.example.app.Classe" + i,
-                    "executionsAnalysee", List.of("A", "B"))));
+                    "runsAnalysed", List.of("A", "B"))));
         }
         Path f = dir.resolve(Faits.FICHIER);
         Files.write(f, lignes, StandardCharsets.UTF_8);
@@ -90,7 +90,7 @@ class ContexteTest {
 
         // Un modèle qui n'a jamais vu ce format doit pouvoir le lire : on joint la légende,
         // pas un lien vers elle.
-        assertTrue(paquet.contains("classe.jamais_executee"));
+        assertTrue(paquet.contains("class.never_executed"));
         assertTrue(paquet.contains("Trois pièges de lecture"));
         assertTrue(paquet.contains("ne veut pas dire « n'a pas tourné »"));
         assertTrue(paquet.contains("Il ne dit rien de sa justesse"),
@@ -103,7 +103,7 @@ class ContexteTest {
     void anUnrecognisedQuestionStillGetsAnAnswerablePack(@TempDir Path dir) throws Exception {
         fichierDeFaits(dir, 2);
         String paquet = Contexte.pour(dir, "est-ce que ce truc marche bien ?", Contexte.BUDGET);
-        assertTrue(paquet.contains("classe.jamais_executee"),
+        assertTrue(paquet.contains("class.never_executed"),
                 "faute de mieux on donne de quoi répondre, plutôt qu'un paquet vide");
     }
 
@@ -129,7 +129,7 @@ class ContexteTest {
         assertTrue(paquet.contains("Aucun fait de ces familles"));
         assertTrue(paquet.contains("Familles présentes dans le fichier"),
                 "dire ce qu'il Y A permet de conclure que le reste manque vraiment");
-        assertTrue(paquet.contains("indisponibilite"),
+        assertTrue(paquet.contains("unavailable"),
                 "la liste des familles présentes doit être celle du fichier, pas une devinette");
     }
 
@@ -141,13 +141,13 @@ class ContexteTest {
         // humain comme chez un modèle.
         Path f = fichierDeFaits(dir, 0);
         Files.writeString(f, Files.readString(f, StandardCharsets.UTF_8)
-                + "{\"fait\":\"methode.chaude\",\"methode\":\"com.example.app.Repository.charger\","
-                + "\"releves\":41,\"pct\":100.0}\n", StandardCharsets.UTF_8);
+                + "{\"fact\":\"method.hot\",\"method\":\"com.example.app.Repository.load\","
+                + "\"samples\":41,\"pct\":100.0}\n", StandardCharsets.UTF_8);
 
         String paquet = Contexte.pour(dir, "where does the time go?", Contexte.BUDGET);
-        assertTrue(paquet.contains("executions : 2"));
-        assertFalse(paquet.contains("executions : 2.0"));
-        assertTrue(paquet.contains("\"releves\":41"), "la ligne d'origine est recopiée telle quelle");
+        assertTrue(paquet.contains("runs : 2"));
+        assertFalse(paquet.contains("runs : 2.0"));
+        assertTrue(paquet.contains("\"samples\":41"), "la ligne d'origine est recopiée telle quelle");
         assertFalse(paquet.contains("41.0"));
         assertTrue(paquet.contains("\"pct\":100.0"),
                 "et un flottant reste un flottant : on recopie, on ne reformate pas");
@@ -160,7 +160,7 @@ class ContexteTest {
         // suivant : ce qui SORT de la machine vers un modèle, parfois hébergé ailleurs.
         Path f = fichierDeFaits(dir, 1);
         Files.writeString(f, Files.readString(f, StandardCharsets.UTF_8)
-                + Json.write(Map.of("fait", "classe", "classe", "com.example.app.A",
+                + Json.write(Map.of("fact", "classe", "classe", "com.example.app.A",
                         "pct", 12)) + "\n", StandardCharsets.UTF_8);
 
         String paquet = Contexte.pour(dir, "couverture", Contexte.BUDGET);
@@ -177,11 +177,11 @@ class ContexteTest {
         // les classes mortes : c'est la demande explicite qui doit gagner, sans quoi le
         // script produirait autre chose que ce qu'il croit lire.
         Contexte.Paquet p = Contexte.pour(dir, "where does the time go?",
-                List.of("classe.jamais_executee"), Contexte.BUDGET);
+                List.of("class.never_executed"), Contexte.BUDGET);
 
         assertEquals(Contexte.Origine.DEMANDEES, p.origine());
-        assertEquals(List.of("classe.jamais_executee"), p.familles());
-        assertTrue(p.texte().contains("classe.jamais_executee"));
+        assertEquals(List.of("class.never_executed"), p.familles());
+        assertTrue(p.texte().contains("class.never_executed"));
         assertFalse(p.texte().contains("methode.chaude\""),
                 "la question ne doit plus rien choisir quand on a nommé les familles");
         // Elle continue en revanche de voyager : c'est son autre rôle.
@@ -198,7 +198,7 @@ class ContexteTest {
         Exception e = assertThrows(Exception.class, () -> Contexte.pour(dir, "",
                 List.of("classes.mortes"), Contexte.BUDGET));
         assertTrue(String.valueOf(e.getMessage()).contains("classes.mortes"));
-        assertTrue(String.valueOf(e.getMessage()).contains("classe.jamais_executee"),
+        assertTrue(String.valueOf(e.getMessage()).contains("class.never_executed"),
                 "dire ce qui existe, pas seulement que ce qu'on a donné n'existe pas");
     }
 
@@ -246,9 +246,9 @@ class ContexteTest {
         // un francophone que sa question n'a pas été lue.
         assertEquals(Contexte.MOTS.keySet(), Contexte.MOTS_FR.keySet(),
                 "chaque famille documentée doit avoir ses mots français, et l'inverse");
-        assertEquals(List.of("classe.jamais_executee"),
+        assertEquals(List.of("class.never_executed"),
                 Contexte.famillesReconnues("quelles classes n'ont jamais tourné ?"));
-        assertEquals(List.of("methode.chaude"), Contexte.famillesReconnues("quel est le coût ?"),
+        assertEquals(List.of("method.hot"), Contexte.famillesReconnues("quel est le coût ?"),
                 "les accents ne doivent pas empêcher la reconnaissance");
         assertTrue(aide().contains("French words are recognised too"),
                 "leur existence doit être dite, même sans la table");
@@ -264,10 +264,48 @@ class ContexteTest {
         assertTrue(Contexte.famillesReconnues("generate a report").isEmpty());
         assertTrue(Contexte.famillesReconnues("je veux écouter les journaux").isEmpty());
         // Les flexions, elles, restent attrapées : c'est tout l'intérêt d'un début de mot.
-        assertEquals(List.of("source.introuvable", "piste.source"),
+        assertEquals(List.of("source.missing", "source.hint"),
                 Contexte.famillesReconnues("il manque des sources"));
-        assertEquals(List.of("classe.jamais_executee"),
+        assertEquals(List.of("class.never_executed"),
                 Contexte.famillesReconnues("des classes inutilisées"));
+    }
+
+    @Test
+    @DisplayName("Un rapport 1.0 renvoie à --report-only, faute d'un migrateur qui n'existe pas")
+    void aFormatOneReportPointsAtReportOnly(@TempDir Path dir) throws Exception {
+        // Il n'y a pas d'outil de migration, et c'est un constat : faits.jsonl est dérivé
+        // des mesures, donc --report-only le réécrit entièrement dans le format courant,
+        // avec au passage tous les correctifs accumulés. Un migrateur n'aurait renommé que
+        // des clés dans un fichier resté périmé par ailleurs.
+        Files.writeString(dir.resolve(Faits.FICHIER),
+                "{\"fait\":\"campagne\",\"outil\":\"runtime-xray\"}\n"
+                + "{\"fait\":\"classe.jamais_executee\",\"classe\":\"a.B\"}\n",
+                StandardCharsets.UTF_8);
+        Files.createDirectories(dir.resolve("runs"));
+
+        Exception avecMesures = assertThrows(Exception.class,
+                () -> Contexte.pour(dir, "", Contexte.BUDGET));
+        assertTrue(String.valueOf(avecMesures.getMessage()).contains("--report-only"),
+                "les mesures sont là : le geste qui débloque est de régénérer");
+
+        // Amputée de runs/, rien ne peut être régénéré — et le dire vaut mieux que
+        // proposer une commande qui échouera.
+        Files.delete(dir.resolve("runs"));
+        Exception sansMesures = assertThrows(Exception.class,
+                () -> Contexte.pour(dir, "", Contexte.BUDGET));
+        assertFalse(String.valueOf(sansMesures.getMessage()).contains("--report-only"));
+        assertTrue(String.valueOf(sansMesures.getMessage()).contains("runs/"));
+    }
+
+    @Test
+    @DisplayName("Les noms de familles de la 1.0 restent acceptés par --families")
+    void theFormatOneFamilyNamesAreStillAccepted(@TempDir Path dir) throws Exception {
+        // Un script de recette écrit contre la 1.0 ne doit pas s'arrêter parce que le
+        // format a changé de langue.
+        fichierDeFaits(dir, 2);
+        Contexte.Paquet p = Contexte.pour(dir, "", List.of("classe.jamais_executee"),
+                Contexte.BUDGET);
+        assertEquals(List.of("class.never_executed"), p.familles());
     }
 
     private static String aide() throws Exception {

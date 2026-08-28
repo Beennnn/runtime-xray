@@ -96,31 +96,31 @@ public final class Suivi implements AutoCloseable {
         // La commande observée sur la ligne de démarrage : sans elle, quelqu'un qui ouvre
         // la page ou le fichier voit une exécution avancer sans savoir laquelle. Elle ne
         // sort pas de la machine — la page n'écoute que la boucle locale.
-        suivi.ecrire("demarrage", Map.of("commande", commande == null ? "" : commande,
-                "sortie", outDir.toAbsolutePath().toString()));
+        suivi.ecrire("start", Map.of("command", commande == null ? "" : commande,
+                "output", outDir.toAbsolutePath().toString()));
         return suivi;
     }
 
     /** Une ligne d'avancement. Les mêmes chiffres que la bande du terminal. */
     public void avancement(Duration ecoule, Duration cpu, long octets, double coeurs) {
         Map<String, Object> f = new LinkedHashMap<>();
-        f.put("secondes", ecoule.toSeconds());
-        f.put("coeurs", Math.round(coeurs * 100) / 100.0);
-        f.put("palier", Progression.palier(coeurs));
-        f.put("cpuSecondes", cpu.toSeconds());
-        f.put("sortieOctets", octets);
-        ecrire("avancement", f);
+        f.put("seconds", ecoule.toSeconds());
+        f.put("cores", Math.round(coeurs * 100) / 100.0);
+        f.put("level", Progression.palier(coeurs));
+        f.put("cpuSeconds", cpu.toSeconds());
+        f.put("outputBytes", octets);
+        ecrire("progress", f);
     }
 
     /** La dernière ligne : ce qui permet à un lecteur de savoir qu'il peut arrêter. */
     public void fin(String statut, long secondes) {
-        ecrire("fin", Map.of("statut", statut, "secondes", secondes));
+        ecrire("end", Map.of("status", statut, "seconds", secondes));
     }
 
     private void ecrire(String evenement, Map<String, Object> champs) {
         Map<String, Object> ligne = new LinkedHashMap<>();
-        ligne.put("evenement", evenement);
-        ligne.put("execution", execution);
+        ligne.put("event", evenement);
+        ligne.put("run", execution);
         ligne.put("date", Instant.now().toString());
         ligne.putAll(champs);
         try {

@@ -28,8 +28,8 @@ Un rapport `runtime-xray` s'accompagne d'un `faits.jsonl` : **un objet JSON par 
 chaque ligne se comprend seule.
 
 ```jsonl
-{"fait":"classe.jamais_executee","classe":"com.example.app.Ancien","executionsAnalysee":["recette-1","recette-2"]}
-{"fait":"methode.chaude","methode":"com.example.app.Repository.charger","echantillons":4821,"pct":31.2,"mesure":"async-profiler.echantillons","execution":"recette-1"}
+{"fact":"class.never_executed","classe":"com.example.app.Ancien","runsAnalysed":["recette-1","recette-2"]}
+{"fact":"method.hot","methode":"com.example.app.Repository.charger","samples":4821,"pct":31.2,"measure":"async-profiler.samples","execution":"recette-1"}
 ```
 
 Il n'y a rien à installer pour le lire : `grep`, `jq`, une boucle de trois lignes, ou un
@@ -49,7 +49,7 @@ recopie avec le fichier.
 **Ce qui n'a PAS été mesuré est écrit.** Sous Windows, async-profiler ne publie aucun
 binaire : il n'y a pas de mesure de temps. Sans une ligne pour le dire, « 0 relevé » se lit
 exactement comme « ce code n'a jamais tourné » — et un lecteur tranchera, dans le mauvais
-sens, avec assurance. Les faits `indisponibilite` et `reserve` existent pour ça. Ils disent
+sens, avec assurance. Les faits `unavailable` et `caveat` existent pour ça. Ils disent
 ce qui manque, pourquoi, ce qu'on ne peut donc **pas** en conclure, et le remède.
 
 Le format se donne dans le manifeste de la page (`faitsFormat`), et le rapport HTML n'a
@@ -111,11 +111,11 @@ n'existe pas, alors deux choses le compensent :
 
 | Si la question contient… | Familles jointes |
 |---|---|
-| `never` `dead` `unused` `uncovered` `not covered` | `classe.jamais_executee` |
-| `cover` `coverage` `percent` | `couverture.execution` + `classe` |
-| `time` `slow` `hot` `cost` `perf` `fast` `profil` | `methode.chaude` |
-| `source` `missing` `root` | `source.introuvable` + `piste.source` |
-| `run` `campaign` `when` `machine` `command` | `execution` |
+| `never` `dead` `unused` `uncovered` `not covered` | `class.never_executed` |
+| `cover` `coverage` `percent` | `coverage.run` + `class` |
+| `time` `slow` `hot` `cost` `perf` `fast` `profil` | `method.hot` |
+| `source` `missing` `root` | `source.missing` + `source.hint` |
+| `run` `campaign` `when` `machine` `command` | `run` |
 
 **Un mot-clé ouvre un mot**, il n'est pas cherché n'importe où dans la phrase : « screenshot »
 ne déclenche donc pas `hot`, ni « generate » `rate`. Les flexions restent attrapées — `missing`
@@ -135,7 +135,7 @@ reproductible. `--familles` court-circuite les mots-clés :
 
 ```sh
 runtime-xray --out rapport --contexte "classes mortes de la recette" \
-             --familles classe.jamais_executee,couverture.execution
+             --families class.never_executed,coverage.run
 ```
 
 La question continue de voyager — c'est son autre rôle — mais ne choisit plus rien. Une
