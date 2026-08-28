@@ -85,7 +85,7 @@ Il sait aussi écrire au format JFR, donc alimenter Mission Control.
 Après affinage du programme, **71 % des échantillons ont une feuille dans `lab.sample`**,
 et les cinq premières feuilles du profil sont des méthodes métier. Le profil a d'ailleurs
 servi à corriger trois défauts réels du programme d'exemple — voir
-[le détail technique](../../outil/technique.md#affinages-décidés-à-la-mesure-pas-au-jugé).
+[le détail technique](../../outil/technique.md#refinements-decided-by-measurement-not-by-guesswork).
 
 ## Comparable à
 

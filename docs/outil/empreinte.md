@@ -139,7 +139,7 @@ are the only two honest answers.
   claim [the method](../etude/methode.md) forbids. What is established is the **order** of
   the cost centres, and the fact that each lever acts on the one it names.
 - **These pieces of advice have not been replayed on an application of several thousand
-  classes** — a limit already stated in [the README](../../README.md#portée-et-limites-de-létude).
+  classes** — a limit already stated in [the README](../../README.md#scope-and-limits-of-the-study).
   The levers are the ones the underlying tools document; the effect measured on an industrial
   codebase remains to be observed.
 

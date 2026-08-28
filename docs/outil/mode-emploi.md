@@ -16,7 +16,7 @@ curl -LO https://github.com/Beennnn/runtime-xray/releases/download/v1.2.2/runtim
 ```
 
 An already-built jar, to download and run. No clone is needed. Preparing a machine with no
-network: [Getting the tool](../../README.md#se-procurer-loutil).
+network: [Getting the tool](../../README.md#getting-the-tool).
 
 The three observation tools (JaCoCo, async-profiler, Arthas) are looked for **on the machine
 first**: the `~/.runtime-xray` cache, a directory named by `--components`, the jar's
@@ -28,7 +28,7 @@ filled. Downloading from a Maven repository, the publisher's or an internal mirr
 tool usable in a disconnected environment. Three ways of getting there, depending on what
 one has: fill the cache in advance, put the files beside the jar, or carry an edition that
 bundles its components — see [Preparing a machine with no
-network](../../README.md#préparer-une-machine-sans-réseau).
+network](../../README.md#preparing-a-machine-with-no-network).
 
 When a component really is missing, the error message lists every path tried: on a closed
 machine, it is meant to be enough.
