@@ -17,47 +17,48 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Ce qu'il faut savoir quand la vue ne montre pas ce qu'on attendait.
+ * What one needs to know when the view does not show what was expected.
  *
- * <p>Un rapport qui manque quelque chose ne dit pas pourquoi : un panneau de code vide se
- * lit exactement comme un panneau de code qu'on n'a pas su remplir. Le 26 août 2026, une
- * analyse portant sur 447 classes affichait « Source indisponible » sur chacune, et rien
- * dans le rapport ne permettait de trancher entre les quatre causes possibles — racine non
- * renseignée, racine inexistante, racine au mauvais niveau, ou sources réellement absentes
- * de la machine. Il a fallu demander une capture d'écran.
+ * <p>A report that is missing something does not say why: an empty code panel reads
+ * exactly like a code panel we failed to fill. On 26 August 2026, an analysis covering
+ * 447 classes showed "Source unavailable" on every one of them, and nothing in the report
+ * made it possible to decide between the four possible causes — root not set, root
+ * non-existent, root at the wrong level, or sources genuinely absent from the machine. A
+ * screenshot had to be asked for.
  *
- * <p>D'où ce fichier. Il est écrit <b>à chaque assemblage</b>, à côté de la page, et il est
- * fait pour être <b>renvoyé tel quel</b> : il porte ce qu'on aurait posé comme questions.
- * Ce qui a été demandé, ce qui a été trouvé, où, et — quand un rapprochement échoue — ce
- * qu'il aurait fallu écrire pour qu'il réussisse.
+ * <p>Hence this file. It is written <b>at every assembly</b>, beside the page, and it is
+ * made to be <b>sent back as it is</b>: it carries what we would have asked as questions.
+ * What was asked for, what was found, where, and — when a match fails — what should have
+ * been written for it to succeed.
  *
- * <p><b>Il ne contient aucun secret</b> : ni le jeton du serveur partagé, ni les valeurs de
- * paramètres capturées. Il porte en revanche des chemins absolus et des noms de classes,
- * comme le rapport lui-même — c'est un fichier à faire circuler avec le même soin.
+ * <p><b>It contains no secret</b>: neither the shared server's token nor the captured
+ * argument values. It does carry absolute paths and class names, like the report itself —
+ * it is a file to circulate with the same care.
  */
 public final class Diagnostic {
 
-    /** Assez pour comprendre, pas assez pour recopier le rapport. */
+    /** Enough to understand, not enough to copy the report out. */
     private static final int EXAMPLES = 40;
 
     /**
-     * Le nombre de classes recensées dans le bytecode, toutes racines confondues.
+     * The number of classes listed in the bytecode, across all roots.
      *
-     * <p>Cette liste voyage dans la page — c'est elle qui alimente l'arbre et la recherche.
-     * Un classpath applicatif en compte quelques centaines à quelques milliers ; au-delà on
-     * s'arrête, et on le dit, plutôt que de faire une page de plusieurs mégaoctets.
+     * <p>That list travels inside the page — it is what feeds the tree and the search. An
+     * application classpath holds a few hundred to a few thousand; beyond that we stop, and
+     * say so, rather than making a page of several megabytes.
      */
     private static final int MAX_CLASSES = 4_000;
 
     private Diagnostic() {}
 
     /**
-     * @param commonDir  le répertoire de sortie, où le fichier est déposé
-     * @param runs       les exécutions telles que la vue les reçoit
-     * @param index      l'index des sources, avec ce qu'il a vu en le construisant
-     * @param contexte   ce que seul l'appelant sait — configuration, componentsDir, options —
-     *                   ou {@code null} quand la vue est réassemblée sans lui
-     * @return le contenu écrit, pour que l'appelant puisse en tirer un résumé sans le relire
+     * @param commonDir  the output directory, where the file is placed
+     * @param runs       the runs as the view receives them
+     * @param index      the source index, with what it saw while being built
+     * @param context    what only the caller knows — configuration, components, options —
+     *                   or {@code null} when the view is reassembled without it
+     * @return the content written, so the caller can draw a summary from it without
+     *         reading it back
      */
     public static Map<String, Object> write(Path commonDir, List<Object> runs,
                                             Sources.Index index, Map<String, Object> context)
@@ -74,8 +75,8 @@ public final class Diagnostic {
         List<Object> bytecode = bytecode(context);
         d.put("bytecode", bytecode);
         Map<String, Object> matching = matching(runs, index);
-        // La recherche ne part que s'il y a quelque chose à chercher : elle parcourt le
-        // disque, et sur un rapport complet elle n'aurait rien à trouver.
+        // The search only starts when there is something to look for: it walks the disk,
+        // and on a complete report it would have nothing to find.
         if (number(matching.get("fichiersSansSource")) > 0) {
             matching.put("pistes", Sources.searchRoots(
                     missing(runs, index), whereToLook(commonDir, index, bytecode)));
@@ -88,12 +89,12 @@ public final class Diagnostic {
     }
 
     /**
-     * Le rapprochement couverture ↔ sources, classe par classe.
+     * The coverage ↔ sources match, class by class.
      *
-     * <p>C'est le cœur du fichier : la couverture énumère les fichiers qu'elle a mesurés,
-     * l'index énumère ceux qu'on a lus, et l'intersection est ce que la vue saura montrer.
-     * Pour chaque fichier manquant on cherche le même nom ailleurs dans l'index — c'est le
-     * cas d'une racine mal placée, et il se corrige d'un chemin.
+     * <p>This is the heart of the file: the coverage lists the files it measured, the index
+     * lists those that were read, and the intersection is what the view will be able to
+     * show. For each missing file we look for the same name elsewhere in the index — that
+     * is the case of a misplaced root, and it is fixed with one path.
      */
     static Map<String, Object> matching(List<Object> runs, Sources.Index index) {
         Set<String> expected = samples(runs);
@@ -118,8 +119,8 @@ public final class Diagnostic {
         m.put("exemplesTrouves", found);
         m.put("exemplesManquants", missing);
         m.put("conclusion", conclusion(expected.size(), missingCount, index));
-        // Les fichiers lus qui ne correspondent à aucune classe mesurée : leur nombre suffit
-        // à la page, qui n'a rien à en montrer. Les énumérer y recopierait l'arborescence.
+        // Files read that match no measured class: their number is enough for the page,
+        // which has nothing to show of them. Listing them would copy the tree in.
         int withoutClass = 0;
         for (String key : index.byKey().keySet()) if (!expected.contains(key)) withoutClass++;
         m.put("sourcesSansClasse", withoutClass);
@@ -127,10 +128,10 @@ public final class Diagnostic {
     }
 
     /**
-     * Les fichiers que la couverture dit avoir mesurés, toutes exécutions confondues.
+     * The files the coverage says it measured, across all runs.
      *
-     * <p>Toutes, et non celle qu'on regarde : une classe absente d'une exécution mais
-     * présente dans une autre reste une classe dont on veut le code.
+     * <p>All of them, not just the one being looked at: a class absent from one run but
+     * present in another is still a class whose code we want.
      */
     static Set<String> samples(List<Object> runs) {
         Set<String> expected = new LinkedHashSet<>();
@@ -149,7 +150,7 @@ public final class Diagnostic {
         return expected;
     }
 
-    /** Les clés que la couverture réclame et que l'index n'a pas. */
+    /** The keys the coverage asks for and the index does not have. */
     static java.util.Set<String> missing(List<Object> runs, Sources.Index index) {
         java.util.Set<String> out = new LinkedHashSet<>();
         for (String key : samples(runs)) {
@@ -159,42 +160,42 @@ public final class Diagnostic {
     }
 
     /**
-     * Où chercher les sources qui manquent, du plus probable au moins probable.
+     * Where to look for the missing sources, from the most likely to the least.
      *
-     * <p>Aucun de ces endroits n'est une convention : ce sont les seuls que l'exécution nous
-     * ait fait connaître. Le bytecode analysé est le meilleur indice de tous — un
-     * {@code <projet>/target/classes} désigne le projet à deux répertoires près, et c'est là
-     * que sont ses sources. La racine déjà configurée en est un autre : quand elle est d'un
-     * cran à côté, le bon répertoire est son voisin immédiat.
+     * <p>None of these places is a convention: they are the only ones the run made known to
+     * us. The analysed bytecode is the best clue of all — a {@code <project>/target/classes}
+     * names the project to within two directories, and that is where its sources are. The
+     * already-configured root is another: when it is one notch off, the right directory is
+     * its immediate neighbour.
      *
-     * <p>On ne remonte jamais plus haut que ces indices, et jamais vers la racine du disque :
-     * une recherche qui balaie tout finirait par proposer les sources d'un autre projet.
+     * <p>We never climb higher than those clues, and never towards the root of the disk: a
+     * search that sweeps everything would end up proposing another project's sources.
      */
     static List<Path> whereToLook(Path commonDir, Sources.Index index, List<Object> bytecode) {
         List<Path> bases = new ArrayList<>();
-        // 1. autour du bytecode réellement analysé
+        // 1. around the bytecode actually analysed
         for (Object o : bytecode) {
             if (o instanceof Map<?, ?> b && b.get("absolu") instanceof String path) {
                 climb(Path.of(path), 2, bases);
             }
         }
-        // 2. autour des racines de sources déjà données — le cas « d'un cran à côté »
+        // 2. around the source roots already given — the "one notch off" case
         for (Object o : index.roots()) {
             if (o instanceof Map<?, ?> r && r.get("absolue") instanceof String path) {
                 climb(Path.of(path), 1, bases);
             }
         }
-        // 3. le répertoire depuis lequel l'analyse a été lancée
+        // 3. the directory the analysis was launched from
         bases.add(Path.of(System.getProperty("user.dir")));
-        // 4. à défaut, le voisinage du rapport lui-même
+        // 4. failing that, the neighbourhood of the report itself
         climb(commonDir, 1, bases);
         return bases;
     }
 
-    /** Un chemin et ses ascendants, jusqu'à {@code crans} — jamais au-delà. */
+    /** A path and its ancestors, up to {@code notches} — never beyond. */
     private static void climb(Path start, int notches, List<Path> bases) {
         Path p = start.toAbsolutePath().normalize();
-        if (Files.isRegularFile(p)) p = p.getParent();          // un jar désigne son répertoire
+        if (Files.isRegularFile(p)) p = p.getParent();          // a jar names its directory
         for (int i = 0; i <= notches && p != null && p.getParent() != null; i++) {
             bases.add(p);
             p = p.getParent();
@@ -206,11 +207,11 @@ public final class Diagnostic {
     }
 
     /**
-     * Un fichier mesuré dont on n'a pas la source — et ce qu'on sait d'approchant.
+     * A measured file whose source we do not have — and the nearest thing we know of.
      *
-     * <p>Le même nom trouvé sous un autre paquet est presque toujours le bon fichier vu
-     * depuis une racine décalée. On donne alors le chemin réel : c'est de lui qu'on déduit
-     * la racine à passer.
+     * <p>The same name found under another package is nearly always the right file seen
+     * from a shifted root. We then give the real path: it is what the root to pass is
+     * deduced from.
      */
     private static Map<String, Object> missing(String key, Sources.Index index) {
         Map<String, Object> m = new LinkedHashMap<>();
@@ -226,16 +227,16 @@ public final class Diagnostic {
     }
 
     /**
-     * Ce que chaque racine de bytecode contient réellement.
+     * What each bytecode root actually contains.
      *
-     * <p>« Classes introuvables » et « sources introuvables » se ressemblent dans un rapport
-     * vide, et se corrigent de deux façons opposées. Les séparer demande de savoir ce que
-     * l'outil a effectivement ouvert : quels répertoires, quels jar, et quelles classes il y
-     * a vues. On recense donc, pour chaque entrée du classpath, les noms de classes qu'elle
-     * porte — de quoi répondre, dans la page, à « où est cette classe ? » sans rien relancer.
+     * <p>"Classes not found" and "sources not found" look alike in an empty report, and are
+     * fixed in two opposite ways. Telling them apart requires knowing what the tool
+     * actually opened: which directories, which jars, and which classes it saw in them. So
+     * for each classpath entry we list the class names it carries — enough to answer, in
+     * the page, "where is this class?" without running anything again.
      *
-     * <p>Les classes internes ({@code Machin$1}) sont écartées : elles n'ont pas de fichier
-     * source à elles, et elles tripleraient la liste sans rien apprendre.
+     * <p>Inner classes ({@code Something$1}) are left out: they have no source file of
+     * their own, and they would treble the list without teaching anything.
      */
     static List<Object> bytecode(Map<String, Object> context) {
         List<Object> out = new ArrayList<>();
@@ -300,13 +301,13 @@ public final class Diagnostic {
         return names;
     }
 
-    /** Une classe de premier niveau, et pas un artefact du compilateur. */
+    /** A top-level class, and not a compiler artefact. */
     private static boolean kept(String name) {
         return name.endsWith(".class") && !name.contains("$") && !name.endsWith("package-info.class")
                 && !name.startsWith("META-INF/");
     }
 
-    /** Une phrase, celle qu'on lirait en premier. */
+    /** One sentence, the one that would be read first. */
     private static String conclusion(int expected, int missing, Sources.Index index) {
         if (index.roots().isEmpty()) {
             return "no source directory was given: the annotated code cannot be shown. "
@@ -341,7 +342,7 @@ public final class Diagnostic {
             e.put("rapports", run.get("rapports"));
             e.put("paquetsMasques", run.get("paquetsMasques"));
             e.put("contexte", run.get("context"));
-            // Des tailles, pas des contenus : de quoi voir qu'une mesure est vide.
+            // Sizes, not contents: enough to see that a measurement is empty.
             e.put("classesMesurees", count(run.get("packages")));
             e.put("fichiersCouverts", size(run.get("coverage")));
             e.put("methodesInspectees", size(run.get("values")));
@@ -372,8 +373,8 @@ public final class Diagnostic {
         m.put("os", System.getProperty("os.name") + " " + System.getProperty("os.version")
                 + " (" + System.getProperty("os.arch") + ")");
         m.put("repertoireCourant", System.getProperty("user.dir"));
-        // L'encodage et la locale expliquent des symptômes qu'on impute d'ordinaire au code :
-        // accents illisibles, sources refusées à la lecture, séparateurs décimaux inattendus.
+        // The encoding and the locale explain symptoms usually blamed on the code:
+        // unreadable accents, sources refused on reading, unexpected decimal separators.
         m.put("encodageFichiers", System.getProperty("file.encoding"));
         m.put("encodageSortie", System.getProperty("stdout.encoding"));
         m.put("locale", Locale.getDefault().toLanguageTag());
@@ -381,7 +382,7 @@ public final class Diagnostic {
         return m;
     }
 
-    /** La version telle que le jar la déclare, ou « inconnue » quand on tourne sur les classes. */
+    /** The version as the jar declares it, or "unknown" when running on the classes. */
     private static String version() {
         String v = Diagnostic.class.getPackage().getImplementationVersion();
         return v == null ? "inconnue" : v;
