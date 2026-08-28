@@ -14,48 +14,49 @@ import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 /**
- * Le code source, indexé comme le rapport de couverture l'indexe : {@code paquet/Fichier.java}.
- * C'est cette convention commune qui permet de rapprocher une ligne de code et sa couverture.
+ * The source code, indexed the way the coverage report indexes it:
+ * {@code package/File.java}. It is that shared convention which makes it possible to match
+ * a line of code with its coverage.
  *
- * <p><b>La clé vient du paquet déclaré, pas de l'arborescence.</b> Indexer d'après le chemin
- * relatif à la racine passée oblige à désigner exactement le répertoire au-dessus du premier
- * paquet — {@code src/main/java} et non {@code src}, ni {@code src/main/java/coo}. Une racine
- * d'un cran trop haut ou trop bas donnait un index entier de clés décalées, donc aucune
- * correspondance, donc « Source indisponible » sur toutes les classes à la fois. Or le fichier
- * dit lui-même à quel paquet il appartient, et c'est cette déclaration qui fait autorité pour
- * JaCoCo comme pour le compilateur. La lire rend le niveau de la racine indifférent : on peut
- * pointer le projet entier, ou un répertoire de paquet, cela retombe sur ses pieds.
+ * <p><b>The key comes from the declared package, not from the directory tree.</b> Indexing
+ * by the path relative to the root passed forces one to name exactly the directory above
+ * the first package — {@code src/main/java} and not {@code src}, nor
+ * {@code src/main/java/com}. A root one notch too high or too low gave a whole index of
+ * shifted keys, so no match, so "Source unavailable" on every class at once. Yet the file
+ * says itself which package it belongs to, and that declaration is authoritative for
+ * JaCoCo as well as for the compiler. Reading it makes the level of the root irrelevant:
+ * one can point at the whole project, or at a package directory, and it lands on its feet.
  *
- * <p>Le chemin relatif reste la clé de repli, pour le cas — rare, mais réel dans du code
- * ancien — d'un fichier sans déclaration de paquet.
+ * <p>The relative path stays the fallback key, for the case — rare, but real in old code —
+ * of a file with no package declaration.
  *
- * <p>L'index rapporte en outre <b>ce qu'il a vu</b> : chaque racine demandée, résolue en
- * absolu, existante ou non, et le nombre de fichiers qu'elle a fournis ; puis, par nom de
- * fichier, où chaque source a été trouvée. Sans cela, une source manquante ne se manifeste
- * que par un panneau vide, qui ne dit ni ce qu'on cherchait, ni où l'on a regardé.
+ * <p>The index additionally reports <b>what it saw</b>: each root asked for, resolved to an
+ * absolute path, existing or not, and the number of files it yielded; then, per file name,
+ * where each source was found. Without that, a missing source shows only as an empty
+ * panel, which says neither what was being looked for nor where we looked.
  */
 public final class Sources {
 
     /**
-     * Au-delà, on cesse de parcourir. Une racine mal désignée — la racine d'un disque, un
-     * répertoire personnel — se traverse sinon pendant des minutes, pour un index inutile.
-     * Le fait d'avoir tronqué est dit, car il change la lecture du diagnostic.
+     * Beyond that, we stop walking. A badly named root — the root of a disk, a home
+     * directory — otherwise takes minutes to traverse, for a useless index. The fact that
+     * it was truncated is stated, because it changes how the diagnostic reads.
      */
     private static final int MAX_FILES = 20_000;
 
-    /** {@code package com.example.app;} — la première ligne qui en a la forme fait foi. */
+    /** {@code package com.example.app;} — the first line of that shape is authoritative. */
     private static final Pattern PACKAGE =
             Pattern.compile("^\\s*package\\s+([\\p{L}_$][\\p{L}\\p{N}_$]*(?:\\s*\\.\\s*[\\p{L}_$][\\p{L}\\p{N}_$]*)*)\\s*;");
 
     private Sources() {}
 
     /**
-     * Ce que l'index contient, et ce qu'il a fallu pour l'obtenir.
+     * What the index holds, and what it took to obtain it.
      *
-     * @param parCle   {@code paquet/Fichier.java} → les lignes du fichier
-     * @param racines  une entrée par racine demandée : ce qu'on en a tiré
-     * @param parNom   {@code Fichier.java} → les endroits où ce nom a été trouvé
-     * @param tronque  vrai si le parcours s'est arrêté sur la limite
+     * @param byKey     {@code package/File.java} → the file's lines
+     * @param roots     one entry per root asked for: what came out of it
+     * @param byName    {@code File.java} → the places that name was found in
+     * @param truncated true when the walk stopped on the limit
      */
     public record Index(Map<String, Object> byKey, List<Object> roots,
                         Map<String, Object> byName, boolean truncated) {
@@ -64,7 +65,7 @@ public final class Sources {
             return byKey.size();
         }
 
-        /** Le diagnostic seul, sans le code : c'est lui qui voyage dans la page et le fichier. */
+        /** The diagnostic alone, without the code: it is what travels in the page and the file. */
         public Map<String, Object> diagnostic() {
             Map<String, Object> m = new LinkedHashMap<>();
             m.put("racines", roots);
@@ -76,8 +77,8 @@ public final class Sources {
     }
 
     /**
-     * @param roots les racines demandées, dans l'ordre ; une racine inexistante est retenue
-     *              dans le diagnostic plutôt qu'ignorée en silence
+     * @param roots the roots asked for, in order; a non-existent root is kept in the
+     *              diagnostic rather than ignored in silence
      */
     public static Index load(List<Path> roots) {
         Map<String, Object> byKey = new LinkedHashMap<>();
@@ -101,8 +102,8 @@ public final class Sources {
             }
 
             int before = byKey.size();
-            // Les liens sont suivis : une arborescence de sources montée ailleurs, ou un
-            // répertoire lié, est un cas courant sur les postes de développement.
+            // Links are followed: a source tree mounted elsewhere, or a linked
+            // directory, is a common case on development machines.
             try (Stream<Path> files = Files.walk(root, FileVisitOption.FOLLOW_LINKS)) {
                 for (Path p : (Iterable<Path>) files.filter(Sources::isSource)::iterator) {
                     if (byKey.size() >= MAX_FILES) {
@@ -112,8 +113,8 @@ public final class Sources {
                     index(root, p, byKey, byName);
                 }
             } catch (IOException e) {
-                // Une racine illisible ne doit pas faire échouer tout le rapport : on la
-                // retient telle quelle dans le diagnostic, et on passe à la suivante.
+                // An unreadable root must not fail the whole report: we keep it as it is
+                // in the diagnostic, and move on to the next.
                 view.put("motif", "parcours interrompu : " + e.getMessage());
             }
             view.put("fichiers", byKey.size() - before);
@@ -131,8 +132,8 @@ public final class Sources {
         try {
             lines = read(file);
         } catch (IOException e) {
-            // Un fichier illisible ne doit pas faire échouer tout le rapport :
-            // on le signale et on continue.
+            // An unreadable file must not fail the whole report: we report it
+            // and carry on.
             System.err.println("   source skipped: " + file + " (" + e.getMessage() + ")");
             return;
         }
@@ -148,18 +149,18 @@ public final class Sources {
         where.put("chemin", absolu(file));
         where.put("paquet", pkg);
         where.put("racine", absolu(root));
-        // Le même nom de fichier peut vivre dans plusieurs paquets : c'est précisément le
-        // cas où il faut montrer les deux plutôt que d'en choisir un.
+        // The same file name can live in several packages: that is precisely the
+        // case where both must be shown rather than one of them chosen.
         @SuppressWarnings("unchecked")
         List<Object> places = (List<Object>) byName.computeIfAbsent(name, k -> new ArrayList<>());
         places.add(where);
     }
 
     /**
-     * Le paquet déclaré par ce fichier, ou {@code null} s'il n'en déclare aucun.
+     * The package this file declares, or {@code null} when it declares none.
      *
-     * <p>On s'arrête à la première ligne qui ouvre le type : au-delà, un {@code package}
-     * ne serait plus une déclaration mais du texte — une chaîne, un commentaire.
+     * <p>We stop at the first line that opens the type: beyond it, a {@code package} would
+     * no longer be a declaration but text — a string, a comment.
      */
     static String declaredPackage(List<String> lines) {
         for (String line : lines) {
@@ -174,13 +175,13 @@ public final class Sources {
     }
 
     /**
-     * UTF-8 d'abord, ISO-8859-1 en dernier recours.
+     * UTF-8 first, ISO-8859-1 as the last resort.
      *
-     * <p>Les sources d'un projet ancien sont souvent en ISO-8859-1 ou en cp1252, et depuis
-     * Java 18 l'encodage par défaut de la plateforme est UTF-8 : réessayer avec lui ne
-     * rattrape rien. ISO-8859-1, si — tout octet y a une image, donc la lecture n'échoue
-     * jamais. Un accent isolé peut en ressortir de travers ; c'est très au-dessus de
-     * l'alternative, qui était de ne pas afficher le fichier du tout.
+     * <p>The sources of an old project are often in ISO-8859-1 or cp1252, and since Java 18
+     * the platform's default encoding is UTF-8: retrying with it catches nothing.
+     * ISO-8859-1 does — every byte has an image there, so the read never fails. An isolated
+     * accent can come out crooked; that is far above the alternative, which was not showing
+     * the file at all.
      */
     private static List<String> read(Path p) throws IOException {
         try {
@@ -198,16 +199,16 @@ public final class Sources {
         }
     }
 
-    // ================================================================= chercher une racine
+    // ================================================================= searching for a root
 
     /**
-     * Ce qu'on accepte de traverser en cherchant. Une arborescence de projet réelle en compte
-     * quelques milliers ; au-delà, on cherche ailleurs qu'où il faut, et il vaut mieux
-     * s'arrêter que d'y passer une minute.
+     * What we accept to traverse while searching. A real project tree holds a few thousand;
+     * beyond that we are looking somewhere other than where we should, and stopping is
+     * better than spending a minute on it.
      */
     private static final int SEARCH_BUDGET = 120_000;
 
-    /** Jusqu'où descendre sous chaque base. Douze niveaux couvrent un paquet profond. */
+    /** How far down to go under each base. Twelve levels cover a deep package. */
     private static final int DEPTH = 12;
 
     /**
@@ -241,8 +242,8 @@ public final class Sources {
     public static List<Object> searchRoots(java.util.Set<String> missing, List<Path> bases) {
         if (missing.isEmpty() || bases.isEmpty()) return List.of();
 
-        // Par nom de fichier : c'est le seul filtre qu'on puisse appliquer SANS ouvrir le
-        // fichier, et il écarte l'immense majorité des candidats pour le prix d'un test.
+        // By file name: it is the only filter that can be applied WITHOUT opening
+        // the file, and it discards most candidates for the price of one test.
         java.util.Set<String> names = new java.util.HashSet<>();
         for (String key : missing) names.add(key.substring(key.lastIndexOf('/') + 1));
 
@@ -256,8 +257,8 @@ public final class Sources {
         }
 
         List<Map.Entry<String, int[]>> classified = new ArrayList<>(credits.entrySet());
-        // Le plus explicatif d'abord ; à égalité, le chemin le plus court — c'est celui qui
-        // couvre le plus large, donc celui qui vieillira le mieux dans une configuration.
+        // The most explanatory first; on a tie, the shortest path — it is the one
+        // that covers widest, so the one that ages best in a configuration.
         classified.sort((a, b) -> {
             int byCount = Integer.compare(b.getValue()[0], a.getValue()[0]);
             return byCount != 0 ? byCount
@@ -277,10 +278,10 @@ public final class Sources {
         return leads;
     }
 
-    /** Assez de pistes pour qu'un projet à plusieurs modules s'y retrouve, pas assez pour noyer. */
+    /** Enough leads for a multi-module project to find itself, not enough to drown. */
     private static final int MAX_LEADS = 5;
 
-    /** Trois exemples suffisent à reconnaître un projet ; le compte fait le reste. */
+    /** Three examples are enough to recognise a project; the count does the rest. */
     private static final int EVIDENCE_PER_LEAD = 3;
 
     private static void explore(Path searchRoot, Path dir, int level,
@@ -302,16 +303,17 @@ public final class Sources {
                 }
             }
         } catch (IOException | RuntimeException e) {
-            // Un répertoire illisible — droits, lien cassé, montage disparu — n'a rien à
-            // apprendre : on passe au suivant plutôt que d'abandonner la recherche.
+            // An unreadable directory — permissions, broken link, vanished mount — has
+            // nothing to teach: we move on rather than abandon the search.
         }
     }
 
     /**
-     * Le fichier porte le bon nom : reste à savoir s'il porte le bon paquet.
+     * The file carries the right name: what remains is whether it carries the right package.
      *
-     * <p>C'est ce test qui sépare une proposition d'une devinette. Un {@code Application.java}
-     * trouvé dans un autre projet ne déclarera pas {@code com.example.app}, donc ne comptera pas.
+     * <p>It is this test that separates a proposal from a guess. An {@code Application.java}
+     * found in another project will not declare {@code com.example.app}, so it will not
+     * count.
      */
     private static void credit(Path file, String name, java.util.Set<String> missing,
                                  Map<String, int[]> credits, Map<String, List<String>> evidence) {
@@ -325,9 +327,9 @@ public final class Sources {
         String key = pkg.replace('.', '/') + "/" + name;
         if (!missing.contains(key)) return;
 
-        // La racine, c'est le chemin amputé de son paquet : le répertoire qu'il aurait fallu
-        // désigner. On le donne tel quel, même si le niveau n'a plus d'importance pour
-        // l'index — c'est celui qu'un lecteur reconnaîtra comme « le répertoire de sources ».
+        // The root is the path with its package cut off: the directory that should
+        // have been named. We give it as it is, even though the level no longer
+        // matters to the index — it is what a reader calls "the source directory".
         Path root = file.getParent();
         for (int i = pkg.split("\\.").length; i > 0 && root != null; i--) {
             root = root.getParent();
@@ -341,10 +343,11 @@ public final class Sources {
     }
 
     /**
-     * Les premières lignes seulement.
+     * The first lines only.
      *
-     * <p>La déclaration de paquet est en tête par construction du langage. Lire le fichier
-     * entier pour la trouver multiplierait le coût de la recherche par la taille du projet.
+     * <p>The package declaration is at the top by construction of the language. Reading the
+     * whole file to find it would multiply the cost of the search by the size of the
+     * project.
      */
     private static List<String> header(Path p) throws IOException {
         List<String> lines = new ArrayList<>();
@@ -356,10 +359,10 @@ public final class Sources {
     }
 
     /**
-     * Les bases de recherche, sans redite.
+     * The search bases, without repetition.
      *
-     * <p>Chercher sous un répertoire puis sous son parent parcourt deux fois le même contenu,
-     * et sur une arborescence profonde c'est ce qui épuise le budget avant d'avoir trouvé.
+     * <p>Searching under a directory and then under its parent walks the same content
+     * twice, and on a deep tree that is what exhausts the budget before anything is found.
      */
     static List<Path> deduplicate(List<Path> bases) {
         List<Path> kept = new ArrayList<>();
@@ -369,7 +372,7 @@ public final class Sources {
             Path n = b.toAbsolutePath().normalize();
             if (Files.isDirectory(n) && !sortedList.contains(n)) sortedList.add(n);
         }
-        // Du plus court au plus long : un parent retenu couvre déjà tous ses descendants.
+        // From shortest to longest: a parent kept already covers its descendants.
         sortedList.sort(java.util.Comparator.comparingInt(x -> x.toString().length()));
         for (Path candidate : sortedList) {
             boolean alreadyCovered = kept.stream().anyMatch(candidate::startsWith);
