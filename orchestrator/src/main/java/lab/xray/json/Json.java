@@ -194,7 +194,7 @@ public final class Json {
 
         void expect(char c) {
             if (i >= s.length() || s.charAt(i) != c) {
-                throw new IllegalArgumentException("attendu '" + c + "' à la position " + i);
+                throw new IllegalArgumentException("expected '" + c + "' at position " + i);
             }
             i++;
         }

@@ -174,7 +174,7 @@ public final class Suivi implements AutoCloseable {
 
     static byte[] page() throws IOException {
         try (InputStream in = Suivi.class.getResourceAsStream("suivi.html")) {
-            if (in == null) throw new IOException("page de suivi absente du jar");
+            if (in == null) throw new IOException("follow page missing from the jar");
             return in.readAllBytes();
         }
     }
@@ -230,7 +230,7 @@ public final class Suivi implements AutoCloseable {
             return brut;
         } catch (java.nio.charset.CharacterCodingException pasDeLUtf8) {
             String texte = new String(brut, StandardCharsets.ISO_8859_1);
-            return ("[runtime-xray : ce journal n'est pas en UTF-8 ; lu en ISO-8859-1]\n"
+            return ("[runtime-xray: this log is not UTF-8; read as ISO-8859-1]\n"
                     + texte).getBytes(StandardCharsets.UTF_8);
         }
     }

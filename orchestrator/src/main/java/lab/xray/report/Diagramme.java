@@ -88,7 +88,7 @@ public final class Diagramme {
                 }
                 if (couvert + manque > 0) {
                     return new Chiffre(100.0 * couvert / (couvert + manque), couvert,
-                            couvert + manque, "fusion JaCoCo des " );
+                            couvert + manque, "JaCoCo merge of " );
                 }
             } catch (Exception e) {
                 // La fusion est un supplément : son illisibilité ne doit pas priver de schéma.
@@ -116,29 +116,29 @@ public final class Diagramme {
         long classes = nombreDeClasses(runs), mortes = jamais.size();
 
         // ── en-tête ────────────────────────────────────────────────────────────────
-        texte(s, 40, 48, 22, 700, INK, "Ce que la campagne a mesuré");
+        texte(s, 40, 48, 22, 700, INK, "What the campaign measured");
         texte(s, 40, 72, 13, 400, MUTED, court(String.valueOf(ctx.getOrDefault("commande", "")), 95));
         texte(s, 40, 92, 12.5, 400, MUTED,
                 joindre(" · ", String.valueOf(ctx.getOrDefault("machine", "")),
                         String.valueOf(ctx.getOrDefault("debut", "")),
-                        runs.size() + (runs.size() > 1 ? " exécutions" : " exécution")));
+                        runs.size() + (runs.size() > 1 ? " runs" : " run")));
 
         // ── quatre chiffres ────────────────────────────────────────────────────────
-        tuile(s, 40, 118, "COUVERTURE CUMULÉE", arrondi(couverture.pct()) + " %",
+        tuile(s, 40, 118, "CUMULATIVE COVERAGE", arrondi(couverture.pct()) + "%",
                 couverture.source() != null
-                        ? couverture.couvert() + " sur " + couverture.total() + " — fusion JaCoCo"
-                        : couverture.couvert() + " sur " + couverture.total()
-                          + " — meilleure par classe",
+                        ? couverture.couvert() + " of " + couverture.total() + " — JaCoCo merge"
+                        : couverture.couvert() + " of " + couverture.total()
+                          + " — best per class",
                 VERT);
-        tuile(s, 350, 118, "CLASSES MESURÉES", String.valueOf(classes),
-                mortes + " n'ont jamais tourné", BLEU);
-        tuile(s, 660, 118, "EXÉCUTIONS RÉUNIES", String.valueOf(runs.size()),
-                "chacune apporte sa part", AMBRE);
-        tuile(s, 970, 118, "DURÉE OBSERVÉE", dureeTotale(runs),
-                "temps réel des scénarios", MUTED);
+        tuile(s, 350, 118, "CLASSES MEASURED", String.valueOf(classes),
+                mortes + " never ran", BLEU);
+        tuile(s, 660, 118, "RUNS GATHERED", String.valueOf(runs.size()),
+                "each brings its share", AMBRE);
+        tuile(s, 970, 118, "TIME OBSERVED", dureeTotale(runs),
+                "wall-clock time of the scenarios", MUTED);
 
         // ── par paquet ─────────────────────────────────────────────────────────────
-        titre(s, 40, 268, "OÙ LE CODE EST COUVERT, PAQUET PAR PAQUET", 600);
+        titre(s, 40, 268, "WHERE THE CODE IS COVERED, PACKAGE BY PACKAGE", 600);
         List<Map.Entry<String, long[]>> tries = new ArrayList<>(paquets.entrySet());
         // Le moins couvert d'abord : c'est là qu'on décide quelque chose.
         tries.sort(Comparator.comparingDouble(e -> part(e.getValue())));
@@ -151,14 +151,14 @@ public final class Diagramme {
         }
         if (tries.size() > MAX_PAQUETS) {
             texte(s, 40, y + 6, 12, 400, MUTED,
-                    "et " + (tries.size() - MAX_PAQUETS) + " autres paquets — la page les montre tous");
+                    "and " + (tries.size() - MAX_PAQUETS) + " more packages — the page shows them all");
         }
 
         // ── où le temps est parti ──────────────────────────────────────────────────
-        titre(s, 700, 268, "OÙ LE TEMPS EST PARTI", 540);
+        titre(s, 700, 268, "WHERE THE TIME WENT", 540);
         List<Map.Entry<String, Long>> chaud = methodesLesPlusChaudes(runs);
         if (chaud.isEmpty()) {
-            texte(s, 700, 300, 12.5, 400, MUTED, "Pas de mesure de temps dans cette campagne.");
+            texte(s, 700, 300, 12.5, 400, MUTED, "No time measurement in this campaign.");
         } else {
             long max = chaud.get(0).getValue();
             int yc = 296;
@@ -170,13 +170,13 @@ public final class Diagramme {
                 yc += 30;
             }
             texte(s, 700, yc + 6, 12, 400, MUTED,
-                    "Part du temps mesuré, appels compris — relatif à la plus coûteuse.");
+                    "Share of the measured time, calls included — relative to the costliest.");
         }
 
         // ── jamais exécuté ─────────────────────────────────────────────────────────
         // Par exécution : ce que chaque scénario apporte. C'est la question qu'on pose devant
         // une campagne — « le deuxième scénario a-t-il servi à quelque chose ? ».
-        titre(s, 700, 500, "CE QUE CHAQUE EXÉCUTION A COUVERT", 540);
+        titre(s, 700, 500, "WHAT EACH RUN COVERED", 540);
         // Toutes sur le MÊME dénominateur que le cumul, sans quoi une exécution afficherait
         // un pourcentage supérieur au total — chacune sur son propre périmètre, ce qui se
         // lit comme une contradiction alors que ce n'est qu'un changement de base.
@@ -191,12 +191,12 @@ public final class Diagramme {
             if (ye > 604) break;
         }
         texte(s, 700, ye + 4, 11.5, 400, MUTED,
-                "Part du même total que le cumul — ce que chaque scénario aurait donné seul.");
+                "Share of the same total as the cumulative figure — what each scenario alone would give.");
 
-        titre(s, 40, 620, "CE QUI N'A JAMAIS TOURNÉ", 1200);
+        titre(s, 40, 620, "WHAT NEVER RAN", 1200);
         if (jamais.isEmpty()) {
             texte(s, 40, 652, 12.5, 400, VERT,
-                    "Aucune : toutes les classes mesurées ont été atteintes.");
+                    "None: every measured class was reached.");
         } else {
             int x = 40, yj = 650;
             for (int i = 0; i < Math.min(MAX_MORTES, jamais.size()); i++) {
@@ -210,12 +210,12 @@ public final class Diagramme {
             }
             if (jamais.size() > MAX_MORTES) {
                 texte(s, x + 4, yj, 12, 400, MUTED,
-                        "et " + (jamais.size() - MAX_MORTES) + " autres.");
+                        "and " + (jamais.size() - MAX_MORTES) + " more.");
             }
         }
 
         texte(s, 40, 706, 11.5, 400, MUTED,
-                "Runtime X-Ray — chiffres mesurés, aucun estimé. Le rapport complet accompagne ce schéma.");
+                "Runtime X-Ray — measured figures, none estimated. The full report comes with this diagram.");
         s.append("</g></svg>\n");
         return s.toString();
     }

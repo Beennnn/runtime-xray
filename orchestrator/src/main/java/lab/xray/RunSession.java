@@ -28,7 +28,7 @@ public final class RunSession {
     private static final long INTERVALLE_MS = 1000L;
 
     private static final DateTimeFormatter HUMAN =
-            DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss", Locale.FRENCH);
+            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss", Locale.ROOT);
 
     private final Config config;
     private final Toolbox tools;
@@ -79,8 +79,8 @@ public final class RunSession {
             System.out.println("▶ Waiting for the run to finish");
             boolean finished = attendre(process);
             status = finished
-                    ? "terminée normalement (code " + process.exitValue() + ")"
-                    : "interrompue après " + config.maxSeconds + " s (garde-fou)";
+                    ? "ended normally (code " + process.exitValue() + ")"
+                    : "stopped after " + config.maxSeconds + " s (safety limit)";
             if (!finished) process.destroy();
         } finally {
             process.descendants().forEach(ProcessHandle::destroy);
@@ -118,14 +118,14 @@ public final class RunSession {
             while (true) {
                 if (process.waitFor(INTERVALLE_MS, TimeUnit.MILLISECONDS)) {
                     progression.fin();
-                    suivi.fin("terminée, code " + process.exitValue(),
+                    suivi.fin("ended, code " + process.exitValue(),
                             (System.nanoTime() - debut) / 1_000_000_000L);
                     return true;
                 }
                 long ecoule = (System.nanoTime() - debut) / 1_000_000L;
                 if (ecoule >= limite) {
                     progression.fin();
-                    suivi.fin("interrompue par le garde-fou", ecoule / 1000L);
+                    suivi.fin("stopped by the safety limit", ecoule / 1000L);
                     return false;
                 }
                 Duration cpu = tempsProcesseur(process);
@@ -225,7 +225,7 @@ public final class RunSession {
             sb.append(" -XX:+UnlockDiagnosticVMOptions -XX:+DebugNonSafepoints");
         } else {
             System.out.println("   ⚠️ timing measurements unavailable on this platform — "
-                    + "couverture et valeurs restent disponibles");
+                    + "coverage and values remain available");
         }
         return sb.toString();
     }
@@ -246,12 +246,12 @@ public final class RunSession {
             // avait qu'un programme trop court.
             if (!process.isAlive()) {
                 System.out.println("   ⚠️ the application finished before attachment ("
-                        + config.attachAfterSeconds + " s) : valeurs non capturées.");
+                        + config.attachAfterSeconds + " s): values not captured.");
                 System.out.println("      Increase the workload, or lower "
                         + "--attach-after. Coverage and timings, themselves, are complete.");
             } else {
                 System.out.println("   ⚠️ no JVM to follow among the launched processes: "
-                        + "valeurs non capturées.");
+                        + "values not captured.");
                 System.out.println("      The command may not start one "
                         + "directly — see --print-options to attach to your own.");
             }

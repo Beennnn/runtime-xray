@@ -231,7 +231,7 @@ Une analyse dure ce que dure l'application observée. Tant qu'elle travaille, un
 d'activité se réécrit sur une seule ligne :
 
 ```
-   03:12  ··░▒▓███▓▒░··████▓▒·······    cpu 41,3 s | sortie 812,0 Ko
+   03:12  ··░▒▓███▓▒░··████▓▒·······    cpu 41.3 s | output 812.0 KB
 ```
 
 Chaque carré vaut une seconde, et sa densité le nombre de cœurs occupés pendant cette

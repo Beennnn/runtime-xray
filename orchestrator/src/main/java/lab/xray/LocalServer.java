@@ -158,11 +158,11 @@ public final class LocalServer {
                     return;
                 }
                 if (!method.equals("POST") && !method.equals("PUT")) {
-                    text(ex, 405, "méthode non acceptée");
+                    text(ex, 405, "method not allowed");
                     return;
                 }
                 if (uuid.isBlank()) {
-                    text(ex, 400, "l'écriture porte sur une exécution : /__xray/noms/<uuid>");
+                    text(ex, 400, "a write targets one run: /__xray/noms/<uuid>");
                     return;
                 }
                 // Un corps illisible est une faute de l'appelant, pas une panne du
@@ -175,7 +175,7 @@ public final class LocalServer {
                     return;
                 }
                 if (!(lu instanceof Map<?, ?> corps)) {
-                    text(ex, 400, "le corps attendu est un objet JSON");
+                    text(ex, 400, "the expected body is a JSON object");
                     return;
                 }
                 ecrire(root, uuid, corps, ex, rebuilder);
@@ -233,7 +233,7 @@ public final class LocalServer {
                 if (!maintenant.equals(connu)) {
                     connu = maintenant;
                     System.out.println("   runs changed on disk — the page is "
-                            + "réassemblée");
+                            + "rebuilt");
                     rebuilder.demander();
                 }
             }
@@ -277,7 +277,7 @@ public final class LocalServer {
         try {
             Path runDir = Annotations.runsByUuid(root).get(uuid);
             if (runDir == null) {
-                text(ex, 404, "aucune exécution ne porte l'identifiant " + uuid);
+                text(ex, 404, "no run carries the id " + uuid);
                 return;
             }
             Object courante = Annotations.forRun(runDir, uuid, Annotations.readCentral(root));
@@ -379,8 +379,8 @@ public final class LocalServer {
         if (acces.autorise(ex)) return false;
         String chemin = ex.getRequestURI().getPath();
         if (chemin.startsWith("/__xray/")) {
-            text(ex, 401, "secret partagé requis : ouvrir " + chemin.replaceFirst("/__xray/.*",
-                    "/") + " dans un navigateur, ou passer un en-tête Authorization: Bearer");
+            text(ex, 401, "shared secret required: open " + chemin.replaceFirst("/__xray/.*",
+                    "/") + " in a browser, or send an Authorization: Bearer header");
             return true;
         }
         String vers = ex.getRequestURI().getRawQuery() == null ? chemin
@@ -400,20 +400,20 @@ public final class LocalServer {
             return;
         }
         if (!methode.equals("POST")) {
-            text(ex, 405, "méthode non acceptée");
+            text(ex, 405, "method not allowed");
             return;
         }
         Map<String, String> champs = Access.champs(read(ex.getRequestBody()));
         String origine = Access.origine(ex);
         if (acces.misDeCote(origine)) {
             html(ex, 429, Access.pageEntree(champs.get("vers"),
-                    "Trop d'essais depuis cette adresse. Réessayer dans une trentaine de secondes."));
+                    "Too many attempts from this address. Try again in about thirty seconds."));
             return;
         }
         String session = acces.ouvrirSession(champs.get("jeton"), origine);
         if (session == null) {
             System.err.println("   access refused from " + origine);
-            html(ex, 401, Access.pageEntree(champs.get("vers"), "Ce secret n'est pas le bon."));
+            html(ex, 401, Access.pageEntree(champs.get("vers"), "That is not the right secret."));
             return;
         }
         String vers = champs.getOrDefault("vers", "/");

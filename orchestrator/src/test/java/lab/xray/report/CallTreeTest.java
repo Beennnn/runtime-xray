@@ -68,7 +68,7 @@ class CallTreeTest {
         assertNull(child(t.root, "app/Speeds.forMode"));
         assertEquals(1, ((List<Object>) t.root.get("children")).size());
         assertNotNull(t.stacksNote);
-        assertTrue(t.stacksNote.contains("1 relevé sur 100"), t.stacksNote);
+        assertTrue(t.stacksNote.contains("1 sample out of 100"), t.stacksNote);
     }
 
     @Test
@@ -132,7 +132,7 @@ class CallTreeTest {
                 """));
         assertEquals(100L, t.root.get("total"));
         assertNotNull(t.note, "une réserve doit être formulée quand l'inspecteur pèse sur le profil");
-        assertTrue(t.note.contains("80 %"), "la part concernée doit être chiffrée : " + t.note);
+        assertTrue(t.note.contains("80%"), "la part concernée doit être chiffrée : " + t.note);
         Map<String, Object> service = child(child(t.root, "app/Main.main"), "app/Service.traiter");
         assertEquals(100L, service.get("total"));
     }

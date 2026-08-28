@@ -220,6 +220,6 @@ class ToolboxTest {
                 "les répertoires fouillés doivent être listés : " + message);
         assertTrue(message.contains("--composants") && message.contains("--repo"),
                 "les deux issues doivent être rappelées : " + message);
-        assertTrue(message.contains("embarqué"), "l'édition complète doit être évoquée : " + message);
+        assertTrue(message.contains("bundled"), "l'édition complète doit être évoquée : " + message);
     }
 }

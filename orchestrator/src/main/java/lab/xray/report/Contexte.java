@@ -82,10 +82,10 @@ public final class Contexte {
         public String annonce() {
             String liste = String.join(", ", familles);
             return switch (origine) {
-                case DEMANDEES -> "   familles demandées : " + liste;
-                case MOTS_CLES -> "   familles retenues d'après la question : " + liste;
-                case VUE_ENSEMBLE -> "   aucun mot-clé reconnu dans la question — "
-                        + "vue d'ensemble : " + liste;
+                case DEMANDEES -> "   families requested: " + liste;
+                case MOTS_CLES -> "   families kept from the question: " + liste;
+                case VUE_ENSEMBLE -> "   no keyword recognised in the question — "
+                        + "overview: " + liste;
             };
         }
     }
@@ -374,23 +374,23 @@ public final class Contexte {
         List<Fait> absences = tous(faits, "unavailable");
         List<Fait> reserves = tous(faits, "caveat");
         if (!absences.isEmpty() || !reserves.isEmpty()) {
-            sb.append("\n## Ce qui N'A PAS été mesuré — à lire avant tout chiffre\n\n");
+            sb.append("\n## What was NOT measured — read this before any figure\n\n");
             for (Fait f : absences) {
-                sb.append("- **").append(f.get("what")).append("** (exécution ")
-                  .append(f.get("run")).append(") : ").append(f.get("why"))
-                  .append("\n  Conséquence : ").append(f.get("consequence")).append("\n");
+                sb.append("- **").append(f.get("what")).append("** (run ")
+                  .append(f.get("run")).append("): ").append(f.get("why"))
+                  .append("\n  Consequence: ").append(f.get("consequence")).append("\n");
             }
             for (Fait f : reserves) {
-                sb.append("- Réserve sur ").append(f.get("what")).append(" : ")
+                sb.append("- Caveat on ").append(f.get("what")).append(": ")
                   .append(f.get("caveat")).append("\n");
             }
         } else {
-            sb.append("\n## Ce qui N'A PAS été mesuré\n\nRien : les trois observateurs ont "
-                    + "tous produit leurs données sur toutes les exécutions.\n");
+            sb.append("\n## What was NOT measured\n\nNothing: all three observers produced "
+                    + "their data on every run.\n");
         }
 
-        sb.append("\n## Les faits retenus pour cette question\n\n")
-          .append("Un objet JSON par ligne. Familles retenues : ")
+        sb.append("\n## The facts kept for this question\n\n")
+          .append("One JSON object per line. Families kept: ")
           .append(String.join(", ", familles)).append("\n\n```jsonl\n");
 
         int ecartes = 0;
@@ -414,20 +414,20 @@ public final class Contexte {
         // modèle qui ne voit rien conclut soit « il n'y en a pas », soit « l'outil a raté » :
         // deux réponses opposées, et rien pour trancher. On tranche donc à sa place.
         if (retenus == 0 && ecartes == 0) {
-            sb.append("\n**Aucun fait de ces familles dans cette campagne.** Ce n'est pas une "
-                    + "défaillance de l'extraction : les autres familles, elles, portent des "
-                    + "faits. Selon la famille, cela se lit « il n'y en a pas » (aucune classe "
-                    + "morte, par exemple) ou « la mesure correspondante n'a pas été prise » — "
-                    + "la section précédente le dit. Familles présentes dans le fichier : ")
+            sb.append("\n**No fact of these families in this campaign.** This is not an "
+                    + "extraction failure: the other families do carry facts. Depending on the "
+                    + "family, it reads either \"there are none\" (no dead class, for instance) "
+                    + "or \"the matching measurement was not taken\" — the section above says "
+                    + "which. Families present in the file: ")
               .append(String.join(", ", presentes(faits))).append(".\n");
         }
 
         // Jamais de troncature muette : un extrait qu'on croit complet fait conclure sur un
         // échantillon, et personne ne saura que la conclusion portait sur une partie.
         if (ecartes > 0) {
-            sb.append("\n⚠️ **").append(ecartes).append(" fait(s) écarté(s)** faute de place (")
-              .append(ecartesPar).append("). Cette sélection est INCOMPLÈTE : ne pas en tirer "
-              + "de total ni de classement. Le fichier entier est dans `")
+            sb.append("\n⚠️ **").append(ecartes).append(" fact(s) left out** for lack of room (")
+              .append(ecartesPar).append("). This selection is INCOMPLETE: do not draw a total "
+              + "or a ranking from it. The whole file is in `")
               .append(Faits.FICHIER).append("`.\n");
         }
         return sb.toString();
@@ -435,23 +435,22 @@ public final class Contexte {
 
     private static String enTete(Fait campagne, String question) {
         StringBuilder sb = new StringBuilder();
-        sb.append("# Analyse d'exécution — contexte\n\n");
-        if (!question.isBlank()) sb.append("Question posée : ").append(question).append("\n\n");
-        sb.append("Ces données viennent de l'observation d'une application Java **pendant "
-                + "qu'elle tournait** : couverture (JaCoCo), temps (échantillonnage de "
-                + "piles), valeurs de paramètres (Arthas).\n\n");
+        sb.append("# Runtime analysis — context\n\n");
+        if (!question.isBlank()) sb.append("Question asked: ").append(question).append("\n\n");
+        sb.append("This data comes from observing a Java application **while it was "
+                + "running**: coverage (JaCoCo), time (stack sampling), argument values "
+                + "(Arthas).\n\n");
 
-        sb.append("## Trois pièges de lecture\n\n"
-                + "1. Un chiffre à **zéro** ne veut pas dire « n'a pas tourné » tant qu'on "
-                + "n'a pas lu la section suivante : il peut vouloir dire « n'a pas été "
-                + "mesuré ».\n"
-                + "2. Une **source introuvable** signifie que la racine de sources n'était "
-                + "pas configurée — jamais que le code n'existe pas.\n"
-                + "3. Un **taux de couverture** dit par où le code est passé. Il ne dit rien "
-                + "de sa justesse, ni de la qualité des tests.\n");
+        sb.append("## Three reading traps\n\n"
+                + "1. A figure at **zero** does not mean \"never ran\" until the next section "
+                + "has been read: it may mean \"was not measured\".\n"
+                + "2. A **missing source** means the source root was not configured — never "
+                + "that the code does not exist.\n"
+                + "3. A **coverage rate** says where the code went. It says nothing about "
+                + "whether it is correct, nor about the quality of the tests.\n");
 
         if (campagne != null) {
-            sb.append("\n## La campagne\n\n");
+            sb.append("\n## The campaign\n\n");
             for (String cle : List.of("tool", "version", "date", "runs")) {
                 if (campagne.get(cle) != null) {
                     sb.append("- ").append(cle).append(" : ")
@@ -459,7 +458,7 @@ public final class Contexte {
                 }
             }
             if (campagne.get("vocabulary") instanceof Map<?, ?> vocabulaire) {
-                sb.append("\n## Le vocabulaire des faits\n\n");
+                sb.append("\n## The vocabulary of the facts\n\n");
                 for (Map.Entry<?, ?> e : vocabulaire.entrySet()) {
                     sb.append("- `").append(e.getKey()).append("` : ").append(e.getValue())
                       .append("\n");

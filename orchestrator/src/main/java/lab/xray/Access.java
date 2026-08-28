@@ -70,7 +70,7 @@ final class Access {
     /** Un garde qui exige {@code secret}. */
     static Access avecSecret(String secret) {
         if (secret == null || secret.isBlank()) {
-            throw new IllegalArgumentException("un secret vide ne garde rien");
+            throw new IllegalArgumentException("an empty secret guards nothing");
         }
         String propre = secret.trim();
         // Un accent dans le secret se perd en route : l'en-tête « Authorization » ne
@@ -81,8 +81,8 @@ final class Access {
             char c = propre.charAt(i);
             if (c < 0x20 || c > 0x7E) {
                 throw new IllegalArgumentException("the shared secret must be ASCII "
-                        + "printable (\"" + c + "\" will not survive the Authorization header "
-                        + "ni certaines variables d'environnement)");
+                        + "printable (\"" + c + "\" survives neither the Authorization header "
+                        + "nor some environment variables)");
             }
         }
         return new Access(propre);
@@ -215,9 +215,9 @@ final class Access {
         // Remplacement littéral, et non « formatted » : la feuille de style contient des
         // « % » (width:100%), que le formateur prendrait pour des conversions.
         return """
-                <!doctype html><html lang=fr><meta charset=utf-8>
+                <!doctype html><html lang=en><meta charset=utf-8>
                 <meta name=viewport content="width=device-width,initial-scale=1">
-                <title>Runtime X-Ray — accès</title>
+                <title>Runtime X-Ray — access</title>
                 <style>
                 :root{color-scheme:dark}
                 body{margin:0;min-height:100vh;display:flex;align-items:center;
@@ -238,14 +238,14 @@ final class Access {
                     border-radius:6px;padding:.5rem .7rem;margin:0 0 1rem;font-size:.85rem}
                 </style>
                 <form method=post action="/__xray/entrer">
-                  <h1>Rapport Runtime X-Ray</h1>
-                  <p>Ce rapport est gardé par un secret partagé, donné par la personne qui
-                     a lancé le serveur.</p>
+                  <h1>Runtime X-Ray report</h1>
+                  <p>This report is guarded by a shared secret, given by whoever started
+                     the server.</p>
                   {{alerte}}
                   <label for=jeton>Secret</label>
                   <input id=jeton name=jeton type=password autofocus autocomplete=current-password>
                   <input type=hidden name=vers value="{{cible}}">
-                  <button type=submit>Entrer</button>
+                  <button type=submit>Enter</button>
                 </form>
                 """.replace("{{alerte}}", alerte).replace("{{cible}}", echapper(cible));
     }

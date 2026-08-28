@@ -9,7 +9,7 @@ Le [README](README.md) explique l'outil ; ici, on explique le dépôt.
 ## Construire et éprouver
 
 ```bash
-mvn test                            # 183 tests, aucun n'accède au réseau
+mvn test                            # 248 tests, aucun n'accède au réseau
 mvn -DskipTests package             # orchestrator/target/runtime-xray.jar   (175 Ko)
 mvn -Pjacoco  -DskipTests package   # runtime-xray-jacoco.jar               (950 Ko)
 mvn -Pcomplet -DskipTests package   # runtime-xray-complet.jar               (19 Mo)
@@ -162,6 +162,12 @@ Trois décisions la tiennent, et elles sont liées :
   trente-deux cœurs, une application qui en sature un travaille à plein régime : ramenée à
   3 %, elle s'afficherait endormie.
 
+La bande, la page de `--suivi` et les messages de la console sont **en anglais**, comme le
+reste de ce que l'utilisateur voit. Les nombres suivent : `41.3 s`, `812.0 KB`, un
+horodatage en `yyyy-MM-dd HH:mm:ss`. Un nom d'option ou une valeur en français — `--niveau
+complet`, `--export tout` — reste accepté à vie ; ce n'est simplement plus lui qu'on
+affiche.
+
 Elle se tait hors terminal (`System.console() == null`) : dans un tuyau ou un journal
 d'intégration, une ligne par seconde n'apprend rien et noie le reste. `RUNTIME_XRAY_PROGRESSION`
 la réclame quand même — un shell qui en lance un autre met souvent un tuyau au milieu alors
@@ -290,8 +296,8 @@ pousser, en relevant les chaînes affichées et en n'en gardant aucune français
 ## Conventions
 
 - **L'outil parle anglais ; le dépôt est encore en français.** La bascule est décidée et
-  se fait par étapes — l'aide, les exemples, les mots-clés, le format des faits et la vue y
-  sont déjà passés, les messages console et le code suivront. En attendant, deux règles
+  se fait par étapes — l'aide, les exemples, les mots-clés, le format des faits, la vue et
+  les messages console y sont déjà passés ; le code suivra. En attendant, deux règles
   cohabitent sans se contredire : **tout ce que l'utilisateur voit est en anglais**, et le
   reste — code, commentaires, `@DisplayName`, messages de commit — **reste en français
   jusqu'à ce que son étape arrive**. Les exemples, eux, sont en anglais **partout**, y

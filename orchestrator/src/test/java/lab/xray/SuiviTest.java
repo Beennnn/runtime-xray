@@ -48,7 +48,7 @@ class SuiviTest {
         try (Suivi suivi = Suivi.ouvrir(dir, dir.resolve("runs/essai"), "essai", "java -jar app.jar", 0)) {
             suivi.avancement(Duration.ofSeconds(1), Duration.ofMillis(900), 120, 0.9);
             suivi.avancement(Duration.ofSeconds(2), Duration.ofMillis(1800), 340, 0.9);
-            suivi.fin("terminée", 2);
+            suivi.fin("ended", 2);
         }
         List<Map<String, Object>> lignes = lire(dir);
         assertEquals(List.of("start", "progress", "progress", "end"),
@@ -60,7 +60,7 @@ class SuiviTest {
     void eachLineStandsAloneAndTheLastOneSaysStop(@TempDir Path dir) throws Exception {
         try (Suivi suivi = Suivi.ouvrir(dir, dir.resolve("runs/essai"), "recette 1", "java -jar app.jar", 0)) {
             suivi.avancement(Duration.ofSeconds(7), Duration.ofSeconds(12), 4096, 1.7);
-            suivi.fin("terminée", 7);
+            suivi.fin("ended", 7);
         }
         List<Map<String, Object>> lignes = lire(dir);
         for (Map<String, Object> l : lignes) {
@@ -104,7 +104,7 @@ class SuiviTest {
         Files.writeString(barre, "pas un répertoire", StandardCharsets.UTF_8);
         try (Suivi suivi = Suivi.ouvrir(barre.resolve("dedans"), dir, "essai", "", 0)) {
             suivi.avancement(Duration.ofSeconds(1), Duration.ZERO, 0, 0.5);
-            suivi.fin("terminée", 1);
+            suivi.fin("ended", 1);
         }
         // Rien n'a été écrit, et surtout : rien n'a été levé.
         assertFalse(Files.exists(barre.resolve("dedans").resolve(Suivi.FICHIER)));
@@ -136,7 +136,7 @@ class SuiviTest {
                 "aucune dépendance servie de l'extérieur : la machine visée n'a pas de réseau");
         assertFalse(page.contains("<script src="),
                 "rien à aller chercher : la page doit s'afficher entière ou pas du tout");
-        assertTrue(page.contains("cœurs occupés"),
+        assertTrue(page.contains("busy cores"),
                 "le compte est en cœurs, pas en part de machine — et la page doit le dire, "
                 + "sinon on lit une saturation là où il y a un cœur sur trente-deux");
     }

@@ -202,16 +202,16 @@ public final class Main {
             return 0;
         }
 
-        require(!config.javaCommand.isBlank() || reportOnly, "--java est obligatoire");
+        require(!config.javaCommand.isBlank() || reportOnly, "--java is required");
         require(Config.NIVEAUX.contains(Config.niveau(config.level)),
-                "--niveau attend couverture, arbre ou complet (reçu : " + config.level + ")");
+                "--level expects coverage, tree or full (got: " + config.level + ")");
         // Les classes servent à MESURER. Réassembler une vue depuis des mesures existantes
         // n'en a aucun besoin.
         // --classes n'est plus exigé ici : le bytecode se déduit de la JVM observée, une
         // fois qu'elle a tourné. Voir ClassSources pour l'ordre des sources consultées.
         for (Path entry : config.classesPaths()) {
             require(Files.isDirectory(entry) || Files.isRegularFile(entry),
-                    "classes introuvables : " + entry + " (ni répertoire, ni jar)");
+                    "classes not found: " + entry + " (neither a directory nor a jar)");
         }
 
         Path outDir = Path.of(config.outDir);
@@ -264,7 +264,7 @@ public final class Main {
         String stamp = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss").format(LocalDateTime.now());
         String uuid = UUID.randomUUID().toString();
         String name = config.runName.isBlank()
-                ? "exécution du " + DateTimeFormatter.ofPattern("dd/MM/yyyy à HH:mm", Locale.FRENCH)
+                ? "run of " + DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm", Locale.ROOT)
                         .format(LocalDateTime.now())
                 : config.runName;
         Path runDir = outDir.resolve("runs").resolve(stamp + slug(config.runName));
@@ -341,9 +341,9 @@ public final class Main {
             // temps ? », le second « qui appelle cette méthode coûteuse ? ». Ce sont deux
             // questions différentes, et l'inverse est la plus difficile à obtenir autrement.
             convert(converter, collapsed, runDir.resolve("async-profiler/flamegraph.html"),
-                    List.of("--title", "Profil brut — async-profiler"));
+                    List.of("--title", "Raw profile — async-profiler"));
             convert(converter, collapsed, runDir.resolve("async-profiler/flamegraph-inverse.html"),
-                    List.of("--reverse", "--title", "Profil inversé — qui appelle quoi"));
+                    List.of("--reverse", "--title", "Reversed profile — who calls what"));
         } catch (Exception e) {
             System.out.println("   ⚠️ native rendering unavailable (" + e.getMessage()
                     + ") — the raw stacks remain in profil.collapsed");
@@ -495,7 +495,7 @@ public final class Main {
                 RunSession.javaExecutable(), "-jar", cli.toString(), "report", exec.toString(),
                 "--classfiles", staging.toString(),
                 "--html", focused.toString(),
-                "--name", "Code réellement exécuté", "--quiet"));
+                "--name", "Code actually executed", "--quiet"));
         for (Path src : sourceRoots(config)) {
             focusedCmd.add("--sourcefiles");
             focusedCmd.add(src.toString());
@@ -647,7 +647,7 @@ public final class Main {
      */
     private static void exportRuns(Config config, Path outDir) throws Exception {
         Set<Exports.Format> formats = Exports.Format.parse(config.exportFormats);
-        System.out.println("▶ Exporting to " + formats.stream().map(f -> f.option).sorted()
+        System.out.println("▶ Exporting to " + formats.stream().map(f -> f.affiche).sorted()
                 .collect(java.util.stream.Collectors.joining(", ")));
         Path runs = outDir.resolve("runs");
         if (!Files.isDirectory(runs)) return;
@@ -665,7 +665,7 @@ public final class Main {
 
     private static void printAgentOptions(Config config, Toolbox tools) throws Exception {
         require(!config.classesDir.isBlank() || !config.outDir.isBlank(),
-                "--out (ou --classes) est nécessaire pour placer les fichiers de mesure");
+                "--out (or --classes) is needed to place the measurement files");
         Path runDir = Path.of(config.outDir, "runs", "manuel");
         Files.createDirectories(runDir.resolve("jacoco"));
         Files.createDirectories(runDir.resolve("async-profiler"));
@@ -780,7 +780,7 @@ public final class Main {
     private static void direLePoids(Path page) {
         try {
             long octets = Files.size(page);
-            String taille = octets >= 1 << 20 ? (octets >> 20) + " Mo" : (octets >> 10) + " Ko";
+            String taille = octets >= 1 << 20 ? (octets >> 20) + " MB" : (octets >> 10) + " KB";
             System.out.println("   page: " + taille);
             if (octets > SEUIL_PAGE) {
                 System.out.println("   ⚠️ beyond " + (SEUIL_PAGE >> 20) + " MB a browser "

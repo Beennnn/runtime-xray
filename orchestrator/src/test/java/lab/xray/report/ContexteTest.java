@@ -54,7 +54,7 @@ class ContexteTest {
         String paquet = Contexte.pour(dir, "which classes never ran?",
                 Contexte.BUDGET);
 
-        int absences = paquet.indexOf("N'A PAS été mesuré");
+        int absences = paquet.indexOf("NOT measured");
         int faits = paquet.indexOf("```jsonl");
         assertTrue(absences > 0, "la section doit exister");
         assertTrue(absences < faits,
@@ -75,9 +75,9 @@ class ContexteTest {
         assertTrue(paquet.contains("aucun relevé de pile n'a été pris"),
                 "l'absence de mesure est ce qui empêche une conclusion fausse : elle reste, "
                 + "même quand tout le reste est coupé");
-        assertTrue(paquet.contains("écarté(s)"),
+        assertTrue(paquet.contains("left out"),
                 "une troncature muette fait conclure sur un échantillon en croyant voir tout");
-        assertTrue(paquet.contains("INCOMPLÈTE"));
+        assertTrue(paquet.contains("INCOMPLETE"));
         assertTrue(paquet.length() < 3_000 + 2_000,
                 "le budget doit être tenu à l'avertissement près, sinon il ne sert à rien");
     }
@@ -91,9 +91,9 @@ class ContexteTest {
         // Un modèle qui n'a jamais vu ce format doit pouvoir le lire : on joint la légende,
         // pas un lien vers elle.
         assertTrue(paquet.contains("class.never_executed"));
-        assertTrue(paquet.contains("Trois pièges de lecture"));
-        assertTrue(paquet.contains("ne veut pas dire « n'a pas tourné »"));
-        assertTrue(paquet.contains("Il ne dit rien de sa justesse"),
+        assertTrue(paquet.contains("Three reading traps"));
+        assertTrue(paquet.contains("does not mean \"never ran\""));
+        assertTrue(paquet.contains("says nothing about whether it is correct"),
                 "un taux de couverture pris pour une note de qualité est l'erreur la plus "
                 + "banale, et un modèle la commet aussi");
     }
@@ -126,8 +126,8 @@ class ContexteTest {
         String paquet = Contexte.pour(dir, "which classes never ran?",
                 Contexte.BUDGET);
 
-        assertTrue(paquet.contains("Aucun fait de ces familles"));
-        assertTrue(paquet.contains("Familles présentes dans le fichier"),
+        assertTrue(paquet.contains("No fact of these families"));
+        assertTrue(paquet.contains("Families present in the file"),
                 "dire ce qu'il Y A permet de conclure que le reste manque vraiment");
         assertTrue(paquet.contains("unavailable"),
                 "la liste des familles présentes doit être celle du fichier, pas une devinette");
@@ -212,12 +212,12 @@ class ContexteTest {
         Contexte.Paquet reconnue = Contexte.pour(dir, "which classes never ran?",
                 List.of(), Contexte.BUDGET);
         assertEquals(Contexte.Origine.MOTS_CLES, reconnue.origine());
-        assertTrue(reconnue.annonce().contains("d'après la question"));
+        assertTrue(reconnue.annonce().contains("from the question"));
 
         Contexte.Paquet muette = Contexte.pour(dir, "welche Klassen liefen nie",
                 List.of(), Contexte.BUDGET);
         assertEquals(Contexte.Origine.VUE_ENSEMBLE, muette.origine());
-        assertTrue(muette.annonce().contains("aucun mot-clé reconnu"),
+        assertTrue(muette.annonce().contains("no keyword recognised"),
                 "un repli qui passe pour une lecture réussie est pire que pas de repli");
         assertFalse(muette.familles().isEmpty(), "on répond quand même");
     }

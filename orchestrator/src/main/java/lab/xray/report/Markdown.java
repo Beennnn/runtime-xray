@@ -33,10 +33,10 @@ public final class Markdown {
     @SuppressWarnings("unchecked")
     public static Path write(Path commonDir, List<Object> runs) throws IOException {
         StringBuilder md = new StringBuilder();
-        md.append("# Rapport d'analyse dynamique\n\n")
-          .append("> Produit depuis les sorties machine de JaCoCo, async-profiler et Arthas.\n")
-          .append("> Le même contenu, navigable, est dans `index.html` à côté de ce fichier :\n")
-          .append("> une forge affiche un `.html` comme du code source, d'où cette version.\n");
+        md.append("# Runtime analysis report\n\n")
+          .append("> Produced from the machine outputs of JaCoCo, async-profiler and Arthas.\n")
+          .append("> The same content, navigable, is in `index.html` beside this file:\n")
+          .append("> a forge shows an `.html` as source code, hence this version.\n");
 
         for (Object o : runs) {
             Map<String, Object> run = (Map<String, Object>) o;
@@ -56,18 +56,18 @@ public final class Markdown {
     private static void contexte(StringBuilder md, Map<String, Object> ctx) {
         if (ctx == null || ctx.isEmpty()) return;
         md.append('\n');
-        ligne(md, "Commande", ctx.get("commande"));
-        ligne(md, "Méthode racine", ctx.get("methodeRacine"));
-        ligne(md, "Paquets masqués", ctx.get("paquetsMasques"));
-        ligne(md, "Début", ctx.get("debut"));
-        ligne(md, "Durée", ctx.get("dureeSecondes") == null ? null : ctx.get("dureeSecondes") + " s");
+        ligne(md, "Command", ctx.get("commande"));
+        ligne(md, "Root method", ctx.get("methodeRacine"));
+        ligne(md, "Hidden packages", ctx.get("paquetsMasques"));
+        ligne(md, "Start", ctx.get("debut"));
+        ligne(md, "Duration", ctx.get("dureeSecondes") == null ? null : ctx.get("dureeSecondes") + " s");
         ligne(md, "Java", ctx.get("java"));
         ligne(md, "Machine", ctx.get("systeme"));
     }
 
     private static void ligne(StringBuilder md, String cle, Object valeur) {
         if (valeur == null || String.valueOf(valeur).isBlank()) return;
-        md.append("- **").append(cle).append("** : `").append(valeur).append("`\n");
+        md.append("- **").append(cle).append("**: `").append(valeur).append("`\n");
     }
 
     @SuppressWarnings("unchecked")
@@ -98,27 +98,24 @@ public final class Markdown {
             }
         }
 
-        md.append("\n### Par où le code est passé\n\n")
+        md.append("\n### Where the code went\n\n")
           .append("**").append(pct(couvert, couvert + manque))
-          .append(" des instructions analysées** ont été exécutées. Le dénominateur est ")
-          .append("tout le bytecode donné à analyser : si l'analyse porte sur une ")
-          .append("dépendance entière, la plus grande partie n'a par construction aucune ")
-          .append("raison de tourner, et ce taux dit alors surtout la taille de cette ")
-          .append("dépendance.\n\n")
-          .append("| Paquet | Instructions couvertes |\n|---|---:|\n");
+          .append(" of the analysed instructions** ran. The denominator is all the bytecode "
+                  + "given to be analysed: if the analysis covers a whole dependency, most of "
+                  + "it has by construction no reason to run, and this rate then says mostly "
+                  + "how big that dependency is.\n\n")
+          .append("| Package | Instructions covered |\n|---|---:|\n");
         lignes.sort(Comparator.comparing(a -> a[0]));
         for (String[] l : lignes) {
             md.append("| `").append(l[0]).append("` | ").append(l[1]).append(" |\n");
         }
         if (paquetsIntacts > 0) {
             md.append("\n").append(paquetsIntacts)
-              .append(" paquet").append(paquetsIntacts > 1 ? "s" : "")
-              .append(" n'").append(paquetsIntacts > 1 ? "ont" : "a")
-              .append(" pas été touché").append(paquetsIntacts > 1 ? "s" : "")
-              .append(" du tout.\n");
+              .append(" package").append(paquetsIntacts > 1 ? "s were" : " was")
+              .append(" not touched at all.\n");
         }
         if (!mortes.isEmpty()) {
-            md.append("\n**Jamais exécuté** (").append(mortes.size()).append(") — ");
+            md.append("\n**Never executed** (").append(mortes.size()).append(") — ");
             // Le code mort est ce que la lecture seule ne révèle pas : il est nommé, pas compté.
             md.append(String.join(", ", mortes.stream().sorted().limit(TOP)
                     .map(s -> "`" + s + "`").toList()));
@@ -138,11 +135,11 @@ public final class Markdown {
         Map<String, Long> poids = new LinkedHashMap<>();
         accumuler(tree, poids);
 
-        md.append("\n### Où le temps est passé\n\n")
-          .append(total).append(" relevés. Le repli du JDK, des rouages de la machine ")
-          .append("virtuelle et des paquets masqués rattache leur temps à la méthode ")
-          .append("applicative qui les a appelés.\n\n")
-          .append("| Méthode | Part |\n|---|---:|\n");
+        md.append("\n### Where the time went\n\n")
+          .append(total).append(" samples. Folding the JDK, the virtual machine's own "
+                  + "machinery and the hidden packages attributes their time to the "
+                  + "application method that called them.\n\n")
+          .append("| Method | Share |\n|---|---:|\n");
         poids.entrySet().stream()
                 .sorted(Map.Entry.<String, Long>comparingByValue().reversed())
                 .limit(TOP)
@@ -163,14 +160,14 @@ public final class Markdown {
     @SuppressWarnings("unchecked")
     private static void valeurs(StringBuilder md, Map<String, Object> values) {
         if (values == null || values.isEmpty()) return;
-        md.append("\n### Avec quelles valeurs\n");
+        md.append("\n### With which values\n");
         for (Map.Entry<String, Object> e : values.entrySet()) {
             List<Object> appels = (List<Object>) e.getValue();
             if (appels.isEmpty()) continue;
             md.append("\n**`").append(e.getKey().replace('/', '.')).append("`** — ")
-              .append(appels.size()).append(" appel").append(appels.size() > 1 ? "s" : "")
-              .append(" observé").append(appels.size() > 1 ? "s" : "").append("\n\n");
-            md.append("| # | Paramètres reçus | Valeur renvoyée |\n|---:|---|---|\n");
+              .append(appels.size()).append(" call").append(appels.size() > 1 ? "s" : "")
+              .append(" observed\n\n");
+            md.append("| # | Arguments received | Value returned |\n|---:|---|---|\n");
             int i = 1;
             for (Object a : appels) {
                 Map<String, Object> appel = (Map<String, Object>) a;
@@ -200,6 +197,6 @@ public final class Markdown {
     }
 
     private static String pct(long part, long total) {
-        return total == 0 ? "—" : Math.round(100.0 * part / total) + " %";
+        return total == 0 ? "—" : Math.round(100.0 * part / total) + "%";
     }
 }

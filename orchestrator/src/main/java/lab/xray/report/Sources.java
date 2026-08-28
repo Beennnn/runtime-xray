@@ -95,8 +95,8 @@ public final class Sources {
             racines.add(vue);
             if (!existe) {
                 vue.put("motif", Files.exists(root)
-                        ? "ce chemin existe mais n'est pas un répertoire"
-                        : "ce chemin n'existe pas");
+                        ? "this path exists but is not a directory"
+                        : "this path does not exist");
                 continue;
             }
 

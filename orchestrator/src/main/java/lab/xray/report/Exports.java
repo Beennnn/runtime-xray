@@ -62,11 +62,19 @@ public final class Exports {
 
     /** Formats disponibles. Le nom est celui qu'on écrit sur la ligne de commande. */
     public enum Format {
-        PERF("perf"), CPUPROFILE("cpuprofile"), LCOV("lcov"), VALEURS("valeurs");
+        PERF("perf", "perf"), CPUPROFILE("cpuprofile", "cpuprofile"),
+        LCOV("lcov", "lcov"), VALEURS("valeurs", "values");
 
         public final String option;
 
-        Format(String option) { this.option = option; }
+        /**
+         * Le nom qu'on affiche. Il diffère de {@link #option} pour {@code valeurs}, et
+         * c'est le sens de la bascule : le nom français reste accepté à vie parce que des
+         * scripts l'écrivent, mais ce n'est plus lui qu'on montre.
+         */
+        public final String affiche;
+
+        Format(String option, String affiche) { this.option = option; this.affiche = affiche; }
 
         /** Les noms anglais, canoniques. Les français restent acceptés, à vie. */
         private static final java.util.Map<String, String> ALIAS =
@@ -171,7 +179,7 @@ public final class Exports {
         if (allegement.allege()) {
             System.out.println("   perf export thinned out: " + emitted + " samples out of "
                     + allegement.total + " (" + Math.round(allegement.facteur * 100)
-                    + " %) — this format rewrites the whole stack at every sample, and would\n"
+                    + "%) — this format rewrites the whole stack at every sample, and would\n"
                     + "      otherwise weigh " + allegement.octets / (1024 * 1024) + " MB.");
             System.out.println("      The shape of the profile is kept; very small shares "
                     + "may vanish. The cpuprofile, itself, carries everything.");

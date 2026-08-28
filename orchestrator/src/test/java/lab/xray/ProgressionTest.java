@@ -94,9 +94,9 @@ class ProgressionTest {
         p.avancement(Duration.ofSeconds(2), RIEN, 100);
         p.avancement(Duration.ofSeconds(3), RIEN, 4096);
         String derniere = sortie.toString().substring(sortie.lastIndexOf("\r"));
-        assertTrue(derniere.contains("en cours"),
-                "annoncer « cpu 0,0 s » ferait croire à un programme figé");
-        assertTrue(derniere.contains("4,0 Ko"));
+        assertTrue(derniere.contains("running"),
+                "annoncer « cpu 0.0 s » ferait croire à un programme figé");
+        assertTrue(derniere.contains("4.0 KB"));
     }
 
     @Test

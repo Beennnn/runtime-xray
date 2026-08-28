@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="fr">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>runtime-xray — suivi de l'exécution</title>
+<title>runtime-xray — following the run</title>
 <style>
   :root{
     --bg:#fff; --panel:#f6f8fa; --border:#d0d7de; --text:#1f2328;
@@ -64,8 +64,8 @@
 </head>
 <body>
 <header>
-  <h1>runtime-xray <small>— suivi de l'exécution</small></h1>
-  <span class="etat finie" id="etat"><span class="pastille"></span><span id="etatTexte">en attente</span></span>
+  <h1>runtime-xray <small>— following the run</small></h1>
+  <span class="etat finie" id="etat"><span class="pastille"></span><span id="etatTexte">waiting</span></span>
   <span style="color:var(--muted);font-size:12.5px" id="nom"></span>
 </header>
 <div id="cmd" style="padding:9px 18px;border-bottom:1px solid var(--border);font-size:12px;
@@ -74,45 +74,45 @@
 
 <main>
   <div class="cartes">
-    <div class="carte"><div class="k">Écoulé</div>
+    <div class="carte"><div class="k">Elapsed</div>
       <div class="v"><span id="ecoule">—</span></div></div>
-    <div class="carte"><div class="k">Cœurs occupés</div>
+    <div class="carte"><div class="k">Busy cores</div>
       <div class="v"><span id="coeurs">—</span> <span class="u" id="coeursNote"></span></div></div>
-    <div class="carte"><div class="k">Sortie produite</div>
+    <div class="carte"><div class="k">Output produced</div>
       <div class="v"><span id="sortie">—</span></div></div>
-    <div class="carte"><div class="k">Relevés</div>
-      <div class="v"><span id="releves">—</span> <span class="u">lignes</span></div></div>
+    <div class="carte"><div class="k">Samples</div>
+      <div class="v"><span id="releves">—</span> <span class="u">lines</span></div></div>
   </div>
 
   <section>
-    <h2>Activité, une case par seconde</h2>
+    <h2>Activity, one box per second</h2>
     <div class="bande" id="bande"></div>
     <div class="legende">
-      <span><i class="l0"></i> endormie</span>
-      <span><i class="l1"></i> très calme</span>
-      <span><i class="l2"></i> modérée</span>
-      <span><i class="l3"></i> soutenue</span>
-      <span><i class="l4"></i> un cœur et demi ou plus</span>
+      <span><i class="l0"></i> asleep</span>
+      <span><i class="l1"></i> very quiet</span>
+      <span><i class="l2"></i> moderate</span>
+      <span><i class="l3"></i> sustained</span>
+      <span><i class="l4"></i> one core and a half or more</span>
     </div>
-    <p class="note">Le compte est en <strong>cœurs occupés</strong>, pas en part de la
-      machine : sur un serveur à trente-deux cœurs, une application qui en sature un
-      travaille à plein régime, et s'afficherait endormie si on la ramenait à 3&nbsp;%.</p>
+    <p class="note">The count is in <strong>busy cores</strong>, not in share of the
+      machine: on a thirty-two-core server, an application that saturates one is working
+      flat out, and would show as asleep if it were reduced to 3&nbsp;%.</p>
   </section>
 
   <section>
-    <h2>Cœurs occupés dans le temps</h2>
+    <h2>Busy cores over time</h2>
     <canvas id="courbe" width="1000" height="110"></canvas>
   </section>
 
   <section>
-    <h2>Fin du journal de l'application <span style="text-transform:none;font-weight:400">(<code>execution.log</code>, 64 Ko max)</span></h2>
+    <h2>Tail of the application log <span style="text-transform:none;font-weight:400">(<code>execution.log</code>, 64 KB max)</span></h2>
     <pre id="journal">—</pre>
   </section>
 
-  <p class="note">Cette page relit <code>progression.jsonl</code>, écrit de toute façon à
-    côté du rapport. Elle n'ajoute aucune mesure : le temps processeur est celui que le
-    système compte déjà, la taille de sortie celle d'un fichier déjà écrit. Sans navigateur,
-    <code>tail -f progression.jsonl</code> donne la même chose.</p>
+  <p class="note">This page re-reads <code>progression.jsonl</code>, written beside the
+    report in any case. It adds no measurement: the processor time is the one the system
+    already counts, the output size that of a file already written. Without a browser,
+    <code>tail -f progression.jsonl</code> gives the same thing.</p>
 </main>
 
 <script>
@@ -120,9 +120,9 @@ const $ = s => document.querySelector(s);
 let dernierEvenement = "";
 
 function octets(n){
-  if (n < 1024) return n + " o";
-  if (n < 1024*1024) return (n/1024).toFixed(1).replace(".", ",") + " Ko";
-  return (n/1048576).toFixed(1).replace(".", ",") + " Mo";
+  if (n < 1024) return n + " B";
+  if (n < 1024*1024) return (n/1024).toFixed(1) + " KB";
+  return (n/1048576).toFixed(1) + " MB";
 }
 function duree(s){
   const h = Math.floor(s/3600), m = Math.floor(s%3600/60), r = s%60;
@@ -144,7 +144,7 @@ function courbe(valeurs){
   ctx.beginPath(); const y1 = H - (1/max)*(H-12) - 6;
   ctx.moveTo(0,y1); ctx.lineTo(L,y1); ctx.stroke();
   ctx.fillStyle = style.getPropertyValue("--muted"); ctx.font = "10px sans-serif";
-  ctx.fillText("1 cœur", 4, Math.max(10, y1 - 3));
+  ctx.fillText("1 core", 4, Math.max(10, y1 - 3));
 
   ctx.beginPath();
   valeurs.forEach((v,i) => {
@@ -175,18 +175,18 @@ async function rafraichir(){
   const debut = suite.find(l => l.event === "start");
   const cur = av[av.length-1];
 
-  $("#nom").textContent = derniere ? "exécution « " + derniere + " »" : "";
+  $("#nom").textContent = derniere ? "run \u201c" + derniere + "\u201d" : "";
   // Qui ouvre cette page doit savoir CE QU'ELLE regarde : sans la commande, une exécution
   // qui avance ne dit pas laquelle avance.
   $("#cmd").textContent = debut
-      ? "▶ " + (debut.command || "(commande non renseignée)") + "     → " + (debut.output || "")
+      ? "▶ " + (debut.command || "(command not recorded)") + "     → " + (debut.output || "")
       : "";
   const etat = $("#etat");
   etat.className = "etat " + (fin ? "finie" : "vit");
-  $("#etatTexte").textContent = fin ? fin.status : "en cours";
+  $("#etatTexte").textContent = fin ? fin.status : "running";
 
   $("#ecoule").textContent  = duree(fin ? fin.seconds : (cur ? cur.seconds : 0));
-  $("#coeurs").textContent  = cur ? cur.cores.toFixed(2).replace(".", ",") : "—";
+  $("#coeurs").textContent  = cur ? cur.cores.toFixed(2) : "—";
   $("#coeursNote").textContent = cur && cur.cpuSeconds ? "· " + cur.cpuSeconds + " s cpu" : "";
   $("#sortie").textContent  = cur ? octets(cur.outputBytes) : "—";
   $("#releves").textContent = av.length;
@@ -197,14 +197,14 @@ async function rafraichir(){
   if (signature !== dernierEvenement) {
     dernierEvenement = signature;
     $("#bande").innerHTML = av.slice(-180).map(l =>
-      `<span class="case l${l.level}" title="${l.seconds} s · ${l.cores} cœur(s)"></span>`
+      `<span class="case l${l.level}" title="${l.seconds} s · ${l.cores} core(s)"></span>`
     ).join("");
     courbe(av.map(l => l.cores));
   }
 
   try {
     const j = await (await fetch("execution.log", {cache:"no-store"})).text();
-    $("#journal").textContent = j.trim() || "(l'application n'a encore rien écrit)";
+    $("#journal").textContent = j.trim() || "(the application has not written anything yet)";
   } catch (e) { /* idem */ }
 }
 

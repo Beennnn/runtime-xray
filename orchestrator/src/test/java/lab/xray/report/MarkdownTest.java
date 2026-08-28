@@ -70,19 +70,19 @@ class MarkdownTest {
     void hasOneSectionPerObservation(@TempDir Path dir) throws IOException {
         String md = write(dir);
         assertTrue(md.contains("## Recette"), "l'exécution est nommée");
-        assertTrue(md.contains("### Par où le code est passé"));
-        assertTrue(md.contains("### Où le temps est passé"));
-        assertTrue(md.contains("### Avec quelles valeurs"));
+        assertTrue(md.contains("### Where the code went"));
+        assertTrue(md.contains("### Where the time went"));
+        assertTrue(md.contains("### With which values"));
     }
 
     @Test
     @DisplayName("Le taux de couverture dit de quoi il est le taux")
     void qualifiesTheCoverageRatio(@TempDir Path dir) throws IOException {
         String md = write(dir);
-        assertTrue(md.contains("64 % des instructions analysées"),
+        assertTrue(md.contains("64% of the analysed instructions"),
                 "90 couvertes sur 140 analysées : " + md.lines().filter(l -> l.contains("%"))
                         .findFirst().orElse("aucune ligne avec un %"));
-        assertTrue(md.contains("dénominateur"),
+        assertTrue(md.contains("denominator"),
                 "sans quoi le taux se lit comme une note, alors qu'il dépend de ce qu'on "
                 + "a donné à analyser");
     }
@@ -126,8 +126,8 @@ class MarkdownTest {
         vide.put("calltree", noeud("tout", 0));
         Markdown.write(dir, List.of(vide));
         String md = Files.readString(dir.resolve("rapport.md"), StandardCharsets.UTF_8);
-        assertFalse(md.contains("### Où le temps est passé"),
+        assertFalse(md.contains("### Where the time went"),
                 "une section vide fait croire à une panne de l'outil");
-        assertFalse(md.contains("### Avec quelles valeurs"));
+        assertFalse(md.contains("### With which values"));
     }
 }

@@ -231,7 +231,7 @@ public final class Toolbox {
 
         Path embarque = extraitDuJar(file);
         if (embarque != null) return embarque;
-        vus.add("(embarqué dans le jar : édition complète uniquement)");
+        vus.add("(bundled in the jar: complete edition only)");
 
         String url = repo + "/" + group.replace('.', '/') + "/" + name + "/" + version + "/" + file;
         Files.createDirectories(cache);
@@ -312,7 +312,7 @@ public final class Toolbox {
 
     /** Un échec ici arrête tout : le message dit où on a cherché, et comment s'en sortir. */
     private static String indisponible(String file, String url, List<String> vus) {
-        return "composant introuvable : " + file
+        return "component not found: " + file
                 + "\n   looked for on the network: " + url
                 + "\n   looked for on disk:\n      " + String.join("\n      ", vus)
                 + "\n   On a closed network: drop the file into one of these directories,"

@@ -123,28 +123,27 @@ public final class CallTree {
         t.root = root.toMap();
         if (folded > 0 && root.total > 0) {
             long share = Math.round(100.0 * folded / root.total);
-            t.note = "Les relevés de temps ont été pris pendant que l'inspection des valeurs "
-                    + "était active : " + share + " % d'entre eux tombaient dans son "
-                    + "instrumentation. Ils ont été rattachés à la méthode applicative qui les "
-                    + "a déclenchés, ce qui restitue la forme de l'arbre. Réserve : le coût "
-                    + "affiché de la méthode observée reste surestimé.";
+            t.note = "The time samples were taken while value inspection was active: "
+                    + share + "% of them fell inside its instrumentation. They were attributed "
+                    + "to the application method that triggered them, which restores the shape "
+                    + "of the tree. Caveat: the cost shown for the observed method remains "
+                    + "overestimated.";
         }
         if (brokenStacks > 0 && root.total > 0) {
             double share = 100.0 * brokenStacks / root.total;
-            t.stacksNote = brokenStacks + " relevé" + (brokenStacks > 1 ? "s" : "")
-                    + " sur " + root.total + " (" + format(share) + " %) ont une pile que le "
-                    + "profileur n'a pas pu remonter jusqu'à son point d'entrée. Ils sont "
-                    + "comptés dans le total, mais ne figurent pas dans l'arbre : les y "
-                    + "rattacher aurait fait apparaître un second point d'entrée qui n'existe "
-                    + "pas.";
+            t.stacksNote = brokenStacks + " sample" + (brokenStacks > 1 ? "s" : "")
+                    + " out of " + root.total + " (" + format(share) + "%) have a stack the "
+                    + "profiler could not trace back to its entry point. They are counted in "
+                    + "the total, but do not appear in the tree: attaching them there would "
+                    + "have shown a second entry point that does not exist.";
         }
         return t;
     }
 
-    /** Deux décimales au plus, et pas de « 0,00 % » pour un relevé qui existe. */
+    /** Deux décimales au plus, et pas de « 0.00% » pour un relevé qui existe. */
     private static String format(double share) {
-        String s = String.format(java.util.Locale.FRANCE, "%.2f", share);
-        return s.equals("0,00") ? "< 0,01" : s;
+        String s = String.format(java.util.Locale.ROOT, "%.2f", share);
+        return s.equals("0.00") ? "< 0.01" : s;
     }
 
     private static final class Node {

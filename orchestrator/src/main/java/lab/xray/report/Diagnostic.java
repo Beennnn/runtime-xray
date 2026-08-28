@@ -219,9 +219,9 @@ public final class Diagnostic {
         Object homonymes = index.parNom().get(nom);
         m.put("memeNomAilleurs", homonymes);
         m.put("explication", homonymes == null
-                ? "aucun fichier de ce nom sous les racines passées"
-                : "un fichier de ce nom existe, mais son paquet déclaré n'est pas celui "
-                  + "que la couverture rapporte — ce n'est probablement pas la même classe");
+                ? "no file of that name under the roots given"
+                : "a file of that name exists, but the package it declares is not the one "
+                  + "the coverage reports — this is probably not the same class");
         return m;
     }
 
@@ -252,7 +252,7 @@ public final class Diagnostic {
             vue.put("chemin", String.valueOf(racine.get("chemin")));
             vue.put("absolu", chemin);
             boolean jar = Files.isRegularFile(p);
-            vue.put("type", jar ? "jar" : Files.isDirectory(p) ? "répertoire" : "absent");
+            vue.put("type", jar ? "jar" : Files.isDirectory(p) ? "directory" : "missing");
             vue.put("existe", Files.exists(p));
 
             List<Object> classes = new ArrayList<>();
@@ -309,26 +309,25 @@ public final class Diagnostic {
     /** Une phrase, celle qu'on lirait en premier. */
     private static String conclusion(int attendus, int manquants, Sources.Index index) {
         if (index.racines().isEmpty()) {
-            return "aucun répertoire de sources n'a été passé : le code annoté ne peut pas "
-                 + "s'afficher. Renseigner SOURCE_DIRS dans la configuration, ou --sources "
-                 + "en ligne de commande.";
+            return "no source directory was given: the annotated code cannot be shown. "
+                 + "Set SOURCE_DIRS in the configuration, or --sources on the command line.";
         }
         if (index.fichiers() == 0) {
-            return "les racines passées n'ont fourni aucun fichier .java — voir sources.racines "
-                 + "pour le chemin absolu de chacune et la raison.";
+            return "the roots given yielded no .java file — see sources.racines for the "
+                 + "absolute path of each one and the reason.";
         }
         if (attendus == 0) {
-            return "aucune couverture à rapprocher : la mesure n'a rien enregistré.";
+            return "no coverage to match: the measurement recorded nothing.";
         }
         if (manquants == 0) {
-            return "toutes les classes mesurées ont leur source.";
+            return "every measured class has its source.";
         }
         if (manquants == attendus) {
-            return "aucune classe mesurée n'a sa source, alors que " + index.fichiers()
-                 + " fichier(s) .java ont été lus : les sources trouvées ne sont pas celles "
-                 + "de l'application analysée, ou elles n'en sont qu'une partie.";
+            return "no measured class has its source, although " + index.fichiers()
+                 + " .java file(s) were read: the sources found are not those of the "
+                 + "application analysed, or they are only a part of them.";
         }
-        return manquants + " classe(s) mesurée(s) sur " + attendus + " n'ont pas leur source.";
+        return manquants + " measured class(es) out of " + attendus + " have no source.";
     }
 
     private static List<Object> executions(List<Object> runs) {

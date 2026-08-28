@@ -194,25 +194,25 @@ public final class Progression {
         sb.append("  ");
         if (cpuConnu) {
             sb.append("cpu ")
-              .append(String.format(Locale.FRENCH, "%.1f", cpuCumule.toMillis() / 1000.0))
+              .append(String.format(Locale.ROOT, "%.1f", cpuCumule.toMillis() / 1000.0))
               .append(" s");
         } else {
-            sb.append("en cours");
+            sb.append("running");
         }
-        return sb.append(" | sortie ").append(taille(octets)).toString();
+        return sb.append(" | output ").append(taille(octets)).toString();
     }
 
     static String horloge(Duration ecoule) {
         long s = Math.max(0, ecoule.toSeconds());
-        return String.format(Locale.FRENCH, "%02d:%02d", s / 60, s % 60);
+        return String.format(Locale.ROOT, "%02d:%02d", s / 60, s % 60);
     }
 
     static String taille(long octets) {
-        if (octets < 1024) return octets + " o";
+        if (octets < 1024) return octets + " B";
         if (octets < 1024 * 1024) {
-            return String.format(Locale.FRENCH, "%.1f Ko", octets / 1024.0);
+            return String.format(Locale.ROOT, "%.1f KB", octets / 1024.0);
         }
-        return String.format(Locale.FRENCH, "%.1f Mo", octets / (1024.0 * 1024));
+        return String.format(Locale.ROOT, "%.1f MB", octets / (1024.0 * 1024));
     }
 
     /**

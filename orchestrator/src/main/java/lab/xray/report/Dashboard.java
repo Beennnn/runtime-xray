@@ -333,7 +333,7 @@ public final class Dashboard {
     private static String loadTemplate() throws IOException {
         try (InputStream in = Dashboard.class.getResourceAsStream("/lab/xray/dashboard.html")) {
             if (in == null) {
-                throw new IOException("gabarit de page absent du jar");
+                throw new IOException("page template missing from the jar");
             }
             return new String(in.readAllBytes(), StandardCharsets.UTF_8);
         }

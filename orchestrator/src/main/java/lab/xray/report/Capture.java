@@ -78,8 +78,8 @@ public final class Capture {
 
     /** Ce qu'on affiche quand une capture ne se relit pas — et ce qu'il faut en faire. */
     public static String pourquoiIllisible(String version) {
-        return "capture au format " + version + ", or cet outil ne relit qu'à partir de "
-                + MINIMALE + ". Cette exécution doit être remesurée ; les autres, non.";
+        return "capture in format " + version + ", whereas this tool only reads from "
+                + MINIMALE + " on. This run must be measured again; the others, not.";
     }
 
     /** Comparaison numérique par segments : « 1.10 » est postérieur à « 1.9 ». */
