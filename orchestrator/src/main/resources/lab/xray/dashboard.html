@@ -3411,11 +3411,11 @@ function drawValues(info){
     // Expliquer POURQUOI il n'y a rien : sans cela, on croit à un défaut de l'outil alors
     // que c'est un choix — l'observation des valeurs est ciblée, et elle doit l'être.
     const nom = esc(info.name || info.cls.split("/").pop());
-    // Une classe n'a pas de méthode à nommer : proposer « --root paquet.Classe:: » livrait
+    // Une classe n'a pas de méthode à nommer : proposer « --root package.Class:: » livrait
     // une commande que personne ne peut lancer. On dit alors ce qui manque.
     const cible = info.name ? "<code>" + nom + "</code>" : "la classe <code>" + nom + "</code>";
     const commande = "--root " + esc(dot(info.cls)) + "::" +
-                     (info.name ? esc(info.name) : "<i>methode</i>");
+                     (info.name ? esc(info.name) : "<i>method</i>");
     const racine = R.context && R.context.methodeRacine ? R.context.methodeRacine : null;
     box.innerHTML = others.length
       ? '<h3>Valeurs des paramètres</h3><div class="explain">' +
@@ -3431,7 +3431,7 @@ function drawValues(info){
           '<a href="#" class="vlink" data-f="' + esc(f) + '">' + esc(f.split("/").pop()) + '</a>')
           .join(" · ") + '</div>'
       : '<h3>Valeurs des paramètres</h3><div class="explain">Aucune méthode n\'a été observée ' +
-        'dans cette exécution : relancer avec <code>--root paquet.Classe::methode</code> pour ' +
+        'dans cette exécution : relancer avec <code>--root package.Class::method</code> pour ' +
         'capturer les valeurs reçues par une méthode.</div>';
     box.querySelectorAll(".vlink").forEach(a => a.onclick = e => {
       e.preventDefault();
@@ -4173,7 +4173,7 @@ function piegesConfig(){
       pas: "ne restreint NI la couverture, NI les classes affichées, NI les sources",
       alerte: (racine && racine.indexOf("::") < 0)
         ? "« " + esc(racine) + " » ne désigne pas une méthode : le format attendu est "
-          + "paquet.Classe::methode. Sans « :: », aucune valeur n'est capturée."
+          + "package.Class::method. Sans « :: », aucune valeur n'est capturée."
         : null },
     { opt: "--filter / CLASS_FILTER",
       quoi: "les classes échantillonnées par le profileur — la mesure du TEMPS",
@@ -5125,7 +5125,9 @@ setOption("clean",    {icon: OPT.cible});
     ", il suffit de faire": ", it is enough to make",
     ", même dans une classe qui en contient plusieurs.": ", even in a class that holds several.",
     ", ou la ligne d'une exécution dans l'arbre d'appel.": ", or a run's line in the call tree.",
+    ", parce qu'observer toutes les méthodes produirait un volume ingérable et fausserait la mesure.": ", because observing every method would produce an unmanageable volume and would skew the measurement.",
     ", puis cliquer sur une ligne.": ", then click a line.",
+    ", relancer avec": ", run again with",
     ", sous le fil d'Ariane : par quels chemins la méthode a été atteinte, et dans quelle proportion. S'il y a plusieurs exécutions, celles où la méthode a aussi tourné sont proposées.": ", under the breadcrumb: by which paths the method was reached, and in what proportion. When there are several runs, those where the method also ran are offered.",
     ", une": ", a",
     ", une fois retiré ce qu'elle a délégué. Une barre large et pâle ne fait que passer le relais ;": ", once what it delegated is taken out. A wide, pale bar only passes the baton on;",
@@ -5160,7 +5162,10 @@ setOption("clean",    {icon: OPT.cible});
     "Aucune instruction de la ligne n'a été exécutée": "No instruction on this line was executed",
     "Aucune mesure n'en est modifiée": "No measurement is changed by it",
     "Aucune méthode n'a été observée dans cette exécution : relancer avec": "No method was observed in this run: run again with",
+    "Aucune valeur n'a été capturée pour": "No value was captured for",
     "Aucune valeur n'a été capturée pour ce rapport. Relancer en indiquant la méthode racine à inspecter (": "No value was captured for this report. Run again naming the root method to inspect (",
+    "Aucune valeur n'a été capturée pour la classe": "No value was captured for the class",
+    "Des piles que le profileur n'a pas pu remonter.": "Stacks the profiler could not walk back.",
     "Bytecode analysé": "Analysed bytecode",
     "Ce qu'on y voit d'une exécution réelle : par où le code est passé, quel appel en a déclenché un autre, et avec quelles valeurs.": "What it shows of a real run: where the code went, which call triggered which, and with what values.",
     "Ce que cette exécution a fait dans son ensemble : couverture, temps, valeurs capturées et contexte de lancement": "What this run did as a whole: coverage, time, captured values and launch context",
@@ -5221,6 +5226,7 @@ setOption("clean",    {icon: OPT.cible});
     "Glisser pour redimensionner": "Drag to resize",
     "Invocations de cette méthode dont Arthas a relevé les paramètres et le retour — cliquer ouvre le bandeau du bas": "Invocations of this method whose arguments and return value Arthas recorded — clicking opens the bottom panel",
     "Invocations de cette méthode dont les paramètres ont été relevés : les déplier montre un nœud par appel": "Invocations of this method whose arguments were recorded: unfolding them shows one node per call",
+    "Invocations dont les paramètres ont été relevés — le bandeau du bas les montre": "Invocations whose arguments were recorded — the bottom panel shows them",
     "Jamais exécuté": "Never executed",
     "Journal de l'exécution": "Run log",
     "L'arbre agrégé": "The aggregated tree",
@@ -5253,6 +5259,11 @@ setOption("clean",    {icon: OPT.cible});
     "Le même, restreint aux classes qui ont réellement tourné. — pas encore produit pour ce rapport.": "The same, restricted to the classes that actually ran. — not produced for this report yet.",
     "La source que cette page lit. Exploitable par un autre outil, ou à la main. — pas encore produit pour ce rapport.": "The source this page reads. Usable by another tool, or by hand. — not produced for this report yet.",
     "Le même contenu, une ligne par classe — pour un tableur. — pas encore produit pour ce rapport.": "The same content, one line per class — for a spreadsheet. — not produced for this report yet.",
+    "Méthodes observées dans cette exécution :": "Methods observed in this run:",
+    "Pour obtenir les valeurs de": "To obtain the values of",
+    "Pour obtenir les valeurs de la classe": "To obtain the values of the class",
+    "ciblée": "targeted",
+    "la classe": "the class",
     "le site JaCoCo complet": "the complete JaCoCo site",
     "le rapport ciblé": "the focused report",
     "Déjà masqué à la mesure :": "Already hidden at measurement time:",
@@ -5338,6 +5349,7 @@ setOption("clean",    {icon: OPT.cible});
     "Répertoire de travail": "Working directory",
     "Répond à": "Answers",
     "Sans nom, une exécution s'affiche sous celui de son lancement (": "Without a name, a run appears under the one from its launch (",
+    "Tout le code est listé, le non exécuté en rouge — cliquer pour n'afficher que l'exécuté": "All the code is listed, the non-executed in red — click to show only what was executed",
     "Seul le code exécuté est listé — cliquer pour voir tout le code": "Only executed code is listed — click to see all the code",
     "Si les temps devaient compter": "If the times had to be exact",
     "Sources indexées": "Indexed sources",
@@ -5437,6 +5449,7 @@ setOption("clean",    {icon: OPT.cible});
     "part du temps": "share of time",
     "partiellement": "partially",
     "plusieurs lancements": "several launches",
+    "appelle": "calls",
     "pointé sur un jar de dépendance, il noie le code du projet dans des milliers de classes": "pointed at a dependency jar, it drowns the project's code in thousands of classes",
     "pour capturer les valeurs reçues par une méthode.": "to capture the values received by a method.",
     "pour elle": "for itself",
@@ -5450,19 +5463,27 @@ setOption("clean",    {icon: OPT.cible});
     "réunit tous les fichiers de l'exécution regardée : les sorties brutes de chaque outil, le journal, et les": "gathers every file of the run being looked at: the raw outputs of each tool, the log, and the",
     "sont celles dont la valeur change d'un appel à l'autre : c'est là qu'il faut chercher ce qui a fait diverger l'exécution.": "are those whose value changes from one call to the next: that is where to look for what made the run diverge.",
     "source seule": "source only",
+    "sur une méthode racine": "on one root method",
+    "sur une méthode racine — ici": "on one root method — here",
     "surlignées": "highlighted",
     "tout déplier": "unfold all",
+    "tout replier": "fold all",
+    "tout le code": "all the code",
     "toutes les classes mesurées ont leur source.": "every measured class has its source.",
     "un seul lancement": "a single launch",
     "une barre colorée est un endroit où le temps se consomme vraiment. Cliquer entre dans la méthode.": "a coloured bar is a place where time is really consumed. Clicking enters the method.",
     "une seule méthode": "a single method",
     "une seule méthode à la fois": "one method at a time",
+    "valeurs": "values",
     "voir dans JaCoCo ↗": "see in JaCoCo ↗",
     "vous": "you",
     "vue d'ensemble": "overview",
     "« Où passe le temps, tous appels confondus ? »": "“Where does the time go, all calls taken together?”",
     "« Qu'a fait": "“What did",
     "« ne montrer que ce qui tourne sous cette méthode »": "“show only what runs under this method”",
+    "— ce qui ne veut pas dire qu'elle n'a pas tourné : la couverture et les temps la montrent bien. L'observation des valeurs est": "— which does not mean it did not run: the coverage and the timings show it plainly. The observation of values is",
+    "— en nommant la méthode à observer.": "— naming the method to observe.",
+    "⟵ retour": "⟵ return",
     "À gauche, choisir un onglet": "On the left, pick a tab",
     "à côté du nom revient à celui du lancement.": "beside the name goes back to the launch one.",
     "à jour": "up to date",
@@ -5547,6 +5568,14 @@ setOption("clean",    {icon: OPT.cible});
     // Borné à un nom qualifié : « Ouvrir » commence aussi des phrases entières.
     [/^Ouvrir ([\w.$<>]+)$/, (m) => "Open " + m[1]],
     [/^appelle (.+) ([\d,.]+) ms$/, (m) => "calls " + m[1] + " " + dec(m[2]) + " ms"],
+    [/^appel (\d+)$/, (m) => "call " + m[1]],
+    [/^(\d+) appels?$/, (m) => m[1] + (m[1] === "1" ? " call" : " calls")],
+    [/^\((\d+) appels?\)$/, (m) => "(" + m[1] + (m[1] === "1" ? " call)" : " calls)")],
+    [/^« (.+) » ne désigne pas une méthode : le format attendu est package\.Class::method\. Sans « :: », aucune valeur n'est capturée\.$/,
+      (m) => "\u201c" + m[1] + "\u201d does not name a method: the expected format is "
+           + "package.Class::method. Without \u201c::\u201d, no value is captured."],
+    [/^affichage arrêté à ([\d\s\u00a0\u202f,.]+) lignes — replier, puis ouvrir la branche voulue$/,
+      (m) => "display stopped at " + nb(m[1]) + " lines — fold, then open the branch you want"],
     [/^← Vue d'ensemble(.*)$/, (m) => "← Overview" + m[1]],
     [/^([\d\s\u00a0\u202f,.]+) classes?$/,
       (m) => nb(m[1]) + (m[1].trim() === "1" ? " class" : " classes")],
