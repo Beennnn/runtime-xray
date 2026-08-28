@@ -93,10 +93,43 @@ fausse et assurée coûte plus cher qu'une absence de réponse.
 quelles familles, et que la sélection est INCOMPLÈTE — donc qu'on n'en tire ni total ni
 classement. Un extrait qu'on croit complet fait conclure sur un échantillon.
 
-Le choix des faits par la question est délibérément **grossier** : quelques mots-clés, et la
-vue d'ensemble quand rien n'est reconnu. La sélection ne doit jamais être la partie
+### La question a deux rôles, et c'est ce qui la rend ambiguë
+
+Elle **choisit** les faits — grossièrement, par mots-clés — et elle **voyage**, recopiée
+telle quelle en tête du paquet, parce que le vrai destinataire n'est pas le programme.
+
+Le choix est délibérément grossier : la sélection ne doit jamais être la partie
 intelligente — une sélection fine écarterait le fait qui contredit l'hypothèse, exactement
-celui qu'il fallait garder.
+celui qu'il fallait garder. Mais un texte libre laisse croire à une compréhension qui
+n'existe pas, alors deux choses le compensent :
+
+- **Ce qui a été compris est annoncé sur la sortie d'erreur** — « familles retenues d'après
+  la question : … », ou « aucun mot-clé reconnu — vue d'ensemble : … ». La sortie standard
+  reste le paquet seul, donc redirigeable.
+- **`--help` donne la table des mots reconnus.** Un texte libre non documenté n'est pas
+  découvrable ; celui-ci l'est, et un test garde la table contre le pourrissement.
+
+```
+$ runtime-xray --out rapport --contexte "welche Klassen liefen nie" > paquet.md
+   aucun mot-clé reconnu dans la question — vue d'ensemble : execution, couverture…
+```
+
+### Pour un script : nommer les familles
+
+Un script n'a pas besoin qu'on interprète une phrase, il a besoin d'un résultat
+reproductible. `--familles` court-circuite les mots-clés :
+
+```sh
+runtime-xray --out rapport --contexte "classes mortes de la recette" \
+             --familles classe.jamais_executee,couverture.execution
+```
+
+La question continue de voyager — c'est son autre rôle — mais ne choisit plus rien. Une
+famille inconnue **s'arrête**, avec la liste de celles qui existent : c'est l'inverse du
+texte libre, et délibérément. Une phrase qu'on ne reconnaît pas vient d'un humain qui
+cherche, donc on lui donne la vue d'ensemble ; une famille qui n'existe pas vient d'un
+script qui a un défaut, et le lui taire produirait un paquet silencieusement différent de
+ce qu'il croit lire.
 
 **Aucune valeur capturée ne part.** Les valeurs de paramètres relevées par Arthas restent
 dans leur bloc, sur le disque. Elles sont volumineuses, et elles portent parfois ce qu'on ne

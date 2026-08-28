@@ -12,7 +12,10 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -164,5 +167,85 @@ class ContexteTest {
         assertFalse(paquet.contains("motDePasse"));
         assertFalse(paquet.contains("params"),
                 "les valeurs de paramètres restent dans leur bloc, sur le disque");
+    }
+
+    @Test
+    @DisplayName("Nommer les familles prime sur la question, et le résultat ne dépend plus des mots")
+    void namingTheFamiliesWinsOverTheQuestion(@TempDir Path dir) throws Exception {
+        fichierDeFaits(dir, 2);
+        // Une question dont les mots-clés désignent le temps, mais un script qui demande
+        // les classes mortes : c'est la demande explicite qui doit gagner, sans quoi le
+        // script produirait autre chose que ce qu'il croit lire.
+        Contexte.Paquet p = Contexte.pour(dir, "où passe le temps ?",
+                List.of("classe.jamais_executee"), Contexte.BUDGET);
+
+        assertEquals(Contexte.Origine.DEMANDEES, p.origine());
+        assertEquals(List.of("classe.jamais_executee"), p.familles());
+        assertTrue(p.texte().contains("classe.jamais_executee"));
+        assertFalse(p.texte().contains("methode.chaude\""),
+                "la question ne doit plus rien choisir quand on a nommé les familles");
+        // Elle continue en revanche de voyager : c'est son autre rôle.
+        assertTrue(p.texte().contains("où passe le temps ?"));
+    }
+
+    @Test
+    @DisplayName("Une famille inconnue s'arrête net, avec la liste de celles qui existent")
+    void anUnknownFamilyStopsAndListsTheRealOnes(@TempDir Path dir) throws Exception {
+        fichierDeFaits(dir, 1);
+        // L'inverse du texte libre, et délibérément : une phrase vient d'un humain qui
+        // cherche, une famille vient d'un script. Un script qui se trompe a un défaut, et
+        // le lui taire produirait un paquet silencieusement différent de son attente.
+        Exception e = assertThrows(Exception.class, () -> Contexte.pour(dir, "",
+                List.of("classes.mortes"), Contexte.BUDGET));
+        assertTrue(String.valueOf(e.getMessage()).contains("classes.mortes"));
+        assertTrue(String.valueOf(e.getMessage()).contains("classe.jamais_executee"),
+                "dire ce qui existe, pas seulement que ce qu'on a donné n'existe pas");
+    }
+
+    @Test
+    @DisplayName("L'opérateur sait ce qui a été compris de sa question, ou qu'elle ne l'a pas été")
+    void theOperatorLearnsWhatWasUnderstood(@TempDir Path dir) throws Exception {
+        fichierDeFaits(dir, 1);
+        // Le cœur du problème : une question en toutes lettres A L'AIR d'être comprise.
+        // Sans ce retour, personne ne sait que « quelles classes n'ont jamais tourné ? »
+        // se réduit au seul mot « jamais ».
+        Contexte.Paquet reconnue = Contexte.pour(dir, "quelles classes n'ont jamais tourné ?",
+                List.of(), Contexte.BUDGET);
+        assertEquals(Contexte.Origine.MOTS_CLES, reconnue.origine());
+        assertTrue(reconnue.annonce().contains("d'après la question"));
+
+        Contexte.Paquet muette = Contexte.pour(dir, "welche Klassen liefen nie",
+                List.of(), Contexte.BUDGET);
+        assertEquals(Contexte.Origine.VUE_ENSEMBLE, muette.origine());
+        assertTrue(muette.annonce().contains("aucun mot-clé reconnu"),
+                "un repli qui passe pour une lecture réussie est pire que pas de repli");
+        assertFalse(muette.familles().isEmpty(), "on répond quand même");
+    }
+
+    @Test
+    @DisplayName("Tout mot-clé du code est écrit dans l'aide : sinon il est introuvable")
+    void everyKeywordInTheCodeIsWrittenInTheHelp() throws Exception {
+        // Le reproche fait à cette option est qu'elle n'est pas découvrable : « --help » ne
+        // peut pas énumérer ce qui marche. Il le peut, à condition que la table ne pourrisse
+        // pas — et une table de documentation ne casse aucun build.
+        Path racine = Path.of("").toAbsolutePath().getParent();
+        String contexte = Files.readString(racine.resolve("orchestrator/src/main/java/lab/xray"
+                + "/report/Contexte.java").normalize(), StandardCharsets.UTF_8);
+        String main = Files.readString(racine.resolve("orchestrator/src/main/java/lab/xray"
+                + "/Main.java").normalize(), StandardCharsets.UTF_8);
+
+        int debut = contexte.indexOf("static List<String> famillesReconnues");
+        int fin = contexte.indexOf("\n    }", debut);
+        assertTrue(debut > 0 && fin > debut);
+        Matcher m = Pattern.compile("\"([^\"]+)\"").matcher(contexte.substring(debut, fin));
+        int comptes = 0;
+        while (m.find()) {
+            String mot = m.group(1);
+            if (mot.contains(".")) continue;             // un nom de famille, pas un mot-clé
+            comptes++;
+            assertTrue(main.contains(mot), "le mot-clé « " + mot + " » déclenche une famille "
+                    + "mais n'est écrit nulle part dans l'aide : personne ne peut le deviner");
+        }
+        assertTrue(comptes > 25, "l'extraction a raté : " + comptes + " mots trouvés");
     }
 }

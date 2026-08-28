@@ -218,6 +218,13 @@ coller. Trois décisions le tiennent, chacune gardée par un test dans `Contexte
   rien.
 - **Rien n'est coupé en silence** — ni par le budget, ni quand une famille est vide. Un bloc
   vide se lit exactement comme un bloc qu'on n'a pas su remplir, ici comme dans la page.
+- **La question a deux rôles**, et c'est ce qui la rend ambiguë : elle choisit les faits,
+  grossièrement, et elle voyage dans le paquet. Un texte libre laisse croire à une
+  compréhension qui n'existe pas — d'où l'annonce sur **stderr** de ce qui a été retenu, la
+  table des mots-clés dans `--help`, et `--familles` pour les scripts, qui court-circuite
+  l'interprétation. Une famille inconnue s'arrête là où une phrase inconnue donne la vue
+  d'ensemble : la première vient d'un script qui a un défaut, la seconde d'un humain qui
+  cherche.
 - **Les lignes sont recopiées telles quelles.** Relire puis réécrire un JSON rendrait `41`
   en `41.0` : le format ne distingue pas l'entier du flottant, et ce détail fait douter du
   reste.
