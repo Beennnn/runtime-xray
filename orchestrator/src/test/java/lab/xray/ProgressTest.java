@@ -10,15 +10,15 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * La bande d'activité est un confort, et un confort ne doit rien coûter à ce qu'il
- * accompagne : ni la mesure, ni la lisibilité d'un journal, ni la capture.
+ * The activity band is a comfort, and a comfort must cost nothing to what it accompanies:
+ * neither the measurement, nor a log's readability, nor the capture.
  */
 class ProgressTest {
 
     private static final Duration NOTHING = Duration.ZERO;
 
     @Test
-    @DisplayName("Sans terminal, rien n'est écrit du tout")
+    @DisplayName("Without a terminal, nothing is written at all")
     void silentWithoutTerminal() {
         StringBuilder out = new StringBuilder();
         Progress p = new Progress(out, false, false);
@@ -28,11 +28,11 @@ class ProgressTest {
         }
         p.end();
         assertEquals("", out.toString(),
-                "une ligne qui se réécrit chaque seconde noierait un journal d'intégration");
+                "a line that rewrites itself every second would drown an integration log");
     }
 
     @Test
-    @DisplayName("La bande défile et ne dépasse jamais sa largeur")
+    @DisplayName("The band scrolls and never exceeds its width")
     void bandScrolls() {
         StringBuilder out = new StringBuilder();
         Progress p = new Progress(out, true, false);
@@ -41,22 +41,22 @@ class ProgressTest {
         }
         String last = out.toString().substring(out.lastIndexOf("\r"));
         assertEquals(Progress.WIDTH, countSquares(last),
-                "au-delà, la ligne passerait à la suivante et cesserait de se réécrire");
+                "beyond that the line would wrap and stop rewriting itself");
     }
 
     @Test
-    @DisplayName("Un cœur saturé se voit, même sur une machine qui en a trente-deux")
+    @DisplayName("A saturated core shows, even on a machine that has thirty-two")
     void densityCountsCoresNotMachineShare() {
         assertEquals(0, Progress.tier(0.0));
         assertTrue(Progress.tier(1.0) >= 3,
-                "ramené à la taille de la machine, un cœur plein passerait pour du repos");
+                "scaled to the size of the machine, a full core would pass for rest");
         assertEquals(4, Progress.tier(4.0));
         assertTrue(Progress.tier(0.3) > Progress.tier(0.05),
-                "les paliers doivent être croissants, sinon la bande ne veut rien dire");
+                "the tiers must increase, otherwise the band means nothing");
     }
 
     @Test
-    @DisplayName("La densité porte l'information, la couleur ne fait que la redoubler")
+    @DisplayName("Density carries the information, colour merely doubles it")
     void colourIsNeverTheOnlyCarrier() {
         StringBuilder withoutColour = new StringBuilder();
         StringBuilder withColour = new StringBuilder();
@@ -69,11 +69,11 @@ class ProgressTest {
         assertFalse(withoutColour.toString().contains("\u001b"),
                 "NO_COLOR, un tuyau, un terminal ancien : la ligne doit rester lisible");
         assertEquals(countSquares(withoutColour.toString()), countSquares(withColour.toString()),
-                "les mêmes charges donnent les mêmes carrés, colorés ou non");
+                "the same loads give the same squares, coloured or not");
     }
 
     @Test
-    @DisplayName("Une ligne plus courte efface entièrement celle qu'elle remplace")
+    @DisplayName("A shorter line entirely erases the one it replaces")
     void erasesTheLongerLineBefore() {
         StringBuilder out = new StringBuilder();
         Progress p = new Progress(out, true, false);
@@ -82,11 +82,11 @@ class ProgressTest {
         out.setLength(0);
         p.tick(Duration.ofSeconds(2), Duration.ofMillis(1_500), 10);
         assertTrue(out.length() >= longLine,
-                "sans remplissage, « 5,0 Mo » laisserait sa queue derrière « 10 o »");
+                "without padding, \"5.0 MB\" would leave its tail behind \"10 B\"");
     }
 
     @Test
-    @DisplayName("Sans temps processeur publié, la sortie de l'application sert de témoin")
+    @DisplayName("Without published processor time, the application's output stands witness")
     void fallsBackToOutputGrowth() {
         StringBuilder out = new StringBuilder();
         Progress p = new Progress(out, true, false);
@@ -95,17 +95,17 @@ class ProgressTest {
         p.tick(Duration.ofSeconds(3), NOTHING, 4096);
         String last = out.toString().substring(out.lastIndexOf("\r"));
         assertTrue(last.contains("running"),
-                "annoncer « cpu 0.0 s » ferait croire à un programme figé");
+                "announcing \"cpu 0.0 s\" would suggest a frozen program");
         assertTrue(last.contains("4.0 KB"));
     }
 
     @Test
-    @DisplayName("Les caractères de la bande existent aussi en CP850")
+    @DisplayName("The band's characters exist in CP850 as well")
     void glyphsSurviveAWindowsTerminal() {
-        // Un poste Windows en cp850 est le défaut, pas l'exception : voir CLAUDE.md.
+        // A Windows machine in cp850 is the default, not the exception: see CLAUDE.md.
         for (char c : Progress.TIERS) {
             assertTrue(java.nio.charset.Charset.forName("IBM850").newEncoder().canEncode(c),
-                    "le carré « " + c + " » deviendrait un point d'interrogation");
+                    "the square \"" + c + "\" would become a question mark");
         }
     }
 
@@ -120,14 +120,14 @@ class ProgressTest {
     }
 
     @Test
-    @DisplayName("Un shell imbriqué peut réclamer la bande, et aussi la faire taire")
+    @DisplayName("A nested shell can ask for the band, and can also silence it")
     void anestedShellCanAskForTheBandAndAlsoSilenceIt() {
-        // Un shell qui en lance un autre met souvent un tuyau au milieu : la JVM ne voit
-        // plus de terminal alors qu'un opérateur regarde bien un écran au bout. Le défaut
-        // reste le silence ; celui qui sait qu'il regarde doit pouvoir le dire.
-        assertFalse(Progress.requested(null), "sans rien, le défaut ne change pas");
+        // A shell that launches another often puts a pipe in the middle: the JVM no longer
+        // sees a terminal while an operator is indeed watching a screen at the far end. The
+        // default stays silence; whoever knows they are watching must be able to say so.
+        assertFalse(Progress.requested(null), "with nothing, the default does not change");
         assertFalse(Progress.requested(""));
-        assertFalse(Progress.requested("0"), "0 impose le silence, il ne le lève pas");
+        assertFalse(Progress.requested("0"), "0 imposes silence, it does not lift it");
         assertFalse(Progress.requested("false"));
         assertTrue(Progress.requested("1"));
         assertTrue(Progress.requested("oui"),

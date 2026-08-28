@@ -17,9 +17,9 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Trois emplacements possibles pour une annotation, et un ordre. Se tromper d'ordre, ou
- * écrire ailleurs que là où elle vit déjà, laisserait deux vérités dont l'une, prioritaire,
- * ne serait pas celle qu'on vient de saisir.
+ * Three possible locations for an annotation, and an order. Getting the order wrong, or
+ * writing somewhere other than where it already lives, would leave two truths, of which the
+ * one that takes priority would not be the one just typed in.
  */
 class AnnotationsTest {
 
@@ -32,7 +32,7 @@ class AnnotationsTest {
     }
 
     @Test
-    @DisplayName("Le fichier posé DANS l'exécution l'emporte sur celui d'à côté")
+    @DisplayName("The file placed INSIDE the run wins over the one beside it")
     void insideWinsOverSibling(@TempDir Path dir) throws IOException {
         Path run = run(dir, "essai");
         Files.writeString(run.resolve(Annotations.IN_THE_RUN),
@@ -45,7 +45,7 @@ class AnnotationsTest {
     }
 
     @Test
-    @DisplayName("À défaut, celui d'à côté l'emporte sur le fichier commun")
+    @DisplayName("Failing that, the one beside it wins over the common file")
     void siblingWinsOverCentral(@TempDir Path dir) throws IOException {
         Path run = run(dir, "essai");
         Files.writeString(run.resolveSibling("essai" + Annotations.SUFFIX),
@@ -56,7 +56,7 @@ class AnnotationsTest {
     }
 
     @Test
-    @DisplayName("Sans fichier propre, l'exécution prend ce que dit le fichier commun")
+    @DisplayName("Without a file of its own, the run takes what the common file says")
     void centralIsTheFallback(@TempDir Path dir) throws IOException {
         Path run = run(dir, "essai");
         assertEquals("central",
@@ -65,14 +65,14 @@ class AnnotationsTest {
     }
 
     @Test
-    @DisplayName("On écrit là où l'annotation vit déjà, et dans l'exécution sinon")
+    @DisplayName("We write where the annotation already lives, and in the run otherwise")
     void writesWhereItAlreadyLives(@TempDir Path dir) throws IOException {
         Path run = run(dir, "essai");
-        // Rien encore : l'annotation va dans le répertoire, pour suivre l'exécution.
+        // Nothing yet: the annotation goes into the directory, to follow the run.
         assertEquals(run.resolve(Annotations.IN_THE_RUN), Annotations.fileFor(run));
 
-        // Elle vit à côté : on ne va pas en créer une seconde, prioritaire, dans le
-        // répertoire — la saisie serait masquée par le fichier qu'on vient d'écrire.
+        // It lives beside: we are not going to create a second one, taking priority, in
+        // the directory — the input would be hidden by the file just written.
         Path beside = run.resolveSibling("essai" + Annotations.SUFFIX);
         Files.writeString(beside, "{}", StandardCharsets.UTF_8);
         assertEquals(beside, Annotations.fileFor(run));
@@ -81,11 +81,11 @@ class AnnotationsTest {
         assertEquals("reprise",
                 ((Map<?, ?>) Annotations.readFile(beside)).get("nom"));
         assertFalse(Files.exists(run.resolve(Annotations.IN_THE_RUN)),
-                "aucun second fichier ne doit apparaître");
+                "no second file must appear");
     }
 
     @Test
-    @DisplayName("Une annotation vidée retire son fichier plutôt que d'en laisser un vide")
+    @DisplayName("An emptied annotation removes its file rather than leaving an empty one")
     void emptyAnnotationRemovesTheFile(@TempDir Path dir) throws IOException {
         Path run = run(dir, "essai");
         Annotations.write(run, Map.of("nom", "posé"));
@@ -96,14 +96,14 @@ class AnnotationsTest {
     }
 
     @Test
-    @DisplayName("Les exécutions se reconnaissent à leur contexte, et se retrouvent par identifiant")
+    @DisplayName("Runs are recognised by their context, and found again by id")
     void runsAreFoundByUuid(@TempDir Path dir) throws IOException {
         run(dir, "un");
         run(dir, "deux");
         Files.createDirectories(dir.resolve("runs/pas-une-execution"));
 
         Map<String, Path> byUuid = Annotations.runsByUuid(dir);
-        assertEquals(2, byUuid.size(), "un répertoire sans contexte n'est pas une exécution");
+        assertEquals(2, byUuid.size(), "a directory without a context is not a run");
         assertEquals(dir.resolve("runs/un"), byUuid.get("UUID-un"));
     }
 }

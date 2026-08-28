@@ -17,10 +17,10 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Ce format est celui que la forge affiche réellement — donc celui que quelqu'un lira sans
- * jamais ouvrir la page. Deux façons de le rater : produire un tableau cassé (une valeur
- * capturée peut contenir n'importe quoi, y compris un {@code |}), et annoncer un taux de
- * couverture sans dire de quoi il est le taux.
+ * This format is the one the forge actually displays — so the one somebody will read
+ * without ever opening the page. Two ways to get it wrong: producing a broken table (a
+ * captured value can contain anything at all, including a {@code |}), and announcing a
+ * coverage rate without saying what it is a rate of.
  */
 class MarkdownTest {
 
@@ -66,44 +66,44 @@ class MarkdownTest {
     }
 
     @Test
-    @DisplayName("Les trois observations ont chacune leur section")
+    @DisplayName("The three observations each have their section")
     void hasOneSectionPerObservation(@TempDir Path dir) throws IOException {
         String md = write(dir);
-        assertTrue(md.contains("## Recette"), "l'exécution est nommée");
+        assertTrue(md.contains("## Recette"), "the run is named");
         assertTrue(md.contains("### Where the code went"));
         assertTrue(md.contains("### Where the time went"));
         assertTrue(md.contains("### With which values"));
     }
 
     @Test
-    @DisplayName("Le taux de couverture dit de quoi il est le taux")
+    @DisplayName("The coverage rate says what it is a rate of")
     void qualifiesTheCoverageRatio(@TempDir Path dir) throws IOException {
         String md = write(dir);
         assertTrue(md.contains("64% of the analysed instructions"),
-                "90 couvertes sur 140 analysées : " + md.lines().filter(l -> l.contains("%"))
+                "90 covered out of 140 analysed: " + md.lines().filter(l -> l.contains("%"))
                         .findFirst().orElse("aucune ligne avec un %"));
         assertTrue(md.contains("denominator"),
-                "sans quoi le taux se lit comme une note, alors qu'il dépend de ce qu'on "
-                + "a donné à analyser");
+                "without which the rate reads as a mark, when it depends on what was "
+                + "given to be analysed");
     }
 
     @Test
-    @DisplayName("Le code jamais exécuté est nommé, pas seulement compté")
+    @DisplayName("Never-executed code is named, not merely counted")
     void namesDeadCode(@TempDir Path dir) throws IOException {
         String md = write(dir);
         assertTrue(md.contains("app.mort.JamaisAppele"),
-                "c'est précisément ce que la lecture du code ne révèle pas");
+                "that is precisely what reading the code does not reveal");
     }
 
     @Test
-    @DisplayName("Une valeur contenant un « | » ne casse pas le tableau")
+    @DisplayName("A value containing a \"|\" does not break the table")
     void escapesPipesInValues(@TempDir Path dir) throws IOException {
         String md = write(dir);
         String line = md.lines().filter(l -> l.contains("Trip[id=")).findFirst().orElseThrow();
-        // 4 séparateurs pour 3 colonnes : | # | paramètres | retour |
+        // 4 separators for 3 columns: | # | arguments | return |
         assertEquals(4, line.chars().filter(c -> c == '|').count() - countEscaped(line),
-                "colonne cassée par un séparateur non échappé : " + line);
-        assertTrue(line.contains("\\|"), "le séparateur de la valeur doit être échappé");
+                "column broken by an unescaped separator: " + line);
+        assertTrue(line.contains("\\|"), "the value's separator must be escaped");
     }
 
     private static long countEscaped(String s) {
@@ -111,15 +111,15 @@ class MarkdownTest {
     }
 
     @Test
-    @DisplayName("Le contexte de l'exécution accompagne le rapport")
+    @DisplayName("The run's context comes with the report")
     void carriesTheRunContext(@TempDir Path dir) throws IOException {
         String md = write(dir);
-        assertTrue(md.contains("java -jar app.jar"), "la commande lancée");
+        assertTrue(md.contains("java -jar app.jar"), "the command launched");
         assertTrue(md.contains("Temurin 25"), "la plateforme");
     }
 
     @Test
-    @DisplayName("Sans donnée, une section est absente plutôt que vide")
+    @DisplayName("Without data, a section is absent rather than empty")
     void skipsEmptySections(@TempDir Path dir) throws IOException {
         Map<String, Object> empty = new LinkedHashMap<>();
         empty.put("nom", "Rien");
@@ -127,7 +127,7 @@ class MarkdownTest {
         Markdown.write(dir, List.of(empty));
         String md = Files.readString(dir.resolve("rapport.md"), StandardCharsets.UTF_8);
         assertFalse(md.contains("### Where the time went"),
-                "une section vide fait croire à une panne de l'outil");
+                "an empty section suggests the tool broke down");
         assertFalse(md.contains("### With which values"));
     }
 }

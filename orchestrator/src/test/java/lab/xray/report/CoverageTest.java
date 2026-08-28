@@ -17,12 +17,12 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * La couverture est la source qui fait autorité sur « ce qui a tourné ». Si elle est mal
- * lue, c'est la liste entière du code exécuté qui devient fausse.
+ * The coverage is the authoritative source on "what ran". If it is read wrongly, the whole
+ * list of executed code becomes wrong.
  */
 class CoverageTest {
 
-    /** Un rapport minimal, avec la déclaration de type externe que produit l'outil réel. */
+    /** A minimal report, with the external type declaration the real tool produces. */
     private static final String XML = """
             <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
             <!DOCTYPE report PUBLIC "-//JACOCO//DTD Report 1.1//EN" "report.dtd">
@@ -59,35 +59,35 @@ class CoverageTest {
     }
 
     @Test
-    @DisplayName("La déclaration de type externe n'est pas suivie : aucun accès réseau")
+    @DisplayName("The external type declaration is not followed: no network access")
     void doesNotResolveExternalDtd(@TempDir Path dir) throws Exception {
-        // La DTD référencée n'existe pas à côté du fichier : si le lecteur essayait de la
-        // charger, l'analyse échouerait — or elle doit réussir.
+        // The DTD referenced does not exist beside the file: if the reader tried to load
+        // it, the analysis would fail — yet it must succeed.
         assertNotNull(Coverage.parse(xml(dir)));
     }
 
     @Test
-    @DisplayName("Chaque ligne reçoit son état : exécutée, partielle, jamais atteinte")
+    @DisplayName("Each line gets its state: executed, partial, never reached")
     void classifiesLines(@TempDir Path dir) throws Exception {
         Coverage c = Coverage.parse(xml(dir));
         Map<String, Object> lines = c.lines.get("app/moteur/Calcul.java");
-        assertNotNull(lines, "le fichier source doit être indexé sous paquet/Fichier.java");
+        assertNotNull(lines, "the source file must be indexed under package/File.java");
         assertEquals("full", ((Map<?, ?>) lines.get("10")).get("s"));
         assertEquals("part", ((Map<?, ?>) lines.get("11")).get("s"));
         assertEquals("miss", ((Map<?, ?>) lines.get("20")).get("s"));
     }
 
     @Test
-    @DisplayName("Le compte de branches accompagne les lignes partiellement couvertes")
+    @DisplayName("The branch count comes with the partly covered lines")
     void reportsBranchCounts(@TempDir Path dir) throws Exception {
         Coverage c = Coverage.parse(xml(dir));
         Map<String, Object> lines = c.lines.get("app/moteur/Calcul.java");
         assertEquals(List.of(1, 2), ((Map<?, ?>) lines.get("11")).get("b"));
-        assertNull(((Map<?, ?>) lines.get("10")).get("b"), "sans branche, pas de compte");
+        assertNull(((Map<?, ?>) lines.get("10")).get("b"), "no branch, no count");
     }
 
     @Test
-    @DisplayName("Les méthodes sont rattachées à leur classe, triées par ligne, avec leur couverture")
+    @DisplayName("Methods are attached to their class, sorted by line, with their coverage")
     void listsMethodsPerClass(@TempDir Path dir) throws Exception {
         Coverage c = Coverage.parse(xml(dir));
         @SuppressWarnings("unchecked")
@@ -100,11 +100,11 @@ class CoverageTest {
         assertEquals(10, ((Map<?, ?>) methods.get(0)).get("line"));
         assertEquals(12, ((Map<?, ?>) methods.get(0)).get("covered"));
         assertEquals(0, ((Map<?, ?>) methods.get(1)).get("covered"),
-                "une méthode jamais appelée doit être visible avec 0");
+                "a method that was never called must be visible with 0");
     }
 
     @Test
-    @DisplayName("Une classe jamais exécutée reste présente, avec zéro instruction couverte")
+    @DisplayName("A never-executed class stays present, with zero instructions covered")
     void keepsNeverExecutedClasses(@TempDir Path dir) throws Exception {
         Coverage c = Coverage.parse(xml(dir));
         @SuppressWarnings("unchecked")
@@ -119,7 +119,7 @@ class CoverageTest {
     }
 
     @Test
-    @DisplayName("Les classes d'un paquet sont triées par nom, pour une liste stable")
+    @DisplayName("A package's classes are sorted by name, for a stable list")
     void sortsClassesByName(@TempDir Path dir) throws Exception {
         Coverage c = Coverage.parse(xml(dir));
         @SuppressWarnings("unchecked")
@@ -129,7 +129,7 @@ class CoverageTest {
     }
 
     @Test
-    @DisplayName("Un paquet masqué ne figure ni dans les paquets, ni dans les classes")
+    @DisplayName("A hidden package appears neither among the packages nor among the classes")
     void hidesConfiguredPackages(@TempDir Path dir) throws Exception {
         Path f = dir.resolve("j.xml");
         Files.writeString(f, """
@@ -147,14 +147,14 @@ class CoverageTest {
                 </report>
                 """, StandardCharsets.UTF_8);
         Coverage c = Coverage.parse(f, PackageFilter.of("org.slf4j"));
-        assertTrue(c.packages.containsKey("app/moteur"), "le code métier reste");
-        assertNull(c.packages.get("org/slf4j/helpers"), "le paquet masqué disparaît");
+        assertTrue(c.packages.containsKey("app/moteur"), "the business code stays");
+        assertNull(c.packages.get("org/slf4j/helpers"), "the hidden package disappears");
         assertNull(c.methods.get("org/slf4j/helpers/Util"),
-                "et ses classes aussi, sinon le rapport ciblé les recopierait");
+                "and its classes too, otherwise the focused report would copy them out");
     }
 
     @Test
-    @DisplayName("Une méthode sans numéro de ligne est ignorée plutôt que d'être placée au hasard")
+    @DisplayName("A method without a line number is ignored rather than placed at random")
     void skipsMethodsWithoutLine(@TempDir Path dir) throws Exception {
         Path f = dir.resolve("j.xml");
         Files.writeString(f, """

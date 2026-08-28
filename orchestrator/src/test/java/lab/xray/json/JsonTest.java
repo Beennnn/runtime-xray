@@ -13,14 +13,14 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Le JSON produit ici est <b>embarqué dans une balise script</b> : une erreur d'échappement
- * ne casse pas un fichier de données, elle casse la page entière. D'où l'insistance sur les
- * caractères pénibles.
+ * The JSON produced here is <b>embedded in a script tag</b>: an escaping mistake does not
+ * break a data file, it breaks the whole page. Hence the insistence on the awkward
+ * characters.
  */
 class JsonTest {
 
     @Test
-    @DisplayName("Une chaîne avec guillemets et retours à la ligne se relit à l'identique")
+    @DisplayName("A string with quotes and newlines reads back identically")
     void escapesAndReadsBack() {
         String tricky = "il a dit \"bonjour\"\nligne 2\tfin\\";
         Object back = Json.read(Json.write(Map.of("k", tricky)));
@@ -28,25 +28,25 @@ class JsonTest {
     }
 
     @Test
-    @DisplayName("Les séparateurs de ligne Unicode sont échappés : ils casseraient le script")
+    @DisplayName("The Unicode line separators are escaped: they would break the script")
     void escapesUnicodeLineSeparators() {
-        // U+2028 et U+2029 sont valides en JSON mais terminent une ligne pour un moteur
-        // JavaScript : non échappés, la page ne se charge plus.
+        // U+2028 and U+2029 are valid in JSON but end a line as far as a JavaScript engine
+        // is concerned: unescaped, the page no longer loads.
         String json = Json.write(Map.of("k", "avant\u2028apres\u2029fin"));
-        assertTrue(json.contains("\\u2028"), "U+2028 doit être échappé : " + json);
-        assertTrue(json.contains("\\u2029"), "U+2029 doit être échappé : " + json);
+        assertTrue(json.contains("\\u2028"), "U+2028 must be escaped: " + json);
+        assertTrue(json.contains("\\u2029"), "U+2029 must be escaped: " + json);
         assertEquals("avant\u2028apres\u2029fin", ((Map<?, ?>) Json.read(json)).get("k"));
     }
 
     @Test
-    @DisplayName("Les caractères de contrôle sont échappés")
+    @DisplayName("The control characters are escaped")
     void escapesControlCharacters() {
         String json = Json.write(Map.of("k", "a\u0001b"));
         assertTrue(json.contains("\\u0001"), json);
     }
 
     @Test
-    @DisplayName("NaN et l'infini deviennent 0 plutôt qu'un document illisible")
+    @DisplayName("NaN and infinity become 0 rather than an unreadable document")
     void neutralisesNonFiniteNumbers() {
         String json = Json.write(Map.of("a", Double.NaN, "b", Double.POSITIVE_INFINITY));
         assertTrue(json.contains("\"a\":0"), json);
@@ -55,7 +55,7 @@ class JsonTest {
     }
 
     @Test
-    @DisplayName("Structures imbriquées : objets, tableaux, null, booléens, nombres")
+    @DisplayName("Nested structures: objects, arrays, null, booleans, numbers")
     void nestedStructures() {
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("liste", List.of(1, 2.5, "trois"));
@@ -72,14 +72,14 @@ class JsonTest {
     }
 
     @Test
-    @DisplayName("Un tableau et un objet vides se relisent sans erreur")
+    @DisplayName("An empty array and an empty object read back without error")
     void emptyContainers() {
         assertEquals(List.of(), Json.read("[]"));
         assertEquals(Map.of(), Json.read("{}"));
     }
 
     @Test
-    @DisplayName("Les accents et emojis traversent sans dommage")
+    @DisplayName("Accents and emoji come through undamaged")
     void keepsNonAsciiIntact() {
         String s = "exécution — durée : 12 µs ✅";
         assertEquals(s, ((Map<?, ?>) Json.read(Json.write(Map.of("k", s)))).get("k"));
