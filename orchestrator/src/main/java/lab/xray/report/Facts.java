@@ -17,59 +17,59 @@ import java.util.Set;
 import java.util.TreeMap;
 
 /**
- * Le même rapport, écrit pour être <b>filtré</b> plutôt que parcouru.
+ * The same report, written to be <b>filtered</b> rather than browsed.
  *
- * <p>La page range les mesures en arbre — paquets, classes, méthodes — parce que c'est ainsi
- * qu'un humain descend vers ce qu'il cherche. Un programme, lui, ne descend pas : il
- * <b>sélectionne</b>. « Quelles classes n'ont jamais tourné ? » se répond ici par un
- * {@code grep}, là par une traversée complète de l'arbre. Sur 450 classes, la différence
- * n'est pas de confort : c'est un ordre de grandeur de ce qu'il faut lire pour répondre.
+ * <p>The page arranges the measurements as a tree — packages, classes, methods — because
+ * that is how a human descends towards what they are looking for. A program does not
+ * descend: it <b>selects</b>. "Which classes never ran?" is answered here with a
+ * {@code grep}, there with a full traversal of the tree. Over 450 classes the difference is
+ * not one of comfort: it is an order of magnitude in what has to be read to answer.
  *
- * <p>D'où ce fichier : <b>un fait par ligne</b>, plat, chaque ligne se suffisant à
- * elle-même. Pas de contexte à reconstituer, pas d'ordre à respecter, pas de fichier
- * compagnon à ouvrir. On peut en lire dix lignes au milieu et les comprendre.
+ * <p>Hence this file: <b>one fact per line</b>, flat, each line standing on its own. No
+ * context to reconstruct, no order to respect, no companion file to open. One can read ten
+ * lines from the middle and understand them.
  *
  * <pre>
  * grep '"class.never_executed"' faits.jsonl | head -50
- * jq -r 'select(.fait=="indisponibilite") | .pourquoi' faits.jsonl
+ * jq -r 'select(.fact=="unavailable") | .why' faits.jsonl
  * </pre>
  *
- * <h2>Ce qu'il n'est pas</h2>
+ * <h2>What it is not</h2>
  *
- * <p>Il <b>n'enlève rien</b>. La page, ses blocs, {@code diagnostic.json} et
- * {@code rapport.md} sont écrits comme avant, au bit près : ce fichier s'ajoute à côté. Il
- * n'y a donc pas deux formats à maintenir en parallèle, il y a une seconde sortie du même
- * calcul — et rien qui lise l'ancien n'a à changer.
+ * <p>It <b>takes nothing away</b>. The page, its blocks, {@code diagnostic.json} and
+ * {@code rapport.md} are written as before, to the bit: this file is added beside them.
+ * There are therefore not two formats to maintain in parallel, there is a second output of
+ * the same computation — and nothing that reads the old one has to change.
  *
- * <p>Il n'est pas non plus une réplique : il ne porte <b>ni le code source, ni les valeurs
- * capturées</b>, qui sont volumineux et n'ont d'intérêt qu'ouverts. Il porte les faits, et
- * pour chacun de quoi aller chercher le reste.
+ * <p>Nor is it a replica: it carries <b>neither the source code nor the captured
+ * values</b>, which are bulky and only of interest once opened. It carries the facts, and
+ * for each of them what is needed to go and fetch the rest.
  *
- * <h2>Ce qui compte le plus</h2>
+ * <h2>What matters most</h2>
  *
- * <p>Les lignes {@code indisponibilite} et {@code reserve}. Un « 0 % de temps » ne dit pas
- * s'il signifie « ce code n'a pas tourné » ou « aucun profil n'a pu être pris sur cette
- * plateforme ». Un lecteur qui ne sait pas trancher tranchera quand même — et se trompera
- * avec assurance. Ces lignes-là existent pour que cette question ne se pose jamais.
+ * <p>The {@code unavailable} and {@code caveat} lines. A "0 % of time" does not say whether
+ * it means "this code did not run" or "no profile could be taken on this platform". A
+ * reader who cannot tell will decide anyway — and will be confidently wrong. Those lines
+ * exist so that the question never arises.
  */
 public final class Facts {
 
-    /** Le vocabulaire des faits. Il ne bouge qu'en ajoutant, jamais en renommant. */
+    /** The vocabulary of the facts. It only moves by adding, never by renaming. */
     public static final String FORMAT = "2.0";
 
-    /** Le fichier, à la racine de la sortie : c'est la première chose qu'un outil ouvre. */
+    /** The file, at the root of the output: it is the first thing a tool opens. */
     public static final String FILE = "faits.jsonl";
 
-    /** Bornes : un fichier de faits doit rester lisible d'un coup, sinon il redevient un tas. */
+    /** Bounds: a facts file must stay readable in one go, or it becomes a heap again. */
     static final int MAX_MISSING_SOURCES = 500;
     static final int MAX_HOT_METHODS = 25;
 
     /**
-     * Ce que chaque nom de fait veut dire.
+     * What each fact name means.
      *
-     * <p>Écrit dans le fichier lui-même, pas à côté : c'est ce qui permet à un programme de
-     * lire une sortie qu'il n'a jamais vue. Toute addition au vocabulaire s'ajoute ici, sans
-     * quoi elle serait muette.
+     * <p>Written in the file itself, not beside it: that is what lets a program read an
+     * output it has never seen. Every addition to the vocabulary is added here, without
+     * which it would be mute.
      */
     static final Map<String, String> VOCABULARY = new LinkedHashMap<>();
     static {
@@ -98,11 +98,11 @@ public final class Facts {
     private Facts() {}
 
     /**
-     * Écrit les faits de la campagne.
+     * Writes the campaign's facts.
      *
-     * @param diagnostic ce que {@link Diagnostic} vient de produire — on ne recalcule rien,
-     *                   on en tire les pistes de sources, qui sont la seule information
-     *                   directement actionnable du lot.
+     * @param diagnostic what {@link Diagnostic} has just produced — nothing is recomputed,
+     *                   we take the source leads from it, which are the only directly
+     *                   actionable piece of the lot.
      */
     public static Path write(Path commonDir, List<Object> runs, Sources.Index index,
                               Map<String, Object> diagnostic) throws IOException {
@@ -129,7 +129,7 @@ public final class Facts {
         w.write("\n");
     }
 
-    // ------------------------------------------------------------------ la campagne
+    // ------------------------------------------------------------------ the campaign
 
     private static Map<String, Object> campaign(Path commonDir, List<Object> runs,
                                                 Map<String, Object> diagnostic) {
@@ -141,17 +141,17 @@ public final class Facts {
         f.put("date", diagnostic.get("date"));
         f.put("output", commonDir.toAbsolutePath().normalize().toString());
         f.put("runs", runs.size());
-        // Où aller quand un fait ne suffit pas. Un lecteur qui arrive par ce fichier n'a
-        // aucune raison de deviner que la page et le diagnostic existent.
+        // Where to go when a fact is not enough. A reader arriving through this file has
+        // no reason to guess that the page and the diagnostic exist.
         f.put("alsoSee", Map.of(
                 "page", "index.html",
                 "diagnostic", "diagnostic.json",
                 "markdown", "rapport.md",
                 "manifeste", Blocks.GLOBAL + "/manifeste.json"));
-        // Le fichier se décrit lui-même, dès sa première ligne. Un lecteur qui n'a que ce
-        // fichier — c'est le cas d'un dossier zippé, ou d'un programme qui n'a lu que la
-        // tête — doit pouvoir en comprendre le reste sans documentation extérieure. Une
-        // documentation séparée se perd ; celle-ci voyage avec la donnée.
+        // The file describes itself, from its very first line. A reader who has only this
+        // file — that is the case of a zipped folder, or of a program that has read only
+        // the head — must be able to understand the rest without outside documentation.
+        // Separate documentation gets lost; this one travels with the data.
         f.put("vocabulary", VOCABULARY);
         return f;
     }
@@ -172,14 +172,14 @@ public final class Facts {
         return f;
     }
 
-    // ------------------------------------------------- ce qui n'a PAS été mesuré, et pourquoi
+    // ------------------------------------------------ what was NOT measured, and why
 
     /**
-     * L'absence, déclarée.
+     * Absence, declared.
      *
-     * <p>C'est la raison d'être du fichier. Un observateur qui n'a pas tourné laisse
-     * exactement la même trace qu'un code qui n'a pas été atteint : zéro. La différence ne
-     * se déduit d'aucun chiffre — il faut l'écrire.
+     * <p>This is the file's reason for existing. An observer that did not run leaves
+     * exactly the same trace as code that was never reached: zero. The difference follows
+     * from no figure at all — it has to be written down.
      */
     static List<Map<String, Object>> unavailabilities(Map<?, ?> run) {
         List<Map<String, Object>> out = new ArrayList<>();
@@ -220,7 +220,7 @@ public final class Facts {
         return out;
     }
 
-    /** Les réserves que l'outil pose lui-même sur une mesure qui, elle, existe. */
+    /** The caveats the tool itself places on a measurement that does exist. */
     static List<Map<String, Object>> caveats(Map<?, ?> run) {
         List<Map<String, Object>> out = new ArrayList<>();
         for (String key : List.of("profileNote", "stacksNote")) {
@@ -235,7 +235,7 @@ public final class Facts {
         return out;
     }
 
-    // ------------------------------------------------------------------ les mesures
+    // ------------------------------------------------------------------ the measurements
 
     private static Map<String, Object> coverageOf(Map<?, ?> run) {
         long covered = 0, missed = 0;
@@ -255,12 +255,12 @@ public final class Facts {
     }
 
     /**
-     * Une ligne par classe, valable pour toute la campagne.
+     * One line per class, valid for the whole campaign.
      *
-     * <p>Une classe apparaît dans plusieurs exécutions avec des couvertures différentes. La
-     * question posée devant un rapport de recette n'est pas « combien dans celle-ci ? » mais
-     * « <b>quelque chose</b> l'a-t-il couverte, et laquelle ? ». On garde donc le meilleur
-     * chiffre, et la liste de ceux qui y ont contribué.
+     * <p>A class appears in several runs with different coverages. The question asked in
+     * front of an acceptance report is not "how much in this one?" but "did
+     * <b>something</b> cover it, and which?". So we keep the best figure, and the list of
+     * those that contributed to it.
      */
     static List<Map<String, Object>> classes(List<Object> runs, Sources.Index index) {
         Map<String, Map<String, Object>> byClass = new TreeMap<>();
@@ -298,9 +298,9 @@ public final class Facts {
             Set<String> coveredBy = covering.getOrDefault(e.getKey(), Set.of());
             Map<String, Object> f = fact(coveredBy.isEmpty() ? "class.never_executed" : "class");
             f.putAll(e.getValue());
-            // Triées : sans cela, deux campagnes des mêmes exécutions donnent des lignes
-            // différentes selon l'ordre de lecture des répertoires, et plus rien ne se
-            // compare — or comparer deux rapports est exactement ce qu'on veut pouvoir faire.
+            // Sorted: without this, two campaigns over the same runs give different lines
+            // depending on the order the directories were read in, and nothing compares any
+            // more — yet comparing two reports is exactly what one wants to be able to do.
             f.put("runsCovering", sortedList(coveredBy));
             f.put("runsAnalysed", sortedList(analysed.getOrDefault(e.getKey(), Set.of())));
             Object key = e.getValue().get("fichier");
@@ -311,7 +311,7 @@ public final class Facts {
         return out;
     }
 
-    /** Les méthodes les plus coûteuses d'une exécution, si elle a un profil. */
+    /** A run's costliest methods, when it has a profile. */
     static List<Map<String, Object>> hotMethods(Map<?, ?> run) {
         if (!(run.get("calltree") instanceof Map<?, ?> tree)) return List.of();
         long total = toInt(tree.get("total"));
@@ -346,9 +346,9 @@ public final class Facts {
         }
     }
 
-    // -------------------------------------------------------------- ce qu'on n'a pas pu lire
+    // -------------------------------------------------------------- what could not be read
 
-    /** Les fichiers mesurés dont on n'a pas le code : la cause n°1 d'un rapport décevant. */
+    /** Measured files whose code we do not have: cause number one of a disappointing report. */
     static List<Map<String, Object>> missingSources(List<Object> runs, Sources.Index index) {
         List<Map<String, Object>> out = new ArrayList<>();
         for (String key : Diagnostic.samples(runs)) {
@@ -365,7 +365,7 @@ public final class Facts {
         return out;
     }
 
-    /** Les racines proposées, avec leur preuve : la seule information directement actionnable. */
+    /** The proposed roots, with their evidence: the only directly actionable information. */
     @SuppressWarnings("unchecked")
     static List<Map<String, Object>> leads(Map<String, Object> diagnostic) {
         List<Map<String, Object>> out = new ArrayList<>();
@@ -424,7 +424,7 @@ public final class Facts {
         return Math.round(1000.0 * share / total) / 10.0;
     }
 
-    /** L'ordre des faits, pour qui trie : le plus général d'abord. */
+    /** The order of the facts, for whoever sorts: the most general first. */
     static final Comparator<Map<String, Object>> ORDER =
             Comparator.comparing(f -> String.valueOf(f.get("fait")));
 }
