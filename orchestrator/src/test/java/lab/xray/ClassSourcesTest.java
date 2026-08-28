@@ -19,14 +19,14 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Le code que l'on cherche à comprendre n'arrive pas toujours sous forme de répertoire de
- * classes : une dépendance interne est livrée compilée, en jar. Si l'outil ne sait lire que
- * des répertoires, ce code-là manque au rapport sans que rien ne le signale.
+ * The code one is trying to understand does not always arrive as a directory of classes: an
+ * internal dependency is delivered compiled, as a jar. If the tool can only read
+ * directories, that code is missing from the report with nothing to say so.
  */
 class ClassSourcesTest {
 
     /** Un faux .class : ces méthodes recopient des octets, elles ne les interprètent pas. */
-    private static final byte[] BYTES = "classe compilée".getBytes(StandardCharsets.UTF_8);
+    private static final byte[] BYTES = "compiled class".getBytes(StandardCharsets.UTF_8);
 
     private static Path jarWith(Path dir, String name, String entry) throws IOException {
         Path jar = dir.resolve(name);
@@ -47,7 +47,7 @@ class ClassSourcesTest {
     }
 
     @Test
-    @DisplayName("Une classe est retrouvée dans un jar aussi bien que dans un répertoire")
+    @DisplayName("A class is found in a jar as well as in a directory")
     void findsClassesInJarsAndDirectories(@TempDir Path dir) throws IOException {
         Path fromJar = dir.resolve("depuis-jar.class");
         assertTrue(Main.copyClassBytes(
@@ -63,7 +63,7 @@ class ClassSourcesTest {
     }
 
     @Test
-    @DisplayName("Répertoires et jar se mélangent dans la même analyse")
+    @DisplayName("Directories and jars mix in the same analysis")
     void mixesBothKinds(@TempDir Path dir) throws IOException {
         List<Path> sources = List.of(
                 dirWith(dir, "classes", "app/Calcul.class"),
@@ -73,7 +73,7 @@ class ClassSourcesTest {
     }
 
     @Test
-    @DisplayName("La première entrée gagne, comme sur un chemin de classe")
+    @DisplayName("The first entry wins, as on a classpath")
     void firstEntryWins(@TempDir Path dir) throws IOException {
         Path first = dirWith(dir, "premier", "app/C.class");
         Files.write(first.resolve("app/C.class"), "le bon".getBytes(StandardCharsets.UTF_8));
@@ -82,24 +82,24 @@ class ClassSourcesTest {
         Path out = dir.resolve("resolue.class");
         assertTrue(Main.copyClassBytes(List.of(first, second), "app/C.class", out));
         assertEquals("le bon", Files.readString(out, StandardCharsets.UTF_8),
-                "la JVM aurait chargé la première : le rapport doit montrer la même");
+                "the JVM would have loaded the first: the report must show the same");
     }
 
     @Test
-    @DisplayName("Une classe est trouvée dans un jar applicatif rangé à la Spring Boot")
+    @DisplayName("A class is found in an application jar laid out the Spring Boot way")
     void findsClassesUnderBootInfClasses(@TempDir Path dir) throws IOException {
         Path app = jarWith(dir, "appli.jar", "BOOT-INF/classes/com/example/Moteur.class");
         assertTrue(Main.copyClassBytes(List.of(app), "com/example/Moteur.class",
-                dir.resolve("o.class")), "le préfixe BOOT-INF/classes doit être traversé");
+                dir.resolve("o.class")), "the BOOT-INF/classes prefix must be traversed");
     }
 
     @Test
-    @DisplayName("Une classe est trouvée dans un jar CONTENU dans le jar applicatif")
+    @DisplayName("A class is found in a jar CONTAINED in the application jar")
     void findsClassesInNestedJars(@TempDir Path dir) throws IOException {
-        // Le cas courant du jar gras : les dépendances sont des jar rangés dans BOOT-INF/lib.
-        // Sans descente, tout le code des dépendances manquerait au rapport ciblé, alors que
-        // l'outil de couverture, lui, le voit — les deux rapports diraient des choses
-        // différentes du même code.
+        // The common fat-jar case: the dependencies are jars filed under BOOT-INF/lib.
+        // Without going down, all the dependencies' code would be missing from the focused
+        // report, while the coverage tool does see it — the two reports would say different
+        // things about the same code.
         Path inner = jarWith(dir, "interne.jar", "com/example/Noyau.class");
         Path outer = dir.resolve("appli.jar");
         try (OutputStream os = Files.newOutputStream(outer); ZipOutputStream zip = new ZipOutputStream(os)) {
@@ -108,21 +108,21 @@ class ClassSourcesTest {
             zip.closeEntry();
         }
         assertTrue(Main.copyClassBytes(List.of(outer), "com/example/Noyau.class",
-                dir.resolve("o.class")), "le jar imbriqué doit être ouvert");
+                dir.resolve("o.class")), "the nested jar must be opened");
     }
 
     @Test
-    @DisplayName("Une archive illisible ne fait pas tomber l'analyse")
+    @DisplayName("An unreadable archive does not bring the analysis down")
     void brokenArchiveIsSkipped(@TempDir Path dir) throws IOException {
         Path casse = dir.resolve("casse.jar");
         Files.writeString(casse, "ceci n'est pas une archive", StandardCharsets.UTF_8);
         Path bon = jarWith(dir, "bon.jar", "app/C.class");
         assertTrue(Main.copyClassBytes(List.of(casse, bon), "app/C.class", dir.resolve("o.class")),
-                "l'entrée suivante doit être essayée");
+                "the next entry must be tried");
     }
 
     @Test
-    @DisplayName("Une classe absente partout est signalée, pas inventée")
+    @DisplayName("A class absent everywhere is reported, not invented")
     void missingClassReturnsFalse(@TempDir Path dir) throws IOException {
         assertFalse(Main.copyClassBytes(
                 List.of(jarWith(dir, "lib.jar", "com/example/Autre.class")),
@@ -130,7 +130,7 @@ class ClassSourcesTest {
     }
 
     @Test
-    @DisplayName("La configuration accepte plusieurs entrées, répertoires et jar mêlés")
+    @DisplayName("The configuration accepts several entries, directories and jars mixed")
     void configSplitsEntries() {
         Config c = new Config();
         c.classesDir = "target/classes:libs/noyau-1.4.jar, build/classes/java/main";
@@ -142,7 +142,7 @@ class ClassSourcesTest {
     }
 
     @Test
-    @DisplayName("Le jar lancé est retenu, lu sur les arguments réels de la JVM")
+    @DisplayName("The launched jar is kept, read off the JVM's real arguments")
     void discoversTheLaunchedJar(@TempDir Path dir) throws IOException {
         Path jar = jarWith(dir, "appli.jar", "com/example/Main.class");
         List<Path> found = ClassSources.discover(
@@ -151,10 +151,10 @@ class ClassSourcesTest {
     }
 
     @Test
-    @DisplayName("D'un classpath, seuls les RÉPERTOIRES sont retenus")
+    @DisplayName("From a classpath, only the DIRECTORIES are kept")
     void keepsOnlyDirectoriesFromClasspath(@TempDir Path dir) throws IOException {
-        // Un classpath réel compte des dizaines de jar de dépendances. Les analyser tous
-        // ferait un rapport où le code du projet pèse un pour cent du total.
+        // A real classpath holds dozens of dependency jars. Analysing them all would make
+        // a report where the project's code is one percent of the total.
         Path classes = dirWith(dir, "classes", "app/Calcul.class");
         Path other = dirWith(dir, "generated", "app/Genere.class");
         Path dep = jarWith(dir, "commons.jar", "org/apache/Truc.class");
@@ -165,7 +165,7 @@ class ClassSourcesTest {
     }
 
     @Test
-    @DisplayName("Le -jar l'emporte sur le classpath : c'est lui qui porte le code")
+    @DisplayName("The -jar wins over the classpath: it is what carries the code")
     void jarWinsOverClasspath(@TempDir Path dir) throws IOException {
         Path jar = jarWith(dir, "appli.jar", "com/example/Main.class");
         Path classes = dirWith(dir, "classes", "app/Autre.class");
@@ -175,7 +175,7 @@ class ClassSourcesTest {
     }
 
     @Test
-    @DisplayName("Sans arguments lisibles, la commande configurée sert de secours")
+    @DisplayName("Without readable arguments, the configured command serves as a fallback")
     void fallsBackToTheConfiguredCommand(@TempDir Path dir) throws IOException {
         Path jar = jarWith(dir, "appli.jar", "com/example/Main.class");
         assertEquals(List.of(jar),
@@ -183,13 +183,13 @@ class ClassSourcesTest {
     }
 
     @Test
-    @DisplayName("Sans rien d'autre, la convention du projet est essayée — et vérifiée")
+    @DisplayName("With nothing else, the project convention is tried — and checked")
     void fallsBackToProjectConventions(@TempDir Path dir) throws IOException {
-        // Cas de `mvn exec:java` : l'application tourne dans la JVM de Maven et son
-        // classpath n'apparaît sur aucune ligne de commande. La convention est alors le
-        // seul recours — mais on ne la retient que si le répertoire existe vraiment.
+        // The `mvn exec:java` case: the application runs inside Maven's JVM and its
+        // classpath appears on no command line. The convention is then the only recourse —
+        // but it is only kept when the directory really exists.
         assertEquals(List.of(), ClassSources.discover(List.of(), "mvn exec:java", dir),
-                "aucun répertoire conventionnel : on ne devine pas");
+                "no conventional directory: we do not guess");
 
         Path target = dirWith(dir, "target/classes", "app/Calcul.class");
         assertEquals(List.of(target), ClassSources.discover(List.of(), "mvn exec:java", dir));

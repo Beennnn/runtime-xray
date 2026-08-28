@@ -25,18 +25,18 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Une porte ne vaut que par ce qu'elle refuse. Ces contrôles portent donc d'abord sur les
- * refus — et surtout sur celui qui compte : personne n'écrit dans les fichiers d'annotation
- * sans le secret. Le reste vérifie qu'on peut malgré tout entrer, et que les deux modes qui
- * n'ont jamais demandé de secret n'en demandent toujours pas.
+ * A door is only worth what it refuses. These checks are therefore first about the refusals
+ * — and above all about the one that matters: nobody writes into the annotation files
+ * without the secret. The rest checks that one can nonetheless get in, and that the two
+ * modes which never asked for a secret still do not.
  */
 class AccessTest {
 
     private static final String SECRET = "phrase de passe partagee";
 
     private HttpServer server;
-    // Redirect.NEVER par défaut : c'est ce qu'on veut, la redirection est justement ce
-    // qu'on mesure. Les cookies aussi sont posés à la main, pour les voir passer.
+    // Redirect.NEVER by default: that is what we want, the redirect being precisely what
+    // is measured. The cookies too are set by hand, so as to see them go past.
     private final HttpClient client = HttpClient.newHttpClient();
 
     @AfterEach
@@ -80,7 +80,7 @@ class AccessTest {
     }
 
     @Test
-    @DisplayName("Sans secret, rien n'est demandé : les deux premiers modes ne bougent pas")
+    @DisplayName("Without a secret nothing is asked: the first two modes do not move")
     void withoutSecretNothingIsAsked(@TempDir Path dir) throws Exception {
         run(dir, "u-1");
         String base = guards(dir, Access.open());
@@ -93,7 +93,7 @@ class AccessTest {
     }
 
     @Test
-    @DisplayName("Avec un secret, on n'écrit pas d'annotation sans l'avoir donné")
+    @DisplayName("With a secret, no annotation is written without having given it")
     void writingIsRefusedWithoutTheSecret(@TempDir Path dir) throws Exception {
         Path run = run(dir, "u-1");
         String base = guards(dir, Access.withSecret(SECRET));
@@ -108,11 +108,11 @@ class AccessTest {
 
         assertEquals(401, refusal.statusCode());
         assertFalse(Files.exists(run.resolve(Annotations.IN_THE_RUN)),
-                "le refus doit précéder l'écriture, sinon la porte ne sert à rien");
+                "the refusal must come before the write, otherwise the door is useless");
     }
 
     @Test
-    @DisplayName("Un navigateur est envoyé au formulaire, un fetch reçoit un 401")
+    @DisplayName("A browser is sent to the form, a fetch gets a 401")
     void browsersAreRedirectedAndScriptsAreNot(@TempDir Path dir) throws Exception {
         run(dir, "u-1");
         String base = guards(dir, Access.withSecret(SECRET));
@@ -120,40 +120,40 @@ class AccessTest {
         HttpResponse<String> page = get(base + "/", null);
         assertEquals(302, page.statusCode());
         assertTrue(page.headers().firstValue("Location").orElse("").startsWith("/__xray/entrer"),
-                "quelqu'un à qui on a donné l'adresse doit tomber sur la porte, pas sur une erreur");
+                "somebody given the address must land on the door, not on an error");
 
-        // La page, elle, appelle __xray en fetch : lui répondre 302 vers du HTML lui ferait
-        // analyser un formulaire comme si c'étaient ses données.
+        // The page, for its part, calls __xray with a fetch: answering it 302 towards HTML
+        // would have it parse a form as if it were its data.
         assertEquals(401, get(base + "/__xray/noms", null).statusCode());
         assertEquals(401, get(base + "/__xray/ping", null).statusCode());
     }
 
     @Test
-    @DisplayName("Le bon secret ouvre une session, et la session ouvre le rapport")
+    @DisplayName("The right secret opens a session, and the session opens the report")
     void theRightSecretOpensASession(@TempDir Path dir) throws Exception {
         run(dir, "u-1");
         String base = guards(dir, Access.withSecret(SECRET));
 
         assertEquals(200, get(base + "/__xray/entrer", null).statusCode(),
-                "le formulaire lui-même n'est pas gardé, sinon on ne pourrait jamais entrer");
+                "the form itself is not guarded, otherwise one could never get in");
 
         HttpResponse<String> entry = form(base,
                 "jeton=" + java.net.URLEncoder.encode(SECRET, StandardCharsets.UTF_8)
                         + "&vers=%2F");
         assertEquals(302, entry.statusCode());
         String cookie = cookie(entry);
-        assertTrue(cookie != null && cookie.startsWith("xray_session="), "une session est posée");
+        assertTrue(cookie != null && cookie.startsWith("xray_session="), "a session is set");
         String raw = entry.headers().firstValue("Set-Cookie").orElseThrow();
         assertTrue(raw.contains("HttpOnly"), "le script de la page n'a aucune raison de le lire");
         assertTrue(raw.contains("SameSite=Strict"), "et un autre site aucune de s'en servir");
-        assertFalse(raw.contains(SECRET), "la session ne transporte pas le secret lui-même");
+        assertFalse(raw.contains(SECRET), "the session does not carry the secret itself");
 
         assertEquals(200, get(base + "/", cookie).statusCode());
         assertEquals(200, get(base + "/__xray/noms", cookie).statusCode());
     }
 
     @Test
-    @DisplayName("Un mauvais secret n'ouvre rien")
+    @DisplayName("A wrong secret opens nothing")
     void theWrongSecretOpensNothing(@TempDir Path dir) throws Exception {
         run(dir, "u-1");
         String base = guards(dir, Access.withSecret(SECRET));
@@ -161,11 +161,11 @@ class AccessTest {
         HttpResponse<String> refusal = form(base, "jeton=au-hasard&vers=%2F");
         assertEquals(401, refusal.statusCode());
         assertEquals(null, cookie(refusal));
-        assertFalse(refusal.body().contains(SECRET), "une page d'erreur ne souffle pas la réponse");
+        assertFalse(refusal.body().contains(SECRET), "an error page does not whisper the answer");
     }
 
     @Test
-    @DisplayName("Un script passe par l'en-tête, sans formulaire")
+    @DisplayName("A script goes through the header, without a form")
     void scriptsUseTheHeader(@TempDir Path dir) throws Exception {
         run(dir, "u-1");
         String base = guards(dir, Access.withSecret(SECRET));
@@ -185,7 +185,7 @@ class AccessTest {
     }
 
     @Test
-    @DisplayName("Après quelques essais ratés, on cesse de répondre à cette adresse")
+    @DisplayName("After a few failed attempts, we stop answering that address")
     void guessingIsThrottled(@TempDir Path dir) throws Exception {
         run(dir, "u-1");
         String base = guards(dir, Access.withSecret(SECRET));
@@ -193,22 +193,22 @@ class AccessTest {
         for (int i = 0; i < 5; i++) {
             assertEquals(401, form(base, "jeton=essai-" + i).statusCode());
         }
-        // Le sixième n'est plus examiné : un secret partagé se devine par force brute, et
-        // rien d'autre ici ne ralentit un script qui essaie mille mots.
+        // The sixth is no longer examined: a shared secret is guessed by brute force, and
+        // nothing else here slows down a script trying a thousand words.
         assertEquals(429, form(base, "jeton=essai-6").statusCode());
         assertEquals(429, form(base,
                         "jeton=" + java.net.URLEncoder.encode(SECRET, StandardCharsets.UTF_8))
-                .statusCode(), "y compris avec le bon : la mise à l'écart ne se contourne pas");
+                .statusCode(), "including with the right one: the throttling is not worked around");
     }
 
     @Test
-    @DisplayName("Le retour après entrée ne quitte jamais ce serveur")
+    @DisplayName("The return after entering never leaves this server")
     void theReturnStaysHere(@TempDir Path dir) throws Exception {
         run(dir, "u-1");
         String base = guards(dir, Access.withSecret(SECRET));
 
-        // « vers » vient de l'URL : sans garde-fou, une adresse préparée ferait entrer
-        // quelqu'un ici puis le déposerait ailleurs, avec la confiance qu'il vient d'accorder.
+        // "vers" comes from the URL: without a safeguard, a prepared address would let
+        // somebody in here and then drop them elsewhere, carrying the trust they just gave.
         HttpResponse<String> entry = form(base,
                 "jeton=" + java.net.URLEncoder.encode(SECRET, StandardCharsets.UTF_8)
                         + "&vers=" + java.net.URLEncoder.encode("//ailleurs.example/piege",
@@ -218,19 +218,19 @@ class AccessTest {
     }
 
     @Test
-    @DisplayName("Deux secrets tirés au sort ne se ressemblent pas, et un secret vide est refusé")
+    @DisplayName("Two secrets drawn at random do not resemble each other, and an empty one is refused")
     void drawnSecretsAreUsable() {
         String a = Access.randomSecret();
         assertNotEquals(a, Access.randomSecret());
-        assertTrue(a.length() >= 20, "trop court pour résister à quoi que ce soit : " + a);
+        assertTrue(a.length() >= 20, "too short to resist anything at all: " + a);
         assertThrows(IllegalArgumentException.class, () -> Access.withSecret("  "));
-        // Un secret accentué se perdrait dans l'en-tête Authorization : mieux vaut le dire
-        // au démarrage qu'au premier 401 sur un serveur déjà déployé.
+        // An accented secret would be lost in the Authorization header: better to say so
+        // at start-up than at the first 401 on an already deployed server.
         assertThrows(IllegalArgumentException.class, () -> Access.withSecret("clé-secrète"));
     }
 
     @Test
-    @DisplayName("Le secret vient de la ligne de commande, sinon de l'environnement")
+    @DisplayName("The secret comes from the command line, otherwise from the environment")
     void theSecretComesFromEitherPlace() {
         assertEquals("depuis-la-ligne", Access.secretRequested("depuis-la-ligne",
                 Map.of("XRAY_SERVE_TOKEN", "depuis-l-environnement")));
