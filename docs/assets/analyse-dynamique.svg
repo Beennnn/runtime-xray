@@ -1,13 +1,13 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1340 660" width="1340" height="660"
-     role="img" aria-label="Le code livré ne dit pas ce qui tourne ; une exécution observée le montre ligne par ligne, avec le temps passé et les valeurs réelles.">
+     role="img" aria-label="Delivered code does not say what runs; an observed run shows it line by line, with the time spent and the real values.">
   <defs><marker id="fl" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7"
     orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#5a6472"/></marker></defs>
   <rect width="1340" height="660" fill="#ffffff"/>
   <g font-family="Segoe UI, system-ui, sans-serif">
-  <text x="40" y="46" font-size="21" font-weight="700" fill="#14181e">Ce que le code ne dit pas, l'exécution le montre</text>
-  <text x="40" y="70" font-size="13.5" fill="#5a6472">Analyse dynamique : observer l'application pendant qu'elle tourne, sans modifier son code ni sa construction.</text>
+  <text x="40" y="46" font-size="21" font-weight="700" fill="#14181e">What the code does not say, the run shows</text>
+  <text x="40" y="70" font-size="13.5" fill="#5a6472">Dynamic analysis: observing the application while it runs, without modifying its code or its build.</text>
 
-  <text x="40" y="120" font-size="12" font-weight="700" fill="#5a6472" letter-spacing="1.4">LE CODE LIVRÉ</text>
+  <text x="40" y="120" font-size="12" font-weight="700" fill="#5a6472" letter-spacing="1.4">THE DELIVERED CODE</text>
   <line x1="40" y1="130" x2="360" y2="130" stroke="#c9d1d9"/>
   <rect x="40" y="150" width="11" height="11" rx="2" fill="#e4e9ef"/>
 <rect x="54" y="150" width="11" height="11" rx="2" fill="#e4e9ef"/>
@@ -383,37 +383,37 @@
 <rect x="306" y="374" width="11" height="11" rx="2" fill="#e4e9ef"/>
 <rect x="320" y="374" width="11" height="11" rx="2" fill="#e4e9ef"/>
 <rect x="334" y="374" width="11" height="11" rx="2" fill="#e4e9ef"/>
-  <text x="40" y="415" font-size="13.5" fill="#14181e">Des centaines de classes, toutes semblables.</text>
-  <circle cx="49" cy="448" r="9" fill="none" stroke="#5a6472" stroke-width="1.3"/><text x="49" y="452" font-size="11" font-weight="700" fill="#5a6472" text-anchor="middle">?</text><text x="67" y="452" font-size="13.5" fill="#5a6472">Qu'est-ce qui tourne vraiment ?</text>
-  <circle cx="49" cy="482" r="9" fill="none" stroke="#5a6472" stroke-width="1.3"/><text x="49" y="486" font-size="11" font-weight="700" fill="#5a6472" text-anchor="middle">?</text><text x="67" y="486" font-size="13.5" fill="#5a6472">Où passe le temps ?</text>
-  <circle cx="49" cy="516" r="9" fill="none" stroke="#5a6472" stroke-width="1.3"/><text x="49" y="520" font-size="11" font-weight="700" fill="#5a6472" text-anchor="middle">?</text><text x="67" y="520" font-size="13.5" fill="#5a6472">Avec quelles valeurs ?</text>
-  <text x="40" y="566" font-size="12.5" fill="#5a6472">Lire le code répond « ça dépend ».</text>
-  <text x="40" y="586" font-size="12.5" fill="#5a6472">Chercher à la main coûte des heures,</text>
-  <text x="40" y="606" font-size="12.5" fill="#5a6472">et ne prouve rien.</text>
+  <text x="40" y="415" font-size="13.5" fill="#14181e">Hundreds of classes, all alike.</text>
+  <circle cx="49" cy="448" r="9" fill="none" stroke="#5a6472" stroke-width="1.3"/><text x="49" y="452" font-size="11" font-weight="700" fill="#5a6472" text-anchor="middle">?</text><text x="67" y="452" font-size="13.5" fill="#5a6472">What really runs?</text>
+  <circle cx="49" cy="482" r="9" fill="none" stroke="#5a6472" stroke-width="1.3"/><text x="49" y="486" font-size="11" font-weight="700" fill="#5a6472" text-anchor="middle">?</text><text x="67" y="486" font-size="13.5" fill="#5a6472">Where does the time go?</text>
+  <circle cx="49" cy="516" r="9" fill="none" stroke="#5a6472" stroke-width="1.3"/><text x="49" y="520" font-size="11" font-weight="700" fill="#5a6472" text-anchor="middle">?</text><text x="67" y="520" font-size="13.5" fill="#5a6472">With which values?</text>
+  <text x="40" y="566" font-size="12.5" fill="#5a6472">Reading the code answers “it depends”.</text>
+  <text x="40" y="586" font-size="12.5" fill="#5a6472">Searching by hand costs hours,</text>
+  <text x="40" y="606" font-size="12.5" fill="#5a6472">and proves nothing.</text>
 
   <line x1="378" y1="285" x2="432" y2="285" stroke="#5a6472" stroke-width="1.6" marker-end="url(#fl)"/>
-  <text x="405" y="275" font-size="11.5" fill="#5a6472" text-anchor="middle">on lance</text>
+  <text x="405" y="275" font-size="11.5" fill="#5a6472" text-anchor="middle">we launch</text>
 
-  <text x="452" y="120" font-size="12" font-weight="700" fill="#5a6472" letter-spacing="1.4">L'EXÉCUTION, OBSERVÉE</text>
+  <text x="452" y="120" font-size="12" font-weight="700" fill="#5a6472" letter-spacing="1.4">THE RUN, OBSERVED</text>
   <line x1="452" y1="130" x2="838" y2="130" stroke="#c9d1d9"/>
   <rect x="452" y="235" width="200" height="100" rx="8" fill="#f6f8fa" stroke="#14181e" stroke-width="1.6"/>
-  <text x="552" y="272" font-size="14.5" font-weight="600" fill="#14181e" text-anchor="middle">L'application</text>
-  <text x="552" y="294" font-size="12.5" fill="#5a6472" text-anchor="middle">qui tourne, telle quelle</text>
-  <text x="552" y="316" font-size="11.5" fill="#5a6472" text-anchor="middle">JVM · un scénario réel</text>
+  <text x="552" y="272" font-size="14.5" font-weight="600" fill="#14181e" text-anchor="middle">The application</text>
+  <text x="552" y="294" font-size="12.5" fill="#5a6472" text-anchor="middle">running, as it is</text>
+  <text x="552" y="316" font-size="11.5" fill="#5a6472" text-anchor="middle">JVM · a real scenario</text>
   <line x1="652" y1="262" x2="712" y2="196" stroke="#1a7f37" stroke-width="1.6" marker-end="url(#fl)"/>
   <line x1="652" y1="285" x2="712" y2="285" stroke="#9a6700" stroke-width="1.6" marker-end="url(#fl)"/>
   <line x1="652" y1="308" x2="712" y2="374" stroke="#8250df" stroke-width="1.6" marker-end="url(#fl)"/>
-  <rect x="716" y="172" width="122" height="46" rx="6" fill="#ffffff" stroke="#1a7f37" stroke-width="1.4"/><text x="777" y="192" font-size="12.5" font-weight="600" fill="#1a7f37" text-anchor="middle">JaCoCo</text><text x="777" y="209" font-size="11" fill="#5a6472" text-anchor="middle">lignes exécutées</text>
-  <rect x="716" y="262" width="122" height="46" rx="6" fill="#ffffff" stroke="#9a6700" stroke-width="1.4"/><text x="777" y="282" font-size="12.5" font-weight="600" fill="#9a6700" text-anchor="middle">async-profiler</text><text x="777" y="299" font-size="11" fill="#5a6472" text-anchor="middle">temps passé</text>
-  <rect x="716" y="352" width="122" height="46" rx="6" fill="#ffffff" stroke="#8250df" stroke-width="1.4"/><text x="777" y="372" font-size="12.5" font-weight="600" fill="#8250df" text-anchor="middle">Arthas</text><text x="777" y="389" font-size="11" fill="#5a6472" text-anchor="middle">valeurs réelles</text>
-  <text x="452" y="456" font-size="12.5" fill="#5a6472">Trois instruments attachés à chaud.</text>
-  <text x="452" y="476" font-size="12.5" fill="#5a6472">Ni recompilation, ni instrumentation du</text>
-  <text x="452" y="496" font-size="12.5" fill="#5a6472">code source, ni licence, ni réseau.</text>
+  <rect x="716" y="172" width="122" height="46" rx="6" fill="#ffffff" stroke="#1a7f37" stroke-width="1.4"/><text x="777" y="192" font-size="12.5" font-weight="600" fill="#1a7f37" text-anchor="middle">JaCoCo</text><text x="777" y="209" font-size="11" fill="#5a6472" text-anchor="middle">executed lines</text>
+  <rect x="716" y="262" width="122" height="46" rx="6" fill="#ffffff" stroke="#9a6700" stroke-width="1.4"/><text x="777" y="282" font-size="12.5" font-weight="600" fill="#9a6700" text-anchor="middle">async-profiler</text><text x="777" y="299" font-size="11" fill="#5a6472" text-anchor="middle">time spent</text>
+  <rect x="716" y="352" width="122" height="46" rx="6" fill="#ffffff" stroke="#8250df" stroke-width="1.4"/><text x="777" y="372" font-size="12.5" font-weight="600" fill="#8250df" text-anchor="middle">Arthas</text><text x="777" y="389" font-size="11" fill="#5a6472" text-anchor="middle">real values</text>
+  <text x="452" y="456" font-size="12.5" fill="#5a6472">Three instruments attached live.</text>
+  <text x="452" y="476" font-size="12.5" fill="#5a6472">No recompilation, no instrumentation of the</text>
+  <text x="452" y="496" font-size="12.5" fill="#5a6472">source code, no licence, no network.</text>
 
   <line x1="862" y1="285" x2="916" y2="285" stroke="#5a6472" stroke-width="1.6" marker-end="url(#fl)"/>
-  <text x="889" y="275" font-size="11.5" fill="#5a6472" text-anchor="middle">on lit</text>
+  <text x="889" y="275" font-size="11.5" fill="#5a6472" text-anchor="middle">we read</text>
 
-  <text x="936" y="120" font-size="12" font-weight="700" fill="#5a6472" letter-spacing="1.4">LE CODE EN MOUVEMENT</text>
+  <text x="936" y="120" font-size="12" font-weight="700" fill="#5a6472" letter-spacing="1.4">THE CODE IN MOTION</text>
   <line x1="936" y1="130" x2="1300" y2="130" stroke="#c9d1d9"/>
   <rect x="936" y="150" width="11" height="11" rx="2" fill="#e4e9ef"/>
 <rect x="950" y="150" width="11" height="11" rx="2" fill="#e4e9ef"/>
@@ -790,14 +790,14 @@
 <rect x="1216" y="374" width="11" height="11" rx="2" fill="#e4e9ef"/>
 <rect x="1230" y="374" width="11" height="11" rx="2" fill="#e4e9ef"/>
   <g font-size="11.5" fill="#5a6472">
-    <rect x="936" y="404" width="10" height="10" rx="2" fill="#1a7f37"/><text x="952" y="413">exécutée</text>
-    <rect x="1026" y="404" width="10" height="10" rx="2" fill="#9a6700"/><text x="1042" y="413">partiellement</text>
-    <rect x="1138" y="404" width="10" height="10" rx="2" fill="#cf222e"/><text x="1154" y="413">jamais</text>
-    <rect x="1214" y="404" width="10" height="10" rx="2" fill="#e4e9ef"/><text x="1230" y="413">hors scénario</text>
+    <rect x="936" y="404" width="10" height="10" rx="2" fill="#1a7f37"/><text x="952" y="413">executed</text>
+    <rect x="1026" y="404" width="10" height="10" rx="2" fill="#9a6700"/><text x="1042" y="413">partial</text>
+    <rect x="1138" y="404" width="10" height="10" rx="2" fill="#cf222e"/><text x="1154" y="413">never</text>
+    <rect x="1214" y="404" width="10" height="10" rx="2" fill="#e4e9ef"/><text x="1230" y="413">off scenario</text>
   </g>
-  <rect x="936" y="437" width="4" height="20" rx="2" fill="#1a7f37"/><text x="950" y="452" font-size="13.5" font-weight="600" fill="#14181e">Ce qui tourne, ligne par ligne</text><text x="950" y="470" font-size="12.5" fill="#5a6472">et ce qui ne tourne jamais — donc ce qu'on peut retirer</text>
-  <rect x="936" y="485" width="4" height="20" rx="2" fill="#9a6700"/><text x="950" y="500" font-size="13.5" font-weight="600" fill="#14181e">Où part le temps, méthode par méthode</text><text x="950" y="518" font-size="12.5" fill="#5a6472">la boucle chaude, pas celle qu'on soupçonnait</text>
-  <rect x="936" y="533" width="4" height="20" rx="2" fill="#8250df"/><text x="950" y="548" font-size="13.5" font-weight="600" fill="#14181e">Les valeurs qui ont circulé</text><text x="950" y="566" font-size="12.5" fill="#5a6472">les paramètres réels, pas ceux de la documentation</text>
-  <text x="936" y="606" font-size="12.5" fill="#14181e" font-weight="600">Une réponse mesurée, en quelques minutes.</text>
+  <rect x="936" y="437" width="4" height="20" rx="2" fill="#1a7f37"/><text x="950" y="452" font-size="13.5" font-weight="600" fill="#14181e">What runs, line by line</text><text x="950" y="470" font-size="12.5" fill="#5a6472">and what never runs — hence what can be removed</text>
+  <rect x="936" y="485" width="4" height="20" rx="2" fill="#9a6700"/><text x="950" y="500" font-size="13.5" font-weight="600" fill="#14181e">Where the time goes, method by method</text><text x="950" y="518" font-size="12.5" fill="#5a6472">the hot loop, not the one suspected</text>
+  <rect x="936" y="533" width="4" height="20" rx="2" fill="#8250df"/><text x="950" y="548" font-size="13.5" font-weight="600" fill="#14181e">The values that went through</text><text x="950" y="566" font-size="12.5" fill="#5a6472">the real parameters, not the documented ones</text>
+  <text x="936" y="606" font-size="12.5" fill="#14181e" font-weight="600">A measured answer, in a few minutes.</text>
   </g>
 </svg>
