@@ -44,8 +44,8 @@ class AccessTest {
         if (server != null) server.stop(0);
     }
 
-    private String garde(Path dir, Access acces) throws IOException {
-        server = LocalServer.start(dir, "127.0.0.1", 0, () -> null, acces);
+    private String guards(Path dir, Access access) throws IOException {
+        server = LocalServer.start(dir, "127.0.0.1", 0, () -> null, access);
         return "http://127.0.0.1:" + server.getAddress().getPort();
     }
 
@@ -65,10 +65,10 @@ class AccessTest {
         return client.send(b.build(), HttpResponse.BodyHandlers.ofString());
     }
 
-    private HttpResponse<String> formulaire(String base, String corps) throws Exception {
+    private HttpResponse<String> form(String base, String body) throws Exception {
         return client.send(HttpRequest.newBuilder(URI.create(base + "/__xray/entrer"))
                         .header("Content-Type", "application/x-www-form-urlencoded")
-                        .POST(HttpRequest.BodyPublishers.ofString(corps, StandardCharsets.UTF_8))
+                        .POST(HttpRequest.BodyPublishers.ofString(body, StandardCharsets.UTF_8))
                         .build(),
                 HttpResponse.BodyHandlers.ofString());
     }
@@ -76,14 +76,14 @@ class AccessTest {
     /** Le cookie de session tel qu'on le renverra ensuite, ou {@code null} s'il n'y en a pas. */
     private String cookie(HttpResponse<String> r) {
         return r.headers().firstValue("Set-Cookie")
-                .map(entete -> entete.split(";")[0]).orElse(null);
+                .map(header -> header.split(";")[0]).orElse(null);
     }
 
     @Test
     @DisplayName("Sans secret, rien n'est demandé : les deux premiers modes ne bougent pas")
     void withoutSecretNothingIsAsked(@TempDir Path dir) throws Exception {
         run(dir, "u-1");
-        String base = garde(dir, Access.ouvert());
+        String base = guards(dir, Access.open());
 
         assertEquals(200, get(base + "/", null).statusCode(), "la page s'ouvre");
         HttpResponse<String> ping = get(base + "/__xray/ping", null);
@@ -96,9 +96,9 @@ class AccessTest {
     @DisplayName("Avec un secret, on n'écrit pas d'annotation sans l'avoir donné")
     void writingIsRefusedWithoutTheSecret(@TempDir Path dir) throws Exception {
         Path run = run(dir, "u-1");
-        String base = garde(dir, Access.avecSecret(SECRET));
+        String base = guards(dir, Access.withSecret(SECRET));
 
-        HttpResponse<String> refus = client.send(
+        HttpResponse<String> refusal = client.send(
                 HttpRequest.newBuilder(URI.create(base + "/__xray/noms/u-1"))
                         .header("Content-Type", "application/json")
                         .POST(HttpRequest.BodyPublishers.ofString(
@@ -106,8 +106,8 @@ class AccessTest {
                         .build(),
                 HttpResponse.BodyHandlers.ofString());
 
-        assertEquals(401, refus.statusCode());
-        assertFalse(Files.exists(run.resolve(Annotations.DANS_LE_RUN)),
+        assertEquals(401, refusal.statusCode());
+        assertFalse(Files.exists(run.resolve(Annotations.IN_THE_RUN)),
                 "le refus doit précéder l'écriture, sinon la porte ne sert à rien");
     }
 
@@ -115,7 +115,7 @@ class AccessTest {
     @DisplayName("Un navigateur est envoyé au formulaire, un fetch reçoit un 401")
     void browsersAreRedirectedAndScriptsAreNot(@TempDir Path dir) throws Exception {
         run(dir, "u-1");
-        String base = garde(dir, Access.avecSecret(SECRET));
+        String base = guards(dir, Access.withSecret(SECRET));
 
         HttpResponse<String> page = get(base + "/", null);
         assertEquals(302, page.statusCode());
@@ -132,21 +132,21 @@ class AccessTest {
     @DisplayName("Le bon secret ouvre une session, et la session ouvre le rapport")
     void theRightSecretOpensASession(@TempDir Path dir) throws Exception {
         run(dir, "u-1");
-        String base = garde(dir, Access.avecSecret(SECRET));
+        String base = guards(dir, Access.withSecret(SECRET));
 
         assertEquals(200, get(base + "/__xray/entrer", null).statusCode(),
                 "le formulaire lui-même n'est pas gardé, sinon on ne pourrait jamais entrer");
 
-        HttpResponse<String> entree = formulaire(base,
+        HttpResponse<String> entry = form(base,
                 "jeton=" + java.net.URLEncoder.encode(SECRET, StandardCharsets.UTF_8)
                         + "&vers=%2F");
-        assertEquals(302, entree.statusCode());
-        String cookie = cookie(entree);
+        assertEquals(302, entry.statusCode());
+        String cookie = cookie(entry);
         assertTrue(cookie != null && cookie.startsWith("xray_session="), "une session est posée");
-        String brut = entree.headers().firstValue("Set-Cookie").orElseThrow();
-        assertTrue(brut.contains("HttpOnly"), "le script de la page n'a aucune raison de le lire");
-        assertTrue(brut.contains("SameSite=Strict"), "et un autre site aucune de s'en servir");
-        assertFalse(brut.contains(SECRET), "la session ne transporte pas le secret lui-même");
+        String raw = entry.headers().firstValue("Set-Cookie").orElseThrow();
+        assertTrue(raw.contains("HttpOnly"), "le script de la page n'a aucune raison de le lire");
+        assertTrue(raw.contains("SameSite=Strict"), "et un autre site aucune de s'en servir");
+        assertFalse(raw.contains(SECRET), "la session ne transporte pas le secret lui-même");
 
         assertEquals(200, get(base + "/", cookie).statusCode());
         assertEquals(200, get(base + "/__xray/noms", cookie).statusCode());
@@ -156,19 +156,19 @@ class AccessTest {
     @DisplayName("Un mauvais secret n'ouvre rien")
     void theWrongSecretOpensNothing(@TempDir Path dir) throws Exception {
         run(dir, "u-1");
-        String base = garde(dir, Access.avecSecret(SECRET));
+        String base = guards(dir, Access.withSecret(SECRET));
 
-        HttpResponse<String> refus = formulaire(base, "jeton=au-hasard&vers=%2F");
-        assertEquals(401, refus.statusCode());
-        assertEquals(null, cookie(refus));
-        assertFalse(refus.body().contains(SECRET), "une page d'erreur ne souffle pas la réponse");
+        HttpResponse<String> refusal = form(base, "jeton=au-hasard&vers=%2F");
+        assertEquals(401, refusal.statusCode());
+        assertEquals(null, cookie(refusal));
+        assertFalse(refusal.body().contains(SECRET), "une page d'erreur ne souffle pas la réponse");
     }
 
     @Test
     @DisplayName("Un script passe par l'en-tête, sans formulaire")
     void scriptsUseTheHeader(@TempDir Path dir) throws Exception {
         run(dir, "u-1");
-        String base = garde(dir, Access.avecSecret(SECRET));
+        String base = guards(dir, Access.withSecret(SECRET));
 
         HttpResponse<String> ok = client.send(
                 HttpRequest.newBuilder(URI.create(base + "/__xray/ping"))
@@ -188,15 +188,15 @@ class AccessTest {
     @DisplayName("Après quelques essais ratés, on cesse de répondre à cette adresse")
     void guessingIsThrottled(@TempDir Path dir) throws Exception {
         run(dir, "u-1");
-        String base = garde(dir, Access.avecSecret(SECRET));
+        String base = guards(dir, Access.withSecret(SECRET));
 
         for (int i = 0; i < 5; i++) {
-            assertEquals(401, formulaire(base, "jeton=essai-" + i).statusCode());
+            assertEquals(401, form(base, "jeton=essai-" + i).statusCode());
         }
         // Le sixième n'est plus examiné : un secret partagé se devine par force brute, et
         // rien d'autre ici ne ralentit un script qui essaie mille mots.
-        assertEquals(429, formulaire(base, "jeton=essai-6").statusCode());
-        assertEquals(429, formulaire(base,
+        assertEquals(429, form(base, "jeton=essai-6").statusCode());
+        assertEquals(429, form(base,
                         "jeton=" + java.net.URLEncoder.encode(SECRET, StandardCharsets.UTF_8))
                 .statusCode(), "y compris avec le bon : la mise à l'écart ne se contourne pas");
     }
@@ -205,39 +205,39 @@ class AccessTest {
     @DisplayName("Le retour après entrée ne quitte jamais ce serveur")
     void theReturnStaysHere(@TempDir Path dir) throws Exception {
         run(dir, "u-1");
-        String base = garde(dir, Access.avecSecret(SECRET));
+        String base = guards(dir, Access.withSecret(SECRET));
 
         // « vers » vient de l'URL : sans garde-fou, une adresse préparée ferait entrer
         // quelqu'un ici puis le déposerait ailleurs, avec la confiance qu'il vient d'accorder.
-        HttpResponse<String> entree = formulaire(base,
+        HttpResponse<String> entry = form(base,
                 "jeton=" + java.net.URLEncoder.encode(SECRET, StandardCharsets.UTF_8)
                         + "&vers=" + java.net.URLEncoder.encode("//ailleurs.example/piege",
                                 StandardCharsets.UTF_8));
-        assertEquals(302, entree.statusCode());
-        assertEquals("/", entree.headers().firstValue("Location").orElseThrow());
+        assertEquals(302, entry.statusCode());
+        assertEquals("/", entry.headers().firstValue("Location").orElseThrow());
     }
 
     @Test
     @DisplayName("Deux secrets tirés au sort ne se ressemblent pas, et un secret vide est refusé")
     void drawnSecretsAreUsable() {
-        String a = Access.secretTireAuSort();
-        assertNotEquals(a, Access.secretTireAuSort());
+        String a = Access.randomSecret();
+        assertNotEquals(a, Access.randomSecret());
         assertTrue(a.length() >= 20, "trop court pour résister à quoi que ce soit : " + a);
-        assertThrows(IllegalArgumentException.class, () -> Access.avecSecret("  "));
+        assertThrows(IllegalArgumentException.class, () -> Access.withSecret("  "));
         // Un secret accentué se perdrait dans l'en-tête Authorization : mieux vaut le dire
         // au démarrage qu'au premier 401 sur un serveur déjà déployé.
-        assertThrows(IllegalArgumentException.class, () -> Access.avecSecret("clé-secrète"));
+        assertThrows(IllegalArgumentException.class, () -> Access.withSecret("clé-secrète"));
     }
 
     @Test
     @DisplayName("Le secret vient de la ligne de commande, sinon de l'environnement")
     void theSecretComesFromEitherPlace() {
-        assertEquals("depuis-la-ligne", Access.secretDemande("depuis-la-ligne",
+        assertEquals("depuis-la-ligne", Access.secretRequested("depuis-la-ligne",
                 Map.of("XRAY_SERVE_TOKEN", "depuis-l-environnement")));
-        assertEquals("depuis-l-environnement", Access.secretDemande(null,
+        assertEquals("depuis-l-environnement", Access.secretRequested(null,
                 Map.of("XRAY_SERVE_TOKEN", "depuis-l-environnement")));
-        assertEquals(null, Access.secretDemande(null, Map.of()));
-        assertEquals(null, Access.secretDemande(null, Map.of("XRAY_SERVE_TOKEN", "   ")),
+        assertEquals(null, Access.secretRequested(null, Map.of()));
+        assertEquals(null, Access.secretRequested(null, Map.of("XRAY_SERVE_TOKEN", "   ")),
                 "une variable vide vaut pas de secret, pas un secret vide");
     }
 }

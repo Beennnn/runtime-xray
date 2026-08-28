@@ -47,9 +47,9 @@ public final class Annotations {
     /** Le fichier commun, indexé par identifiant d'exécution. */
     public static final String CENTRAL = "noms.json";
     /** Le fichier posé DANS le répertoire de l'exécution. */
-    public static final String DANS_LE_RUN = "config.json";
+    public static final String IN_THE_RUN = "config.json";
     /** Le suffixe du fichier posé À CÔTÉ du répertoire. */
-    public static final String SUFFIXE = "-config.json";
+    public static final String SUFFIX = "-config.json";
 
     private Annotations() {}
 
@@ -60,10 +60,10 @@ public final class Annotations {
      * @return la valeur telle qu'elle a été écrite (chaîne ou objet), ou {@code null}
      */
     public static Object forRun(Path runDir, String uuid, Map<String, Object> central) {
-        Object dedans = readFile(runDir.resolve(DANS_LE_RUN));
-        if (dedans != null) return dedans;
-        Object aCote = readFile(runDir.resolveSibling(runDir.getFileName() + SUFFIXE));
-        if (aCote != null) return aCote;
+        Object inside = readFile(runDir.resolve(IN_THE_RUN));
+        if (inside != null) return inside;
+        Object beside = readFile(runDir.resolveSibling(runDir.getFileName() + SUFFIX));
+        if (beside != null) return beside;
         return uuid == null || uuid.isBlank() ? null : central.get(uuid);
     }
 
@@ -76,11 +76,11 @@ public final class Annotations {
      * mesure, et celui qu'on veut par défaut.
      */
     public static Path fileFor(Path runDir) {
-        Path dedans = runDir.resolve(DANS_LE_RUN);
-        if (Files.isRegularFile(dedans)) return dedans;
-        Path aCote = runDir.resolveSibling(runDir.getFileName() + SUFFIXE);
-        if (Files.isRegularFile(aCote)) return aCote;
-        return dedans;
+        Path inside = runDir.resolve(IN_THE_RUN);
+        if (Files.isRegularFile(inside)) return inside;
+        Path beside = runDir.resolveSibling(runDir.getFileName() + SUFFIX);
+        if (Files.isRegularFile(beside)) return beside;
+        return inside;
     }
 
     /** Écrit l'annotation d'une exécution, ou retire le fichier si elle est vide. */
@@ -126,8 +126,8 @@ public final class Annotations {
 
     @SuppressWarnings("unchecked")
     private static String uuidOf(Path runDir) {
-        Object lu = readFile(runDir.resolve("run-context.json"));
-        if (lu instanceof Map<?, ?> m) {
+        Object read = readFile(runDir.resolve("run-context.json"));
+        if (read instanceof Map<?, ?> m) {
             Object uuid = ((Map<String, Object>) m).get("uuid");
             return uuid == null || String.valueOf(uuid).isBlank() ? null : String.valueOf(uuid);
         }
@@ -148,8 +148,8 @@ public final class Annotations {
     /** Le fichier commun, ou une carte vide s'il n'existe pas. */
     @SuppressWarnings("unchecked")
     public static Map<String, Object> readCentral(Path commonDir) {
-        Object lu = readFile(commonDir.resolve(CENTRAL));
-        return lu instanceof Map<?, ?> m
+        Object read = readFile(commonDir.resolve(CENTRAL));
+        return read instanceof Map<?, ?> m
                 ? new LinkedHashMap<>((Map<String, Object>) m)
                 : new LinkedHashMap<>();
     }

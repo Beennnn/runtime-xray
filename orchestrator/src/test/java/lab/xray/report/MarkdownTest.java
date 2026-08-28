@@ -24,39 +24,39 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 class MarkdownTest {
 
-    private static Map<String, Object> classe(String nom, int couvert, int manque) {
+    private static Map<String, Object> clazz(String name, int covered, int missing) {
         Map<String, Object> m = new LinkedHashMap<>();
-        m.put("name", nom);
-        m.put("simple", nom.substring(nom.lastIndexOf('/') + 1));
-        m.put("covered", couvert);
-        m.put("missed", manque);
+        m.put("name", name);
+        m.put("simple", name.substring(name.lastIndexOf('/') + 1));
+        m.put("covered", covered);
+        m.put("missed", missing);
         return m;
     }
 
-    private static Map<String, Object> noeud(String nom, long total, Object... enfants) {
+    private static Map<String, Object> node(String name, long total, Object... children) {
         Map<String, Object> m = new LinkedHashMap<>();
-        m.put("name", nom);
+        m.put("name", name);
         m.put("total", total);
-        m.put("children", List.of(enfants));
+        m.put("children", List.of(children));
         return m;
     }
 
     private static Map<String, Object> run() {
         Map<String, Object> packages = new LinkedHashMap<>();
-        packages.put("app/moteur", List.of(classe("app/moteur/Calcul", 90, 10)));
-        packages.put("app/mort", List.of(classe("app/mort/JamaisAppele", 0, 40)));
+        packages.put("app/moteur", List.of(clazz("app/moteur/Calcul", 90, 10)));
+        packages.put("app/mort", List.of(clazz("app/mort/JamaisAppele", 0, 40)));
 
-        Map<String, Object> appel = new LinkedHashMap<>();
-        appel.put("params", List.of(Map.of("type", "Trip", "value", "Trip[id=A|B, mode=CAR]")));
-        appel.put("retour", Map.of("type", "Double", "value", "42.0"));
+        Map<String, Object> call = new LinkedHashMap<>();
+        call.put("params", List.of(Map.of("type", "Trip", "value", "Trip[id=A|B, mode=CAR]")));
+        call.put("retour", Map.of("type", "Double", "value", "42.0"));
 
         Map<String, Object> run = new LinkedHashMap<>();
         run.put("nom", "Recette");
         run.put("context", new LinkedHashMap<>(Map.of("commande", "java -jar app.jar",
                 "java", "Temurin 25")));
         run.put("packages", packages);
-        run.put("calltree", noeud("tout", 100, noeud("app/moteur/Calcul.calculer", 80)));
-        run.put("values", Map.of("app/moteur/Calcul.calculer", List.of(appel)));
+        run.put("calltree", node("tout", 100, node("app/moteur/Calcul.calculer", 80)));
+        run.put("values", Map.of("app/moteur/Calcul.calculer", List.of(call)));
         return run;
     }
 
@@ -99,11 +99,11 @@ class MarkdownTest {
     @DisplayName("Une valeur contenant un « | » ne casse pas le tableau")
     void escapesPipesInValues(@TempDir Path dir) throws IOException {
         String md = write(dir);
-        String ligne = md.lines().filter(l -> l.contains("Trip[id=")).findFirst().orElseThrow();
+        String line = md.lines().filter(l -> l.contains("Trip[id=")).findFirst().orElseThrow();
         // 4 séparateurs pour 3 colonnes : | # | paramètres | retour |
-        assertEquals(4, ligne.chars().filter(c -> c == '|').count() - countEscaped(ligne),
-                "colonne cassée par un séparateur non échappé : " + ligne);
-        assertTrue(ligne.contains("\\|"), "le séparateur de la valeur doit être échappé");
+        assertEquals(4, line.chars().filter(c -> c == '|').count() - countEscaped(line),
+                "colonne cassée par un séparateur non échappé : " + line);
+        assertTrue(line.contains("\\|"), "le séparateur de la valeur doit être échappé");
     }
 
     private static long countEscaped(String s) {
@@ -121,10 +121,10 @@ class MarkdownTest {
     @Test
     @DisplayName("Sans donnée, une section est absente plutôt que vide")
     void skipsEmptySections(@TempDir Path dir) throws IOException {
-        Map<String, Object> vide = new LinkedHashMap<>();
-        vide.put("nom", "Rien");
-        vide.put("calltree", noeud("tout", 0));
-        Markdown.write(dir, List.of(vide));
+        Map<String, Object> empty = new LinkedHashMap<>();
+        empty.put("nom", "Rien");
+        empty.put("calltree", node("tout", 0));
+        Markdown.write(dir, List.of(empty));
         String md = Files.readString(dir.resolve("rapport.md"), StandardCharsets.UTF_8);
         assertFalse(md.contains("### Where the time went"),
                 "une section vide fait croire à une panne de l'outil");

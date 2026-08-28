@@ -28,17 +28,17 @@ import java.util.TreeMap;
  * fait pour être glissé dans une présentation, et PowerPoint n'interprète pas
  * {@code currentColor}. Pour la même raison, il n'y a ni script, ni police externe.
  */
-public final class Diagramme {
+public final class Diagram {
 
     private static final String INK = "#14181e", MUTED = "#5a6472", RULE = "#c9d1d9";
-    private static final String VERT = "#1a7f37", ROUGE = "#cf222e", AMBRE = "#9a6700";
-    private static final String BLEU = "#0969da", FOND_BARRE = "#e4e9ef";
-    private static final String POLICE = "Segoe UI, system-ui, sans-serif";
+    private static final String GREEN = "#1a7f37", RED = "#cf222e", AMBER = "#9a6700";
+    private static final String BLUE = "#0969da", BAR_BACKGROUND = "#e4e9ef";
+    private static final String FONT = "Segoe UI, system-ui, sans-serif";
 
     /** Au-delà, la page devient un mur : on montre les plus parlants et on dit le reste. */
-    private static final int MAX_PAQUETS = 9, MAX_METHODES = 6, MAX_MORTES = 16;
+    private static final int MAX_PACKAGES = 9, MAX_METHODS = 6, MAX_DEAD = 16;
 
-    private Diagramme() {}
+    private Diagram() {}
 
     /**
      * Écrit {@code synthese.svg} à côté de la page.
@@ -46,15 +46,15 @@ public final class Diagramme {
      * @param runs les exécutions telles que la vue les reçoit
      * @return le fichier écrit, ou {@code null} s'il n'y avait rien à dessiner
      */
-    public static Path ecrire(Path commonDir, List<Object> runs) throws IOException {
+    public static Path write(Path commonDir, List<Object> runs) throws IOException {
         if (runs == null || runs.isEmpty()) return null;
-        Map<String, long[]> paquets = couvertureParPaquet(runs);
-        if (paquets.isEmpty()) return null;
+        Map<String, long[]> pkgs = coveragePerPackage(runs);
+        if (pkgs.isEmpty()) return null;
 
-        long cov = 0, mis = 0;
-        for (long[] v : paquets.values()) { cov += v[0]; mis += v[1]; }
+        long cov = 0, put = 0;
+        for (long[] v : pkgs.values()) { cov += v[0]; put += v[1]; }
         Path out = commonDir.resolve("synthese.svg");
-        Files.writeString(out, svg(commonDir, runs, paquets, cov, mis), StandardCharsets.UTF_8);
+        Files.writeString(out, svg(commonDir, runs, pkgs, cov, put), StandardCharsets.UTF_8);
         return out;
     }
 
@@ -70,36 +70,36 @@ public final class Diagramme {
      * pas se permettre un chiffre dont personne ne sait d'où il sort : il serait démenti par
      * le premier qui ouvre le rapport JaCoCo.
      */
-    private record Chiffre(double pct, long couvert, long total, String source) {}
+    private record Figure(double pct, long covered, long total, String source) {}
 
-    private static Chiffre couverture(Path commonDir, long cov, long mis) {
-        Path fusion = commonDir.resolve("jacoco-fusion/html/jacoco.xml");
-        if (Files.isRegularFile(fusion)) {
+    private static Figure coverage(Path commonDir, long cov, long put) {
+        Path merge = commonDir.resolve("jacoco-fusion/html/jacoco.xml");
+        if (Files.isRegularFile(merge)) {
             try {
-                Coverage c = Coverage.parse(fusion, PackageFilter.NONE);
-                long couvert = 0, manque = 0;
+                Coverage c = Coverage.parse(merge, PackageFilter.NONE);
+                long covered = 0, missing = 0;
                 for (Object classes : c.packages.values()) {
-                    if (!(classes instanceof Iterable<?> liste)) continue;
-                    for (Object o : liste) {
+                    if (!(classes instanceof Iterable<?> list)) continue;
+                    for (Object o : list) {
                         if (!(o instanceof Map<?, ?> cls)) continue;
-                        couvert += nombre(cls.get("covered"));
-                        manque += nombre(cls.get("missed"));
+                        covered += number(cls.get("covered"));
+                        missing += number(cls.get("missed"));
                     }
                 }
-                if (couvert + manque > 0) {
-                    return new Chiffre(100.0 * couvert / (couvert + manque), couvert,
-                            couvert + manque, "JaCoCo merge of " );
+                if (covered + missing > 0) {
+                    return new Figure(100.0 * covered / (covered + missing), covered,
+                            covered + missing, "JaCoCo merge of " );
                 }
             } catch (Exception e) {
                 // La fusion est un supplément : son illisibilité ne doit pas priver de schéma.
             }
         }
-        long total = cov + mis;
-        return new Chiffre(total == 0 ? 0 : 100.0 * cov / total, cov, total, null);
+        long total = cov + put;
+        return new Figure(total == 0 ? 0 : 100.0 * cov / total, cov, total, null);
     }
 
-    private static String svg(Path commonDir, List<Object> runs, Map<String, long[]> paquets,
-                             long cov, long mis) {
+    private static String svg(Path commonDir, List<Object> runs, Map<String, long[]> pkgs,
+                             long cov, long put) {
         StringBuilder s = new StringBuilder();
         s.append("""
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" width="1280" \
@@ -108,113 +108,113 @@ public final class Diagramme {
                 exécutées.">
                 <rect width="1280" height="720" fill="#ffffff"/>
                 <g font-family="%s">
-                """.formatted(POLICE));
+                """.formatted(FONT));
 
-        Map<String, Object> ctx = contexte(runs);
-        Chiffre couverture = couverture(commonDir, cov, mis);
-        List<String> jamais = classesJamaisExecutees(runs);
-        long classes = nombreDeClasses(runs), mortes = jamais.size();
+        Map<String, Object> ctx = context(runs);
+        Figure coverage = coverage(commonDir, cov, put);
+        List<String> never = neverExecutedClasses(runs);
+        long classes = classCount(runs), dead = never.size();
 
         // ── en-tête ────────────────────────────────────────────────────────────────
-        texte(s, 40, 48, 22, 700, INK, "What the campaign measured");
-        texte(s, 40, 72, 13, 400, MUTED, court(String.valueOf(ctx.getOrDefault("commande", "")), 95));
-        texte(s, 40, 92, 12.5, 400, MUTED,
-                joindre(" · ", String.valueOf(ctx.getOrDefault("machine", "")),
+        text(s, 40, 48, 22, 700, INK, "What the campaign measured");
+        text(s, 40, 72, 13, 400, MUTED, shorten(String.valueOf(ctx.getOrDefault("commande", "")), 95));
+        text(s, 40, 92, 12.5, 400, MUTED,
+                join(" · ", String.valueOf(ctx.getOrDefault("machine", "")),
                         String.valueOf(ctx.getOrDefault("debut", "")),
                         runs.size() + (runs.size() > 1 ? " runs" : " run")));
 
         // ── quatre chiffres ────────────────────────────────────────────────────────
-        tuile(s, 40, 118, "CUMULATIVE COVERAGE", arrondi(couverture.pct()) + "%",
-                couverture.source() != null
-                        ? couverture.couvert() + " of " + couverture.total() + " — JaCoCo merge"
-                        : couverture.couvert() + " of " + couverture.total()
+        tile(s, 40, 118, "CUMULATIVE COVERAGE", rounded(coverage.pct()) + "%",
+                coverage.source() != null
+                        ? coverage.covered() + " of " + coverage.total() + " — JaCoCo merge"
+                        : coverage.covered() + " of " + coverage.total()
                           + " — best per class",
-                VERT);
-        tuile(s, 350, 118, "CLASSES MEASURED", String.valueOf(classes),
-                mortes + " never ran", BLEU);
-        tuile(s, 660, 118, "RUNS GATHERED", String.valueOf(runs.size()),
-                "each brings its share", AMBRE);
-        tuile(s, 970, 118, "TIME OBSERVED", dureeTotale(runs),
+                GREEN);
+        tile(s, 350, 118, "CLASSES MEASURED", String.valueOf(classes),
+                dead + " never ran", BLUE);
+        tile(s, 660, 118, "RUNS GATHERED", String.valueOf(runs.size()),
+                "each brings its share", AMBER);
+        tile(s, 970, 118, "TIME OBSERVED", totalDuration(runs),
                 "wall-clock time of the scenarios", MUTED);
 
         // ── par paquet ─────────────────────────────────────────────────────────────
-        titre(s, 40, 268, "WHERE THE CODE IS COVERED, PACKAGE BY PACKAGE", 600);
-        List<Map.Entry<String, long[]>> tries = new ArrayList<>(paquets.entrySet());
+        title(s, 40, 268, "WHERE THE CODE IS COVERED, PACKAGE BY PACKAGE", 600);
+        List<Map.Entry<String, long[]>> ordered = new ArrayList<>(pkgs.entrySet());
         // Le moins couvert d'abord : c'est là qu'on décide quelque chose.
-        tries.sort(Comparator.comparingDouble(e -> part(e.getValue())));
+        ordered.sort(Comparator.comparingDouble(e -> share(e.getValue())));
         int y = 296;
-        for (int i = 0; i < Math.min(MAX_PAQUETS, tries.size()); i++) {
-            Map.Entry<String, long[]> e = tries.get(i);
-            barre(s, 40, y, 600, e.getKey().replace('/', '.'), part(e.getValue()),
+        for (int i = 0; i < Math.min(MAX_PACKAGES, ordered.size()); i++) {
+            Map.Entry<String, long[]> e = ordered.get(i);
+            bar(s, 40, y, 600, e.getKey().replace('/', '.'), share(e.getValue()),
                   e.getValue()[2] + (e.getValue()[2] > 1 ? " classes" : " classe"), 236);
             y += 30;
         }
-        if (tries.size() > MAX_PAQUETS) {
-            texte(s, 40, y + 6, 12, 400, MUTED,
-                    "and " + (tries.size() - MAX_PAQUETS) + " more packages — the page shows them all");
+        if (ordered.size() > MAX_PACKAGES) {
+            text(s, 40, y + 6, 12, 400, MUTED,
+                    "and " + (ordered.size() - MAX_PACKAGES) + " more packages — the page shows them all");
         }
 
         // ── où le temps est parti ──────────────────────────────────────────────────
-        titre(s, 700, 268, "WHERE THE TIME WENT", 540);
-        List<Map.Entry<String, Long>> chaud = methodesLesPlusChaudes(runs);
+        title(s, 700, 268, "WHERE THE TIME WENT", 540);
+        List<Map.Entry<String, Long>> chaud = hottestMethods(runs);
         if (chaud.isEmpty()) {
-            texte(s, 700, 300, 12.5, 400, MUTED, "No time measurement in this campaign.");
+            text(s, 700, 300, 12.5, 400, MUTED, "No time measurement in this campaign.");
         } else {
             long max = chaud.get(0).getValue();
             int yc = 296;
             for (Map.Entry<String, Long> e : chaud) {
                 // Un nom de méthode qualifié est long : on lui donne la place, et on coupe
                 // par la GAUCHE — c'est la fin du nom qui identifie, pas le paquet.
-                barre(s, 700, yc, 540, court(e.getKey().replace('/', '.'), 40),
+                bar(s, 700, yc, 540, shorten(e.getKey().replace('/', '.'), 40),
                       max == 0 ? 0 : 100.0 * e.getValue() / max, "", 300);
                 yc += 30;
             }
-            texte(s, 700, yc + 6, 12, 400, MUTED,
+            text(s, 700, yc + 6, 12, 400, MUTED,
                     "Share of the measured time, calls included — relative to the costliest.");
         }
 
         // ── jamais exécuté ─────────────────────────────────────────────────────────
         // Par exécution : ce que chaque scénario apporte. C'est la question qu'on pose devant
         // une campagne — « le deuxième scénario a-t-il servi à quelque chose ? ».
-        titre(s, 700, 500, "WHAT EACH RUN COVERED", 540);
+        title(s, 700, 500, "WHAT EACH RUN COVERED", 540);
         // Toutes sur le MÊME dénominateur que le cumul, sans quoi une exécution afficherait
         // un pourcentage supérieur au total — chacune sur son propre périmètre, ce qui se
         // lit comme une contradiction alors que ce n'est qu'un changement de base.
-        long base = couverture.total();
+        long base = coverage.total();
         int ye = 528;
         for (Object r : runs) {
             if (!(r instanceof Map<?, ?> run)) continue;
-            long[] v = couvertureDe(run);
+            long[] v = coverageOf(run);
             double p = base == 0 ? 0 : 100.0 * v[0] / base;
-            barre(s, 700, ye, 540, court(String.valueOf(run.get("nom")), 34), p, duree(run), 300);
+            bar(s, 700, ye, 540, shorten(String.valueOf(run.get("nom")), 34), p, duration(run), 300);
             ye += 30;
             if (ye > 604) break;
         }
-        texte(s, 700, ye + 4, 11.5, 400, MUTED,
+        text(s, 700, ye + 4, 11.5, 400, MUTED,
                 "Share of the same total as the cumulative figure — what each scenario alone would give.");
 
-        titre(s, 40, 620, "WHAT NEVER RAN", 1200);
-        if (jamais.isEmpty()) {
-            texte(s, 40, 652, 12.5, 400, VERT,
+        title(s, 40, 620, "WHAT NEVER RAN", 1200);
+        if (never.isEmpty()) {
+            text(s, 40, 652, 12.5, 400, GREEN,
                     "None: every measured class was reached.");
         } else {
             int x = 40, yj = 650;
-            for (int i = 0; i < Math.min(MAX_MORTES, jamais.size()); i++) {
-                String nom = jamais.get(i);
-                int w = 9 * nom.length() + 18;
+            for (int i = 0; i < Math.min(MAX_DEAD, never.size()); i++) {
+                String name = never.get(i);
+                int w = 9 * name.length() + 18;
                 if (x + w > 1240) { x = 40; yj += 28; }
                 s.append("<rect x=\"%d\" y=\"%d\" width=\"%d\" height=\"22\" rx=\"4\" fill=\"#fff5f5\" stroke=\"%s\" stroke-width=\"1\"/>\n"
-                        .formatted(x, yj - 16, w, ROUGE));
-                texte(s, x + 9, yj, 11.5, 500, ROUGE, nom);
+                        .formatted(x, yj - 16, w, RED));
+                text(s, x + 9, yj, 11.5, 500, RED, name);
                 x += w + 8;
             }
-            if (jamais.size() > MAX_MORTES) {
-                texte(s, x + 4, yj, 12, 400, MUTED,
-                        "and " + (jamais.size() - MAX_MORTES) + " more.");
+            if (never.size() > MAX_DEAD) {
+                text(s, x + 4, yj, 12, 400, MUTED,
+                        "and " + (never.size() - MAX_DEAD) + " more.");
             }
         }
 
-        texte(s, 40, 706, 11.5, 400, MUTED,
+        text(s, 40, 706, 11.5, 400, MUTED,
                 "Runtime X-Ray — measured figures, none estimated. The full report comes with this diagram.");
         s.append("</g></svg>\n");
         return s.toString();
@@ -222,52 +222,52 @@ public final class Diagramme {
 
     // ------------------------------------------------------------------ dessin
 
-    private static void texte(StringBuilder s, double x, double y, double taille, int gras,
-                              String couleur, String contenu) {
+    private static void text(StringBuilder s, double x, double y, double size, int bold,
+                              String colour, String content) {
         s.append("<text x=\"%s\" y=\"%s\" font-size=\"%s\" font-weight=\"%d\" fill=\"%s\">%s</text>\n"
-                .formatted(nombre(x), nombre(y), nombre(taille), gras, couleur, echapper(contenu)));
+                .formatted(number(x), number(y), number(size), bold, colour, escape(content)));
     }
 
-    private static void titre(StringBuilder s, int x, int y, String t, int largeur) {
-        texte(s, x, y, 12, 700, MUTED, t);
+    private static void title(StringBuilder s, int x, int y, String t, int width) {
+        text(s, x, y, 12, 700, MUTED, t);
         s.append("<line x1=\"%d\" y1=\"%d\" x2=\"%d\" y2=\"%d\" stroke=\"%s\"/>\n"
-                .formatted(x, y + 10, x + largeur, y + 10, RULE));
+                .formatted(x, y + 10, x + width, y + 10, RULE));
     }
 
-    private static void tuile(StringBuilder s, int x, int y, String etiquette, String valeur,
-                              String detail, String couleur) {
+    private static void tile(StringBuilder s, int x, int y, String tag, String value,
+                              String detail, String colour) {
         s.append("<rect x=\"%d\" y=\"%d\" width=\"270\" height=\"118\" rx=\"8\" fill=\"#f6f8fa\"/>\n"
                 .formatted(x, y));
         s.append("<rect x=\"%d\" y=\"%d\" width=\"4\" height=\"118\" rx=\"2\" fill=\"%s\"/>\n"
-                .formatted(x, y, couleur));
-        texte(s, x + 20, y + 26, 11, 700, MUTED, etiquette);
-        texte(s, x + 20, y + 70, 32, 700, couleur, valeur);
-        texte(s, x + 20, y + 96, 12, 400, MUTED, detail);
+                .formatted(x, y, colour));
+        text(s, x + 20, y + 26, 11, 700, MUTED, tag);
+        text(s, x + 20, y + 70, 32, 700, colour, value);
+        text(s, x + 20, y + 96, 12, 400, MUTED, detail);
     }
 
     /** Une barre, son libellé et son pourcentage — la forme qui se lit de loin. */
-    private static void barre(StringBuilder s, int x, int y, int largeur, String libelle,
-                              double pct, String droite, int placeLibelle) {
-        int barreX = x + placeLibelle, barreL = largeur - placeLibelle - 62;
-        texte(s, x, y + 4, 12.5, 400, INK, libelle);
+    private static void bar(StringBuilder s, int x, int y, int width, String label,
+                              double pct, String right, int placeLabel) {
+        int barX = x + placeLabel, barL = width - placeLabel - 62;
+        text(s, x, y + 4, 12.5, 400, INK, label);
         s.append("<rect x=\"%d\" y=\"%d\" width=\"%d\" height=\"10\" rx=\"5\" fill=\"%s\"/>\n"
-                .formatted(barreX, y - 5, barreL, FOND_BARRE));
-        int plein = (int) Math.round(barreL * Math.max(0, Math.min(100, pct)) / 100.0);
-        String couleur = pct >= 70 ? VERT : pct >= 35 ? AMBRE : ROUGE;
-        if (plein > 0) {
+                .formatted(barX, y - 5, barL, BAR_BACKGROUND));
+        int full = (int) Math.round(barL * Math.max(0, Math.min(100, pct)) / 100.0);
+        String colour = pct >= 70 ? GREEN : pct >= 35 ? AMBER : RED;
+        if (full > 0) {
             s.append("<rect x=\"%d\" y=\"%d\" width=\"%d\" height=\"10\" rx=\"5\" fill=\"%s\"/>\n"
-                    .formatted(barreX, y - 5, plein, couleur));
+                    .formatted(barX, y - 5, full, colour));
         }
-        texte(s, barreX + barreL + 10, y + 4, 12, 600, couleur, arrondi(pct) + " %");
-        if (!droite.isEmpty()) texte(s, x + placeLibelle - 84, y + 4, 11.5, 400, MUTED, droite);
+        text(s, barX + barL + 10, y + 4, 12, 600, colour, rounded(pct) + " %");
+        if (!right.isEmpty()) text(s, x + placeLabel - 84, y + 4, 11.5, 400, MUTED, right);
     }
 
     // ------------------------------------------------------------------ mesures
 
     /** Par paquet : instructions couvertes, manquées, et nombre de classes. */
-    static Map<String, long[]> couvertureParPaquet(List<Object> runs) {
+    static Map<String, long[]> coveragePerPackage(List<Object> runs) {
         Map<String, long[]> out = new TreeMap<>();
-        Map<String, Map<String, long[]>> parClasse = new TreeMap<>();
+        Map<String, Map<String, long[]>> byClass = new TreeMap<>();
         for (Object r : runs) {
             if (!(r instanceof Map<?, ?> run) || !(run.get("packages") instanceof Map<?, ?> pkgs)) continue;
             for (Map.Entry<?, ?> p : pkgs.entrySet()) {
@@ -276,15 +276,15 @@ public final class Diagramme {
                     if (!(c instanceof Map<?, ?> cls)) continue;
                     // La meilleure couverture atteinte par une exécution fait foi : c'est
                     // l'union qui décrit la campagne, pas la dernière exécution lancée.
-                    long[] v = parClasse.computeIfAbsent(String.valueOf(p.getKey()),
+                    long[] v = byClass.computeIfAbsent(String.valueOf(p.getKey()),
                             k -> new TreeMap<>()).computeIfAbsent(String.valueOf(cls.get("name")),
                             k -> new long[2]);
-                    long couvert = nombre(cls.get("covered")), manque = nombre(cls.get("missed"));
-                    if (couvert > v[0]) { v[0] = couvert; v[1] = manque; }
+                    long covered = number(cls.get("covered")), missing = number(cls.get("missed"));
+                    if (covered > v[0]) { v[0] = covered; v[1] = missing; }
                 }
             }
         }
-        for (Map.Entry<String, Map<String, long[]>> p : parClasse.entrySet()) {
+        for (Map.Entry<String, Map<String, long[]>> p : byClass.entrySet()) {
             long[] total = new long[3];
             for (long[] v : p.getValue().values()) { total[0] += v[0]; total[1] += v[1]; total[2]++; }
             out.put(p.getKey(), total);
@@ -292,59 +292,59 @@ public final class Diagramme {
         return out;
     }
 
-    static List<String> classesJamaisExecutees(List<Object> runs) {
-        Map<String, Long> meilleur = new TreeMap<>();
+    static List<String> neverExecutedClasses(List<Object> runs) {
+        Map<String, Long> best = new TreeMap<>();
         for (Object r : runs) {
             if (!(r instanceof Map<?, ?> run) || !(run.get("packages") instanceof Map<?, ?> pkgs)) continue;
             for (Object classes : pkgs.values()) {
-                if (!(classes instanceof Iterable<?> liste)) continue;
-                for (Object c : liste) {
+                if (!(classes instanceof Iterable<?> list)) continue;
+                for (Object c : list) {
                     if (!(c instanceof Map<?, ?> cls)) continue;
-                    String nom = String.valueOf(cls.get("simple"));
-                    meilleur.merge(nom, nombre(cls.get("covered")), Math::max);
+                    String name = String.valueOf(cls.get("simple"));
+                    best.merge(name, number(cls.get("covered")), Math::max);
                 }
             }
         }
         List<String> out = new ArrayList<>();
-        for (Map.Entry<String, Long> e : meilleur.entrySet()) if (e.getValue() == 0) out.add(e.getKey());
+        for (Map.Entry<String, Long> e : best.entrySet()) if (e.getValue() == 0) out.add(e.getKey());
         return out;
     }
 
-    static long nombreDeClasses(List<Object> runs) {
-        java.util.Set<String> noms = new java.util.HashSet<>();
+    static long classCount(List<Object> runs) {
+        java.util.Set<String> names = new java.util.HashSet<>();
         for (Object r : runs) {
             if (!(r instanceof Map<?, ?> run) || !(run.get("packages") instanceof Map<?, ?> pkgs)) continue;
             for (Object classes : pkgs.values()) {
-                if (!(classes instanceof Iterable<?> liste)) continue;
-                for (Object c : liste) if (c instanceof Map<?, ?> cls) noms.add(String.valueOf(cls.get("name")));
+                if (!(classes instanceof Iterable<?> list)) continue;
+                for (Object c : list) if (c instanceof Map<?, ?> cls) names.add(String.valueOf(cls.get("name")));
             }
         }
-        return noms.size();
+        return names.size();
     }
 
     /** Les méthodes sous lesquelles le plus de temps a été passé, toutes exécutions réunies. */
-    static List<Map.Entry<String, Long>> methodesLesPlusChaudes(List<Object> runs) {
-        Map<String, Long> poids = new LinkedHashMap<>();
+    static List<Map.Entry<String, Long>> hottestMethods(List<Object> runs) {
+        Map<String, Long> weight = new LinkedHashMap<>();
         for (Object r : runs) {
-            if (!(r instanceof Map<?, ?> run) || !(run.get("calltree") instanceof Map<?, ?> arbre)) continue;
-            descendre(arbre, poids);
+            if (!(r instanceof Map<?, ?> run) || !(run.get("calltree") instanceof Map<?, ?> tree)) continue;
+            descend(tree, weight);
         }
-        List<Map.Entry<String, Long>> tries = new ArrayList<>(poids.entrySet());
-        tries.sort(Map.Entry.<String, Long>comparingByValue().reversed());
-        return tries.subList(0, Math.min(MAX_METHODES, tries.size()));
+        List<Map.Entry<String, Long>> ordered = new ArrayList<>(weight.entrySet());
+        ordered.sort(Map.Entry.<String, Long>comparingByValue().reversed());
+        return ordered.subList(0, Math.min(MAX_METHODS, ordered.size()));
     }
 
-    private static void descendre(Map<?, ?> noeud, Map<String, Long> poids) {
-        if (!(noeud.get("children") instanceof Iterable<?> enfants)) return;
-        for (Object e : enfants) {
-            if (!(e instanceof Map<?, ?> enfant)) continue;
-            Object nom = enfant.get("name");
-            if (nom != null) poids.merge(String.valueOf(nom), nombre(enfant.get("total")), Long::sum);
-            descendre(enfant, poids);
+    private static void descend(Map<?, ?> node, Map<String, Long> weight) {
+        if (!(node.get("children") instanceof Iterable<?> children)) return;
+        for (Object e : children) {
+            if (!(e instanceof Map<?, ?> child)) continue;
+            Object name = child.get("name");
+            if (name != null) weight.merge(String.valueOf(name), number(child.get("total")), Long::sum);
+            descend(child, weight);
         }
     }
 
-    private static Map<String, Object> contexte(List<Object> runs) {
+    private static Map<String, Object> context(List<Object> runs) {
         for (Object r : runs) {
             if (r instanceof Map<?, ?> run && run.get("context") instanceof Map<?, ?> c) {
                 Map<String, Object> out = new LinkedHashMap<>();
@@ -355,61 +355,61 @@ public final class Diagramme {
         return Map.of();
     }
 
-    private static String dureeTotale(List<Object> runs) {
+    private static String totalDuration(List<Object> runs) {
         double total = 0;
         for (Object r : runs) {
             if (r instanceof Map<?, ?> run && run.get("context") instanceof Map<?, ?> c
                     && c.get("dureeSecondes") instanceof Number n) total += n.doubleValue();
         }
         if (total <= 0) return "—";
-        return total < 90 ? arrondi(total) + " s" : Math.round(total / 60) + " min";
+        return total < 90 ? rounded(total) + " s" : Math.round(total / 60) + " min";
     }
 
     // ------------------------------------------------------------------ menues
 
     /** Ce qu'une exécution a couvert, à elle seule. */
-    static long[] couvertureDe(Map<?, ?> run) {
+    static long[] coverageOf(Map<?, ?> run) {
         long[] out = new long[2];
         if (!(run.get("packages") instanceof Map<?, ?> pkgs)) return out;
         for (Object classes : pkgs.values()) {
-            if (!(classes instanceof Iterable<?> liste)) continue;
-            for (Object c : liste) {
+            if (!(classes instanceof Iterable<?> list)) continue;
+            for (Object c : list) {
                 if (!(c instanceof Map<?, ?> cls)) continue;
-                out[0] += nombre(cls.get("covered"));
-                out[1] += nombre(cls.get("missed"));
+                out[0] += number(cls.get("covered"));
+                out[1] += number(cls.get("missed"));
             }
         }
         return out;
     }
 
-    private static String duree(Map<?, ?> run) {
+    private static String duration(Map<?, ?> run) {
         if (run.get("context") instanceof Map<?, ?> c && c.get("dureeSecondes") instanceof Number n) {
-            return arrondi(n.doubleValue()) + " s";
+            return rounded(n.doubleValue()) + " s";
         }
         return "";
     }
 
-    private static double part(long[] v) {
+    private static double share(long[] v) {
         return v[0] + v[1] == 0 ? 0 : 100.0 * v[0] / (v[0] + v[1]);
     }
 
-    private static long nombre(Object o) { return o instanceof Number n ? n.longValue() : 0; }
+    private static long number(Object o) { return o instanceof Number n ? n.longValue() : 0; }
 
-    private static String arrondi(double d) {
+    private static String rounded(double d) {
         return String.valueOf(Math.round(d * 10) / 10.0).replace(".0", "");
     }
 
-    private static String nombre(double d) {
+    private static String number(double d) {
         return d == Math.rint(d) ? String.valueOf((long) d) : String.valueOf(d);
     }
 
-    private static String court(String s, int max) {
+    private static String shorten(String s, int max) {
         return s.length() <= max ? s : "…" + s.substring(s.length() - max + 1);
     }
 
-    private static String joindre(String sep, String... parties) {
+    private static String join(String sep, String... parts) {
         StringBuilder sb = new StringBuilder();
-        for (String p : parties) {
+        for (String p : parts) {
             if (p == null || p.isBlank() || "null".equals(p)) continue;
             if (sb.length() > 0) sb.append(sep);
             sb.append(p);
@@ -418,7 +418,7 @@ public final class Diagramme {
     }
 
     /** Un nom de classe peut porter n'importe quoi : le SVG ne doit pas s'en trouver cassé. */
-    private static String echapper(String s) {
+    private static String escape(String s) {
         return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
     }
 }

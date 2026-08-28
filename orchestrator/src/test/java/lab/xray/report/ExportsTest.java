@@ -63,8 +63,8 @@ class ExportsTest {
         Exports.write(run, Set.of(Exports.Format.PERF), 1, 8);
         List<String> lines = Files.readAllLines(run.resolve("exports/profil.perf.txt"));
 
-        long entetes = lines.stream().filter(l -> l.contains("cpu-clock:")).count();
-        assertEquals(4, entetes, "un relevé pesant 3 donne trois échantillons");
+        long headers = lines.stream().filter(l -> l.contains("cpu-clock:")).count();
+        assertEquals(4, headers, "un relevé pesant 3 donne trois échantillons");
 
         int first = lines.indexOf(lines.stream().filter(l -> l.contains("cpu-clock:")).findFirst().orElseThrow());
         assertTrue(lines.get(first + 1).contains("app/Moteur.calculer"), "l'appelé d'abord");
@@ -132,24 +132,24 @@ class ExportsTest {
               + "app/Main.main;app/Froid.rare 1000000\n", StandardCharsets.UTF_8);
 
         Exports.write(run, Set.of(Exports.Format.PERF), 1, 8);
-        List<String> lignes = Files.readAllLines(run.resolve("exports/profil.perf.txt"));
+        List<String> lines = Files.readAllLines(run.resolve("exports/profil.perf.txt"));
 
-        long chaud = lignes.stream().filter(l -> l.contains("app/Chaud.boucle")).count();
-        long froid = lignes.stream().filter(l -> l.contains("app/Froid.rare")).count();
-        long total = chaud + froid;
+        long chaud = lines.stream().filter(l -> l.contains("app/Chaud.boucle")).count();
+        long cold = lines.stream().filter(l -> l.contains("app/Froid.rare")).count();
+        long total = chaud + cold;
 
         // Le plafond porte sur les octets : c'est le fichier qu'on empêche de devenir
         // inexploitable, pas un nombre de relevés qui ne dit rien de sa taille.
-        long octets = Files.size(run.resolve("exports/profil.perf.txt"));
-        assertTrue(octets < 40L * 1024 * 1024,
-                "le fichier dépasse franchement le plafond : " + octets / (1024 * 1024) + " Mo");
-        assertTrue(octets > 16L * 1024 * 1024,
-                "allégé bien plus que nécessaire : " + octets / (1024 * 1024) + " Mo");
+        long bytes = Files.size(run.resolve("exports/profil.perf.txt"));
+        assertTrue(bytes < 40L * 1024 * 1024,
+                "le fichier dépasse franchement le plafond : " + bytes / (1024 * 1024) + " Mo");
+        assertTrue(bytes > 16L * 1024 * 1024,
+                "allégé bien plus que nécessaire : " + bytes / (1024 * 1024) + " Mo");
 
-        assertTrue(froid > 0, "la branche légère a disparu — c'est ce que faisait la troncature");
-        double part = (double) froid / total;
-        assertTrue(part > 0.08 && part < 0.12,
-                "la proportion mesurée (10 %) doit être gardée, or elle vaut " + part);
+        assertTrue(cold > 0, "la branche légère a disparu — c'est ce que faisait la troncature");
+        double share = (double) cold / total;
+        assertTrue(share > 0.08 && share < 0.12,
+                "la proportion mesurée (10 %) doit être gardée, or elle vaut " + share);
     }
 
     @Test
@@ -157,9 +157,9 @@ class ExportsTest {
     void smallProfileIsKeptWhole(@TempDir Path dir) throws Exception {
         Path run = run(dir);
         Exports.write(run, Set.of(Exports.Format.PERF), 1, 8);
-        long entetes = Files.readAllLines(run.resolve("exports/profil.perf.txt")).stream()
+        long headers = Files.readAllLines(run.resolve("exports/profil.perf.txt")).stream()
                 .filter(l -> l.contains("cpu-clock:")).count();
-        assertEquals(4, entetes, "3 + 1 relevés, tous présents");
+        assertEquals(4, headers, "3 + 1 relevés, tous présents");
     }
 
     @Test

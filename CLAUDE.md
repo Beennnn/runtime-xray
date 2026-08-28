@@ -130,7 +130,7 @@ aurait besoin : sur la machine où l'application tourne loin de son code, la con
 désigne rien, ou pire, désigne les sources d'un autre projet. Du code faux affiché en face
 d'une couverture coûte plus cher qu'un panneau vide, parce qu'on le croit.
 
-`Sources.chercherRacines` cherche donc, et compte. Elle explore le voisinage du bytecode
+`Sources.searchRoots` cherche donc, et compte. Elle explore le voisinage du bytecode
 analysé, celui des racines déjà configurées et le répertoire de lancement — jamais au-delà —
 et ne retient un fichier que si le **paquet qu'il déclare** produit exactement une clé
 manquante. Un homonyme venu d'un autre projet ne compte pas ; un test le garde. Chaque
@@ -145,7 +145,7 @@ indisponible » sur les 447 classes d'une analyse.
 
 ## La bande d'activité pendant l'attente
 
-`Progression` écrit une ligne qui se réécrit pendant que l'application observée travaille.
+`Progress` écrit une ligne qui se réécrit pendant que l'application observée travaille.
 Trois décisions la tiennent, et elles sont liées :
 
 - **Elle ne mesure rien.** Le temps processeur vient de `ProcessHandle.Info.totalCpuDuration`
@@ -186,8 +186,8 @@ plus rien**.
 - **`--suivi [port]` sert une page** qui relit ce fichier, et rien d'autre. Elle montre ce
   qu'une suite de lignes JSON montre mal — la *forme* de l'exécution. Boucle locale
   seulement : elle affiche une commande et la sortie d'une application.
-- **Le calcul de charge est dans `Progression`, et nulle part ailleurs.**
-  `Progression.avancement` le rend, `Suivi` le recopie. Deux calculs séparés finiraient par
+- **Le calcul de charge est dans `Progress`, et nulle part ailleurs.**
+  `Progress.tick` le rend, `Follow` le recopie. Deux calculs séparés finiraient par
   diverger, et le fichier contredirait la bande sans que rien ne le signale.
 - **Un échec d'écriture du fil n'emporte jamais la mesure** — c'est un confort, elle est ce
   qu'on est venu chercher ; un test le garde, comme il garde que la fin du journal servie
@@ -216,7 +216,7 @@ rapport par combinaison — c'est précisément ce que le cumul dans la page év
 `faits.jsonl` s'écrit à côté de la page, un objet JSON par ligne, chacune se comprenant
 seule — son vocabulaire est dans sa première ligne, parce qu'une documentation posée à côté
 se perd dans le premier zip. `--contexte "une question"` en tire un extrait borné et prêt à
-coller. Trois décisions le tiennent, chacune gardée par un test dans `ContexteTest` :
+coller. Trois décisions le tiennent, chacune gardée par un test dans `ContextTest` :
 
 - **Ce qui n'a PAS été mesuré passe avant les chiffres**, et n'est jamais élagué par le
   budget. Un lecteur qui voit les chiffres d'abord les a déjà interprétés quand il arrive
@@ -248,7 +248,7 @@ conduire une campagne, lire un rapport — et le kit hors ligne les emporte, par
 sur la machine isolée qu'on ne peut plus aller lire la documentation. Ce sont deux fichiers
 Markdown, mais ils sont **tenus par `SkillsTest`** : toute option qu'ils citent doit exister
 dans le `switch` de `Main`, et la table du vocabulaire doit coïncider avec
-`Faits.VOCABULAIRE`, dans les deux sens. Une option renommée ici et laissée écrite là-bas
+`Facts.VOCABULARY`, dans les deux sens. Une option renommée ici et laissée écrite là-bas
 n'échoue nulle part — elle envoie quelqu'un dans le mur avec « Option inconnue » pour toute
 explication, sur la machine où il ne peut rien vérifier.
 
@@ -288,18 +288,19 @@ dans un bloc à part, à la fin du fichier, et rien d'autre n'a bougé. Trois r�
 
 **Le décrochage est le mode d'échec, et il est silencieux** : quelqu'un reformule un libellé
 dans le gabarit, le dictionnaire ne le connaît plus, et la vue anglaise affiche du français
-sans que rien ne le signale. `VueLangueTest` vérifie pour cela le corps statique en entier —
+sans que rien ne le signale. `ViewLanguageTest` vérifie pour cela le corps statique en entier —
 chaque phrase française qu'il porte doit avoir sa traduction. Le reste du texte naît en
 JavaScript et ne se relève qu'au rendu : la vérification s'y fait au navigateur, avant de
 pousser, en relevant les chaînes affichées et en n'en gardant aucune française.
 
 ## Conventions
 
-- **L'outil parle anglais ; le dépôt est encore en français.** La bascule est décidée et
-  se fait par étapes — l'aide, les exemples, les mots-clés, le format des faits, la vue et
-  les messages console y sont déjà passés ; le code suivra. En attendant, deux règles
-  cohabitent sans se contredire : **tout ce que l'utilisateur voit est en anglais**, et le
-  reste — code, commentaires, `@DisplayName`, messages de commit — **reste en français
+- **L'outil parle anglais ; le dépôt est en train de suivre.** La bascule est décidée et
+  se fait par étapes — l'aide, les exemples, les mots-clés, le format des faits, la vue,
+  les messages console et **les noms du code** y sont déjà passés ; restent les
+  commentaires et les `@DisplayName`, qui sont l'étape en cours. En attendant, deux règles
+  cohabitent sans se contredire : **tout ce que l'utilisateur voit est en anglais**, et ce
+  qui reste — commentaires, `@DisplayName`, messages de commit — **reste en français
   jusqu'à ce que son étape arrive**. Les exemples, eux, sont en anglais **partout**, y
   compris dans une prose française : `com.example.app`, `--contexte "which classes never
   ran?"`. Un exemple français dans une documentation anglaise est ce qui se remarque en

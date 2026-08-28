@@ -25,20 +25,20 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 class SkillsTest {
 
-    private static Path racine() {
+    private static Path root() {
         // Surefire lance avec le répertoire du module pour base ; le dépôt est au-dessus.
         return Path.of("").toAbsolutePath().getParent();
     }
 
-    private static String lire(String competence) throws Exception {
-        Path f = racine().resolve("skills").resolve(competence).resolve("SKILL.md");
+    private static String read(String skill) throws Exception {
+        Path f = root().resolve("skills").resolve(skill).resolve("SKILL.md");
         assertTrue(Files.exists(f), "compétence introuvable : " + f);
         return Files.readString(f, StandardCharsets.UTF_8);
     }
 
     /** Les options que le code accepte réellement, lues dans le {@code switch} de Main. */
-    private static Set<String> optionsDuCode() throws Exception {
-        String source = Files.readString(racine().resolve("orchestrator").resolve("src")
+    private static Set<String> optionsInCode() throws Exception {
+        String source = Files.readString(root().resolve("orchestrator").resolve("src")
                 .resolve("main").resolve("java").resolve("lab").resolve("xray")
                 .resolve("Main.java"), StandardCharsets.UTF_8);
         Set<String> out = new LinkedHashSet<>();
@@ -51,9 +51,9 @@ class SkillsTest {
         return out;
     }
 
-    private static Set<String> optionsCitees(String texte) {
+    private static Set<String> quotedOptions(String text) {
         Set<String> out = new LinkedHashSet<>();
-        Matcher m = Pattern.compile("`?(--[a-z][a-z-]+)").matcher(texte);
+        Matcher m = Pattern.compile("`?(--[a-z][a-z-]+)").matcher(text);
         while (m.find()) out.add(m.group(1));
         return out;
     }
@@ -61,13 +61,13 @@ class SkillsTest {
     @Test
     @DisplayName("Toute option citée par une compétence existe vraiment dans l'outil")
     void everyOptionQuotedByASkillReallyExists() throws Exception {
-        Set<String> vraies = optionsDuCode();
-        for (String competence : new String[]{"runtime-xray", "runtime-xray-lire"}) {
-            for (String citee : optionsCitees(lire(competence))) {
-                assertTrue(vraies.contains(citee), "la compétence " + competence
-                        + " cite " + citee + ", que l'outil refuse. Sur la machine observée,"
+        Set<String> real = optionsInCode();
+        for (String skill : new String[]{"runtime-xray", "runtime-xray-lire"}) {
+            for (String quoted : quotedOptions(read(skill))) {
+                assertTrue(real.contains(quoted), "la compétence " + skill
+                        + " cite " + quoted + ", que l'outil refuse. Sur la machine observée,"
                         + " le lecteur n'a que « Option inconnue » pour s'en sortir. Connues : "
-                        + vraies);
+                        + real);
             }
         }
     }
@@ -75,20 +75,20 @@ class SkillsTest {
     @Test
     @DisplayName("Le vocabulaire des faits promis au lecteur est celui que l'outil écrit")
     void thePromisedVocabularyIsTheOneWritten() throws Exception {
-        String lire = lire("runtime-xray-lire");
-        for (String famille : Faits.VOCABULAIRE.keySet()) {
-            assertTrue(lire.contains(famille), "la compétence de lecture ne dit rien de « "
-                    + famille + " » : le lecteur rencontrera une ligne qu'il ne sait pas lire");
+        String read = read("runtime-xray-lire");
+        for (String family : Facts.VOCABULARY.keySet()) {
+            assertTrue(read.contains(family), "la compétence de lecture ne dit rien de « "
+                    + family + " » : le lecteur rencontrera une ligne qu'il ne sait pas lire");
         }
         // L'inverse compte autant : une famille annoncée et jamais écrite se cherche
         // longtemps dans un fichier qui ne la contient pas. On ne regarde que la table du
         // vocabulaire — les autres tables du document parlent de fichiers, pas de familles.
-        int debut = lire.indexOf("## Le vocabulaire");
-        assertTrue(debut > 0, "la table du vocabulaire doit exister sous ce titre");
-        String table = lire.substring(debut, lire.indexOf("\n## ", debut + 4));
+        int start = read.indexOf("## Le vocabulaire");
+        assertTrue(start > 0, "la table du vocabulaire doit exister sous ce titre");
+        String table = read.substring(start, read.indexOf("\n## ", start + 4));
         Matcher m = Pattern.compile("\\| `([a-z][a-z._]+)` \\|").matcher(table);
         while (m.find()) {
-            assertTrue(Faits.VOCABULAIRE.containsKey(m.group(1)),
+            assertTrue(Facts.VOCABULARY.containsKey(m.group(1)),
                     "la compétence annonce la famille « " + m.group(1)
                     + " », que l'outil n'écrit jamais");
         }
@@ -100,11 +100,11 @@ class SkillsTest {
         // C'est la confusion la plus coûteuse de l'outil : on élargit le filtre qui n'y
         // était pour rien, on relance une campagne entière, on obtient le même rapport. Les
         // deux compétences doivent la désamorcer, chacune de son côté du problème.
-        for (String competence : new String[]{"runtime-xray", "runtime-xray-lire"}) {
-            String texte = lire(competence);
+        for (String skill : new String[]{"runtime-xray", "runtime-xray-lire"}) {
+            String text = read(skill);
             for (String option : new String[]{"--sources", "--root", "--filter", "--cover"}) {
-                assertTrue(texte.contains(option),
-                        competence + " ne nomme pas " + option + " parmi les restrictions");
+                assertTrue(text.contains(option),
+                        skill + " ne nomme pas " + option + " parmi les restrictions");
             }
         }
     }
@@ -114,28 +114,28 @@ class SkillsTest {
     void aZeroThatWasNotMeasuredIsAnnouncedAsSuch() throws Exception {
         // Sans cette phrase, un temps à zéro sous Windows se lit « jamais appelé », et la
         // conclusion tombe dans le mauvais sens avec assurance.
-        String lecture = lire("runtime-xray-lire");
-        assertTrue(lecture.contains("indisponibilite"));
-        assertTrue(lecture.contains("Windows"), "le cas concret vaut mieux que la règle seule");
-        assertTrue(lire("runtime-xray").contains("Windows"));
+        String read = read("runtime-xray-lire");
+        assertTrue(read.contains("indisponibilite"));
+        assertTrue(read.contains("Windows"), "le cas concret vaut mieux que la règle seule");
+        assertTrue(read("runtime-xray").contains("Windows"));
     }
 
     @Test
     @DisplayName("Chaque compétence porte l'en-tête qui la rend déclenchable")
     void eachSkillCarriesTheHeaderThatMakesItTriggerable() throws Exception {
-        for (String competence : new String[]{"runtime-xray", "runtime-xray-lire"}) {
-            String texte = lire(competence);
-            assertTrue(texte.startsWith("---\n"), competence + " : pas d'en-tête");
-            String entete = texte.substring(0, texte.indexOf("\n---", 4));
-            assertTrue(entete.contains("name: " + competence),
-                    competence + " : le nom déclaré doit être celui du répertoire");
+        for (String skill : new String[]{"runtime-xray", "runtime-xray-lire"}) {
+            String text = read(skill);
+            assertTrue(text.startsWith("---\n"), skill + " : pas d'en-tête");
+            String header = text.substring(0, text.indexOf("\n---", 4));
+            assertTrue(header.contains("name: " + skill),
+                    skill + " : le nom déclaré doit être celui du répertoire");
             // Une description sans le vocabulaire de la question ne se déclenche jamais :
             // la compétence existe, et personne ne la voit.
-            assertTrue(entete.contains("description:"));
-            assertTrue(entete.length() > 200, competence + " : description trop maigre pour "
+            assertTrue(header.contains("description:"));
+            assertTrue(header.length() > 200, skill + " : description trop maigre pour "
                     + "être choisie sur autre chose que son nom");
-            assertFalse(texte.contains("runtime-xray-cli"),
-                    competence + " : le nom du jar publié change de version en version, "
+            assertFalse(text.contains("runtime-xray-cli"),
+                    skill + " : le nom du jar publié change de version en version, "
                     + "l'écrire ici le périme");
         }
     }

@@ -71,9 +71,9 @@ public final class LocalServer {
      *                page rouverte comme fichier afficherait l'annotation d'avant
      */
     public static void serve(Path outDir, String host, int port, Callable<Void> rebuild,
-                             Access acces) throws IOException {
-        HttpServer server = start(outDir, host, port, rebuild, acces);
-        annonce(outDir.toAbsolutePath().normalize(), host, port, acces);
+                             Access access) throws IOException {
+        HttpServer server = start(outDir, host, port, rebuild, access);
+        announcement(outDir.toAbsolutePath().normalize(), host, port, access);
 
         CountDownLatch stop = new CountDownLatch(1);
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
@@ -96,11 +96,11 @@ public final class LocalServer {
      */
     static HttpServer start(Path outDir, String host, int port, Callable<Void> rebuild)
             throws IOException {
-        return start(outDir, host, port, rebuild, Access.ouvert());
+        return start(outDir, host, port, rebuild, Access.open());
     }
 
     static HttpServer start(Path outDir, String host, int port, Callable<Void> rebuild,
-                            Access acces) throws IOException {
+                            Access access) throws IOException {
         Path root = outDir.toAbsolutePath().normalize();
         InetAddress address = "0.0.0.0".equals(host) || "*".equals(host)
                 ? new InetSocketAddress(port).getAddress()
@@ -112,15 +112,15 @@ public final class LocalServer {
         // proposer « Enregistrer » plutôt que le seul export de fichier.
         server.createContext("/__xray/ping", ex -> {
             noCache(ex);
-            if (barre(ex, acces)) return;
-            json(ex, 200, Map.of("peutEcrire", true, "fichier", Annotations.DANS_LE_RUN,
-                    "garde", acces.garde()));
+            if (bar(ex, access)) return;
+            json(ex, 200, Map.of("peutEcrire", true, "fichier", Annotations.IN_THE_RUN,
+                    "garde", access.guards()));
         });
 
         // La porte, quand il y a un secret : un formulaire, et le cookie qui s'ensuit.
-        if (acces.garde()) server.createContext("/__xray/entrer", ex -> {
+        if (access.guards()) server.createContext("/__xray/entrer", ex -> {
             try {
-                entrer(ex, acces);
+                entrer(ex, access);
             } catch (Exception e) {
                 // Un gestionnaire qui remonte une exception n'envoie RIEN : le navigateur
                 // voit une connexion coupée, et personne ne sait pourquoi il ne peut pas
@@ -134,14 +134,14 @@ public final class LocalServer {
         // détecter qu'une exécution a bougé pendant qu'on l'annotait.
         server.createContext("/__xray/noms", ex -> {
             noCache(ex);
-            if (barre(ex, acces)) return;
+            if (bar(ex, access)) return;
             try {
                 String method = ex.getRequestMethod().toUpperCase(Locale.ROOT);
                 String rest = ex.getRequestURI().getPath().substring("/__xray/noms".length());
                 String uuid = rest.startsWith("/") ? rest.substring(1) : "";
 
                 if (method.equals("GET")) {
-                    Map<String, Object> tout = annotationsEffectives(root);
+                    Map<String, Object> all = effectiveAnnotations(root);
                     // La révision dit à la page si le rapport a changé sous ses pieds —
                     // une exécution déposée, une autre retirée. Elle la relit à intervalle
                     // régulier de toute façon : autant qu'elle l'apprenne là.
@@ -150,11 +150,11 @@ public final class LocalServer {
                     // encore d'annotation : sans elle, la première écriture n'aurait rien à
                     // comparer, et deux personnes qui créent la même annotation en même
                     // temps ne se verraient pas.
-                    Map<String, Object> empreintes = new LinkedHashMap<>();
+                    Map<String, Object> fingerprints = new LinkedHashMap<>();
                     Annotations.runsByUuid(root).forEach(
-                            (uuidRun, dir) -> empreintes.put(uuidRun, fingerprint(tout.get(uuidRun))));
-                    json(ex, 200, Map.of("annotations", tout, "empreintes", empreintes,
-                            "revision", revision, "executions", empreintes.size()));
+                            (runUuid, dir) -> fingerprints.put(runUuid, fingerprint(all.get(runUuid))));
+                    json(ex, 200, Map.of("annotations", all, "empreintes", fingerprints,
+                            "revision", revision, "executions", fingerprints.size()));
                     return;
                 }
                 if (!method.equals("POST") && !method.equals("PUT")) {
@@ -167,18 +167,18 @@ public final class LocalServer {
                 }
                 // Un corps illisible est une faute de l'appelant, pas une panne du
                 // serveur : répondre 500 enverrait chercher le problème du mauvais côté.
-                Object lu;
+                Object read;
                 try {
-                    lu = Json.read(read(ex.getRequestBody()));
-                } catch (Exception malforme) {
-                    text(ex, 400, "corps illisible : " + malforme.getMessage());
+                    read = Json.read(read(ex.getRequestBody()));
+                } catch (Exception malformed) {
+                    text(ex, 400, "corps illisible : " + malformed.getMessage());
                     return;
                 }
-                if (!(lu instanceof Map<?, ?> corps)) {
+                if (!(read instanceof Map<?, ?> body)) {
                     text(ex, 400, "the expected body is a JSON object");
                     return;
                 }
-                ecrire(root, uuid, corps, ex, rebuilder);
+                write(root, uuid, body, ex, rebuilder);
             } catch (Exception e) {
                 System.err.println("   write refused: " + e.getMessage());
                 text(ex, 500, String.valueOf(e.getMessage()));
@@ -187,7 +187,7 @@ public final class LocalServer {
 
         server.createContext("/", ex -> {
             try {
-                if (barre(ex, acces)) return;
+                if (bar(ex, access)) return;
                 Path file = resolve(root, ex.getRequestURI().getPath());
                 if (file == null || !Files.isRegularFile(file)) {
                     text(ex, 404, "introuvable");
@@ -202,7 +202,7 @@ public final class LocalServer {
 
         server.setExecutor(java.util.concurrent.Executors.newFixedThreadPool(4));
         server.start();
-        veiller(root, rebuilder);
+        watch(root, rebuilder);
         return server;
     }
 
@@ -219,9 +219,9 @@ public final class LocalServer {
      * mieux irrégulières. Dix secondes suffisent — on ne dépose pas une exécution dix fois
      * par minute.
      */
-    private static void veiller(Path root, Rebuilder rebuilder) {
+    private static void watch(Path root, Rebuilder rebuilder) {
         Thread.ofPlatform().daemon().name("runtime-xray-veille").start(() -> {
-            String connu = revision(root);
+            String known = revision(root);
             while (true) {
                 try {
                     Thread.sleep(10_000);
@@ -229,12 +229,12 @@ public final class LocalServer {
                     Thread.currentThread().interrupt();
                     return;
                 }
-                String maintenant = revision(root);
-                if (!maintenant.equals(connu)) {
-                    connu = maintenant;
+                String now = revision(root);
+                if (!now.equals(known)) {
+                    known = now;
                     System.out.println("   runs changed on disk — the page is "
                             + "rebuilt");
-                    rebuilder.demander();
+                    rebuilder.request();
                 }
             }
         });
@@ -268,10 +268,10 @@ public final class LocalServer {
      * travail d'un tiers sans que personne ne s'en aperçoive.
      */
     @SuppressWarnings("unchecked")
-    private static void ecrire(Path root, String uuid, Map<?, ?> corps, HttpExchange ex,
+    private static void write(Path root, String uuid, Map<?, ?> body, HttpExchange ex,
                                Rebuilder rebuilder) throws IOException {
-        Object valeur = corps.get("valeur");
-        String base = corps.get("base") == null ? null : String.valueOf(corps.get("base"));
+        Object value = body.get("valeur");
+        String base = body.get("base") == null ? null : String.valueOf(body.get("base"));
 
         LOCK.lock();
         try {
@@ -280,15 +280,15 @@ public final class LocalServer {
                 text(ex, 404, "no run carries the id " + uuid);
                 return;
             }
-            Object courante = Annotations.forRun(runDir, uuid, Annotations.readCentral(root));
-            String actuelle = fingerprint(courante);
-            if (base != null && !base.equals(actuelle)) {
+            Object known = Annotations.forRun(runDir, uuid, Annotations.readCentral(root));
+            String current = fingerprint(known);
+            if (base != null && !base.equals(current)) {
                 json(ex, 409, Map.of("conflit", true,
-                        "valeur", courante == null ? Map.of() : courante,
-                        "empreinte", actuelle));
+                        "valeur", known == null ? Map.of() : known,
+                        "empreinte", current));
                 return;
             }
-            Map<String, Object> annotation = valeur instanceof Map<?, ?> m
+            Map<String, Object> annotation = value instanceof Map<?, ?> m
                     ? new LinkedHashMap<>((Map<String, Object>) m)
                     : new LinkedHashMap<>();
             Path file = Annotations.write(runDir, annotation);
@@ -300,34 +300,34 @@ public final class LocalServer {
         }
         // Après la réponse : régénérer la page prend une seconde, et personne n'a de raison
         // d'attendre dessus pour continuer à annoter.
-        rebuilder.demander();
+        rebuilder.request();
     }
 
     /**
      * Les annotations telles que la page doit les voir : pour chaque exécution, celle qui
      * l'emporte parmi les trois emplacements possibles — voir {@link Annotations}.
      */
-    private static Map<String, Object> annotationsEffectives(Path root) {
+    private static Map<String, Object> effectiveAnnotations(Path root) {
         Map<String, Object> central = Annotations.readCentral(root);
         Map<String, Object> out = new LinkedHashMap<>();
         Annotations.runsByUuid(root).forEach((uuid, runDir) -> {
-            Object valeur = Annotations.forRun(runDir, uuid, central);
-            if (valeur != null) out.put(uuid, valeur);
+            Object value = Annotations.forRun(runDir, uuid, central);
+            if (value != null) out.put(uuid, value);
         });
         return out;
     }
 
     /** Empreinte d'une annotation : elle change dès que son contenu change, et pas avant. */
-    static String fingerprint(Object valeur) {
-        String texte = valeur == null ? "" : Json.write(valeur);
+    static String fingerprint(Object value) {
+        String text = value == null ? "" : Json.write(value);
         try {
             byte[] hash = MessageDigest.getInstance("SHA-256")
-                    .digest(texte.getBytes(StandardCharsets.UTF_8));
+                    .digest(text.getBytes(StandardCharsets.UTF_8));
             StringBuilder sb = new StringBuilder();
             for (int i = 0; i < 8; i++) sb.append(String.format("%02x", hash[i]));
             return sb.toString();
         } catch (Exception e) {
-            return Integer.toHexString(texte.hashCode());
+            return Integer.toHexString(text.hashCode());
         }
     }
 
@@ -340,18 +340,18 @@ public final class LocalServer {
      */
     private static final class Rebuilder {
         private final Callable<Void> action;
-        private boolean enCours;
-        private boolean redemande;
+        private boolean running;
+        private boolean askedAgain;
 
         Rebuilder(Callable<Void> action) { this.action = action; }
 
-        synchronized void demander() {
-            if (enCours) { redemande = true; return; }
-            enCours = true;
-            Thread.ofPlatform().daemon().start(this::boucle);
+        synchronized void request() {
+            if (running) { askedAgain = true; return; }
+            running = true;
+            Thread.ofPlatform().daemon().start(this::loop);
         }
 
-        private void boucle() {
+        private void loop() {
             while (true) {
                 try {
                     action.call();
@@ -359,8 +359,8 @@ public final class LocalServer {
                     System.err.println("   page could not be rebuilt: " + e.getMessage());
                 }
                 synchronized (this) {
-                    if (!redemande) { enCours = false; return; }
-                    redemande = false;
+                    if (!askedAgain) { running = false; return; }
+                    askedAgain = false;
                 }
             }
         }
@@ -375,78 +375,78 @@ public final class LocalServer {
      * {@code fetch} de la page, ou un script, reçoit un 401 — le renvoyer vers du HTML lui
      * ferait analyser un formulaire comme si c'étaient ses données.
      */
-    private static boolean barre(HttpExchange ex, Access acces) throws IOException {
-        if (acces.autorise(ex)) return false;
-        String chemin = ex.getRequestURI().getPath();
-        if (chemin.startsWith("/__xray/")) {
-            text(ex, 401, "shared secret required: open " + chemin.replaceFirst("/__xray/.*",
+    private static boolean bar(HttpExchange ex, Access access) throws IOException {
+        if (access.allows(ex)) return false;
+        String path = ex.getRequestURI().getPath();
+        if (path.startsWith("/__xray/")) {
+            text(ex, 401, "shared secret required: open " + path.replaceFirst("/__xray/.*",
                     "/") + " in a browser, or send an Authorization: Bearer header");
             return true;
         }
-        String vers = ex.getRequestURI().getRawQuery() == null ? chemin
-                : chemin + "?" + ex.getRequestURI().getRawQuery();
-        ex.getResponseHeaders().add("Location", Access.versEntree(vers));
+        String target = ex.getRequestURI().getRawQuery() == null ? path
+                : path + "?" + ex.getRequestURI().getRawQuery();
+        ex.getResponseHeaders().add("Location", Access.toEntryPage(target));
         send(ex, 302, "text/plain; charset=utf-8", new byte[0]);
         return true;
     }
 
     /** Le formulaire d'entrée, puis le cookie et le retour vers la page demandée. */
-    private static void entrer(HttpExchange ex, Access acces) throws IOException {
+    private static void entrer(HttpExchange ex, Access access) throws IOException {
         noCache(ex);
-        String methode = ex.getRequestMethod().toUpperCase(Locale.ROOT);
-        if (methode.equals("GET")) {
-            String vers = parametre(ex.getRequestURI().getRawQuery(), "vers");
-            html(ex, 200, Access.pageEntree(vers, null));
+        String method = ex.getRequestMethod().toUpperCase(Locale.ROOT);
+        if (method.equals("GET")) {
+            String target = param(ex.getRequestURI().getRawQuery(), "vers");
+            html(ex, 200, Access.entryPage(target, null));
             return;
         }
-        if (!methode.equals("POST")) {
+        if (!method.equals("POST")) {
             text(ex, 405, "method not allowed");
             return;
         }
-        Map<String, String> champs = Access.champs(read(ex.getRequestBody()));
-        String origine = Access.origine(ex);
-        if (acces.misDeCote(origine)) {
-            html(ex, 429, Access.pageEntree(champs.get("vers"),
+        Map<String, String> fields = Access.fields(read(ex.getRequestBody()));
+        String origin = Access.origin(ex);
+        if (access.throttled(origin)) {
+            html(ex, 429, Access.entryPage(fields.get("vers"),
                     "Too many attempts from this address. Try again in about thirty seconds."));
             return;
         }
-        String session = acces.ouvrirSession(champs.get("jeton"), origine);
+        String session = access.openSession(fields.get("jeton"), origin);
         if (session == null) {
-            System.err.println("   access refused from " + origine);
-            html(ex, 401, Access.pageEntree(champs.get("vers"), "That is not the right secret."));
+            System.err.println("   access refused from " + origin);
+            html(ex, 401, Access.entryPage(fields.get("vers"), "That is not the right secret."));
             return;
         }
-        String vers = champs.getOrDefault("vers", "/");
+        String target = fields.getOrDefault("vers", "/");
         // Une redirection ouverte enverrait ailleurs quelqu'un qui vient de se fier à
         // l'adresse qu'on lui a donnée : on ne repart que vers une page de ce serveur.
-        if (!vers.startsWith("/") || vers.startsWith("//")) vers = "/";
-        ex.getResponseHeaders().add("Set-Cookie", acces.enteteCookie(session));
-        ex.getResponseHeaders().add("Location", vers);
+        if (!target.startsWith("/") || target.startsWith("//")) target = "/";
+        ex.getResponseHeaders().add("Set-Cookie", access.cookieHeader(session));
+        ex.getResponseHeaders().add("Location", target);
         send(ex, 302, "text/plain; charset=utf-8", new byte[0]);
     }
 
-    private static String parametre(String requete, String nom) {
-        if (requete == null) return null;
-        for (String morceau : requete.split("&")) {
-            String[] paire = morceau.split("=", 2);
-            if (paire.length == 2 && paire[0].equals(nom)) {
-                return java.net.URLDecoder.decode(paire[1], StandardCharsets.UTF_8);
+    private static String param(String request, String name) {
+        if (request == null) return null;
+        for (String chunk : request.split("&")) {
+            String[] pair = chunk.split("=", 2);
+            if (pair.length == 2 && pair[0].equals(name)) {
+                return java.net.URLDecoder.decode(pair[1], StandardCharsets.UTF_8);
             }
         }
         return null;
     }
 
-    private static void annonce(Path root, String host, int port, Access acces) {
+    private static void announcement(Path root, String host, int port, Access access) {
         boolean local = host.startsWith("127.") || host.equals("localhost");
         System.out.println();
         System.out.println("▶ Report served at http://" + (local ? "localhost" : host)
                 + ":" + port + "/");
         System.out.println("   Annotations typed in the page are written to the");
-        System.out.println("   directory of each run (" + Annotations.DANS_LE_RUN
+        System.out.println("   directory of each run (" + Annotations.IN_THE_RUN
                 + "), and the page is rebuilt:");
         System.out.println("   so they hold for everyone, and travel with the run "
                 + "if it is moved.");
-        acces.annoncer(local);
+        access.announce(local);
         System.out.println("   Ctrl-C to stop.");
     }
 

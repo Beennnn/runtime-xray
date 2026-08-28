@@ -46,7 +46,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * classes mortes et les <b>chiffres</b> de couverture. Un renommage qui touche à cela n'est
  * plus un renommage.
  */
-class CaracterisationTest {
+class CharacterisationTest {
 
     /**
      * Les fichiers qu'un rapport de deux exécutions contient, aujourd'hui.
@@ -54,7 +54,7 @@ class CaracterisationTest {
      * <p>Rien ici n'est joli ni définitif : c'est un relevé. Il attrape le fichier qu'on
      * cesserait d'écrire, celui qu'on écrirait en double, et le renommage involontaire.
      */
-    private static final List<String> FICHIERS_ATTENDUS = List.of(
+    private static final List<String> EXPECTED_FILES = List.of(
             "diagnostic.json",
             "faits.jsonl",
             "index.html",
@@ -83,7 +83,7 @@ class CaracterisationTest {
             "vue/sources/app.js");
 
     /** Le compte de faits par famille, aujourd'hui. */
-    private static final Map<String, Integer> FAITS_ATTENDUS = new TreeMap<>(Map.of(
+    private static final Map<String, Integer> EXPECTED_FACTS = new TreeMap<>(Map.of(
             "campaign", 1,
             "class", 1,
             "class.never_executed", 1,
@@ -94,7 +94,7 @@ class CaracterisationTest {
             "source.missing", 1));
 
     /** Les options que la ligne de commande accepte, aujourd'hui. */
-    private static final List<String> OPTIONS_ATTENDUES = List.of(
+    private static final List<String> EXPECTED_OPTIONS = List.of(
             "--attach-after", "--classes", "--components", "--composants", "--config",
             "--context", "--contexte", "--cover", "--export", "--families", "--familles",
             "--filter", "--follow", "--help", "--hide", "--interval", "--java", "--level",
@@ -105,8 +105,8 @@ class CaracterisationTest {
     @Test
     @DisplayName("Deux exécutions produisent exactement ces vingt-six fichiers")
     void twoRunsProduceExactlyTheseFiles(@TempDir Path dir) throws Exception {
-        Path out = assembler(dir);
-        assertEquals(FICHIERS_ATTENDUS, fichiers(out),
+        Path out = assemble(dir);
+        assertEquals(EXPECTED_FILES, files(out),
                 "un fichier en plus ou en moins n'est jamais un détail : le rapport est un "
                 + "dossier, et la page comme les compétences comptent sur sa forme");
     }
@@ -114,34 +114,34 @@ class CaracterisationTest {
     @Test
     @DisplayName("Les mêmes exécutions donnent toujours les mêmes faits, en même nombre")
     void theSameRunsAlwaysYieldTheSameFacts(@TempDir Path dir) throws Exception {
-        Path out = assembler(dir);
-        List<Map<String, Object>> faits = faits(out);
+        Path out = assemble(dir);
+        List<Map<String, Object>> facts = facts(out);
 
-        Map<String, Integer> comptes = new TreeMap<>();
-        for (Map<String, Object> f : faits) {
-            comptes.merge(String.valueOf(f.get("fact")), 1, Integer::sum);
+        Map<String, Integer> counts = new TreeMap<>();
+        for (Map<String, Object> f : facts) {
+            counts.merge(String.valueOf(f.get("fact")), 1, Integer::sum);
         }
-        assertEquals(FAITS_ATTENDUS, comptes,
+        assertEquals(EXPECTED_FACTS, counts,
                 "renommer une famille est prévu ; en perdre une, en dupliquer une, ou cesser "
                 + "d'en écrire une ne l'est pas");
 
-        assertEquals(List.of("app.Jamais"), valeurs(faits, "class.never_executed", "class"),
+        assertEquals(List.of("app.Jamais"), values(facts, "class.never_executed", "class"),
                 "la classe morte est LE fait que l'outil existe pour donner");
-        assertEquals(List.of("app.Moteur"), valeurs(faits, "class", "class"));
+        assertEquals(List.of("app.Moteur"), values(facts, "class", "class"));
     }
 
     @Test
     @DisplayName("Les chiffres de couverture ne bougent pas d'une virgule")
     void theCoverageNumbersDoNotMoveOneDecimal(@TempDir Path dir) throws Exception {
-        List<Map<String, Object>> faits = faits(assembler(dir));
-        List<Map<String, Object>> couvertures = new ArrayList<>();
-        for (Map<String, Object> f : faits) {
-            if ("coverage.run".equals(f.get("fact"))) couvertures.add(f);
+        List<Map<String, Object>> facts = facts(assemble(dir));
+        List<Map<String, Object>> coverages = new ArrayList<>();
+        for (Map<String, Object> f : facts) {
+            if ("coverage.run".equals(f.get("fact"))) coverages.add(f);
         }
-        assertEquals(2, couvertures.size());
-        for (Map<String, Object> c : couvertures) {
-            assertEquals(9L, nombre(c.get("instructionsCovered")));
-            assertEquals(22L, nombre(c.get("instructionsTotal")));
+        assertEquals(2, coverages.size());
+        for (Map<String, Object> c : coverages) {
+            assertEquals(9L, number(c.get("instructionsCovered")));
+            assertEquals(22L, number(c.get("instructionsTotal")));
             assertEquals(40.9, ((Number) c.get("pct")).doubleValue(), 0.001,
                     "un pourcentage qui glisse à la faveur d'un renommage est le pire des "
                     + "défauts : personne ne le remarque, et il fait conclure");
@@ -151,16 +151,16 @@ class CaracterisationTest {
     @Test
     @DisplayName("Réassembler deux fois donne les mêmes blocs, à l'octet près")
     void rebuildingTwiceYieldsTheSameBlocks(@TempDir Path dir) throws Exception {
-        Path a = assembler(dir.resolve("un"));
-        Path b = assembler(dir.resolve("deux"));
+        Path a = assemble(dir.resolve("un"));
+        Path b = assemble(dir.resolve("deux"));
 
         // Les blocs sont de pures dérivations des mesures : aucune horloge, aucun chemin
         // absolu. Une différence entre deux assemblages y serait un non-déterminisme, et le
         // rapport cesserait d'être comparable à lui-même d'une semaine sur l'autre.
-        for (String bloc : FICHIERS_ATTENDUS) {
-            if (!bloc.endsWith(".js")) continue;
-            assertArrayEquals(Files.readAllBytes(a.resolve(bloc)),
-                    Files.readAllBytes(b.resolve(bloc)), bloc + " diffère d'un assemblage à "
+        for (String block : EXPECTED_FILES) {
+            if (!block.endsWith(".js")) continue;
+            assertArrayEquals(Files.readAllBytes(a.resolve(block)),
+                    Files.readAllBytes(b.resolve(block)), block + " diffère d'un assemblage à "
                     + "l'autre alors qu'il ne dérive que des mesures");
         }
     }
@@ -173,21 +173,21 @@ class CaracterisationTest {
         String main = Files.readString(Path.of("").toAbsolutePath().getParent()
                 .resolve("orchestrator/src/main/java/lab/xray/Main.java").normalize(),
                 StandardCharsets.UTF_8);
-        List<String> vues = new ArrayList<>();
+        List<String> views = new ArrayList<>();
         // Borné au seul switch des options : plus loin, Main compose les lignes de commande
         // de JaCoCo, qui ont leurs propres « --xml » et « --classfiles ».
-        int debut = main.indexOf("switch (a) {");
-        int fin = main.indexOf("unknown option", debut);
-        assertTrue(debut > 0 && fin > debut, "le switch des options doit rester repérable");
-        Matcher m = Pattern.compile("\"(--[a-z-]+)\"").matcher(main.substring(debut, fin));
-        while (m.find()) if (!vues.contains(m.group(1))) vues.add(m.group(1));
-        Collections.sort(vues);
-        assertEquals(OPTIONS_ATTENDUES, vues);
+        int start = main.indexOf("switch (a) {");
+        int end = main.indexOf("unknown option", start);
+        assertTrue(start > 0 && end > start, "le switch des options doit rester repérable");
+        Matcher m = Pattern.compile("\"(--[a-z-]+)\"").matcher(main.substring(start, end));
+        while (m.find()) if (!views.contains(m.group(1))) views.add(m.group(1));
+        Collections.sort(views);
+        assertEquals(EXPECTED_OPTIONS, views);
     }
 
     // ------------------------------------------------------------------ fixtures
 
-    private static Path assembler(Path dir) throws Exception {
+    private static Path assemble(Path dir) throws Exception {
         Path out = dir.resolve("out");
         Files.createDirectories(out);
         run(out.resolve("runs"), "run-a", "UUID-A");
@@ -207,8 +207,8 @@ class CaracterisationTest {
     }
 
     /** Une exécution telle que l'orchestrateur en produit : une classe couverte, une morte. */
-    private static void run(Path parent, String nom, String uuid) throws IOException {
-        Path run = parent.resolve(nom);
+    private static void run(Path parent, String name, String uuid) throws IOException {
+        Path run = parent.resolve(name);
         Files.createDirectories(run.resolve("jacoco/html"));
         Files.createDirectories(run.resolve("async-profiler"));
         Files.writeString(run.resolve("jacoco/html/jacoco.xml"), """
@@ -227,42 +227,42 @@ class CaracterisationTest {
         Files.writeString(run.resolve("jacoco/html/index.html"), "<html>c</html>",
                 StandardCharsets.UTF_8);
         Files.writeString(run.resolve("run-context.json"), Json.write(new LinkedHashMap<>(Map.of(
-                "uuid", uuid, "nomOrigine", nom, "commande", "java -jar app.jar",
+                "uuid", uuid, "nomOrigine", name, "commande", "java -jar app.jar",
                 "methodeRacine", "app.Moteur::calculer", "machine", "poste"))),
                 StandardCharsets.UTF_8);
     }
 
-    private static List<String> fichiers(Path out) throws IOException {
-        List<String> noms = new ArrayList<>();
+    private static List<String> files(Path out) throws IOException {
+        List<String> names = new ArrayList<>();
         try (Stream<Path> s = Files.walk(out)) {
             s.filter(Files::isRegularFile)
-             .forEach(p -> noms.add(out.relativize(p).toString().replace('\\', '/')));
+             .forEach(p -> names.add(out.relativize(p).toString().replace('\\', '/')));
         }
-        Collections.sort(noms);
-        return noms;
+        Collections.sort(names);
+        return names;
     }
 
     @SuppressWarnings("unchecked")
-    private static List<Map<String, Object>> faits(Path out) throws IOException {
-        List<Map<String, Object>> faits = new ArrayList<>();
+    private static List<Map<String, Object>> facts(Path out) throws IOException {
+        List<Map<String, Object>> facts = new ArrayList<>();
         for (String l : Files.readAllLines(out.resolve("faits.jsonl"), StandardCharsets.UTF_8)) {
-            if (!l.isBlank()) faits.add((Map<String, Object>) Json.read(l));
+            if (!l.isBlank()) facts.add((Map<String, Object>) Json.read(l));
         }
-        assertTrue(faits.size() > 5);
-        return faits;
+        assertTrue(facts.size() > 5);
+        return facts;
     }
 
-    private static List<String> valeurs(List<Map<String, Object>> faits, String famille,
-                                        String champ) {
+    private static List<String> values(List<Map<String, Object>> facts, String family,
+                                        String field) {
         List<String> out = new ArrayList<>();
-        for (Map<String, Object> f : faits) {
-            if (famille.equals(f.get("fact"))) out.add(String.valueOf(f.get(champ)));
+        for (Map<String, Object> f : facts) {
+            if (family.equals(f.get("fact"))) out.add(String.valueOf(f.get(field)));
         }
         Collections.sort(out);
         return out;
     }
 
-    private static long nombre(Object o) {
+    private static long number(Object o) {
         return ((Number) o).longValue();
     }
 }

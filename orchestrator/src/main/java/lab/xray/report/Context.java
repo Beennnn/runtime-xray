@@ -41,7 +41,7 @@ import java.util.Map;
  *       échantillon.</li>
  * </ul>
  */
-public final class Contexte {
+public final class Context {
 
     /**
      * Ce qu'on accepte de donner à lire, en caractères.
@@ -52,19 +52,19 @@ public final class Contexte {
     public static final int BUDGET = 40_000;
 
     /** Les faits qu'on ne retire jamais, quel que soit le budget. */
-    private static final List<String> TOUJOURS =
+    private static final List<String> ALWAYS =
             List.of("campaign", "unavailable", "caveat");
 
-    private Contexte() {}
+    private Context() {}
 
     /** D'où viennent les familles retenues — ce que l'appelant doit pouvoir dire à l'opérateur. */
-    public enum Origine {
+    public enum Origin {
         /** Nommées explicitement : aucune interprétation. */
-        DEMANDEES,
+        REQUESTED,
         /** Déduites des mots de la question. */
-        MOTS_CLES,
+        KEYWORDS,
         /** Aucun mot reconnu : on a donné la vue d'ensemble. */
-        VUE_ENSEMBLE
+        OVERVIEW
     }
 
     /**
@@ -76,23 +76,23 @@ public final class Contexte {
      * réduit au seul mot « jamais », ni qu'une question en anglais est tombée dans la vue
      * d'ensemble faute d'avoir été reconnue.
      */
-    public record Paquet(String texte, List<String> familles, Origine origine) {
+    public record Pack(String text, List<String> families, Origin origin) {
 
         /** La ligne à écrire sur la sortie d'erreur, là où l'opérateur regarde. */
-        public String annonce() {
-            String liste = String.join(", ", familles);
-            return switch (origine) {
-                case DEMANDEES -> "   families requested: " + liste;
-                case MOTS_CLES -> "   families kept from the question: " + liste;
-                case VUE_ENSEMBLE -> "   no keyword recognised in the question — "
-                        + "overview: " + liste;
+        public String announcement() {
+            String list = String.join(", ", families);
+            return switch (origin) {
+                case REQUESTED -> "   families requested: " + list;
+                case KEYWORDS -> "   families kept from the question: " + list;
+                case OVERVIEW -> "   no keyword recognised in the question — "
+                        + "overview: " + list;
             };
         }
     }
 
     /** Les familles qu'on peut nommer, dans l'ordre où le vocabulaire les présente. */
-    public static List<String> famillesConnues() {
-        return List.copyOf(Faits.VOCABULAIRE.keySet());
+    public static List<String> knownFamilies() {
+        return List.copyOf(Facts.VOCABULARY.keySet());
     }
 
     /**
@@ -106,31 +106,31 @@ public final class Contexte {
      *                  question : c'est le chemin des scripts, qui ont besoin d'un résultat
      *                  reproductible et non d'une phrase interprétée.
      */
-    public static Paquet pour(Path dossier, String question, List<String> demandees, int budget)
+    public static Pack of(Path dir, String question, List<String> requested, int budget)
             throws IOException {
-        Path fichier = dossier.resolve(Faits.FICHIER);
-        if (!Files.exists(fichier)) {
-            throw new IOException("no " + Faits.FICHIER + " under " + dossier
+        Path file = dir.resolve(Facts.FILE);
+        if (!Files.exists(file)) {
+            throw new IOException("no " + Facts.FILE + " under " + dir
                     + " — build the report first (--report-only)");
         }
         String q = question == null ? "" : question;
-        List<Fait> faits = lire(fichier);
-        refuserLeFormat1(faits, dossier);
-        List<String> familles;
-        Origine origine;
-        if (demandees != null && !demandees.isEmpty()) {
-            familles = valider(demandees);
-            origine = Origine.DEMANDEES;
+        List<Fact> facts = read(file);
+        refuseFormatOne(facts, dir);
+        List<String> families;
+        Origin origin;
+        if (requested != null && !requested.isEmpty()) {
+            families = validate(requested);
+            origin = Origin.REQUESTED;
         } else {
-            familles = famillesPour(q);
-            origine = reconnue(q) ? Origine.MOTS_CLES : Origine.VUE_ENSEMBLE;
+            families = familiesFor(q);
+            origin = recognised(q) ? Origin.KEYWORDS : Origin.OVERVIEW;
         }
-        return new Paquet(rendre(faits, q, familles, budget), familles, origine);
+        return new Pack(render(facts, q, families, budget), families, origin);
     }
 
     /** Le paquet seul, pour qui n'a pas besoin de savoir comment il a été choisi. */
-    public static String pour(Path dossier, String question, int budget) throws IOException {
-        return pour(dossier, question, List.of(), budget).texte();
+    public static String of(Path dir, String question, int budget) throws IOException {
+        return of(dir, question, List.of(), budget).text();
     }
 
     /**
@@ -148,14 +148,14 @@ public final class Contexte {
      * les faits, les mesures sont restées derrière. Là, rien ne peut être régénéré, et
      * c'est pourquoi ce message distingue les deux situations au lieu d'en supposer une.
      */
-    static void refuserLeFormat1(List<Fait> faits, Path dossier) throws IOException {
-        for (Fait f : faits) {
-            if (f.champs().containsKey("fait") && !f.champs().containsKey("fact")) {
-                boolean regenerable = Files.isDirectory(dossier.resolve("runs"));
+    static void refuseFormatOne(List<Fact> facts, Path dir) throws IOException {
+        for (Fact f : facts) {
+            if (f.fields().containsKey("fait") && !f.fields().containsKey("fact")) {
+                boolean regenerable = Files.isDirectory(dir.resolve("runs"));
                 throw new IOException("this report is in facts format 1.0, this tool reads "
                         + FORMAT_MINIMUM + " and above"
                         + (regenerable
-                           ? "\n   Rebuild it: runtime-xray --report-only --out " + dossier
+                           ? "\n   Rebuild it: runtime-xray --report-only --out " + dir
                            : "\n   Its runs/ directory is gone, so nothing can be rebuilt."
                              + " Re-run the campaign, or read faits.jsonl by hand — its"
                              + " first line still carries its own vocabulary."));
@@ -181,7 +181,7 @@ public final class Contexte {
      * <p>Un script de recette écrit contre la 1.0 ne doit pas s'arrêter parce que le format
      * a changé de langue. Ils ne sont pas documentés : ils marchent, c'est tout.
      */
-    static final Map<String, String> FAMILLES_1_0 = Map.of(
+    static final Map<String, String> FAMILIES_1_0 = Map.of(
             "campagne", "campaign",
             "execution", "run",
             "indisponibilite", "unavailable",
@@ -193,17 +193,17 @@ public final class Contexte {
             "source.introuvable", "source.missing",
             "piste.source", "source.hint");
 
-    static List<String> valider(List<String> demandees) throws IOException {
-        List<String> connues = famillesConnues();
+    static List<String> validate(List<String> requested) throws IOException {
+        List<String> known = knownFamilies();
         List<String> out = new ArrayList<>();
-        for (String d : demandees) {
-            String nom = FAMILLES_1_0.getOrDefault(d.trim(), d.trim());
-            if (nom.isEmpty()) continue;
-            if (!connues.contains(nom)) {
-                throw new IOException("unknown fact family: \"" + nom + "\" — the families are "
-                        + String.join(", ", connues));
+        for (String d : requested) {
+            String name = FAMILIES_1_0.getOrDefault(d.trim(), d.trim());
+            if (name.isEmpty()) continue;
+            if (!known.contains(name)) {
+                throw new IOException("unknown fact family: \"" + name + "\" — the families are "
+                        + String.join(", ", known));
             }
-            if (!out.contains(nom)) out.add(nom);
+            if (!out.contains(name)) out.add(name);
         }
         if (out.isEmpty()) throw new IOException("--familles names no family");
         return out;
@@ -217,23 +217,23 @@ public final class Contexte {
      * d'un flottant. Ce n'est pas faux, c'est le genre de détail qui fait douter du reste.
      * Les champs analysés ne servent qu'à choisir.
      */
-    record Fait(String ligne, Map<String, Object> champs) {
-        Object get(String cle) {
-            return champs.get(cle);
+    record Fact(String line, Map<String, Object> fields) {
+        Object get(String key) {
+            return fields.get(key);
         }
 
-        String nom() {
-            return String.valueOf(champs.get("fact"));
+        String name() {
+            return String.valueOf(fields.get("fact"));
         }
     }
 
     @SuppressWarnings("unchecked")
-    static List<Fait> lire(Path fichier) throws IOException {
-        List<Fait> out = new ArrayList<>();
-        for (String ligne : Files.readAllLines(fichier, StandardCharsets.UTF_8)) {
-            if (ligne.isBlank()) continue;
-            Object lu = Json.read(ligne);
-            if (lu instanceof Map<?, ?> m) out.add(new Fait(ligne, (Map<String, Object>) m));
+    static List<Fact> read(Path file) throws IOException {
+        List<Fact> out = new ArrayList<>();
+        for (String line : Files.readAllLines(file, StandardCharsets.UTF_8)) {
+            if (line.isBlank()) continue;
+            Object read = Json.read(line);
+            if (read instanceof Map<?, ?> m) out.add(new Fact(line, (Map<String, Object>) m));
         }
         return out;
     }
@@ -250,52 +250,52 @@ public final class Contexte {
      * Les mots documentés, en anglais : ce que {@code --help} énumère, et ce sur quoi un
      * lecteur peut compter. Un test garde qu'ils y sont tous écrits.
      */
-    static final Map<String, String[]> MOTS = new LinkedHashMap<>();
+    static final Map<String, String[]> WORDS = new LinkedHashMap<>();
 
     /**
      * Les mêmes familles en français. Reconnus, <b>délibérément non documentés</b> : l'outil
      * parle anglais, et une seconde table dans l'aide la rendrait illisible pour ceux à qui
      * elle s'adresse. L'aide se contente de dire qu'ils existent.
      */
-    static final Map<String, String[]> MOTS_FR = new LinkedHashMap<>();
+    static final Map<String, String[]> WORDS_FR = new LinkedHashMap<>();
 
     static {
-        MOTS.put("class.never_executed",
+        WORDS.put("class.never_executed",
                 new String[]{"never", "dead", "unused", "uncovered", "not covered"});
-        MOTS.put("coverage.run", new String[]{"cover", "coverage", "percent"});
-        MOTS.put("method.hot",
+        WORDS.put("coverage.run", new String[]{"cover", "coverage", "percent"});
+        WORDS.put("method.hot",
                 new String[]{"time", "slow", "hot", "cost", "perf", "fast", "profil"});
-        MOTS.put("source.missing", new String[]{"source", "missing", "root"});
-        MOTS.put("run",
+        WORDS.put("source.missing", new String[]{"source", "missing", "root"});
+        WORDS.put("run",
                 new String[]{"run", "campaign", "when", "machine", "command"});
 
-        MOTS_FR.put("class.never_executed",
+        WORDS_FR.put("class.never_executed",
                 new String[]{"jamais", "mort", "inutilis", "non couvert", "pas couvert"});
-        MOTS_FR.put("coverage.run",
+        WORDS_FR.put("coverage.run",
                 new String[]{"couvert", "couverture", "taux", "pourcent"});
-        MOTS_FR.put("method.hot",
+        WORDS_FR.put("method.hot",
                 new String[]{"temps", "lent", "cout", "chaud", "rapide"});
         // « code » n'y figure pas : « dead code » et « code coverage » sont des tournures
         // trop courantes pour qu'un mot aussi général désigne la famille des sources.
-        MOTS_FR.put("source.missing",
+        WORDS_FR.put("source.missing",
                 new String[]{"introuvable", "manqu", "racine"});
-        MOTS_FR.put("run",
+        WORDS_FR.put("run",
                 new String[]{"execution", "campagne", "quand", "commande"});
     }
 
-    static List<String> famillesReconnues(String question) {
-        String q = normaliser(question);
-        List<String> familles = new ArrayList<>();
-        for (Map.Entry<String, String[]> e : MOTS.entrySet()) {
-            if (contient(q, e.getValue()) || contient(q, MOTS_FR.get(e.getKey()))) {
-                familles.add(e.getKey());
+    static List<String> recognisedFamilies(String question) {
+        String q = normalise(question);
+        List<String> families = new ArrayList<>();
+        for (Map.Entry<String, String[]> e : WORDS.entrySet()) {
+            if (contains(q, e.getValue()) || contains(q, WORDS_FR.get(e.getKey()))) {
+                families.add(e.getKey());
                 // La couverture d'une exécution et celle d'une classe répondent à la même
                 // question, posée à deux échelles : on ne les sépare pas.
-                if (e.getKey().equals("coverage.run")) familles.add("class");
-                if (e.getKey().equals("source.missing")) familles.add("source.hint");
+                if (e.getKey().equals("coverage.run")) families.add("class");
+                if (e.getKey().equals("source.missing")) families.add("source.hint");
             }
         }
-        return familles;
+        return families;
     }
 
     /**
@@ -305,14 +305,14 @@ public final class Contexte {
      * et {@code exécution} ne reconnaîtrait pas {@code execution}. On en écrit un seul,
      * sans accent, et la question s'y ramène.
      */
-    static String normaliser(String question) {
+    static String normalise(String question) {
         return java.text.Normalizer.normalize(question.toLowerCase(Locale.ROOT),
                         java.text.Normalizer.Form.NFD)
                 .replaceAll("\\p{M}+", "");
     }
 
     /** La vue d'ensemble : ce qu'on donne quand la question n'a rien déclenché. */
-    static final List<String> VUE_ENSEMBLE = List.of("run", "coverage.run",
+    static final List<String> OVERVIEW = List.of("run", "coverage.run",
             "class.never_executed", "method.hot", "source.hint");
 
     /**
@@ -323,14 +323,14 @@ public final class Contexte {
      * {@link Origine#VUE_ENSEMBLE} — faute de quoi le repli passerait pour une lecture
      * réussie de la question.
      */
-    static List<String> famillesPour(String question) {
-        List<String> familles = famillesReconnues(question);
-        return familles.isEmpty() ? VUE_ENSEMBLE : familles;
+    static List<String> familiesFor(String question) {
+        List<String> families = recognisedFamilies(question);
+        return families.isEmpty() ? OVERVIEW : families;
     }
 
     /** Vrai si au moins un mot de la question a été reconnu. */
-    static boolean reconnue(String question) {
-        return !famillesReconnues(question).isEmpty();
+    static boolean recognised(String question) {
+        return !recognisedFamilies(question).isEmpty();
     }
 
     /**
@@ -346,41 +346,41 @@ public final class Contexte {
      * <p>Un mot-clé qui contient une espace est cherché tel quel : « not covered » n'est
      * pas un mot, c'est une tournure.
      */
-    private static boolean contient(String q, String... mots) {
-        for (String m : mots) {
+    private static boolean contains(String q, String... words) {
+        for (String m : words) {
             if (m.indexOf(' ') >= 0) {
                 if (q.contains(m)) return true;
             } else {
-                for (String mot : q.split("[^\\p{L}\\p{N}]+")) {
-                    if (mot.startsWith(m)) return true;
+                for (String word : q.split("[^\\p{L}\\p{N}]+")) {
+                    if (word.startsWith(m)) return true;
                 }
             }
         }
         return false;
     }
 
-    static String rendre(List<Fait> faits, String question, int budget) {
-        return rendre(faits, question, famillesPour(question), budget);
+    static String render(List<Fact> facts, String question, int budget) {
+        return render(facts, question, familiesFor(question), budget);
     }
 
-    static String rendre(List<Fait> faits, String question, List<String> familles, int budget) {
+    static String render(List<Fact> facts, String question, List<String> families, int budget) {
         StringBuilder sb = new StringBuilder();
 
-        Fait tete = premier(faits, "campaign");
-        sb.append(enTete(tete, question));
+        Fact head = first(facts, "campaign");
+        sb.append(header(head, question));
 
         // D'abord ce qui n'a PAS été mesuré. C'est l'ordre qui compte : un lecteur qui lit
         // les chiffres avant les réserves les a déjà interprétés quand il arrive aux réserves.
-        List<Fait> absences = tous(faits, "unavailable");
-        List<Fait> reserves = tous(faits, "caveat");
-        if (!absences.isEmpty() || !reserves.isEmpty()) {
+        List<Fact> unavailabilities = tous(facts, "unavailable");
+        List<Fact> caveats = tous(facts, "caveat");
+        if (!unavailabilities.isEmpty() || !caveats.isEmpty()) {
             sb.append("\n## What was NOT measured — read this before any figure\n\n");
-            for (Fait f : absences) {
+            for (Fact f : unavailabilities) {
                 sb.append("- **").append(f.get("what")).append("** (run ")
                   .append(f.get("run")).append("): ").append(f.get("why"))
                   .append("\n  Consequence: ").append(f.get("consequence")).append("\n");
             }
-            for (Fait f : reserves) {
+            for (Fact f : caveats) {
                 sb.append("- Caveat on ").append(f.get("what")).append(": ")
                   .append(f.get("caveat")).append("\n");
             }
@@ -391,21 +391,21 @@ public final class Contexte {
 
         sb.append("\n## The facts kept for this question\n\n")
           .append("One JSON object per line. Families kept: ")
-          .append(String.join(", ", familles)).append("\n\n```jsonl\n");
+          .append(String.join(", ", families)).append("\n\n```jsonl\n");
 
-        int ecartes = 0;
-        int retenus = 0;
-        Map<String, Integer> ecartesPar = new LinkedHashMap<>();
-        for (Fait f : faits) {
-            String nom = f.nom();
-            if (TOUJOURS.contains(nom) || !familles.contains(nom)) continue;
-            if (sb.length() + f.ligne().length() > budget) {
-                ecartes++;
-                ecartesPar.merge(nom, 1, Integer::sum);
+        int droppedCount = 0;
+        int kept = 0;
+        Map<String, Integer> droppedPerFamily = new LinkedHashMap<>();
+        for (Fact f : facts) {
+            String name = f.name();
+            if (ALWAYS.contains(name) || !families.contains(name)) continue;
+            if (sb.length() + f.line().length() > budget) {
+                droppedCount++;
+                droppedPerFamily.merge(name, 1, Integer::sum);
                 continue;
             }
-            retenus++;
-            sb.append(f.ligne()).append("\n");
+            kept++;
+            sb.append(f.line()).append("\n");
         }
         sb.append("```\n");
 
@@ -413,27 +413,27 @@ public final class Contexte {
         // mode d'échec le plus coûteux de cet outil, et il vaut ici comme dans la page. Un
         // modèle qui ne voit rien conclut soit « il n'y en a pas », soit « l'outil a raté » :
         // deux réponses opposées, et rien pour trancher. On tranche donc à sa place.
-        if (retenus == 0 && ecartes == 0) {
+        if (kept == 0 && droppedCount == 0) {
             sb.append("\n**No fact of these families in this campaign.** This is not an "
                     + "extraction failure: the other families do carry facts. Depending on the "
                     + "family, it reads either \"there are none\" (no dead class, for instance) "
                     + "or \"the matching measurement was not taken\" — the section above says "
                     + "which. Families present in the file: ")
-              .append(String.join(", ", presentes(faits))).append(".\n");
+              .append(String.join(", ", present(facts))).append(".\n");
         }
 
         // Jamais de troncature muette : un extrait qu'on croit complet fait conclure sur un
         // échantillon, et personne ne saura que la conclusion portait sur une partie.
-        if (ecartes > 0) {
-            sb.append("\n⚠️ **").append(ecartes).append(" fact(s) left out** for lack of room (")
-              .append(ecartesPar).append("). This selection is INCOMPLETE: do not draw a total "
+        if (droppedCount > 0) {
+            sb.append("\n⚠️ **").append(droppedCount).append(" fact(s) left out** for lack of room (")
+              .append(droppedPerFamily).append("). This selection is INCOMPLETE: do not draw a total "
               + "or a ranking from it. The whole file is in `")
-              .append(Faits.FICHIER).append("`.\n");
+              .append(Facts.FILE).append("`.\n");
         }
         return sb.toString();
     }
 
-    private static String enTete(Fait campagne, String question) {
+    private static String header(Fact campaign, String question) {
         StringBuilder sb = new StringBuilder();
         sb.append("# Runtime analysis — context\n\n");
         if (!question.isBlank()) sb.append("Question asked: ").append(question).append("\n\n");
@@ -449,17 +449,17 @@ public final class Contexte {
                 + "3. A **coverage rate** says where the code went. It says nothing about "
                 + "whether it is correct, nor about the quality of the tests.\n");
 
-        if (campagne != null) {
+        if (campaign != null) {
             sb.append("\n## The campaign\n\n");
-            for (String cle : List.of("tool", "version", "date", "runs")) {
-                if (campagne.get(cle) != null) {
-                    sb.append("- ").append(cle).append(" : ")
-                      .append(nombre(campagne.get(cle))).append("\n");
+            for (String key : List.of("tool", "version", "date", "runs")) {
+                if (campaign.get(key) != null) {
+                    sb.append("- ").append(key).append(" : ")
+                      .append(number(campaign.get(key))).append("\n");
                 }
             }
-            if (campagne.get("vocabulary") instanceof Map<?, ?> vocabulaire) {
+            if (campaign.get("vocabulary") instanceof Map<?, ?> vocabulary) {
                 sb.append("\n## The vocabulary of the facts\n\n");
-                for (Map.Entry<?, ?> e : vocabulaire.entrySet()) {
+                for (Map.Entry<?, ?> e : vocabulary.entrySet()) {
                     sb.append("- `").append(e.getKey()).append("` : ").append(e.getValue())
                       .append("\n");
                 }
@@ -469,10 +469,10 @@ public final class Contexte {
     }
 
     /** Les familles réellement présentes, pour distinguer « rien » de « rien trouvé ». */
-    private static List<String> presentes(List<Fait> faits) {
-        java.util.Set<String> noms = new java.util.LinkedHashSet<>();
-        for (Fait f : faits) noms.add(f.nom());
-        return new ArrayList<>(noms);
+    private static List<String> present(List<Fact> facts) {
+        java.util.Set<String> names = new java.util.LinkedHashSet<>();
+        for (Fact f : facts) names.add(f.name());
+        return new ArrayList<>(names);
     }
 
     /**
@@ -482,22 +482,22 @@ public final class Contexte {
      * « 29.0 exécutions » n'est pas faux, c'est pire — c'est le genre de détail qui fait
      * douter du reste, chez un lecteur humain comme chez un modèle.
      */
-    static String nombre(Object valeur) {
-        if (valeur instanceof Number n && n.doubleValue() == Math.rint(n.doubleValue())
+    static String number(Object value) {
+        if (value instanceof Number n && n.doubleValue() == Math.rint(n.doubleValue())
                 && Math.abs(n.doubleValue()) < 1e15) {
             return String.valueOf((long) n.doubleValue());
         }
-        return String.valueOf(valeur);
+        return String.valueOf(value);
     }
 
-    private static Fait premier(List<Fait> faits, String nom) {
-        for (Fait f : faits) if (nom.equals(f.nom())) return f;
+    private static Fact first(List<Fact> facts, String name) {
+        for (Fact f : facts) if (name.equals(f.name())) return f;
         return null;
     }
 
-    private static List<Fait> tous(List<Fait> faits, String nom) {
-        List<Fait> out = new ArrayList<>();
-        for (Fait f : faits) if (nom.equals(f.nom())) out.add(f);
+    private static List<Fact> tous(List<Fact> facts, String name) {
+        List<Fact> out = new ArrayList<>();
+        for (Fact f : facts) if (name.equals(f.name())) out.add(f);
         return out;
     }
 }

@@ -35,13 +35,13 @@ import java.util.Map;
 public final class Capture {
 
     /** Le champ où la version vit, dans {@code run-context.json}. */
-    public static final String CHAMP = "formatCapture";
+    public static final String FIELD = "formatCapture";
 
     /** La forme d'avant le contrat : tout ce qui n'annonce rien en relève. */
-    public static final String ORIGINE = "1.0";
+    public static final String ORIGIN = "1.0";
 
     /** Ce qu'une exécution lancée aujourd'hui inscrit dans son contexte. */
-    public static final String COURANTE = "1.1";
+    public static final String CURRENT = "1.1";
 
     /**
      * La plus ancienne que cet outil sait relire.
@@ -49,20 +49,20 @@ public final class Capture {
      * <p>Elle ne monte que lorsqu'une capture ancienne devient réellement illisible — jamais
      * pour un confort de code. La monter oblige tous les utilisateurs à remesurer.
      */
-    public static final String MINIMALE = "1.0";
+    public static final String MINIMUM = "1.0";
 
     private Capture() {}
 
     /** La version annoncée par une capture, ou {@link #ORIGINE} si elle n'annonce rien. */
-    public static String versionDe(Map<String, Object> contexte) {
-        if (contexte == null) return ORIGINE;
-        Object v = contexte.get(CHAMP);
-        return v == null || String.valueOf(v).isBlank() ? ORIGINE : String.valueOf(v);
+    public static String versionOf(Map<String, Object> context) {
+        if (context == null) return ORIGIN;
+        Object v = context.get(FIELD);
+        return v == null || String.valueOf(v).isBlank() ? ORIGIN : String.valueOf(v);
     }
 
     /** Vrai si cet outil sait relire cette capture sans qu'on relance quoi que ce soit. */
-    public static boolean lisible(String version) {
-        return compare(version, MINIMALE) >= 0;
+    public static boolean readable(String version) {
+        return compare(version, MINIMUM) >= 0;
     }
 
     /**
@@ -72,28 +72,28 @@ public final class Capture {
      * pire des champs qu'on ignore. On le dit, on continue — refuser de lire ferait perdre
      * une campagne pour une différence qui ne gêne pas.
      */
-    public static boolean plusRecenteQueLOutil(String version) {
-        return compare(version, COURANTE) > 0;
+    public static boolean newerThanTheTool(String version) {
+        return compare(version, CURRENT) > 0;
     }
 
     /** Ce qu'on affiche quand une capture ne se relit pas — et ce qu'il faut en faire. */
-    public static String pourquoiIllisible(String version) {
+    public static String whyUnreadable(String version) {
         return "capture in format " + version + ", whereas this tool only reads from "
-                + MINIMALE + " on. This run must be measured again; the others, not.";
+                + MINIMUM + " on. This run must be measured again; the others, not.";
     }
 
     /** Comparaison numérique par segments : « 1.10 » est postérieur à « 1.9 ». */
     static int compare(String a, String b) {
         String[] ga = a.split("\\."), gb = b.split("\\.");
         for (int i = 0; i < Math.max(ga.length, gb.length); i++) {
-            int va = i < ga.length ? entier(ga[i]) : 0;
-            int vb = i < gb.length ? entier(gb[i]) : 0;
+            int va = i < ga.length ? toInt(ga[i]) : 0;
+            int vb = i < gb.length ? toInt(gb[i]) : 0;
             if (va != vb) return Integer.compare(va, vb);
         }
         return 0;
     }
 
-    private static int entier(String s) {
+    private static int toInt(String s) {
         try {
             return Integer.parseInt(s.trim());
         } catch (NumberFormatException e) {

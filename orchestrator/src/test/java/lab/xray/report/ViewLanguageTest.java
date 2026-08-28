@@ -38,11 +38,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * rendu ; les autres tests ici gardent alors les <b>décisions</b> du mécanisme, celles
  * qu'une relecture rapide déferait sans s'en apercevoir.
  */
-class VueLangueTest {
+class ViewLanguageTest {
 
-    private static final String PAGE = lire();
+    private static final String PAGE = read();
 
-    private static String lire() {
+    private static String read() {
         try (InputStream in = Dashboard.class.getResourceAsStream("/lab/xray/dashboard.html")) {
             if (in == null) throw new IllegalStateException("dashboard.html absent du jar");
             return new String(in.readAllBytes(), StandardCharsets.UTF_8);
@@ -53,13 +53,13 @@ class VueLangueTest {
 
     /** Le dictionnaire de la page, relu tel quel : ce sont des chaînes JSON. */
     @SuppressWarnings("unchecked")
-    private static Map<String, Object> dictionnaire() {
-        int debut = PAGE.indexOf("const DICO = {");
-        assertTrue(debut > 0, "la page doit porter son dictionnaire : elle voyage seule");
-        int fin = PAGE.indexOf("\n  };", debut);
-        String corps = PAGE.substring(PAGE.indexOf('{', debut) + 1, fin).trim();
-        corps = corps.replaceAll(",\\s*$", "");
-        return (Map<String, Object>) Json.read("{" + corps + "}");
+    private static Map<String, Object> dictionary() {
+        int start = PAGE.indexOf("const DICO = {");
+        assertTrue(start > 0, "la page doit porter son dictionnaire : elle voyage seule");
+        int end = PAGE.indexOf("\n  };", start);
+        String body = PAGE.substring(PAGE.indexOf('{', start) + 1, end).trim();
+        body = body.replaceAll(",\\s*$", "");
+        return (Map<String, Object>) Json.read("{" + body + "}");
     }
 
     /**
@@ -67,16 +67,16 @@ class VueLangueTest {
      * C'est le seul texte qu'on peut relever sans navigateur, et c'est aussi celui qui
      * s'affiche en premier.
      */
-    private static String corpsStatique() {
-        int debut = PAGE.indexOf("<body>");
-        int fin = PAGE.indexOf("<script>", debut);
-        assertTrue(debut > 0 && fin > debut);
-        return PAGE.substring(debut, fin);
+    private static String staticBody() {
+        int start = PAGE.indexOf("<body>");
+        int end = PAGE.indexOf("<script>", start);
+        assertTrue(start > 0 && end > start);
+        return PAGE.substring(start, end);
     }
 
-    private static final Pattern ATTRIBUT =
+    private static final Pattern ATTRIBUTE =
             Pattern.compile("(?:title|aria-label|placeholder)=\"([^\"]*)\"");
-    private static final Pattern TEXTE = Pattern.compile(">([^<>]+)<");
+    private static final Pattern TEXT = Pattern.compile(">([^<>]+)<");
 
     /**
      * Ce qui a l'air français. Large à dessein — accents et mots outils — parce que le
@@ -84,14 +84,14 @@ class VueLangueTest {
      * n'en a pas besoin se voit tout de suite, laisser passer une phrase entière non. Les
      * mots communs aux deux langues (« Code », « Exports ») en sont donc absents.
      */
-    private static final Pattern FRANCAIS = Pattern.compile(
+    private static final Pattern FRENCH = Pattern.compile(
             "[éèêëàâçùûîïôœÉÈÀÇ]|\\b(le|la|les|des|une|un|du|de|qui|que|pour|dans|est|sont"
             + "|pas|sur|avec|cette|ne|au|aux|par|plus|tout|ou|et|se|son|sa|ses|elle|cliquer"
             + "|voir|noms|bout|champ)\\b", Pattern.CASE_INSENSITIVE);
 
-    private static List<String> chainesAffichees(String fragment) {
+    private static List<String> displayedStrings(String fragment) {
         Set<String> out = new LinkedHashSet<>();
-        for (Pattern p : List.of(ATTRIBUT, TEXTE)) {
+        for (Pattern p : List.of(ATTRIBUTE, TEXT)) {
             Matcher m = p.matcher(fragment);
             while (m.find()) {
                 String s = m.group(1).replace("&apos;", "'").replace("&nbsp;", " ")
@@ -105,14 +105,14 @@ class VueLangueTest {
     @Test
     @DisplayName("Chaque phrase française du corps statique a sa traduction")
     void everyFrenchSentenceInTheStaticBodyHasATranslation() {
-        Map<String, Object> dico = dictionnaire();
-        List<String> orphelines = new ArrayList<>();
-        for (String s : chainesAffichees(corpsStatique())) {
-            if (FRANCAIS.matcher(s).find() && !dico.containsKey(s)) orphelines.add(s);
+        Map<String, Object> dictionary = dictionary();
+        List<String> orphans = new ArrayList<>();
+        for (String s : displayedStrings(staticBody())) {
+            if (FRENCH.matcher(s).find() && !dictionary.containsKey(s)) orphans.add(s);
         }
         // Le mode d'échec est silencieux : la vue anglaise affiche la phrase française, et
         // rien ne le dit. C'est ce test, et lui seul, qui le dit.
-        assertEquals(List.of(), orphelines,
+        assertEquals(List.of(), orphans,
                 "libellé(s) français sans traduction — la vue anglaise les afficherait "
                 + "en français : ajouter les entrées manquantes au DICO de dashboard.html");
     }
@@ -146,32 +146,32 @@ class VueLangueTest {
     @Test
     @DisplayName("Le choix survit au rechargement, et son échec n'emporte jamais la page")
     void theChoiceSurvivesAReloadAndItsFailureNeverBreaksThePage() {
-        int debut = PAGE.indexOf("const CLE = \"runtime-xray.langue\"");
-        assertTrue(debut > 0, "le choix doit être gardé, sinon il se refait à chaque ouverture");
-        String bloc = PAGE.substring(debut, debut + 400);
+        int start = PAGE.indexOf("const CLE = \"runtime-xray.langue\"");
+        assertTrue(start > 0, "le choix doit être gardé, sinon il se refait à chaque ouverture");
+        String block = PAGE.substring(start, start + 400);
         // Une page ouverte en file:// n'a pas toujours le droit d'écrire dans localStorage.
         // Sans ces try, la vue ne s'afficherait pas du tout sur ces postes-là.
-        assertTrue(bloc.contains("try { return localStorage.getItem(CLE); } catch"),
+        assertTrue(block.contains("try { return localStorage.getItem(CLE); } catch"),
                 "la lecture du choix doit être sous try : file:// peut la refuser");
-        assertTrue(bloc.contains("try { localStorage.setItem(CLE, v); } catch"),
+        assertTrue(block.contains("try { localStorage.setItem(CLE, v); } catch"),
                 "l'écriture aussi, et pour la même raison");
     }
 
     @Test
     @DisplayName("Le dictionnaire traduit vraiment : aucune entrée ne se recopie")
     void theDictionaryActuallyTranslates() {
-        Map<String, Object> dico = dictionnaire();
-        assertTrue(dico.size() > 250,
+        Map<String, Object> dictionary = dictionary();
+        assertTrue(dictionary.size() > 250,
                 "le dictionnaire couvre la vue entière, relevée sur un rapport réel : "
-                + "tombé si bas, c'est qu'on en a perdu la moitié — " + dico.size());
-        List<String> fautives = new ArrayList<>();
-        for (Map.Entry<String, Object> e : dico.entrySet()) {
+                + "tombé si bas, c'est qu'on en a perdu la moitié — " + dictionary.size());
+        List<String> offending = new ArrayList<>();
+        for (Map.Entry<String, Object> e : dictionary.entrySet()) {
             String en = String.valueOf(e.getValue());
             // Une entrée qui se recopie ne traduit rien et masque le trou : le test du
             // corps statique la verrait comme couverte.
-            if (en.isBlank() || en.equals(e.getKey())) fautives.add(e.getKey());
+            if (en.isBlank() || en.equals(e.getKey())) offending.add(e.getKey());
         }
-        assertEquals(List.of(), fautives, "entrée(s) vide(s) ou identiques à leur clé");
+        assertEquals(List.of(), offending, "entrée(s) vide(s) ou identiques à leur clé");
     }
 
     @Test

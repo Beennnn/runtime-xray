@@ -104,7 +104,7 @@ public final class Inspection {
             }
 
             List<Object> params = new ArrayList<>();
-            Map<String, Object> retour = null;
+            Map<String, Object> returnValue = null;
             while (i < lines.size() && !lines.get(i).startsWith("method=")) {
                 String line = lines.get(i);
                 String trimmed = line.trim();
@@ -115,7 +115,7 @@ public final class Inspection {
                         if (indent >= 8) {
                             params.add(entry);
                         } else if (indent == 4 && !line.contains("@Object[][")) {
-                            retour = entry;
+                            returnValue = entry;
                         }
                     }
                 } else if (indent == 0 && (trimmed.equals("]") || trimmed.equals("],"))) {
@@ -127,12 +127,12 @@ public final class Inspection {
 
             @SuppressWarnings("unchecked")
             List<Object> calls = (List<Object>) values.computeIfAbsent(frame, k -> new ArrayList<>());
-            if (calls.size() < limitPerMethod && (!params.isEmpty() || retour != null)) {
+            if (calls.size() < limitPerMethod && (!params.isEmpty() || returnValue != null)) {
                 Map<String, Object> call = new LinkedHashMap<>();
                 call.put("ts", ts);
                 call.put("cost", cost);
                 call.put("params", params);
-                call.put("retour", retour);
+                call.put("retour", returnValue);
                 calls.add(call);
             }
         }
@@ -176,7 +176,7 @@ public final class Inspection {
      * itération.
      */
     /** Au-delà, la liste des itérations cesse d'informer et commence à peser. */
-    private static final int MAX_PASSAGES = 60;
+    private static final int MAX_ITERATIONS = 60;
 
     private void readTrace(Path file) throws IOException {
         Map<String, Map<String, Map<String, Object>>> byLine = new LinkedHashMap<>();
@@ -211,12 +211,12 @@ public final class Inspection {
                 call.put("minMs", Math.min(min, ms));
                 call.put("maxMs", Math.max(max, ms));
                 @SuppressWarnings("unchecked")
-                List<Object> passages = (List<Object>) call.get("passages");
+                List<Object> iterations = (List<Object>) call.get("passages");
                 // Borné : une boucle de plusieurs milliers de tours produirait une page
                 // illisible et un fichier de données démesuré. Les premiers passages sont
                 // ceux qui portent l'information — c'est là que se voit le coût de départ.
-                if (passages.size() < MAX_PASSAGES) {
-                    passages.add(ms);
+                if (iterations.size() < MAX_ITERATIONS) {
+                    iterations.add(ms);
                 }
             }
         }

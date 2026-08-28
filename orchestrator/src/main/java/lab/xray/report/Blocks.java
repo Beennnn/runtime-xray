@@ -66,13 +66,13 @@ import java.util.TreeMap;
  * reconstructibles d'un {@code --report-only}. Jamais une source de vérité de plus — celle-ci
  * reste la capture, sous {@code runs/}.
  */
-public final class Blocs {
+public final class Blocks {
 
     /** Le répertoire des index qui croisent les exécutions, à côté de la page. */
     public static final String GLOBAL = "vue";
 
     /** Le sous-répertoire d'index, sous chaque exécution. */
-    public static final String PAR_EXECUTION = "vue";
+    public static final String PER_RUN = "vue";
 
     /**
      * Le format du rapport engendré — la page et ses blocs.
@@ -88,17 +88,17 @@ public final class Blocs {
     public static final String FORMAT = "2.0";
 
     /** Ce qui ne s'affiche qu'après un geste, et n'a donc pas à être là avant. */
-    private static final List<String> LOURD =
+    private static final List<String> HEAVY =
             List.of("coverage", "calltree", "values", "trace");
 
     /** Le nom de fichier de chaque donnée lourde, sous {@code <exécution>/vue/}. */
-    private static final Map<String, String> FICHIERS = Map.of(
+    private static final Map<String, String> FILES = Map.of(
             "coverage", "couverture.js",
             "calltree", "arbre.js",
             "values", "valeurs.js",
             "trace", "traces.js");
 
-    private Blocs() {}
+    private Blocks() {}
 
     /**
      * Écrit les blocs, et rend le sommaire — ce qui doit être présent au premier affichage.
@@ -107,34 +107,34 @@ public final class Blocs {
      * @param runs      les exécutions telles que la vue les reçoit
      * @param sources   les sources affichables, par clé {@code paquet/Fichier.java}
      */
-    public static Map<String, Object> ecrire(Path commonDir, List<Object> runs,
+    public static Map<String, Object> write(Path commonDir, List<Object> runs,
                                              Map<String, Object> sources) throws IOException {
         Path global = commonDir.resolve(GLOBAL);
         Files.createDirectories(global);
 
-        List<Object> sommaire = new ArrayList<>();
+        List<Object> summary = new ArrayList<>();
         for (Object r : runs) {
             if (!(r instanceof Map<?, ?> run)) continue;
-            String sousRep = String.valueOf(run.get("chemin")) + PAR_EXECUTION + "/";
-            Path dir = commonDir.resolve(sousRep);
+            String subDir = String.valueOf(run.get("chemin")) + PER_RUN + "/";
+            Path dir = commonDir.resolve(subDir);
             Files.createDirectories(dir);
-            sommaire.add(alleger(run, sousRep));
-            ecrireRun(dir, run);
+            summary.add(thin(run, subDir));
+            writeRun(dir, run);
         }
 
-        Map<String, String> blocParCle = ecrireSources(global.resolve("sources"), sources);
-        ecrireCumul(global.resolve("cumul.js"), runs);
-        ecrirePoids(global.resolve("poids.js"), runs);
-        ecrirePresence(global.resolve("presence.js"), runs);
-        ecrireManifeste(global.resolve("manifeste.json"), runs, sources.size());
+        Map<String, String> blockByKey = writeSources(global.resolve("sources"), sources);
+        writeCumulative(global.resolve("cumul.js"), runs);
+        writeWeights(global.resolve("poids.js"), runs);
+        writePresence(global.resolve("presence.js"), runs);
+        writeManifest(global.resolve("manifeste.json"), runs, sources.size());
 
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("format", FORMAT);
-        out.put("runs", sommaire);
+        out.put("runs", summary);
         // Les CLÉS des sources restent dans la page, jamais leur contenu : l'arbre doit
         // pouvoir dire « celle-ci a son code » sans charger le code pour le savoir, sinon la
         // première image redemanderait tout ce qu'on vient d'en sortir.
-        out.put("sourcesDisponibles", blocParCle);
+        out.put("sourcesDisponibles", blockByKey);
         out.put("global", GLOBAL + "/");
         return out;
     }
@@ -146,15 +146,15 @@ public final class Blocs {
      * l'identité de l'exécution, ses rapports, et l'arbre des classes avec leurs compteurs.
      * Part ce qui ne s'affiche qu'une fois une classe ouverte ou une exécution cochée.
      */
-    static Map<String, Object> alleger(Map<?, ?> run, String sousRep) {
-        Map<String, Object> leger = new LinkedHashMap<>();
+    static Map<String, Object> thin(Map<?, ?> run, String subDir) {
+        Map<String, Object> light = new LinkedHashMap<>();
         for (Map.Entry<?, ?> e : run.entrySet()) {
-            String cle = String.valueOf(e.getKey());
-            if (!LOURD.contains(cle)) leger.put(cle, e.getValue());
+            String key = String.valueOf(e.getKey());
+            if (!HEAVY.contains(key)) light.put(key, e.getValue());
         }
-        List<Object> blocs = new ArrayList<>();
-        for (String cle : LOURD) {
-            if (run.get(cle) != null) blocs.add(sousRep + FICHIERS.get(cle));
+        List<Object> blocks = new ArrayList<>();
+        for (String key : HEAVY) {
+            if (run.get(key) != null) blocks.add(subDir + FILES.get(key));
             // Un champ qu'aucune exécution ne portera jamais n'est pas un champ en attente.
             // Sans profil — sous Windows, où async-profiler ne publie rien — il n'y aura
             // jamais d'arbre d'appel, et sans Arthas jamais de valeurs. La page distinguait
@@ -162,37 +162,37 @@ public final class Blocs {
             // un troisième état, et le découpage en blocs venait de l'inventer. On écrit
             // donc la forme vide dans le sommaire : les lecteurs n'ont rien à savoir de
             // plus, et « pas encore là » redevient le seul cas particulier.
-            else leger.put(cle, VIDE.get(cle));
+            else light.put(key, EMPTY.get(key));
         }
-        leger.put("blocs", blocs);
+        light.put("blocs", blocks);
         // Le nombre de relevés d'une exécution tient en un nombre, et l'onglet « Exécutions »
         // l'affiche sur CHAQUE racine — donc pour des exécutions dont on n'a pas chargé
         // l'arbre, et qu'on ne chargera pas : les montrer toutes coûterait ce que le
         // chargement tardif vient d'économiser. Il vit donc dans le sommaire.
-        leger.put("mesures", mesuresDe(run));
-        return leger;
+        light.put("mesures", samplesOf(run));
+        return light;
     }
 
     /** La forme vide de chaque champ lourd : ce qu'un lecteur doit trouver faute de mieux. */
-    private static final Map<String, Object> VIDE = Map.of(
+    private static final Map<String, Object> EMPTY = Map.of(
             "coverage", Map.of(),
             "calltree", Map.of("name", "tout", "total", 0, "children", List.of()),
             "values", Map.of(),
             "trace", Map.of());
 
-    private static long mesuresDe(Map<?, ?> run) {
-        return run.get("calltree") instanceof Map<?, ?> arbre
-                && arbre.get("total") instanceof Number n ? n.longValue() : 0L;
+    private static long samplesOf(Map<?, ?> run) {
+        return run.get("calltree") instanceof Map<?, ?> tree
+                && tree.get("total") instanceof Number n ? n.longValue() : 0L;
     }
 
-    private static void ecrireRun(Path dir, Map<?, ?> run) throws IOException {
+    private static void writeRun(Path dir, Map<?, ?> run) throws IOException {
         String uuid = String.valueOf(run.get("uuid"));
-        for (String cle : LOURD) {
-            Object valeur = run.get(cle);
-            if (valeur == null) continue;
-            try (BufferedWriter w = Files.newBufferedWriter(dir.resolve(FICHIERS.get(cle)),
+        for (String key : HEAVY) {
+            Object value = run.get(key);
+            if (value == null) continue;
+            try (BufferedWriter w = Files.newBufferedWriter(dir.resolve(FILES.get(key)),
                     StandardCharsets.UTF_8)) {
-                ligne(w, "run", uuid + "/" + cle, valeur);
+                line(w, "run", uuid + "/" + key, value);
             }
         }
     }
@@ -205,28 +205,28 @@ public final class Blocs {
      * kilo-octets, qui est la granularité à laquelle on navigue : on ouvre rarement une
      * classe sans regarder ses voisines.
      */
-    private static Map<String, String> ecrireSources(Path dir, Map<String, Object> sources)
+    private static Map<String, String> writeSources(Path dir, Map<String, Object> sources)
             throws IOException {
         Files.createDirectories(dir);
-        Map<String, Map<String, Object>> parPaquet = new TreeMap<>();
+        Map<String, Map<String, Object>> byPackage = new TreeMap<>();
         for (Map.Entry<String, Object> e : sources.entrySet()) {
-            String cle = e.getKey();
-            int i = cle.lastIndexOf('/');
-            String paquet = i < 0 ? "(defaut)" : cle.substring(0, i);
-            parPaquet.computeIfAbsent(paquet, k -> new LinkedHashMap<>()).put(cle, e.getValue());
+            String key = e.getKey();
+            int i = key.lastIndexOf('/');
+            String pkg = i < 0 ? "(defaut)" : key.substring(0, i);
+            byPackage.computeIfAbsent(pkg, k -> new LinkedHashMap<>()).put(key, e.getValue());
         }
-        Map<String, String> blocParCle = new LinkedHashMap<>();
-        for (Map.Entry<String, Map<String, Object>> e : parPaquet.entrySet()) {
-            String nom = nomDeFichier(e.getKey()) + ".js";
-            try (BufferedWriter w = Files.newBufferedWriter(dir.resolve(nom),
+        Map<String, String> blockByKey = new LinkedHashMap<>();
+        for (Map.Entry<String, Map<String, Object>> e : byPackage.entrySet()) {
+            String name = fileName(e.getKey()) + ".js";
+            try (BufferedWriter w = Files.newBufferedWriter(dir.resolve(name),
                     StandardCharsets.UTF_8)) {
                 for (Map.Entry<String, Object> f : e.getValue().entrySet()) {
-                    ligne(w, "src", f.getKey(), f.getValue());
-                    blocParCle.put(f.getKey(), GLOBAL + "/sources/" + nom);
+                    line(w, "src", f.getKey(), f.getValue());
+                    blockByKey.put(f.getKey(), GLOBAL + "/sources/" + name);
                 }
             }
         }
-        return blocParCle;
+        return blockByKey;
     }
 
     /**
@@ -242,34 +242,34 @@ public final class Blocs {
      * ET binaire — une opération par ligne, quel que soit le nombre d'exécutions. Deux
      * masques, parce que « couverte » et « partiellement couverte » ne se confondent pas.
      */
-    private static void ecrireCumul(Path fichier, List<Object> runs) throws IOException {
+    private static void writeCumulative(Path file, List<Object> runs) throws IOException {
         Map<String, Map<Integer, int[]>> index = new TreeMap<>();
         int bit = 0;
         for (Object r : runs) {
             if (!(r instanceof Map<?, ?> run)) continue;
             if (bit > 30) break;   // au-delà, le masque déborde : on s'arrête plutôt que mentir
-            int drapeau = 1 << bit++;
-            if (!(run.get("coverage") instanceof Map<?, ?> couverture)) continue;
-            for (Map.Entry<?, ?> f : couverture.entrySet()) {
-                if (!(f.getValue() instanceof Map<?, ?> lignes)) continue;
-                Map<Integer, int[]> parLigne =
+            int flag = 1 << bit++;
+            if (!(run.get("coverage") instanceof Map<?, ?> coverage)) continue;
+            for (Map.Entry<?, ?> f : coverage.entrySet()) {
+                if (!(f.getValue() instanceof Map<?, ?> lines)) continue;
+                Map<Integer, int[]> byLine =
                         index.computeIfAbsent(String.valueOf(f.getKey()), k -> new TreeMap<>());
-                for (Map.Entry<?, ?> l : lignes.entrySet()) {
-                    if (!(l.getValue() instanceof Map<?, ?> etat)) continue;
-                    String s = String.valueOf(etat.get("s"));
+                for (Map.Entry<?, ?> l : lines.entrySet()) {
+                    if (!(l.getValue() instanceof Map<?, ?> state)) continue;
+                    String s = String.valueOf(state.get("s"));
                     if ("miss".equals(s)) continue;
-                    int[] masques = parLigne.computeIfAbsent(entier(l.getKey()), k -> new int[2]);
-                    masques["full".equals(s) ? 0 : 1] |= drapeau;
+                    int[] hidden = byLine.computeIfAbsent(toInt(l.getKey()), k -> new int[2]);
+                    hidden["full".equals(s) ? 0 : 1] |= flag;
                 }
             }
         }
-        try (BufferedWriter w = Files.newBufferedWriter(fichier, StandardCharsets.UTF_8)) {
+        try (BufferedWriter w = Files.newBufferedWriter(file, StandardCharsets.UTF_8)) {
             for (Map.Entry<String, Map<Integer, int[]>> f : index.entrySet()) {
-                List<Object> plat = new ArrayList<>();
+                List<Object> flat = new ArrayList<>();
                 for (Map.Entry<Integer, int[]> l : f.getValue().entrySet()) {
-                    plat.add(List.of(l.getKey(), l.getValue()[0], l.getValue()[1]));
+                    flat.add(List.of(l.getKey(), l.getValue()[0], l.getValue()[1]));
                 }
-                ligne(w, "cumul", f.getKey(), plat);
+                line(w, "cumul", f.getKey(), flat);
             }
         }
     }
@@ -285,35 +285,35 @@ public final class Blocs {
      *
      * <p>Une ligne par méthode, un nombre par exécution, dans l'ordre du sommaire.
      */
-    private static void ecrirePoids(Path fichier, List<Object> runs) throws IOException {
-        Map<String, long[]> poids = new TreeMap<>();
+    private static void writeWeights(Path file, List<Object> runs) throws IOException {
+        Map<String, long[]> weight = new TreeMap<>();
         int n = runs.size(), i = 0;
         for (Object r : runs) {
             if (!(r instanceof Map<?, ?> run)) { i++; continue; }
-            final int rang = i++;
-            if (run.get("calltree") instanceof Map<?, ?> arbre) {
-                parcourir(arbre, (nom, total) ->
-                        poids.computeIfAbsent(nom, k -> new long[n])[rang] += total);
+            final int rank = i++;
+            if (run.get("calltree") instanceof Map<?, ?> tree) {
+                walk(tree, (name, total) ->
+                        weight.computeIfAbsent(name, k -> new long[n])[rank] += total);
             }
         }
-        try (BufferedWriter w = Files.newBufferedWriter(fichier, StandardCharsets.UTF_8)) {
-            for (Map.Entry<String, long[]> e : poids.entrySet()) {
-                List<Object> valeurs = new ArrayList<>();
-                for (long v : e.getValue()) valeurs.add(v);
-                ligne(w, "poids", e.getKey(), valeurs);
+        try (BufferedWriter w = Files.newBufferedWriter(file, StandardCharsets.UTF_8)) {
+            for (Map.Entry<String, long[]> e : weight.entrySet()) {
+                List<Object> values = new ArrayList<>();
+                for (long v : e.getValue()) values.add(v);
+                line(w, "poids", e.getKey(), values);
             }
         }
     }
 
     /** Descend un arbre d'appel, en annonçant chaque nœud et son total. */
-    private static void parcourir(Map<?, ?> noeud, java.util.function.BiConsumer<String, Long> vu) {
-        if (!(noeud.get("children") instanceof Iterable<?> enfants)) return;
-        for (Object e : enfants) {
-            if (!(e instanceof Map<?, ?> enfant)) continue;
-            Object nom = enfant.get("name");
-            Object total = enfant.get("total");
-            if (nom != null && total instanceof Number t) vu.accept(String.valueOf(nom), t.longValue());
-            parcourir(enfant, vu);
+    private static void walk(Map<?, ?> node, java.util.function.BiConsumer<String, Long> seen) {
+        if (!(node.get("children") instanceof Iterable<?> children)) return;
+        for (Object e : children) {
+            if (!(e instanceof Map<?, ?> child)) continue;
+            Object name = child.get("name");
+            Object total = child.get("total");
+            if (name != null && total instanceof Number t) seen.accept(String.valueOf(name), t.longValue());
+            walk(child, seen);
         }
     }
 
@@ -330,22 +330,22 @@ public final class Blocs {
      * l'exécution visée est chargée pour de bon. On sépare ainsi ce qui se montre toujours de
      * ce qui se demande rarement.
      */
-    private static void ecrirePresence(Path fichier, List<Object> runs) throws IOException {
+    private static void writePresence(Path file, List<Object> runs) throws IOException {
         Map<String, int[]> presence = new TreeMap<>();
         int n = runs.size(), i = 0;
         for (Object r : runs) {
             if (!(r instanceof Map<?, ?> run)) { i++; continue; }
-            final int rang = i++;
-            if (run.get("calltree") instanceof Map<?, ?> arbre) {
-                parcourir(arbre, (nom, total) ->
-                        presence.computeIfAbsent(nom, k -> new int[n])[rang]++);
+            final int rank = i++;
+            if (run.get("calltree") instanceof Map<?, ?> tree) {
+                walk(tree, (name, total) ->
+                        presence.computeIfAbsent(name, k -> new int[n])[rank]++);
             }
         }
-        try (BufferedWriter w = Files.newBufferedWriter(fichier, StandardCharsets.UTF_8)) {
+        try (BufferedWriter w = Files.newBufferedWriter(file, StandardCharsets.UTF_8)) {
             for (Map.Entry<String, int[]> e : presence.entrySet()) {
-                List<Object> valeurs = new ArrayList<>();
-                for (int v : e.getValue()) valeurs.add(v);
-                ligne(w, "presence", e.getKey(), valeurs);
+                List<Object> values = new ArrayList<>();
+                for (int v : e.getValue()) values.add(v);
+                line(w, "presence", e.getKey(), values);
             }
         }
     }
@@ -357,41 +357,41 @@ public final class Blocs {
      * se retrouve amputé d'un répertoire. Un manifeste lisible dit alors ce qu'il devrait y
      * avoir — sans lui, il faut ouvrir la page pour découvrir ce qui manque.
      */
-    private static void ecrireManifeste(Path fichier, List<Object> runs, int sources)
+    private static void writeManifest(Path file, List<Object> runs, int sources)
             throws IOException {
         Map<String, Object> m = new LinkedHashMap<>();
         m.put("format", FORMAT);
-        m.put("formatCaptureMinimal", Capture.MINIMALE);
-        List<Object> executions = new ArrayList<>();
+        m.put("formatCaptureMinimal", Capture.MINIMUM);
+        List<Object> entries = new ArrayList<>();
         for (Object r : runs) {
             if (!(r instanceof Map<?, ?> run)) continue;
             Map<String, Object> e = new LinkedHashMap<>();
             e.put("nom", run.get("nom"));
             e.put("uuid", run.get("uuid"));
             e.put("chemin", run.get("chemin"));
-            e.put("vue", String.valueOf(run.get("chemin")) + PAR_EXECUTION + "/");
-            executions.add(e);
+            e.put("vue", String.valueOf(run.get("chemin")) + PER_RUN + "/");
+            entries.add(e);
         }
-        m.put("executions", executions);
+        m.put("executions", entries);
         m.put("sourcesAffichables", sources);
         m.put("indexGlobaux", List.of("cumul.js", "poids.js", "presence.js", "sources/"));
         // Un programme qui découvre ce dossier ne devinera pas qu'il existe une sortie faite
         // pour lui. Le manifeste est l'endroit où on le lui dit — et « ../ » parce que les
         // faits parlent de la campagne entière, pas de cette vue-ci.
-        m.put("faits", "../" + Faits.FICHIER);
-        m.put("faitsFormat", Faits.FORMAT);
-        Files.writeString(fichier, Json.write(m), StandardCharsets.UTF_8);
+        m.put("faits", "../" + Facts.FILE);
+        m.put("faitsFormat", Facts.FORMAT);
+        Files.writeString(file, Json.write(m), StandardCharsets.UTF_8);
     }
 
     /** Un enregistrement, une ligne — c'est cette règle qui rend le fichier greppable. */
-    private static void ligne(BufferedWriter w, String type, String cle, Object valeur)
+    private static void line(BufferedWriter w, String type, String key, Object value)
             throws IOException {
         w.write("XR.bloc(");
         w.write(Json.write(type));
         w.write(",");
-        w.write(Json.write(cle));
+        w.write(Json.write(key));
         w.write(",");
-        w.write(Json.write(valeur));
+        w.write(Json.write(value));
         w.write(");\n");
     }
 
@@ -402,16 +402,16 @@ public final class Blocs {
      * inattendue ne doit pas pouvoir écrire ailleurs que dans le répertoire prévu — d'où le
      * filtre, et non une simple substitution.
      */
-    static String nomDeFichier(String paquet) {
+    static String fileName(String pkg) {
         StringBuilder sb = new StringBuilder();
-        for (char c : paquet.toCharArray()) {
+        for (char c : pkg.toCharArray()) {
             sb.append(Character.isLetterOrDigit(c) ? c : '-');
         }
         String s = sb.toString().replaceAll("-+", "-").replaceAll("(^-|-$)", "");
         return s.isEmpty() ? "divers" : s;
     }
 
-    private static int entier(Object o) {
+    private static int toInt(Object o) {
         try {
             return Integer.parseInt(String.valueOf(o));
         } catch (NumberFormatException e) {

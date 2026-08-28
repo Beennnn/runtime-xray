@@ -44,8 +44,8 @@ public final class PackageFilter {
     public static PackageFilter of(String raw) {
         if (raw == null || raw.isBlank()) return NONE;
         List<String> prefixes = new ArrayList<>();
-        for (String part : raw.split("[,;\\s]+")) {
-            String p = part.trim().replace('.', '/');
+        for (String share : raw.split("[,;\\s]+")) {
+            String p = share.trim().replace('.', '/');
             while (p.endsWith("*") || p.endsWith("/")) {
                 p = p.substring(0, p.length() - 1);
             }

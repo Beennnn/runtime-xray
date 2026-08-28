@@ -36,7 +36,7 @@ public final class Main {
     private static final String DEFAULT_CONFIG = "runtime-xray.conf";
 
     public static void main(String[] args) {
-        parlerUtf8();
+        speakUtf8();
         try {
             System.exit(run(args));
         } catch (Exception e) {
@@ -56,7 +56,7 @@ public final class Main {
      * pas cosmétique : ce sont des messages qu'on lit pour comprendre ce qui s'est passé,
      * et qu'on cherche parfois dans un journal.
      */
-    private static void parlerUtf8() {
+    private static void speakUtf8() {
         System.setOut(new java.io.PrintStream(
                 new java.io.FileOutputStream(java.io.FileDescriptor.out), true,
                 StandardCharsets.UTF_8));
@@ -69,14 +69,14 @@ public final class Main {
         Config config = new Config();
         Path configFile = null;
         boolean printOptionsOnly = false;
-        String contexteQuestion = null;
-        java.util.List<String> contexteFamilles = java.util.List.of();
+        String contextQuestion = null;
+        java.util.List<String> contextFamilies = java.util.List.of();
         boolean reportOnly = false;
         boolean serve = false;
         int servePort = 8787;
         String serveHost = "127.0.0.1";
         String serveToken = null;
-        boolean tokenTireAuSort = false;
+        boolean randomToken = false;
 
         for (int i = 0; i < args.length; i++) {
             String a = args[i];
@@ -98,13 +98,13 @@ public final class Main {
                 case "--no-values" -> config.captureValues = false;
                 case "--print-options" -> printOptionsOnly = true;
                 // Le paquet de contexte : ce qu'il faut savoir pour répondre à une question,
-                // et rien de plus. Aucun réseau, aucun fournisseur — voir Contexte.
-                case "--context", "--contexte" -> contexteQuestion =
+                // et rien de plus. Aucun réseau, aucun fournisseur — voir Context.
+                case "--context", "--contexte" -> contextQuestion =
                         i + 1 < args.length && !args[i + 1].startsWith("--") ? args[++i] : "";
                 // Le chemin des scripts : nommer les familles plutôt que de faire
                 // interpréter une phrase, dont le résultat n'est reproductible que tant
                 // qu'on ne touche pas aux mots-clés.
-                case "--families", "--familles" -> contexteFamilles =
+                case "--families", "--familles" -> contextFamilies =
                         java.util.List.of(args[++i].split("\\s*,\\s*"));
                 case "--report-only" -> reportOnly = true;
                 case "--export" -> config.exportFormats = args[++i];
@@ -114,9 +114,9 @@ public final class Main {
                 // Le port se colle à l'option, comme pour --serve : « --suivi » seul prend
                 // le port par défaut, et « --suivi 9100 » celui qu'on lui donne.
                 case "--follow", "--suivi" -> {
-                    config.suiviPort = Suivi.PORT;
+                    config.followPort = Follow.PORT;
                     if (i + 1 < args.length && args[i + 1].matches("\\d+")) {
-                        config.suiviPort = Integer.parseInt(args[++i]);
+                        config.followPort = Integer.parseInt(args[++i]);
                     }
                 }
                 case "--serve-host" -> serveHost = args[++i];
@@ -127,8 +127,8 @@ public final class Main {
                     if (i + 1 < args.length && !args[i + 1].startsWith("--")) {
                         serveToken = args[++i];
                     } else {
-                        serveToken = Access.secretTireAuSort();
-                        tokenTireAuSort = true;
+                        serveToken = Access.randomSecret();
+                        randomToken = true;
                     }
                 }
                 case "--serve" -> {
@@ -155,14 +155,14 @@ public final class Main {
         // renseigner, ni --java à fournir. D'où cette sortie avant tout le reste — la
         // réclamer pour une lecture serait le même contresens que de générer un gabarit
         // devant un --report-only.
-        if (contexteQuestion != null) {
-            var paquet = lab.xray.report.Contexte.pour(Path.of(config.outDir),
-                    contexteQuestion, contexteFamilles, lab.xray.report.Contexte.BUDGET);
+        if (contextQuestion != null) {
+            var pkg = lab.xray.report.Context.of(Path.of(config.outDir),
+                    contextQuestion, contextFamilies, lab.xray.report.Context.BUDGET);
             // Ce qui a été compris part sur la sortie d'erreur, et le paquet sur la sortie
             // standard : l'opérateur voit l'un sans que l'autre en soit pollué quand il
             // est redirigé — ce qu'il est presque toujours.
-            System.err.println(paquet.annonce());
-            System.out.print(paquet.texte());
+            System.err.println(pkg.announcement());
+            System.out.print(pkg.text());
             return 0;
         }
 
@@ -203,7 +203,7 @@ public final class Main {
         }
 
         require(!config.javaCommand.isBlank() || reportOnly, "--java is required");
-        require(Config.NIVEAUX.contains(Config.niveau(config.level)),
+        require(Config.LEVELS.contains(Config.level(config.level)),
                 "--level expects coverage, tree or full (got: " + config.level + ")");
         // Les classes servent à MESURER. Réassembler une vue depuis des mesures existantes
         // n'en a aucun besoin.
@@ -225,21 +225,21 @@ public final class Main {
             exportRuns(config, outDir);
         }
 
-        fusionnerCouverture(config, tools, outDir);
+        mergeCoverage(config, tools, outDir);
 
         System.out.println("▶ Building the report");
         Path page = Dashboard.build(outDir, sourceRoots(config), config.watchCount,
-                config.hidden(), lancement(config, tools, sourceRoots(config)));
-        direCeQuOnATrouve(outDir);
-        direLePoids(page);
+                config.hidden(), launch(config, tools, sourceRoots(config)));
+        sayWhatWasFound(outDir);
+        sayTheWeight(page);
         System.out.println();
         System.out.println("Done — open: " + page);
 
         if (serve) {
-            Config servi = config;
-            String secret = Access.secretDemande(serveToken, System.getenv());
-            Access acces = secret == null ? Access.ouvert() : Access.avecSecret(secret);
-            if (tokenTireAuSort) {
+            Config served = config;
+            String secret = Access.secretRequested(serveToken, System.getenv());
+            Access access = secret == null ? Access.open() : Access.withSecret(secret);
+            if (randomToken) {
                 // Affiché une fois, ici et nulle part ailleurs : il n'est écrit dans aucun
                 // fichier, et le serveur ne le réaffichera pas.
                 System.out.println();
@@ -250,10 +250,10 @@ public final class Main {
             LocalServer.serve(outDir, serveHost, servePort, () -> {
                 // Après une écriture, la page est reconstruite : l'annotation devient celle
                 // du rapport, et pas seulement celle de ce navigateur.
-                Dashboard.build(outDir, sourceRoots(servi), servi.watchCount, servi.hidden(),
-                        lancement(servi, tools, sourceRoots(servi)));
+                Dashboard.build(outDir, sourceRoots(served), served.watchCount, served.hidden(),
+                        launch(served, tools, sourceRoots(served)));
                 return null;
-            }, acces);
+            }, access);
         }
         return 0;
     }
@@ -377,14 +377,14 @@ public final class Main {
      * <p>Sans au moins deux exécutions, il n'y a rien à fusionner et on ne produit rien :
      * un « rapport fusionné » identique au rapport simple ferait croire à une opération.
      */
-    private static void fusionnerCouverture(Config config, Toolbox tools, Path outDir) {
+    private static void mergeCoverage(Config config, Toolbox tools, Path outDir) {
         try {
-            List<Path> mesures = new ArrayList<>();
+            List<Path> samples = new ArrayList<>();
             for (Path run : runDirectories(outDir)) {
                 Path exec = run.resolve("jacoco/jacoco.exec");
-                if (Files.isRegularFile(exec)) mesures.add(exec);
+                if (Files.isRegularFile(exec)) samples.add(exec);
             }
-            if (mesures.size() < 2) return;
+            if (samples.size() < 2) return;
             List<Path> classes = config.classesPaths();
             if (classes.isEmpty()) {
                 System.out.println("▶ Merged coverage: skipped — the bytecode is not "
@@ -392,17 +392,17 @@ public final class Main {
                 return;
             }
 
-            System.out.println("▶ Merged coverage over " + mesures.size() + " runs");
+            System.out.println("▶ Merged coverage over " + samples.size() + " runs");
             Path cli = tools.jacocoCli();
             Path dir = outDir.resolve("jacoco-fusion");
             Files.createDirectories(dir);
-            Path fusion = dir.resolve("fusion.exec");
+            Path merged = dir.resolve("fusion.exec");
 
             List<String> merge = new ArrayList<>(List.of(
                     RunSession.javaExecutable(), "-jar", cli.toString(), "merge"));
-            for (Path m : mesures) merge.add(m.toString());
+            for (Path m : samples) merge.add(m.toString());
             merge.add("--destfile");
-            merge.add(fusion.toString());
+            merge.add(merged.toString());
             merge.add("--quiet");
             exec(merge);
 
@@ -410,11 +410,11 @@ public final class Main {
             Files.createDirectories(html);
             List<String> report = new ArrayList<>(List.of(
                     RunSession.javaExecutable(), "-jar", cli.toString(), "report",
-                    fusion.toString(),
+                    merge.toString(),
                     "--html", html.toString(),
                     "--xml", html.resolve("jacoco.xml").toString(),
                     "--csv", html.resolve("jacoco.csv").toString(),
-                    "--name", "Couverture cumulée — " + mesures.size() + " exécutions",
+                    "--name", "Couverture cumulée — " + samples.size() + " exécutions",
                     "--quiet"));
             for (Path entry : classes) {
                 report.add("--classfiles");
@@ -439,8 +439,8 @@ public final class Main {
         Path runs = outDir.resolve("runs");
         for (Path dir : List.of(outDir, runs)) {
             if (!Files.isDirectory(dir)) continue;
-            try (java.util.stream.Stream<Path> enfants = Files.list(dir)) {
-                enfants.filter(Files::isDirectory)
+            try (java.util.stream.Stream<Path> children = Files.list(dir)) {
+                children.filter(Files::isDirectory)
                        .filter(d -> Files.isRegularFile(d.resolve("jacoco/jacoco.exec")))
                        .forEach(found::add);
             }
@@ -634,7 +634,7 @@ public final class Main {
         ctx.put("repertoireTravail", Path.of("").toAbsolutePath().toString());
         // La capture annonce sa forme : c'est ce qui permet à une version ultérieure
         // de l'outil de la relire sans rejouer la campagne. Voir Capture.
-        ctx.put(lab.xray.report.Capture.CHAMP, lab.xray.report.Capture.COURANTE);
+        ctx.put(lab.xray.report.Capture.FIELD, lab.xray.report.Capture.CURRENT);
         Files.writeString(runDir.resolve("run-context.json"), Json.write(ctx), StandardCharsets.UTF_8);
     }
 
@@ -717,17 +717,17 @@ public final class Main {
      * <p><b>Le jeton du serveur partagé n'y figure pas</b> : ce fichier est fait pour être
      * transmis, et un secret transmis n'en est plus un.
      */
-    private static Map<String, Object> lancement(Config config, Toolbox tools,
+    private static Map<String, Object> launch(Config config, Toolbox tools,
                                                  List<Path> sourceRoots) {
         Map<String, Object> m = new LinkedHashMap<>(config.describe());
-        List<Object> racines = new ArrayList<>();
+        List<Object> roots = new ArrayList<>();
         for (Path r : sourceRoots) {
             Map<String, Object> e = new LinkedHashMap<>();
             e.put("demandee", r.toString());
             e.put("absolue", r.toAbsolutePath().normalize().toString());
-            racines.add(e);
+            roots.add(e);
         }
-        m.put("racinesSources", racines);
+        m.put("racinesSources", roots);
         List<Object> classes = new ArrayList<>();
         for (Path c : config.classesPaths()) {
             Map<String, Object> e = new LinkedHashMap<>();
@@ -747,26 +747,26 @@ public final class Main {
      * <p>Le fichier de diagnostic est complet, mais on ne va le chercher que si l'on sait
      * qu'il existe. Deux lignes ici valent mieux qu'une découverte plus tard.
      */
-    private static void direCeQuOnATrouve(Path outDir) {
-        Path fichier = outDir.resolve("diagnostic.json");
+    private static void sayWhatWasFound(Path outDir) {
+        Path file = outDir.resolve("diagnostic.json");
         try {
-            Object lu = lab.xray.json.Json.read(Files.readString(fichier, StandardCharsets.UTF_8));
-            if (lu instanceof Map<?, ?> d && d.get("rapprochement") instanceof Map<?, ?> r) {
+            Object read = lab.xray.json.Json.read(Files.readString(file, StandardCharsets.UTF_8));
+            if (read instanceof Map<?, ?> d && d.get("rapprochement") instanceof Map<?, ?> r) {
                 Object sans = r.get("fichiersSansSource");
                 // Le lecteur JSON rend des Double : « 0.0/27.0 » se lit comme un défaut de
                 // l'outil avant de se lire comme un compte.
-                System.out.println("   sources: " + entier(r.get("fichiersAvecSource"))
-                        + "/" + entier(r.get("fichiersMesures"))
+                System.out.println("   sources: " + toInt(r.get("fichiersAvecSource"))
+                        + "/" + toInt(r.get("fichiersMesures"))
                         + " measured class(es) have their source");
                 if (sans instanceof Number n && n.intValue() > 0) {
                     System.out.println("   " + r.get("conclusion"));
-                    proposerRacines(r.get("pistes"));
+                    proposeRoots(r.get("pistes"));
                 }
             }
         } catch (Exception e) {
             // Le diagnostic est un confort : son absence ne doit rien empêcher.
         }
-        System.out.println("   diagnostic: " + fichier);
+        System.out.println("   diagnostic: " + file);
     }
 
     /**
@@ -777,13 +777,13 @@ public final class Main {
      * l'afficher — sur le poste de quelqu'un d'autre, sans rien pour l'expliquer. C'est
      * arrivé à 217 Mo. Deux lignes ici valent la découverte.
      */
-    private static void direLePoids(Path page) {
+    private static void sayTheWeight(Path page) {
         try {
-            long octets = Files.size(page);
-            String taille = octets >= 1 << 20 ? (octets >> 20) + " MB" : (octets >> 10) + " KB";
-            System.out.println("   page: " + taille);
-            if (octets > SEUIL_PAGE) {
-                System.out.println("   ⚠️ beyond " + (SEUIL_PAGE >> 20) + " MB a browser "
+            long bytes = Files.size(page);
+            String size = bytes >= 1 << 20 ? (bytes >> 20) + " MB" : (bytes >> 10) + " KB";
+            System.out.println("   page: " + size);
+            if (bytes > PAGE_THRESHOLD) {
+                System.out.println("   ⚠️ beyond " + (PAGE_THRESHOLD >> 20) + " MB a browser "
                         + "may give up rendering it. The two causes, in order:");
                 System.out.println("      • a --sources root that is too wide — only measured classes "
                         + "are embedded, but reading them all still costs;");
@@ -797,7 +797,7 @@ public final class Main {
     }
 
     /** Au-delà, un navigateur commence à peiner — et il faut le dire avant qu'il renonce. */
-    private static final long SEUIL_PAGE = 64L << 20;
+    private static final long PAGE_THRESHOLD = 64L << 20;
 
     /**
      * Les racines trouvées, avec ce qu'elles résoudraient.
@@ -806,29 +806,29 @@ public final class Main {
      * même question qu'avant. Celui-ci propose un chemin et le justifie d'un compte : la
      * ligne se recopie, et le compte dit s'il faut la croire.
      */
-    private static void proposerRacines(Object pistes) {
-        if (!(pistes instanceof List<?> liste) || liste.isEmpty()) {
+    private static void proposeRoots(Object leads) {
+        if (!(leads instanceof List<?> list) || list.isEmpty()) {
             System.out.println("   no matching source found around the project — "
                     + "the .java files are not on this machine, or not here.");
             return;
         }
         System.out.println("   roots found, to add to SOURCE_DIRS:");
-        for (Object o : liste) {
+        for (Object o : list) {
             if (!(o instanceof Map<?, ?> p)) continue;
             System.out.println("     " + p.get("racine")
-                    + "   (resolves " + entier(p.get("resout")) + "/" + entier(p.get("surTotal"))
+                    + "   (resolves " + toInt(p.get("resout")) + "/" + toInt(p.get("surTotal"))
                     + " of the classes without source)");
         }
     }
 
-    private static String entier(Object o) {
+    private static String toInt(Object o) {
         return o instanceof Number n ? String.valueOf(n.longValue()) : String.valueOf(o);
     }
 
     private static List<Path> sourceRoots(Config config) {
         // Le découpage vit dans Config : sources et classes s'écrivent de la même façon, et
         // se trompaient de la même façon sur un chemin Windows absolu.
-        return Config.chemins(config.sourceDirs);
+        return Config.paths(config.sourceDirs);
     }
 
     private static String slug(String name) {

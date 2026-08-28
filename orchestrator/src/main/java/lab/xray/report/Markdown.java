@@ -41,10 +41,10 @@ public final class Markdown {
         for (Object o : runs) {
             Map<String, Object> run = (Map<String, Object>) o;
             md.append("\n---\n\n## ").append(run.get("nom")).append("\n");
-            contexte(md, (Map<String, Object>) run.get("context"));
-            couverture(md, (Map<String, Object>) run.get("packages"));
-            temps(md, (Map<String, Object>) run.get("calltree"));
-            valeurs(md, (Map<String, Object>) run.get("values"));
+            context(md, (Map<String, Object>) run.get("context"));
+            coverage(md, (Map<String, Object>) run.get("packages"));
+            time(md, (Map<String, Object>) run.get("calltree"));
+            values(md, (Map<String, Object>) run.get("values"));
         }
 
         Path out = commonDir.resolve("rapport.md");
@@ -53,30 +53,30 @@ public final class Markdown {
     }
 
     /** Un rapport retrouvé dans six mois doit dire de quoi il parle. */
-    private static void contexte(StringBuilder md, Map<String, Object> ctx) {
+    private static void context(StringBuilder md, Map<String, Object> ctx) {
         if (ctx == null || ctx.isEmpty()) return;
         md.append('\n');
-        ligne(md, "Command", ctx.get("commande"));
-        ligne(md, "Root method", ctx.get("methodeRacine"));
-        ligne(md, "Hidden packages", ctx.get("paquetsMasques"));
-        ligne(md, "Start", ctx.get("debut"));
-        ligne(md, "Duration", ctx.get("dureeSecondes") == null ? null : ctx.get("dureeSecondes") + " s");
-        ligne(md, "Java", ctx.get("java"));
-        ligne(md, "Machine", ctx.get("systeme"));
+        line(md, "Command", ctx.get("commande"));
+        line(md, "Root method", ctx.get("methodeRacine"));
+        line(md, "Hidden packages", ctx.get("paquetsMasques"));
+        line(md, "Start", ctx.get("debut"));
+        line(md, "Duration", ctx.get("dureeSecondes") == null ? null : ctx.get("dureeSecondes") + " s");
+        line(md, "Java", ctx.get("java"));
+        line(md, "Machine", ctx.get("systeme"));
     }
 
-    private static void ligne(StringBuilder md, String cle, Object valeur) {
-        if (valeur == null || String.valueOf(valeur).isBlank()) return;
-        md.append("- **").append(cle).append("**: `").append(valeur).append("`\n");
+    private static void line(StringBuilder md, String key, Object value) {
+        if (value == null || String.valueOf(value).isBlank()) return;
+        md.append("- **").append(key).append("**: `").append(value).append("`\n");
     }
 
     @SuppressWarnings("unchecked")
-    private static void couverture(StringBuilder md, Map<String, Object> packages) {
+    private static void coverage(StringBuilder md, Map<String, Object> packages) {
         if (packages == null || packages.isEmpty()) return;
-        long couvert = 0, manque = 0;
-        int paquetsIntacts = 0;
-        List<String[]> lignes = new ArrayList<>();
-        List<String> mortes = new ArrayList<>();
+        long covered = 0, missing = 0;
+        int untouchedPackages = 0;
+        List<String[]> lines = new ArrayList<>();
+        List<String> dead = new ArrayList<>();
 
         for (Map.Entry<String, Object> e : packages.entrySet()) {
             long c = 0, m = 0;
@@ -85,62 +85,62 @@ public final class Markdown {
                 long cc = ((Number) cls.get("covered")).longValue();
                 long mm = ((Number) cls.get("missed")).longValue();
                 c += cc; m += mm;
-                if (cc == 0) mortes.add(String.valueOf(cls.get("name")).replace('/', '.'));
+                if (cc == 0) dead.add(String.valueOf(cls.get("name")).replace('/', '.'));
             }
-            couvert += c; manque += m;
+            covered += c; missing += m;
             // Un paquet entièrement à zéro ne mérite pas une ligne de tableau : il en
             // faudrait dix-huit pour dire « rien », et elles noieraient les huit qui
             // disent quelque chose. Le compte suffit, et il est donné juste après.
             if (c > 0) {
-                lignes.add(new String[]{ e.getKey().replace('/', '.'), pct(c, c + m) });
+                lines.add(new String[]{ e.getKey().replace('/', '.'), pct(c, c + m) });
             } else if (c + m > 0) {
-                paquetsIntacts++;
+                untouchedPackages++;
             }
         }
 
         md.append("\n### Where the code went\n\n")
-          .append("**").append(pct(couvert, couvert + manque))
+          .append("**").append(pct(covered, covered + missing))
           .append(" of the analysed instructions** ran. The denominator is all the bytecode "
                   + "given to be analysed: if the analysis covers a whole dependency, most of "
                   + "it has by construction no reason to run, and this rate then says mostly "
                   + "how big that dependency is.\n\n")
           .append("| Package | Instructions covered |\n|---|---:|\n");
-        lignes.sort(Comparator.comparing(a -> a[0]));
-        for (String[] l : lignes) {
+        lines.sort(Comparator.comparing(a -> a[0]));
+        for (String[] l : lines) {
             md.append("| `").append(l[0]).append("` | ").append(l[1]).append(" |\n");
         }
-        if (paquetsIntacts > 0) {
-            md.append("\n").append(paquetsIntacts)
-              .append(" package").append(paquetsIntacts > 1 ? "s were" : " was")
+        if (untouchedPackages > 0) {
+            md.append("\n").append(untouchedPackages)
+              .append(" package").append(untouchedPackages > 1 ? "s were" : " was")
               .append(" not touched at all.\n");
         }
-        if (!mortes.isEmpty()) {
-            md.append("\n**Never executed** (").append(mortes.size()).append(") — ");
+        if (!dead.isEmpty()) {
+            md.append("\n**Never executed** (").append(dead.size()).append(") — ");
             // Le code mort est ce que la lecture seule ne révèle pas : il est nommé, pas compté.
-            md.append(String.join(", ", mortes.stream().sorted().limit(TOP)
+            md.append(String.join(", ", dead.stream().sorted().limit(TOP)
                     .map(s -> "`" + s + "`").toList()));
-            if (mortes.size() > TOP) md.append(", … (+").append(mortes.size() - TOP).append(")");
+            if (dead.size() > TOP) md.append(", … (+").append(dead.size() - TOP).append(")");
             md.append('\n');
         }
     }
 
     @SuppressWarnings("unchecked")
-    private static void temps(StringBuilder md, Map<String, Object> tree) {
+    private static void time(StringBuilder md, Map<String, Object> tree) {
         if (tree == null) return;
         long total = ((Number) tree.getOrDefault("total", 0L)).longValue();
         if (total == 0) return;
 
         // Le poids d'une méthode est la somme de ses apparitions dans l'arbre, où qu'elle
         // soit appelée : c'est « le temps passé dans cette méthode », pas « dans ce chemin ».
-        Map<String, Long> poids = new LinkedHashMap<>();
-        accumuler(tree, poids);
+        Map<String, Long> weight = new LinkedHashMap<>();
+        accumulate(tree, weight);
 
         md.append("\n### Where the time went\n\n")
           .append(total).append(" samples. Folding the JDK, the virtual machine's own "
                   + "machinery and the hidden packages attributes their time to the "
                   + "application method that called them.\n\n")
           .append("| Method | Share |\n|---|---:|\n");
-        poids.entrySet().stream()
+        weight.entrySet().stream()
                 .sorted(Map.Entry.<String, Long>comparingByValue().reversed())
                 .limit(TOP)
                 .forEach(e -> md.append("| `").append(e.getKey().replace('/', '.'))
@@ -148,37 +148,37 @@ public final class Markdown {
     }
 
     @SuppressWarnings("unchecked")
-    private static void accumuler(Map<String, Object> node, Map<String, Long> poids) {
+    private static void accumulate(Map<String, Object> node, Map<String, Long> weight) {
         for (Object o : (List<Object>) node.getOrDefault("children", List.of())) {
             Map<String, Object> kid = (Map<String, Object>) o;
-            poids.merge(String.valueOf(kid.get("name")),
+            weight.merge(String.valueOf(kid.get("name")),
                     ((Number) kid.get("total")).longValue(), Long::sum);
-            accumuler(kid, poids);
+            accumulate(kid, weight);
         }
     }
 
     @SuppressWarnings("unchecked")
-    private static void valeurs(StringBuilder md, Map<String, Object> values) {
+    private static void values(StringBuilder md, Map<String, Object> values) {
         if (values == null || values.isEmpty()) return;
         md.append("\n### With which values\n");
         for (Map.Entry<String, Object> e : values.entrySet()) {
-            List<Object> appels = (List<Object>) e.getValue();
-            if (appels.isEmpty()) continue;
+            List<Object> calls = (List<Object>) e.getValue();
+            if (calls.isEmpty()) continue;
             md.append("\n**`").append(e.getKey().replace('/', '.')).append("`** — ")
-              .append(appels.size()).append(" call").append(appels.size() > 1 ? "s" : "")
+              .append(calls.size()).append(" call").append(calls.size() > 1 ? "s" : "")
               .append(" observed\n\n");
             md.append("| # | Arguments received | Value returned |\n|---:|---|---|\n");
             int i = 1;
-            for (Object a : appels) {
-                Map<String, Object> appel = (Map<String, Object>) a;
-                List<Object> params = (List<Object>) appel.getOrDefault("params", List.of());
-                String recu = params.isEmpty() ? "—" : params.stream()
+            for (Object a : calls) {
+                Map<String, Object> call = (Map<String, Object>) a;
+                List<Object> params = (List<Object>) call.getOrDefault("params", List.of());
+                String received = params.isEmpty() ? "—" : params.stream()
                         .map(p -> String.valueOf(((Map<String, Object>) p).get("value")))
-                        .map(Markdown::cellule)
+                        .map(Markdown::cell)
                         .reduce((x, y) -> x + ", " + y).orElse("—");
-                Map<String, Object> retour = (Map<String, Object>) appel.get("retour");
-                md.append("| ").append(i++).append(" | ").append(recu).append(" | ")
-                  .append(retour == null ? "—" : cellule(String.valueOf(retour.get("value"))))
+                Map<String, Object> returnValue = (Map<String, Object>) call.get("retour");
+                md.append("| ").append(i++).append(" | ").append(received).append(" | ")
+                  .append(returnValue == null ? "—" : cell(String.valueOf(returnValue.get("value"))))
                   .append(" |\n");
             }
         }
@@ -191,12 +191,12 @@ public final class Markdown {
      * la ligne entière — les valeurs capturées viennent d'une application quelconque, elles
      * peuvent contenir n'importe quoi.
      */
-    private static String cellule(String v) {
+    private static String cell(String v) {
         String s = v.replace("|", "\\|").replace("\n", " ").trim();
         return "`" + (s.length() > 90 ? s.substring(0, 87) + "…" : s) + "`";
     }
 
-    private static String pct(long part, long total) {
-        return total == 0 ? "—" : Math.round(100.0 * part / total) + "%";
+    private static String pct(long share, long total) {
+        return total == 0 ? "—" : Math.round(100.0 * share / total) + "%";
     }
 }

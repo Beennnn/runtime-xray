@@ -38,9 +38,9 @@ public final class Toolbox {
     private final Path cache;
     private final String repo;
     /** Répertoires fouillés à plat, dans l'ordre, avant de sortir sur le réseau. */
-    private final List<Path> plats;
+    private final List<Path> flat;
     /** Dépôt Maven local, fouillé selon la disposition groupe/artefact/version. */
-    private final Path depotLocal;
+    private final Path localRepo;
     private final HttpClient http = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(20))
             .followRedirects(HttpClient.Redirect.NORMAL)
@@ -53,17 +53,17 @@ public final class Toolbox {
     /**
      * @param composants répertoire indiqué par l'utilisateur ({@code --composants}), ou vide.
      */
-    public Toolbox(String repo, String composants) {
+    public Toolbox(String repo, String components) {
         this(repo,
              Path.of(System.getProperty("user.home"), ".runtime-xray"),
-             emplacements(composants),
-             depotMavenLocal());
+             locations(components),
+             localMavenRepo());
     }
 
-    Toolbox(String repo, Path cache, List<Path> plats, Path depotLocal) {
+    Toolbox(String repo, Path cache, List<Path> flat, Path localRepo) {
         this.cache = cache;
-        this.plats = plats;
-        this.depotLocal = depotLocal;
+        this.flat = flat;
+        this.localRepo = localRepo;
         this.repo = repo.endsWith("/") ? repo.substring(0, repo.length() - 1) : repo;
     }
 
@@ -72,12 +72,12 @@ public final class Toolbox {
      * moins probable : ce que l'utilisateur a désigné, puis le voisinage du jar — c'est le
      * geste naturel quand on transporte l'outil sur une clé.
      */
-    private static List<Path> emplacements(String composants) {
+    private static List<Path> locations(String components) {
         List<Path> dirs = new ArrayList<>();
-        if (composants != null && !composants.isBlank()) dirs.add(Path.of(composants.trim()));
+        if (components != null && !components.isBlank()) dirs.add(Path.of(components.trim()));
         String env = System.getenv("RUNTIME_XRAY_COMPOSANTS");
         if (env != null && !env.isBlank()) dirs.add(Path.of(env.trim()));
-        Path jar = repertoireDuJar();
+        Path jar = jarDir();
         if (jar != null) {
             dirs.add(jar);
             dirs.add(jar.resolve("composants"));
@@ -86,7 +86,7 @@ public final class Toolbox {
     }
 
     /** {@code null} hors d'un jar — en test, le code vit dans un répertoire de classes. */
-    private static Path repertoireDuJar() {
+    private static Path jarDir() {
         try {
             java.net.URL src = Toolbox.class.getProtectionDomain().getCodeSource().getLocation();
             Path p = Path.of(src.toURI());
@@ -96,9 +96,9 @@ public final class Toolbox {
         }
     }
 
-    private static Path depotMavenLocal() {
-        String explicite = System.getenv("MAVEN_REPO_LOCAL");
-        if (explicite != null && !explicite.isBlank()) return Path.of(explicite.trim());
+    private static Path localMavenRepo() {
+        String explicit = System.getenv("MAVEN_REPO_LOCAL");
+        if (explicit != null && !explicit.isBlank()) return Path.of(explicit.trim());
         return Path.of(System.getProperty("user.home"), ".m2", "repository");
     }
 
@@ -163,12 +163,12 @@ public final class Toolbox {
 
         // Arthas se distribue aussi décompressé : celui qui l'a déjà sous la main l'a le
         // plus souvent sous cette forme, et le redemander en archive n'aurait aucun sens.
-        for (Path dir : plats) {
-            for (Path candidat : List.of(dir.resolve("arthas-" + ARTHAS_VERSION),
+        for (Path dir : flat) {
+            for (Path candidate : List.of(dir.resolve("arthas-" + ARTHAS_VERSION),
                                          dir.resolve("arthas"), dir)) {
-                if (Files.isRegularFile(candidat.resolve("arthas-boot.jar"))) {
-                    System.out.println("   local component: " + candidat);
-                    return candidat;
+                if (Files.isRegularFile(candidate.resolve("arthas-boot.jar"))) {
+                    System.out.println("   local component: " + candidate);
+                    return candidate;
                 }
             }
         }
@@ -196,42 +196,42 @@ public final class Toolbox {
      *              que la version n'est alors pas vérifiée.
      */
     private Path artifact(String group, String name, String version, String classifier, String ext,
-                          String usuel) throws IOException, InterruptedException {
+                          String usual) throws IOException, InterruptedException {
         String file = name + "-" + version + (classifier == null ? "" : "-" + classifier) + "." + ext;
-        List<String> vus = new ArrayList<>();
+        List<String> seen = new ArrayList<>();
 
         Path local = cache.resolve(file);
-        vus.add(local.toString());
+        seen.add(local.toString());
         if (Files.isRegularFile(local)) return local;
 
-        for (Path dir : plats) {
+        for (Path dir : flat) {
             Path exact = dir.resolve(file);
-            vus.add(exact.toString());
+            seen.add(exact.toString());
             if (Files.isRegularFile(exact)) {
                 System.out.println("   local component: " + exact);
                 return exact;
             }
-            if (usuel != null) {
-                Path autre = dir.resolve(usuel);
-                vus.add(autre.toString());
-                if (Files.isRegularFile(autre)) {
-                    System.out.println("   local component: " + autre + mention(autre, version));
-                    return autre;
+            if (usual != null) {
+                Path other = dir.resolve(usual);
+                seen.add(other.toString());
+                if (Files.isRegularFile(other)) {
+                    System.out.println("   local component: " + other + note(other, version));
+                    return other;
                 }
             }
         }
 
-        Path m2 = depotLocal.resolve(group.replace('.', '/')).resolve(name).resolve(version)
+        Path m2 = localRepo.resolve(group.replace('.', '/')).resolve(name).resolve(version)
                 .resolve(file);
-        vus.add(m2.toString());
+        seen.add(m2.toString());
         if (Files.isRegularFile(m2)) {
             System.out.println("   local component: " + m2);
             return m2;
         }
 
-        Path embarque = extraitDuJar(file);
-        if (embarque != null) return embarque;
-        vus.add("(bundled in the jar: complete edition only)");
+        Path bundled = extractFromJar(file);
+        if (bundled != null) return bundled;
+        seen.add("(bundled in the jar: complete edition only)");
 
         String url = repo + "/" + group.replace('.', '/') + "/" + name + "/" + version + "/" + file;
         Files.createDirectories(cache);
@@ -241,13 +241,13 @@ public final class Toolbox {
         HttpResponse<Path> res;
         try {
             res = http.send(req, HttpResponse.BodyHandlers.ofFile(tmp));
-        } catch (IOException echec) {
+        } catch (IOException failure) {
             Files.deleteIfExists(tmp);
-            throw new IOException(indisponible(file, url, vus) + "\n   (" + echec + ")");
+            throw new IOException(unavailable(file, url, seen) + "\n   (" + failure + ")");
         }
         if (res.statusCode() != 200) {
             Files.deleteIfExists(tmp);
-            throw new IOException(indisponible(file, url + " → HTTP " + res.statusCode(), vus));
+            throw new IOException(unavailable(file, url + " → HTTP " + res.statusCode(), seen));
         }
         Files.move(tmp, local, StandardCopyOption.REPLACE_EXISTING);
         return local;
@@ -263,15 +263,15 @@ public final class Toolbox {
      *
      * @return la mention à afficher, vide quand il n'y a rien à signaler.
      */
-    static String mention(Path fichier, String attendue) {
-        String declaree = versionDeclaree(fichier);
-        if (declaree == null) {
-            return "  (version not verified, " + attendue + " expected)";
+    static String note(Path file, String expected) {
+        String declared = declaredVersion(file);
+        if (declared == null) {
+            return "  (version not verified, " + expected + " expected)";
         }
-        if (declaree.equals(attendue)) {
+        if (declared.equals(expected)) {
             return "";
         }
-        return "  (version " + declaree + " found, " + attendue + " expected:"
+        return "  (version " + declared + " found, " + expected + " expected:"
                 + " components of the same tool must agree)";
     }
 
@@ -280,11 +280,11 @@ public final class Toolbox {
      * déclare aucune — les archives d'async-profiler et d'Arthas sont dans ce cas, et un
      * fichier illisible aussi. On ne conclut alors rien : ne pas savoir n'est pas un défaut.
      */
-    private static String versionDeclaree(Path fichier) {
-        try (JarFile jar = new JarFile(fichier.toFile())) {
-            Manifest manifeste = jar.getManifest();
-            if (manifeste == null) return null;
-            return manifeste.getMainAttributes().getValue("Implementation-Version");
+    private static String declaredVersion(Path file) {
+        try (JarFile jar = new JarFile(file.toFile())) {
+            Manifest manifest = jar.getManifest();
+            if (manifest == null) return null;
+            return manifest.getMainAttributes().getValue("Implementation-Version");
         } catch (IOException | RuntimeException e) {
             return null;
         }
@@ -297,24 +297,24 @@ public final class Toolbox {
      *
      * @return {@code null} pour le jar ordinaire, qui n'embarque rien.
      */
-    private Path extraitDuJar(String file) throws IOException {
+    private Path extractFromJar(String file) throws IOException {
         try (InputStream in = Toolbox.class.getResourceAsStream("/lab/xray/composants/" + file)) {
             if (in == null) return null;
             Files.createDirectories(cache);
             Path tmp = Files.createTempFile(cache, "ex-", ".part");
             System.out.println("   bundled component: " + file);
             Files.copy(in, tmp, StandardCopyOption.REPLACE_EXISTING);
-            Path cible = cache.resolve(file);
-            Files.move(tmp, cible, StandardCopyOption.REPLACE_EXISTING);
-            return cible;
+            Path target = cache.resolve(file);
+            Files.move(tmp, target, StandardCopyOption.REPLACE_EXISTING);
+            return target;
         }
     }
 
     /** Un échec ici arrête tout : le message dit où on a cherché, et comment s'en sortir. */
-    private static String indisponible(String file, String url, List<String> vus) {
+    private static String unavailable(String file, String url, List<String> seen) {
         return "component not found: " + file
                 + "\n   looked for on the network: " + url
-                + "\n   looked for on disk:\n      " + String.join("\n      ", vus)
+                + "\n   looked for on disk:\n      " + String.join("\n      ", seen)
                 + "\n   On a closed network: drop the file into one of these directories,"
                 + "\n   point at it with --composants <directory>, or name the internal"
                 + "\n   Maven mirror with --repo <url> (or MAVEN_REPO).";

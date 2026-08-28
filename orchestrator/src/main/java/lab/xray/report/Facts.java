@@ -52,17 +52,17 @@ import java.util.TreeMap;
  * plateforme ». Un lecteur qui ne sait pas trancher tranchera quand même — et se trompera
  * avec assurance. Ces lignes-là existent pour que cette question ne se pose jamais.
  */
-public final class Faits {
+public final class Facts {
 
     /** Le vocabulaire des faits. Il ne bouge qu'en ajoutant, jamais en renommant. */
     public static final String FORMAT = "2.0";
 
     /** Le fichier, à la racine de la sortie : c'est la première chose qu'un outil ouvre. */
-    public static final String FICHIER = "faits.jsonl";
+    public static final String FILE = "faits.jsonl";
 
     /** Bornes : un fichier de faits doit rester lisible d'un coup, sinon il redevient un tas. */
-    static final int MAX_SOURCES_MANQUANTES = 500;
-    static final int MAX_METHODES_CHAUDES = 25;
+    static final int MAX_MISSING_SOURCES = 500;
+    static final int MAX_HOT_METHODS = 25;
 
     /**
      * Ce que chaque nom de fait veut dire.
@@ -71,31 +71,31 @@ public final class Faits {
      * lire une sortie qu'il n'a jamais vue. Toute addition au vocabulaire s'ajoute ici, sans
      * quoi elle serait muette.
      */
-    static final Map<String, String> VOCABULAIRE = new LinkedHashMap<>();
+    static final Map<String, String> VOCABULARY = new LinkedHashMap<>();
     static {
-        VOCABULAIRE.put("campaign", "the header: tool, version, date, and where to find the rest");
-        VOCABULAIRE.put("run", "one observed run: identity, command, machine");
-        VOCABULAIRE.put("unavailable",
+        VOCABULARY.put("campaign", "the header: tool, version, date, and where to find the rest");
+        VOCABULARY.put("run", "one observed run: identity, command, machine");
+        VOCABULARY.put("unavailable",
                 "a measurement that was NOT taken, and why — read BEFORE any zero, which "
                 + "otherwise reads exactly like \"never ran\"");
-        VOCABULAIRE.put("caveat", "a measurement that was taken, but whose reach the tool limits");
-        VOCABULAIRE.put("coverage.run",
+        VOCABULARY.put("caveat", "a measurement that was taken, but whose reach the tool limits");
+        VOCABULARY.put("coverage.run",
                 "instructions covered out of the total, for one run (JaCoCo measurement)");
-        VOCABULAIRE.put("class",
+        VOCABULARY.put("class",
                 "a class and its best coverage over the campaign, with the runs that covered it");
-        VOCABULAIRE.put("class.never_executed",
+        VOCABULARY.put("class.never_executed",
                 "an analysed class no run ever reached — the fact most often looked for");
-        VOCABULAIRE.put("method.hot",
+        VOCABULARY.put("method.hot",
                 "a method among the most costly in time, counted in stack samples");
-        VOCABULAIRE.put("source.missing",
+        VOCABULARY.put("source.missing",
                 "a file whose coverage is known but not its code: source root not configured, "
                 + "never \"the code does not exist\"");
-        VOCABULAIRE.put("source.hint",
+        VOCABULARY.put("source.hint",
                 "a root to add to SOURCE_DIRS, with the number of files it would resolve — "
                 + "the only directly actionable item of the lot");
     }
 
-    private Faits() {}
+    private Facts() {}
 
     /**
      * Écrit les faits de la campagne.
@@ -104,38 +104,38 @@ public final class Faits {
      *                   on en tire les pistes de sources, qui sont la seule information
      *                   directement actionnable du lot.
      */
-    public static Path ecrire(Path commonDir, List<Object> runs, Sources.Index index,
+    public static Path write(Path commonDir, List<Object> runs, Sources.Index index,
                               Map<String, Object> diagnostic) throws IOException {
-        Path fichier = commonDir.resolve(FICHIER);
-        try (BufferedWriter w = Files.newBufferedWriter(fichier, StandardCharsets.UTF_8)) {
-            ligne(w, campagne(commonDir, runs, diagnostic));
+        Path file = commonDir.resolve(FILE);
+        try (BufferedWriter w = Files.newBufferedWriter(file, StandardCharsets.UTF_8)) {
+            line(w, campaign(commonDir, runs, diagnostic));
             for (Object o : runs) {
                 if (!(o instanceof Map<?, ?> run)) continue;
-                ligne(w, execution(run));
-                for (Map<String, Object> f : indisponibilites(run)) ligne(w, f);
-                for (Map<String, Object> f : reserves(run)) ligne(w, f);
-                ligne(w, couvertureDe(run));
-                for (Map<String, Object> f : methodesChaudes(run)) ligne(w, f);
+                line(w, run(run));
+                for (Map<String, Object> f : unavailabilities(run)) line(w, f);
+                for (Map<String, Object> f : caveats(run)) line(w, f);
+                line(w, coverageOf(run));
+                for (Map<String, Object> f : hotMethods(run)) line(w, f);
             }
-            for (Map<String, Object> f : classes(runs, index)) ligne(w, f);
-            for (Map<String, Object> f : sourcesManquantes(runs, index)) ligne(w, f);
-            for (Map<String, Object> f : pistes(diagnostic)) ligne(w, f);
+            for (Map<String, Object> f : classes(runs, index)) line(w, f);
+            for (Map<String, Object> f : missingSources(runs, index)) line(w, f);
+            for (Map<String, Object> f : leads(diagnostic)) line(w, f);
         }
-        return fichier;
+        return file;
     }
 
-    private static void ligne(BufferedWriter w, Map<String, Object> fait) throws IOException {
-        w.write(Json.write(fait));
+    private static void line(BufferedWriter w, Map<String, Object> fact) throws IOException {
+        w.write(Json.write(fact));
         w.write("\n");
     }
 
     // ------------------------------------------------------------------ la campagne
 
-    private static Map<String, Object> campagne(Path commonDir, List<Object> runs,
+    private static Map<String, Object> campaign(Path commonDir, List<Object> runs,
                                                 Map<String, Object> diagnostic) {
-        Map<String, Object> f = fait("campaign");
+        Map<String, Object> f = fact("campaign");
         f.put("factsFormat", FORMAT);
-        f.put("reportFormat", Blocs.FORMAT);
+        f.put("reportFormat", Blocks.FORMAT);
         f.put("tool", diagnostic.get("outil"));
         f.put("version", diagnostic.get("version"));
         f.put("date", diagnostic.get("date"));
@@ -147,26 +147,26 @@ public final class Faits {
                 "page", "index.html",
                 "diagnostic", "diagnostic.json",
                 "markdown", "rapport.md",
-                "manifeste", Blocs.GLOBAL + "/manifeste.json"));
+                "manifeste", Blocks.GLOBAL + "/manifeste.json"));
         // Le fichier se décrit lui-même, dès sa première ligne. Un lecteur qui n'a que ce
         // fichier — c'est le cas d'un dossier zippé, ou d'un programme qui n'a lu que la
         // tête — doit pouvoir en comprendre le reste sans documentation extérieure. Une
         // documentation séparée se perd ; celle-ci voyage avec la donnée.
-        f.put("vocabulary", VOCABULAIRE);
+        f.put("vocabulary", VOCABULARY);
         return f;
     }
 
-    private static Map<String, Object> execution(Map<?, ?> run) {
-        Map<String, Object> f = fait("run");
+    private static Map<String, Object> run(Map<?, ?> run) {
+        Map<String, Object> f = fact("run");
         f.put("run", run.get("uuid"));
         f.put("name", run.get("nom"));
         f.put("path", run.get("chemin"));
-        f.put("measurements", releves(run));
+        f.put("measurements", samples(run));
         f.put("intervalMs", run.get("intervalMs"));
         if (run.get("context") instanceof Map<?, ?> ctx) {
-            for (String cle : List.of("commande", "machine", "systeme", "java", "debut",
+            for (String key : List.of("commande", "machine", "systeme", "java", "debut",
                     "fin", "duree", "statut", "methodeRacine")) {
-                if (ctx.get(cle) != null) f.put(cle, ctx.get(cle));
+                if (ctx.get(key) != null) f.put(key, ctx.get(key));
             }
         }
         return f;
@@ -181,12 +181,12 @@ public final class Faits {
      * exactement la même trace qu'un code qui n'a pas été atteint : zéro. La différence ne
      * se déduit d'aucun chiffre — il faut l'écrire.
      */
-    static List<Map<String, Object>> indisponibilites(Map<?, ?> run) {
+    static List<Map<String, Object>> unavailabilities(Map<?, ?> run) {
         List<Map<String, Object>> out = new ArrayList<>();
         String uuid = String.valueOf(run.get("uuid"));
 
-        if (releves(run) == 0) {
-            Map<String, Object> f = fait("unavailable");
+        if (samples(run) == 0) {
+            Map<String, Object> f = fact("unavailable");
             f.put("run", uuid);
             f.put("what", "time");
             f.put("why", "no stack sample was taken: async-profiler only publishes Linux "
@@ -196,8 +196,8 @@ public final class Faits {
             f.put("remedy", "run again on Linux or macOS, at level \"tree\" or \"full\"");
             out.add(f);
         }
-        if (vide(run.get("values"))) {
-            Map<String, Object> f = fait("unavailable");
+        if (empty(run.get("values"))) {
+            Map<String, Object> f = fact("unavailable");
             f.put("run", uuid);
             f.put("what", "values");
             f.put("why", "Arthas captured no call: either --root was not given, or the "
@@ -208,8 +208,8 @@ public final class Faits {
                     + "--attach-after");
             out.add(f);
         }
-        if (vide(run.get("coverage"))) {
-            Map<String, Object> f = fait("unavailable");
+        if (empty(run.get("coverage"))) {
+            Map<String, Object> f = fact("unavailable");
             f.put("run", uuid);
             f.put("what", "coverage");
             f.put("why", "no JaCoCo data for this run");
@@ -221,12 +221,12 @@ public final class Faits {
     }
 
     /** Les réserves que l'outil pose lui-même sur une mesure qui, elle, existe. */
-    static List<Map<String, Object>> reserves(Map<?, ?> run) {
+    static List<Map<String, Object>> caveats(Map<?, ?> run) {
         List<Map<String, Object>> out = new ArrayList<>();
-        for (String cle : List.of("profileNote", "stacksNote")) {
-            Object note = run.get(cle);
+        for (String key : List.of("profileNote", "stacksNote")) {
+            Object note = run.get(key);
             if (note == null || String.valueOf(note).isBlank()) continue;
-            Map<String, Object> f = fait("caveat");
+            Map<String, Object> f = fact("caveat");
             f.put("run", run.get("uuid"));
             f.put("what", "time");
             f.put("caveat", note);
@@ -237,19 +237,19 @@ public final class Faits {
 
     // ------------------------------------------------------------------ les mesures
 
-    private static Map<String, Object> couvertureDe(Map<?, ?> run) {
-        long couvertes = 0, manquees = 0;
-        for (Object classes : paquets(run).values()) {
-            for (Map<?, ?> c : classesDe(classes)) {
-                couvertes += entier(c.get("covered"));
-                manquees += entier(c.get("missed"));
+    private static Map<String, Object> coverageOf(Map<?, ?> run) {
+        long covered = 0, missed = 0;
+        for (Object classes : pkgs(run).values()) {
+            for (Map<?, ?> c : classesOf(classes)) {
+                covered += toInt(c.get("covered"));
+                missed += toInt(c.get("missed"));
             }
         }
-        Map<String, Object> f = fait("coverage.run");
+        Map<String, Object> f = fact("coverage.run");
         f.put("run", run.get("uuid"));
-        f.put("instructionsCovered", couvertes);
-        f.put("instructionsTotal", couvertes + manquees);
-        f.put("pct", pourcent(couvertes, couvertes + manquees));
+        f.put("instructionsCovered", covered);
+        f.put("instructionsTotal", covered + missed);
+        f.put("pct", percent(covered, covered + missed));
         f.put("measure", "jacoco.instructions");
         return f;
     }
@@ -263,48 +263,48 @@ public final class Faits {
      * chiffre, et la liste de ceux qui y ont contribué.
      */
     static List<Map<String, Object>> classes(List<Object> runs, Sources.Index index) {
-        Map<String, Map<String, Object>> parClasse = new TreeMap<>();
-        Map<String, Set<String>> couvrantes = new LinkedHashMap<>();
-        Map<String, Set<String>> analysees = new LinkedHashMap<>();
+        Map<String, Map<String, Object>> byClass = new TreeMap<>();
+        Map<String, Set<String>> covering = new LinkedHashMap<>();
+        Map<String, Set<String>> analysed = new LinkedHashMap<>();
 
         for (Object o : runs) {
             if (!(o instanceof Map<?, ?> run)) continue;
             String uuid = String.valueOf(run.get("uuid"));
-            for (Object classes : paquets(run).values()) {
-                for (Map<?, ?> c : classesDe(classes)) {
-                    String nom = String.valueOf(c.get("name"));
-                    long couv = entier(c.get("covered"));
-                    long total = couv + entier(c.get("missed"));
-                    analysees.computeIfAbsent(nom, k -> new LinkedHashSet<>()).add(uuid);
+            for (Object classes : pkgs(run).values()) {
+                for (Map<?, ?> c : classesOf(classes)) {
+                    String name = String.valueOf(c.get("name"));
+                    long couv = toInt(c.get("covered"));
+                    long total = couv + toInt(c.get("missed"));
+                    analysed.computeIfAbsent(name, k -> new LinkedHashSet<>()).add(uuid);
                     if (couv > 0) {
-                        couvrantes.computeIfAbsent(nom, k -> new LinkedHashSet<>()).add(uuid);
+                        covering.computeIfAbsent(name, k -> new LinkedHashSet<>()).add(uuid);
                     }
-                    Map<String, Object> f = parClasse.get(nom);
-                    if (f == null || entier(f.get("instructionsCouvertes")) < couv) {
+                    Map<String, Object> f = byClass.get(name);
+                    if (f == null || toInt(f.get("instructionsCouvertes")) < couv) {
                         f = f == null ? new LinkedHashMap<>() : f;
-                        f.put("class", nom.replace('/', '.'));
+                        f.put("class", name.replace('/', '.'));
                         f.put("file", c.get("source"));
                         f.put("instructionsCovered", couv);
                         f.put("instructionsTotal", total);
-                        f.put("pct", pourcent(couv, total));
-                        parClasse.put(nom, f);
+                        f.put("pct", percent(couv, total));
+                        byClass.put(name, f);
                     }
                 }
             }
         }
 
         List<Map<String, Object>> out = new ArrayList<>();
-        for (Map.Entry<String, Map<String, Object>> e : parClasse.entrySet()) {
-            Set<String> qui = couvrantes.getOrDefault(e.getKey(), Set.of());
-            Map<String, Object> f = fait(qui.isEmpty() ? "class.never_executed" : "class");
+        for (Map.Entry<String, Map<String, Object>> e : byClass.entrySet()) {
+            Set<String> coveredBy = covering.getOrDefault(e.getKey(), Set.of());
+            Map<String, Object> f = fact(coveredBy.isEmpty() ? "class.never_executed" : "class");
             f.putAll(e.getValue());
             // Triées : sans cela, deux campagnes des mêmes exécutions donnent des lignes
             // différentes selon l'ordre de lecture des répertoires, et plus rien ne se
             // compare — or comparer deux rapports est exactement ce qu'on veut pouvoir faire.
-            f.put("runsCovering", triees(qui));
-            f.put("runsAnalysed", triees(analysees.getOrDefault(e.getKey(), Set.of())));
-            Object cle = e.getValue().get("fichier");
-            f.put("sourceAvailable", cle != null && index.parCle().containsKey(String.valueOf(cle)));
+            f.put("runsCovering", sortedList(coveredBy));
+            f.put("runsAnalysed", sortedList(analysed.getOrDefault(e.getKey(), Set.of())));
+            Object key = e.getValue().get("fichier");
+            f.put("sourceAvailable", key != null && index.byKey().containsKey(String.valueOf(key)));
             f.put("measure", "jacoco.instructions");
             out.add(f);
         }
@@ -312,23 +312,23 @@ public final class Faits {
     }
 
     /** Les méthodes les plus coûteuses d'une exécution, si elle a un profil. */
-    static List<Map<String, Object>> methodesChaudes(Map<?, ?> run) {
-        if (!(run.get("calltree") instanceof Map<?, ?> arbre)) return List.of();
-        long total = entier(arbre.get("total"));
+    static List<Map<String, Object>> hotMethods(Map<?, ?> run) {
+        if (!(run.get("calltree") instanceof Map<?, ?> tree)) return List.of();
+        long total = toInt(tree.get("total"));
         if (total <= 0) return List.of();
 
-        Map<String, Long> poids = new LinkedHashMap<>();
-        cumuler(arbre, poids);
+        Map<String, Long> weight = new LinkedHashMap<>();
+        cumulate(tree, weight);
         List<Map<String, Object>> out = new ArrayList<>();
-        poids.entrySet().stream()
+        weight.entrySet().stream()
                 .sorted(Map.Entry.<String, Long>comparingByValue().reversed())
-                .limit(MAX_METHODES_CHAUDES)
+                .limit(MAX_HOT_METHODS)
                 .forEach(e -> {
-                    Map<String, Object> f = fait("method.hot");
+                    Map<String, Object> f = fact("method.hot");
                     f.put("run", run.get("uuid"));
                     f.put("method", e.getKey().replace('/', '.'));
                     f.put("samples", e.getValue());
-                    f.put("pct", pourcent(e.getValue(), total));
+                    f.put("pct", percent(e.getValue(), total));
                     f.put("measure", "async-profiler.echantillons");
                     out.add(f);
                 });
@@ -336,26 +336,26 @@ public final class Faits {
     }
 
     @SuppressWarnings("unchecked")
-    private static void cumuler(Map<?, ?> noeud, Map<String, Long> poids) {
-        Object enfants = noeud.get("children");
-        if (!(enfants instanceof List<?> liste)) return;
-        for (Object k : liste) {
+    private static void cumulate(Map<?, ?> node, Map<String, Long> weight) {
+        Object children = node.get("children");
+        if (!(children instanceof List<?> list)) return;
+        for (Object k : list) {
             if (!(k instanceof Map<?, ?> kid)) continue;
-            poids.merge(String.valueOf(kid.get("name")), entier(kid.get("total")), Long::sum);
-            cumuler(kid, poids);
+            weight.merge(String.valueOf(kid.get("name")), toInt(kid.get("total")), Long::sum);
+            cumulate(kid, weight);
         }
     }
 
     // -------------------------------------------------------------- ce qu'on n'a pas pu lire
 
     /** Les fichiers mesurés dont on n'a pas le code : la cause n°1 d'un rapport décevant. */
-    static List<Map<String, Object>> sourcesManquantes(List<Object> runs, Sources.Index index) {
+    static List<Map<String, Object>> missingSources(List<Object> runs, Sources.Index index) {
         List<Map<String, Object>> out = new ArrayList<>();
-        for (String cle : Diagnostic.mesures(runs)) {
-            if (index.parCle().containsKey(cle)) continue;
-            if (out.size() >= MAX_SOURCES_MANQUANTES) break;
-            Map<String, Object> f = fait("source.missing");
-            f.put("key", cle);
+        for (String key : Diagnostic.samples(runs)) {
+            if (index.byKey().containsKey(key)) continue;
+            if (out.size() >= MAX_MISSING_SOURCES) break;
+            Map<String, Object> f = fact("source.missing");
+            f.put("key", key);
             f.put("consequence", "the coverage of this file is known, its code is not: the code "
                     + "view has nothing to show");
             f.put("remedy", "add the root holding this package to SOURCE_DIRS — see the "
@@ -367,14 +367,14 @@ public final class Faits {
 
     /** Les racines proposées, avec leur preuve : la seule information directement actionnable. */
     @SuppressWarnings("unchecked")
-    static List<Map<String, Object>> pistes(Map<String, Object> diagnostic) {
+    static List<Map<String, Object>> leads(Map<String, Object> diagnostic) {
         List<Map<String, Object>> out = new ArrayList<>();
         if (!(diagnostic.get("rapprochement") instanceof Map<?, ?> r)) return out;
-        if (!(r.get("pistes") instanceof List<?> liste)) return out;
-        for (Object p : liste) {
-            if (!(p instanceof Map<?, ?> piste)) continue;
-            Map<String, Object> f = fait("source.hint");
-            f.putAll((Map<String, Object>) piste);
+        if (!(r.get("pistes") instanceof List<?> list)) return out;
+        for (Object p : list) {
+            if (!(p instanceof Map<?, ?> lead)) continue;
+            Map<String, Object> f = fact("source.hint");
+            f.putAll((Map<String, Object>) lead);
             out.add(f);
         }
         return out;
@@ -382,49 +382,49 @@ public final class Faits {
 
     // ------------------------------------------------------------------ menue monnaie
 
-    private static List<String> triees(Set<String> s) {
+    private static List<String> sortedList(Set<String> s) {
         List<String> l = new ArrayList<>(s);
         l.sort(Comparator.naturalOrder());
         return l;
     }
 
-    private static Map<String, Object> fait(String nom) {
+    private static Map<String, Object> fact(String name) {
         Map<String, Object> f = new LinkedHashMap<>();
-        f.put("fact", nom);
+        f.put("fact", name);
         return f;
     }
 
-    private static Map<?, ?> paquets(Map<?, ?> run) {
+    private static Map<?, ?> pkgs(Map<?, ?> run) {
         return run.get("packages") instanceof Map<?, ?> p ? p : Map.of();
     }
 
-    private static List<Map<?, ?>> classesDe(Object classes) {
+    private static List<Map<?, ?>> classesOf(Object classes) {
         List<Map<?, ?>> out = new ArrayList<>();
-        if (classes instanceof List<?> liste) {
-            for (Object c : liste) if (c instanceof Map<?, ?> m) out.add(m);
+        if (classes instanceof List<?> list) {
+            for (Object c : list) if (c instanceof Map<?, ?> m) out.add(m);
         }
         return out;
     }
 
-    private static long releves(Map<?, ?> run) {
-        if (run.get("calltree") instanceof Map<?, ?> arbre) return entier(arbre.get("total"));
-        return entier(run.get("mesures"));
+    private static long samples(Map<?, ?> run) {
+        if (run.get("calltree") instanceof Map<?, ?> tree) return toInt(tree.get("total"));
+        return toInt(run.get("mesures"));
     }
 
-    private static boolean vide(Object o) {
+    private static boolean empty(Object o) {
         return o == null || (o instanceof Map<?, ?> m && m.isEmpty());
     }
 
-    private static long entier(Object o) {
+    private static long toInt(Object o) {
         return o instanceof Number n ? n.longValue() : 0L;
     }
 
-    private static double pourcent(long part, long total) {
+    private static double percent(long share, long total) {
         if (total <= 0) return 0;
-        return Math.round(1000.0 * part / total) / 10.0;
+        return Math.round(1000.0 * share / total) / 10.0;
     }
 
     /** L'ordre des faits, pour qui trie : le plus général d'abord. */
-    static final Comparator<Map<String, Object>> ORDRE =
+    static final Comparator<Map<String, Object>> ORDER =
             Comparator.comparing(f -> String.valueOf(f.get("fait")));
 }

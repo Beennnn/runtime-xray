@@ -25,12 +25,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 class SourcesTest {
 
-    private static Path source(Path dir, String chemin, String paquet) throws IOException {
-        Path f = dir.resolve(chemin);
+    private static Path source(Path dir, String path, String pkg) throws IOException {
+        Path f = dir.resolve(path);
         Files.createDirectories(f.getParent());
-        String nom = f.getFileName().toString().replace(".java", "");
-        Files.writeString(f, (paquet == null ? "" : "package " + paquet + ";\n\n")
-                + "class " + nom + " {\n    int x() { return 1; }\n}\n", StandardCharsets.UTF_8);
+        String name = f.getFileName().toString().replace(".java", "");
+        Files.writeString(f, (pkg == null ? "" : "package " + pkg + ";\n\n")
+                + "class " + name + " {\n    int x() { return 1; }\n}\n", StandardCharsets.UTF_8);
         return f;
     }
 
@@ -40,11 +40,11 @@ class SourcesTest {
         source(dir, "projet/src/main/java/com/example/app/Application.java", "com.example.app");
 
         // Trois racines, du bon niveau au plus improbable : la clé ne bouge pas.
-        for (String racine : List.of("projet/src/main/java", "projet/src", "projet")) {
-            Sources.Index index = Sources.load(List.of(dir.resolve(racine)));
-            assertTrue(index.parCle().containsKey("com/example/app/Application.java"),
-                    "racine « " + racine + " » : la clé doit rester celle de JaCoCo, "
-                    + "or on a " + index.parCle().keySet());
+        for (String root : List.of("projet/src/main/java", "projet/src", "projet")) {
+            Sources.Index index = Sources.load(List.of(dir.resolve(root)));
+            assertTrue(index.byKey().containsKey("com/example/app/Application.java"),
+                    "racine « " + root + " » : la clé doit rester celle de JaCoCo, "
+                    + "or on a " + index.byKey().keySet());
         }
     }
 
@@ -54,7 +54,7 @@ class SourcesTest {
         source(dir, "src/com/example/app/Application.java", "com.example.app");
 
         Sources.Index index = Sources.load(List.of(dir.resolve("src/com/example")));
-        assertTrue(index.parCle().containsKey("com/example/app/Application.java"),
+        assertTrue(index.byKey().containsKey("com/example/app/Application.java"),
                 "le chemin relatif aurait donné « mod/Application.java », qui ne correspond à rien");
     }
 
@@ -64,16 +64,16 @@ class SourcesTest {
         source(dir, "src/Ancien.java", null);
 
         Sources.Index index = Sources.load(List.of(dir.resolve("src")));
-        assertTrue(index.parCle().containsKey("Ancien.java"),
-                "sans déclaration, il n'y a rien de mieux que le chemin : " + index.parCle().keySet());
+        assertTrue(index.byKey().containsKey("Ancien.java"),
+                "sans déclaration, il n'y a rien de mieux que le chemin : " + index.byKey().keySet());
     }
 
     @Test
     @DisplayName("Un « package » écrit après le début de la classe n'est pas une déclaration")
     void ignoresAPackageWordThatComesTooLate() {
-        assertEquals("app.vrai", Sources.paquetDeclare(List.of(
+        assertEquals("app.vrai", Sources.declaredPackage(List.of(
                 "package app.vrai;", "class A {", "  String s = \"package autre.chose;\";", "}")));
-        assertNull(Sources.paquetDeclare(List.of(
+        assertNull(Sources.declaredPackage(List.of(
                 "class A {", "  String s = \"package autre.chose;\";", "}")));
     }
 
@@ -86,13 +86,13 @@ class SourcesTest {
     void reportsARootThatDoesNotExist(@TempDir Path dir) {
         Sources.Index index = Sources.load(List.of(dir.resolve("nulle-part")));
 
-        assertEquals(0, index.fichiers(), "rien à lire dans un répertoire absent");
-        assertEquals(1, index.racines().size(), "la racine demandée doit rester visible");
+        assertEquals(0, index.files(), "rien à lire dans un répertoire absent");
+        assertEquals(1, index.roots().size(), "la racine demandée doit rester visible");
         @SuppressWarnings("unchecked")
-        Map<String, Object> racine = (Map<String, Object>) index.racines().get(0);
-        assertEquals(Boolean.FALSE, racine.get("existe"));
-        assertNotNull(racine.get("absolue"), "le chemin absolu est ce qui permet de comprendre");
-        assertNotNull(racine.get("motif"), "et la raison est ce qui permet de corriger");
+        Map<String, Object> root = (Map<String, Object>) index.roots().get(0);
+        assertEquals(Boolean.FALSE, root.get("existe"));
+        assertNotNull(root.get("absolue"), "le chemin absolu est ce qui permet de comprendre");
+        assertNotNull(root.get("motif"), "et la raison est ce qui permet de corriger");
     }
 
     @Test
@@ -105,13 +105,13 @@ class SourcesTest {
         // Le cas réel : la couverture cherche com/example/app/Application.java, l'index n'a
         // qu'un homonyme. C'est cette liste qui permet à la page de le dire.
         @SuppressWarnings("unchecked")
-        List<Object> endroits = (List<Object>) index.parNom().get("Application.java");
-        assertNotNull(endroits, "un fichier trouvé doit être retrouvable par son nom");
+        List<Object> places = (List<Object>) index.byName().get("Application.java");
+        assertNotNull(places, "un fichier trouvé doit être retrouvable par son nom");
         @SuppressWarnings("unchecked")
-        Map<String, Object> ou = (Map<String, Object>) endroits.get(0);
-        assertEquals("autre.paquet", ou.get("paquet"));
-        assertEquals("autre/paquet/Application.java", ou.get("cle"));
-        assertTrue(String.valueOf(ou.get("chemin")).endsWith("Application.java"),
+        Map<String, Object> where = (Map<String, Object>) places.get(0);
+        assertEquals("autre.paquet", where.get("paquet"));
+        assertEquals("autre/paquet/Application.java", where.get("cle"));
+        assertTrue(String.valueOf(where.get("chemin")).endsWith("Application.java"),
                 "le chemin absolu est ce qu'on recopie pour corriger la configuration");
     }
 
@@ -125,9 +125,9 @@ class SourcesTest {
 
         Sources.Index index = Sources.load(List.of(dir.resolve("src")));
 
-        assertTrue(index.parCle().containsKey("app/Accent.java"),
+        assertTrue(index.byKey().containsKey("app/Accent.java"),
                 "un accent dans un commentaire ne doit pas coûter l'affichage du fichier");
-        assertFalse(((List<?>) index.parCle().get("app/Accent.java")).isEmpty());
+        assertFalse(((List<?>) index.byKey().get("app/Accent.java")).isEmpty());
     }
 
     // ------------------------------------------------- proposer une racine, sans la deviner
@@ -140,21 +140,21 @@ class SourcesTest {
         source(dir, "projet/src/main/java/com/example/data/Repository.java", "com.example.data");
         source(dir, "autre/src/com/example/app/Application.java", "com.example.app");
 
-        List<Object> pistes = Sources.chercherRacines(
+        List<Object> leads = Sources.searchRoots(
                 new java.util.LinkedHashSet<>(List.of("com/example/app/Application.java",
                                                       "com/example/data/Repository.java")),
                 List.of(dir));
 
-        assertFalse(pistes.isEmpty(), "les deux racines candidates doivent être trouvées");
-        Map<String, Object> meilleure = (Map<String, Object>) pistes.get(0);
+        assertFalse(leads.isEmpty(), "les deux racines candidates doivent être trouvées");
+        Map<String, Object> best = (Map<String, Object>) leads.get(0);
         // Comparer sur un chemin construit, jamais sur un littéral à séparateurs : sous
         // Windows la racine se termine par « projet\src\main\java », et le test échouait
         // alors que la recherche avait trouvé exactement ce qu'il fallait.
         assertEquals(dir.resolve("projet/src/main/java").toAbsolutePath().normalize().toString(),
-                meilleure.get("racine"),
+                best.get("racine"),
                 "celle qui résout deux classes passe devant celle qui n'en résout qu'une");
-        assertEquals(2, ((Number) meilleure.get("resout")).intValue());
-        assertEquals(2, ((Number) meilleure.get("surTotal")).intValue(),
+        assertEquals(2, ((Number) best.get("resout")).intValue());
+        assertEquals(2, ((Number) best.get("surTotal")).intValue(),
                 "le compte doit rester lisible : « 2 sur 2 », pas « 2 »");
     }
 
@@ -166,12 +166,12 @@ class SourcesTest {
         // plus coûteux qu'un panneau vide, parce qu'on le croirait.
         source(dir, "un-autre-projet/src/util/Application.java", "un.autre.projet");
 
-        List<Object> pistes = Sources.chercherRacines(
+        List<Object> leads = Sources.searchRoots(
                 new java.util.LinkedHashSet<>(List.of("com/example/app/Application.java")),
                 List.of(dir));
 
-        assertTrue(pistes.isEmpty(),
-                "le nom concorde, le paquet non : rien ne doit être proposé, or " + pistes);
+        assertTrue(leads.isEmpty(),
+                "le nom concorde, le paquet non : rien ne doit être proposé, or " + leads);
     }
 
     @Test
@@ -179,23 +179,23 @@ class SourcesTest {
     void proposesNothingWhenNothingMatches(@TempDir Path dir) throws Exception {
         Files.createDirectories(dir.resolve("vide"));
 
-        assertTrue(Sources.chercherRacines(
+        assertTrue(Sources.searchRoots(
                 new java.util.LinkedHashSet<>(List.of("com/example/app/Application.java")),
                 List.of(dir)).isEmpty());
-        assertTrue(Sources.chercherRacines(java.util.Set.of(), List.of(dir)).isEmpty(),
+        assertTrue(Sources.searchRoots(java.util.Set.of(), List.of(dir)).isEmpty(),
                 "sans classe manquante, il n'y a rien à chercher");
     }
 
     @Test
     @DisplayName("Chercher sous une base et sous son parent ne parcourt pas deux fois")
     void searchesAParentOnlyOnce(@TempDir Path dir) throws Exception {
-        Path enfant = dir.resolve("projet/src/main/java");
-        Files.createDirectories(enfant);
+        Path child = dir.resolve("projet/src/main/java");
+        Files.createDirectories(child);
 
-        List<Path> retenues = Sources.dedoublonner(List.of(enfant, dir, dir.resolve("projet")));
+        List<Path> kept = Sources.deduplicate(List.of(child, dir, dir.resolve("projet")));
 
-        assertEquals(1, retenues.size(), "le parent couvre déjà ses descendants : " + retenues);
-        assertEquals(dir.toAbsolutePath().normalize(), retenues.get(0));
+        assertEquals(1, kept.size(), "le parent couvre déjà ses descendants : " + kept);
+        assertEquals(dir.toAbsolutePath().normalize(), kept.get(0));
     }
 
     @Test
@@ -204,16 +204,16 @@ class SourcesTest {
     void proposesTheRootWithThePackagePathRemoved(@TempDir Path dir) throws Exception {
         source(dir, "depot/module/src/main/java/com/example/app/Application.java", "com.example.app");
 
-        List<Object> pistes = Sources.chercherRacines(
+        List<Object> leads = Sources.searchRoots(
                 new java.util.LinkedHashSet<>(List.of("com/example/app/Application.java")),
                 List.of(dir));
 
-        Map<String, Object> piste = (Map<String, Object>) pistes.get(0);
+        Map<String, Object> lead = (Map<String, Object>) leads.get(0);
         assertEquals(dir.resolve("depot/module/src/main/java").toAbsolutePath().normalize()
                         .toString(),
-                piste.get("racine"),
+                lead.get("racine"),
                 "on rend le répertoire de sources, pas celui du fichier");
-        assertEquals(List.of("com/example/app/Application.java"), piste.get("exemples"),
+        assertEquals(List.of("com/example/app/Application.java"), lead.get("exemples"),
                 "la preuve accompagne le chiffre");
     }
 
@@ -224,7 +224,7 @@ class SourcesTest {
         source(dir, "classes/com/example/app/Application.java", "com.example.app");
         source(dir, "node_modules/paquet/com/example/app/Application.java", "com.example.app");
 
-        assertTrue(Sources.chercherRacines(
+        assertTrue(Sources.searchRoots(
                 new java.util.LinkedHashSet<>(List.of("com/example/app/Application.java")),
                 List.of(dir)).isEmpty(),
                 "ces répertoires ne contiennent jamais les sources d'un projet, et ce sont "

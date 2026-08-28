@@ -190,8 +190,8 @@ class InspectionTest {
         @SuppressWarnings("unchecked")
         Map<String, Object> call = (Map<String, Object>) ((List<Object>) in.trace.get("12")).get(0);
         @SuppressWarnings("unchecked")
-        List<Object> passages = (List<Object>) call.get("passages");
-        assertEquals(List.of(0.300, 0.012, 0.010), passages,
+        List<Object> iterations = (List<Object>) call.get("passages");
+        assertEquals(List.of(0.300, 0.012, 0.010), iterations,
                 "l'ordre des itérations doit être celui de l'exécution");
         assertEquals(3, call.get("n"), "l'agrégat reste disponible à côté");
     }

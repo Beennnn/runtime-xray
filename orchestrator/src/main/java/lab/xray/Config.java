@@ -70,7 +70,7 @@ public final class Config {
     public String level = "complet";
 
     /** Les trois niveaux, sous leur nom interne. */
-    public static final java.util.List<String> NIVEAUX =
+    public static final java.util.List<String> LEVELS =
             java.util.List.of("couverture", "arbre", "complet");
 
     /**
@@ -80,8 +80,8 @@ public final class Config {
      * français restent acceptés, à vie et sans être documentés — un script déployé avant
      * la bascule ne doit jamais cesser de marcher pour une question de langue.
      */
-    public static String niveau(String valeur) {
-        String v = valeur == null ? "" : valeur.trim().toLowerCase(java.util.Locale.ROOT);
+    public static String level(String value) {
+        String v = value == null ? "" : value.trim().toLowerCase(java.util.Locale.ROOT);
         return switch (v) {
             case "coverage" -> "couverture";
             case "tree" -> "arbre";
@@ -108,7 +108,7 @@ public final class Config {
      * façon, et ouvrir un port sans qu'on l'ait demandé est une décision qui ne se prend
      * pas à la place de l'exploitant.
      */
-    public int suiviPort = 0;
+    public int followPort = 0;
     /**
      * Formats de réécriture demandés — {@code perf}, {@code cpuprofile}, {@code lcov},
      * {@code valeurs}, ou {@code tout}. Vide : aucun export, et rien d'écrit en plus.
@@ -176,7 +176,7 @@ public final class Config {
             case "LEVEL", "NIVEAU" -> level = value;
             case "COVER_INCLUDES" -> coverIncludes = value;
             case "SAMPLE_INTERVAL_MS" -> sampleIntervalMs = parse(value, sampleIntervalMs);
-            case "FOLLOW_PORT", "SUIVI_PORT" -> suiviPort = parse(value, suiviPort);
+            case "FOLLOW_PORT", "SUIVI_PORT" -> followPort = parse(value, followPort);
             case "TRACE_COUNT" -> traceCount = parse(value, traceCount);
             default -> { /* une clé inconnue n'est pas une erreur : le fichier peut servir à autre chose */ }
         }
@@ -201,7 +201,7 @@ public final class Config {
 
     /** Les entrées de {@link #classesDir}, répertoires ou jar, dans l'ordre donné. */
     public List<Path> classesPaths() {
-        return chemins(classesDir);
+        return paths(classesDir);
     }
 
     /**
@@ -219,31 +219,31 @@ public final class Config {
      * {@code ,} sont acceptés en plus, parce que c'est ce qu'un utilisateur de Windows écrira
      * spontanément.
      */
-    public static List<Path> chemins(String valeur) {
+    public static List<Path> paths(String value) {
         List<Path> paths = new ArrayList<>();
-        for (String part : decouper(valeur)) {
-            if (!part.isBlank()) paths.add(Path.of(part.trim()));
+        for (String share : split(value)) {
+            if (!share.isBlank()) paths.add(Path.of(share.trim()));
         }
         return paths;
     }
 
     /** Le découpage seul, sans interprétation : c'est lui que les tests éprouvent. */
-    static List<String> decouper(String valeur) {
+    static List<String> split(String value) {
         List<String> out = new ArrayList<>();
-        if (valeur == null) return out;
-        StringBuilder courant = new StringBuilder();
-        for (int i = 0; i < valeur.length(); i++) {
-            char c = valeur.charAt(i);
-            boolean separe = (c == ',' || c == ';')
-                    || (c == ':' && !lettreDeLecteur(valeur, i));
-            if (separe) {
-                out.add(courant.toString());
-                courant.setLength(0);
+        if (value == null) return out;
+        StringBuilder current = new StringBuilder();
+        for (int i = 0; i < value.length(); i++) {
+            char c = value.charAt(i);
+            boolean separates = (c == ',' || c == ';')
+                    || (c == ':' && !driveLetter(value, i));
+            if (separates) {
+                out.add(current.toString());
+                current.setLength(0);
             } else {
-                courant.append(c);
+                current.append(c);
             }
         }
-        out.add(courant.toString());
+        out.add(current.toString());
         return out;
     }
 
@@ -254,26 +254,26 @@ public final class Config {
      * tête de segment, et un séparateur de chemin juste après. {@code C:\x} est un lecteur ;
      * {@code src:autre} ne l'est pas, ni {@code ab:c}.
      */
-    private static boolean lettreDeLecteur(String v, int i) {
+    private static boolean driveLetter(String v, int i) {
         if (i < 1 || !Character.isLetter(v.charAt(i - 1))) return false;
         if (i >= 2) {
-            char avant = v.charAt(i - 2);
-            boolean debutDeSegment = avant == ',' || avant == ';' || avant == ':'
-                    || Character.isWhitespace(avant);
-            if (!debutDeSegment) return false;
+            char before = v.charAt(i - 2);
+            boolean segmentStart = before == ',' || before == ';' || before == ':'
+                    || Character.isWhitespace(before);
+            if (!segmentStart) return false;
         }
         return i + 1 < v.length() && (v.charAt(i + 1) == '\\' || v.charAt(i + 1) == '/');
     }
 
     /** Vrai si le niveau demandé va jusqu'à l'échantillonnage des piles. */
     public boolean profileWanted() {
-        return !"couverture".equals(niveau(level));
+        return !"couverture".equals(level(level));
     }
 
     /** Vrai si le niveau demandé va jusqu'à la capture des valeurs. */
     public boolean valuesWanted() {
         String l = level.trim();
-        return captureValues && ("complet".equals(niveau(l)) || l.isBlank());
+        return captureValues && ("complet".equals(level(l)) || l.isBlank());
     }
 
     public PackageFilter hidden() {

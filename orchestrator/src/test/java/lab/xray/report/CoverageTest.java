@@ -110,12 +110,12 @@ class CoverageTest {
         @SuppressWarnings("unchecked")
         List<Object> classes = (List<Object>) c.packages.get("app/moteur");
         assertEquals(2, classes.size());
-        Map<?, ?> morte = classes.stream()
+        Map<?, ?> dead = classes.stream()
                 .map(Map.class::cast)
                 .filter(m -> "Morte".equals(m.get("simple")))
                 .findFirst().orElseThrow();
-        assertEquals(0, morte.get("covered"));
-        assertEquals(3, morte.get("missed"));
+        assertEquals(0, dead.get("covered"));
+        assertEquals(3, dead.get("missed"));
     }
 
     @Test

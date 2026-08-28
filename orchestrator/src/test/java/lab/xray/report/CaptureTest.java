@@ -22,19 +22,19 @@ class CaptureTest {
     void aCaptureWithoutAVersionIsStillReadable() {
         // Le silence d'hier ne doit pas coûter une campagne : les exécutions faites avant que
         // ce contrat n'existe relèvent de la forme d'origine, et se relisent.
-        assertEquals(Capture.ORIGINE, Capture.versionDe(null));
-        assertEquals(Capture.ORIGINE, Capture.versionDe(new HashMap<>()));
-        assertEquals(Capture.ORIGINE, Capture.versionDe(Map.of(Capture.CHAMP, "  ")));
-        assertTrue(Capture.lisible(Capture.versionDe(null)));
+        assertEquals(Capture.ORIGIN, Capture.versionOf(null));
+        assertEquals(Capture.ORIGIN, Capture.versionOf(new HashMap<>()));
+        assertEquals(Capture.ORIGIN, Capture.versionOf(Map.of(Capture.FIELD, "  ")));
+        assertTrue(Capture.readable(Capture.versionOf(null)));
     }
 
     @Test
     @DisplayName("Une capture plus récente que l'outil se lit quand même, et se signale")
     void aCaptureNewerThanTheToolIsStillRead() {
         // Refuser de lire ferait perdre une campagne pour des champs qu'on ignore.
-        assertTrue(Capture.plusRecenteQueLOutil("9.0"));
-        assertTrue(Capture.lisible("9.0"));
-        assertFalse(Capture.plusRecenteQueLOutil(Capture.COURANTE));
+        assertTrue(Capture.newerThanTheTool("9.0"));
+        assertTrue(Capture.readable("9.0"));
+        assertFalse(Capture.newerThanTheTool(Capture.CURRENT));
     }
 
     @Test
@@ -52,9 +52,9 @@ class CaptureTest {
     @DisplayName("La version minimale ne dépasse jamais la version courante")
     void theMinimumNeverExceedsWhatWeWrite() {
         // Sinon l'outil refuserait les captures qu'il vient lui-même de produire.
-        assertTrue(Capture.compare(Capture.MINIMALE, Capture.COURANTE) <= 0);
-        assertTrue(Capture.lisible(Capture.COURANTE));
-        assertTrue(Capture.lisible(Capture.ORIGINE),
+        assertTrue(Capture.compare(Capture.MINIMUM, Capture.CURRENT) <= 0);
+        assertTrue(Capture.readable(Capture.CURRENT));
+        assertTrue(Capture.readable(Capture.ORIGIN),
                 "monter la minimale oblige tout le monde à remesurer : ce test le rend visible");
     }
 }

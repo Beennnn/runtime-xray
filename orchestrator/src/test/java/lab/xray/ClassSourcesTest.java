@@ -75,12 +75,12 @@ class ClassSourcesTest {
     @Test
     @DisplayName("La première entrée gagne, comme sur un chemin de classe")
     void firstEntryWins(@TempDir Path dir) throws IOException {
-        Path premier = dirWith(dir, "premier", "app/C.class");
-        Files.write(premier.resolve("app/C.class"), "le bon".getBytes(StandardCharsets.UTF_8));
+        Path first = dirWith(dir, "premier", "app/C.class");
+        Files.write(first.resolve("app/C.class"), "le bon".getBytes(StandardCharsets.UTF_8));
         Path second = jarWith(dir, "second.jar", "app/C.class");
 
         Path out = dir.resolve("resolue.class");
-        assertTrue(Main.copyClassBytes(List.of(premier, second), "app/C.class", out));
+        assertTrue(Main.copyClassBytes(List.of(first, second), "app/C.class", out));
         assertEquals("le bon", Files.readString(out, StandardCharsets.UTF_8),
                 "la JVM aurait chargé la première : le rapport doit montrer la même");
     }
@@ -156,11 +156,11 @@ class ClassSourcesTest {
         // Un classpath réel compte des dizaines de jar de dépendances. Les analyser tous
         // ferait un rapport où le code du projet pèse un pour cent du total.
         Path classes = dirWith(dir, "classes", "app/Calcul.class");
-        Path autre = dirWith(dir, "generated", "app/Genere.class");
+        Path other = dirWith(dir, "generated", "app/Genere.class");
         Path dep = jarWith(dir, "commons.jar", "org/apache/Truc.class");
         String cp = String.join(File.pathSeparator,
-                classes.toString(), dep.toString(), autre.toString());
-        assertEquals(List.of(classes, autre),
+                classes.toString(), dep.toString(), other.toString());
+        assertEquals(List.of(classes, other),
                 ClassSources.discover(List.of("-cp", cp, "com.example.Main"), "", dir));
     }
 

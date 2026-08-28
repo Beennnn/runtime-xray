@@ -24,7 +24,7 @@ import java.util.Map;
  *
  * <h2>Pourquoi un fichier, et pas seulement la console</h2>
  *
- * <p>{@link Progression} dessine une bande dans le terminal, et se tait dès qu'il n'y en a
+ * <p>{@link Progress} dessine une bande dans le terminal, et se tait dès qu'il n'y en a
  * pas. C'est le bon comportement pour un affichage de confort — une ligne par seconde dans
  * un journal d'intégration ne dit rien à personne — mais cela laisse sans réponse le cas le
  * plus courant sur le terrain : <b>l'outil est lancé au fond de scripts imbriqués</b>, sa
@@ -49,28 +49,28 @@ import java.util.Map;
  *
  * <h2>Ce que cet objet ne fait pas</h2>
  *
- * <p>Il ne mesure rien — même règle que {@link Progression}, et pour la même raison. Le
+ * <p>Il ne mesure rien — même règle que {@link Progress}, et pour la même raison. Le
  * temps processeur vient de ce que le système compte de toute façon, la taille de sortie
  * d'un fichier déjà écrit. Rien n'est ajouté à la JVM observée, et le rapport est le même
  * selon qu'on suit l'exécution ou non. Le serveur, quand il tourne, sert deux fichiers du
  * disque depuis un fil à part ; il n'approche jamais le processus observé.
  */
-public final class Suivi implements AutoCloseable {
+public final class Follow implements AutoCloseable {
 
     /** Le fichier à suivre. À la racine de la sortie : on le connaît sans rien chercher. */
-    public static final String FICHIER = "progression.jsonl";
+    public static final String FILE = "progression.jsonl";
 
     /** Le port par défaut de la page. Voisin de celui du rapport servi, sans le heurter. */
     public static final int PORT = 8788;
 
-    private final Path fichier;
-    private final String execution;
-    private final HttpServer serveur;
+    private final Path file;
+    private final String run;
+    private final HttpServer server;
 
-    private Suivi(Path fichier, String execution, HttpServer serveur) {
-        this.fichier = fichier;
-        this.execution = execution;
-        this.serveur = serveur;
+    private Follow(Path file, String run, HttpServer server) {
+        this.file = file;
+        this.run = run;
+        this.server = server;
     }
 
     /**
@@ -78,54 +78,54 @@ public final class Suivi implements AutoCloseable {
      *
      * @param port le port de la page, ou 0 pour n'écrire que le fichier
      */
-    public static Suivi ouvrir(Path outDir, Path runDir, String execution, String commande,
+    public static Follow open(Path outDir, Path runDir, String run, String command,
                                int port) {
-        Path fichier = outDir.resolve(FICHIER);
-        HttpServer serveur = null;
+        Path file = outDir.resolve(FILE);
+        HttpServer server = null;
         if (port > 0) {
             try {
-                serveur = servir(fichier, runDir, port);
+                server = serve(file, runDir, port);
             } catch (IOException e) {
                 // Un port pris ne doit pas coûter l'exécution : l'observation vaut mieux
                 // que son affichage, et le fichier reste écrit de toute façon.
                 System.out.println("   follow page not served on port " + port + " ("
-                        + e.getMessage() + ") — " + FICHIER + " is written anyway");
+                        + e.getMessage() + ") — " + FILE + " is written anyway");
             }
         }
-        Suivi suivi = new Suivi(fichier, execution, serveur);
+        Follow follow = new Follow(file, run, server);
         // La commande observée sur la ligne de démarrage : sans elle, quelqu'un qui ouvre
         // la page ou le fichier voit une exécution avancer sans savoir laquelle. Elle ne
         // sort pas de la machine — la page n'écoute que la boucle locale.
-        suivi.ecrire("start", Map.of("command", commande == null ? "" : commande,
+        follow.write("start", Map.of("command", command == null ? "" : command,
                 "output", outDir.toAbsolutePath().toString()));
-        return suivi;
+        return follow;
     }
 
     /** Une ligne d'avancement. Les mêmes chiffres que la bande du terminal. */
-    public void avancement(Duration ecoule, Duration cpu, long octets, double coeurs) {
+    public void tick(Duration elapsed, Duration cpu, long bytes, double cores) {
         Map<String, Object> f = new LinkedHashMap<>();
-        f.put("seconds", ecoule.toSeconds());
-        f.put("cores", Math.round(coeurs * 100) / 100.0);
-        f.put("level", Progression.palier(coeurs));
+        f.put("seconds", elapsed.toSeconds());
+        f.put("cores", Math.round(cores * 100) / 100.0);
+        f.put("level", Progress.tier(cores));
         f.put("cpuSeconds", cpu.toSeconds());
-        f.put("outputBytes", octets);
-        ecrire("progress", f);
+        f.put("outputBytes", bytes);
+        write("progress", f);
     }
 
     /** La dernière ligne : ce qui permet à un lecteur de savoir qu'il peut arrêter. */
-    public void fin(String statut, long secondes) {
-        ecrire("end", Map.of("status", statut, "seconds", secondes));
+    public void end(String status, long seconds) {
+        write("end", Map.of("status", status, "seconds", seconds));
     }
 
-    private void ecrire(String evenement, Map<String, Object> champs) {
-        Map<String, Object> ligne = new LinkedHashMap<>();
-        ligne.put("event", evenement);
-        ligne.put("run", execution);
-        ligne.put("date", Instant.now().toString());
-        ligne.putAll(champs);
+    private void write(String event, Map<String, Object> fields) {
+        Map<String, Object> line = new LinkedHashMap<>();
+        line.put("event", event);
+        line.put("run", run);
+        line.put("date", Instant.now().toString());
+        line.putAll(fields);
         try {
-            Files.createDirectories(fichier.getParent());
-            Files.writeString(fichier, Json.write(ligne) + "\n", StandardCharsets.UTF_8,
+            Files.createDirectories(file.getParent());
+            Files.writeString(file, Json.write(line) + "\n", StandardCharsets.UTF_8,
                     StandardOpenOption.CREATE, StandardOpenOption.APPEND);
         } catch (IOException e) {
             // Le suivi est un confort. Qu'il échoue ne doit jamais emporter la mesure,
@@ -135,51 +135,51 @@ public final class Suivi implements AutoCloseable {
 
     @Override
     public void close() {
-        if (serveur != null) serveur.stop(0);
+        if (server != null) server.stop(0);
     }
 
     // ------------------------------------------------------------------ la page
 
-    private static HttpServer servir(Path fichier, Path runDir, int port) throws IOException {
+    private static HttpServer serve(Path file, Path runDir, int port) throws IOException {
         // Boucle locale seulement : cette page montre une commande et une sortie
         // d'application, qui n'ont pas à être lisibles depuis le réseau.
         HttpServer server = HttpServer.create(
                 new InetSocketAddress(InetAddress.getByName("127.0.0.1"), port), 0);
 
         server.createContext("/", ex -> {
-            String chemin = ex.getRequestURI().getPath();
+            String path = ex.getRequestURI().getPath();
             try {
-                switch (chemin) {
-                    case "/", "/index.html" -> envoyer(ex, "text/html; charset=utf-8", page());
-                    case "/progression.jsonl" -> envoyer(ex, "application/x-ndjson; charset=utf-8",
-                            lireOuVide(fichier));
+                switch (path) {
+                    case "/", "/index.html" -> send(ex, "text/html; charset=utf-8", page());
+                    case "/progression.jsonl" -> send(ex, "application/x-ndjson; charset=utf-8",
+                            readOrEmpty(file));
                     case "/execution.log" -> {
-                        byte[] brut = queue(runDir.resolve("execution.log"));
-                        envoyer(ex, "text/plain; charset=utf-8", enUtf8(brut));
+                        byte[] raw = tail(runDir.resolve("execution.log"));
+                        send(ex, "text/plain; charset=utf-8", asUtf8(raw));
                     }
-                    default -> envoyer(ex, "text/plain; charset=utf-8",
+                    default -> send(ex, "text/plain; charset=utf-8",
                             "rien ici".getBytes(StandardCharsets.UTF_8));
                 }
             } catch (IOException e) {
-                envoyer(ex, "text/plain; charset=utf-8",
+                send(ex, "text/plain; charset=utf-8",
                         String.valueOf(e.getMessage()).getBytes(StandardCharsets.UTF_8));
             }
         });
         server.setExecutor(null);
         server.start();
         System.out.println("   live follow: http://127.0.0.1:" + port
-                + "   (or: tail -f " + fichier + ")");
+                + "   (or: tail -f " + file + ")");
         return server;
     }
 
     static byte[] page() throws IOException {
-        try (InputStream in = Suivi.class.getResourceAsStream("suivi.html")) {
+        try (InputStream in = Follow.class.getResourceAsStream("suivi.html")) {
             if (in == null) throw new IOException("follow page missing from the jar");
             return in.readAllBytes();
         }
     }
 
-    private static byte[] lireOuVide(Path f) throws IOException {
+    private static byte[] readOrEmpty(Path f) throws IOException {
         return Files.exists(f) ? Files.readAllBytes(f) : new byte[0];
     }
 
@@ -190,16 +190,16 @@ public final class Suivi implements AutoCloseable {
      * recopier à chaque rafraîchissement ferait payer l'affichage à la machine qui mesure.
      * Ce qui intéresse pendant l'attente est de toute façon la fin.
      */
-    static byte[] queue(Path journal) throws IOException {
-        if (!Files.exists(journal)) return new byte[0];
-        long taille = Files.size(journal);
-        long depuis = Math.max(0, taille - 64 * 1024);
-        try (var canal = Files.newByteChannel(journal)) {
-            canal.position(depuis);
-            java.nio.ByteBuffer tampon =
-                    java.nio.ByteBuffer.allocate((int) Math.min(taille - depuis, 64 * 1024));
-            canal.read(tampon);
-            return tampon.array();
+    static byte[] tail(Path log) throws IOException {
+        if (!Files.exists(log)) return new byte[0];
+        long size = Files.size(log);
+        long since = Math.max(0, size - 64 * 1024);
+        try (var channel = Files.newByteChannel(log)) {
+            channel.position(since);
+            java.nio.ByteBuffer buffer =
+                    java.nio.ByteBuffer.allocate((int) Math.min(size - since, 64 * 1024));
+            channel.read(buffer);
+            return buffer.array();
         }
     }
 
@@ -222,29 +222,29 @@ public final class Suivi implements AutoCloseable {
      * racines de sources. La différence tient à ce que coûte l'erreur : du code faux en
      * face d'une couverture se croit, un accent de travers se voit.
      */
-    static byte[] enUtf8(byte[] brut) {
-        if (brut.length == 0) return brut;
+    static byte[] asUtf8(byte[] raw) {
+        if (raw.length == 0) return raw;
         var strict = StandardCharsets.UTF_8.newDecoder();
         try {
-            strict.decode(java.nio.ByteBuffer.wrap(brut));
-            return brut;
-        } catch (java.nio.charset.CharacterCodingException pasDeLUtf8) {
-            String texte = new String(brut, StandardCharsets.ISO_8859_1);
+            strict.decode(java.nio.ByteBuffer.wrap(raw));
+            return raw;
+        } catch (java.nio.charset.CharacterCodingException notUtf8) {
+            String text = new String(raw, StandardCharsets.ISO_8859_1);
             return ("[runtime-xray: this log is not UTF-8; read as ISO-8859-1]\n"
-                    + texte).getBytes(StandardCharsets.UTF_8);
+                    + text).getBytes(StandardCharsets.UTF_8);
         }
     }
 
-    private static void envoyer(com.sun.net.httpserver.HttpExchange ex, String type, byte[] corps)
+    private static void send(com.sun.net.httpserver.HttpExchange ex, String type, byte[] body)
             throws IOException {
         ex.getResponseHeaders().add("Content-Type", type);
         // Sans cela, un navigateur sert la première réponse pendant toute l'exécution :
         // la page semblerait figée alors que le fichier grossit.
         ex.getResponseHeaders().add("Cache-Control", "no-store");
-        ex.sendResponseHeaders(200, corps.length == 0 ? -1 : corps.length);
-        if (corps.length > 0) {
+        ex.sendResponseHeaders(200, body.length == 0 ? -1 : body.length);
+        if (body.length > 0) {
             try (OutputStream out = ex.getResponseBody()) {
-                out.write(corps);
+                out.write(body);
             }
         } else {
             ex.close();

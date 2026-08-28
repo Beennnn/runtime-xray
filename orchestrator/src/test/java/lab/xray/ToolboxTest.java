@@ -27,28 +27,28 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 class ToolboxTest {
 
-    private static final String MORT = "http://127.0.0.1:1/aucun-depot";
+    private static final String DEAD = "http://127.0.0.1:1/aucun-depot";
 
-    private Path fichier(Path dir, String nom) throws IOException {
+    private Path file(Path dir, String name) throws IOException {
         Files.createDirectories(dir);
-        Path f = dir.resolve(nom);
+        Path f = dir.resolve(name);
         Files.writeString(f, "composant", StandardCharsets.UTF_8);
         return f;
     }
 
-    private Toolbox outils(Path cache, List<Path> plats, Path depotLocal) {
-        return new Toolbox(MORT, cache, plats, depotLocal);
+    private Toolbox tools(Path cache, List<Path> flat, Path localRepo) {
+        return new Toolbox(DEAD, cache, flat, localRepo);
     }
 
     @Test
     @DisplayName("Un composant déposé à côté du jar est pris tel quel, sans réseau")
     void takesComponentPlacedNextToTheJar(@TempDir Path dir) throws Exception {
-        Path apporte = fichier(dir.resolve("voisinage"), "org.jacoco.agent-0.8.13-runtime.jar");
+        Path brings = file(dir.resolve("voisinage"), "org.jacoco.agent-0.8.13-runtime.jar");
 
-        Toolbox t = outils(dir.resolve("cache"), List.of(dir.resolve("voisinage")),
+        Toolbox t = tools(dir.resolve("cache"), List.of(dir.resolve("voisinage")),
                 dir.resolve("m2"));
 
-        assertEquals(apporte, t.jacocoAgent());
+        assertEquals(brings, t.jacocoAgent());
     }
 
     @Test
@@ -56,61 +56,61 @@ class ToolboxTest {
     void acceptsTheNameFromTheOfficialDistribution(@TempDir Path dir) throws Exception {
         // Celui qui a « le fichier de JaCoCo » sous la main l'a pris dans la distribution
         // de JaCoCo, pas sur Maven : il s'appelle jacocoagent.jar, et rien d'autre.
-        Path apporte = fichier(dir.resolve("voisinage"), "jacocoagent.jar");
+        Path brings = file(dir.resolve("voisinage"), "jacocoagent.jar");
 
-        Toolbox t = outils(dir.resolve("cache"), List.of(dir.resolve("voisinage")),
+        Toolbox t = tools(dir.resolve("cache"), List.of(dir.resolve("voisinage")),
                 dir.resolve("m2"));
 
-        assertEquals(apporte, t.jacocoAgent());
+        assertEquals(brings, t.jacocoAgent());
     }
 
     @Test
     @DisplayName("À défaut, le dépôt Maven local de la machine fait l'affaire")
     void fallsBackToTheLocalMavenRepository(@TempDir Path dir) throws Exception {
         Path m2 = dir.resolve("m2");
-        Path apporte = fichier(m2.resolve("org/jacoco/org.jacoco.cli/0.8.13"),
+        Path brings = file(m2.resolve("org/jacoco/org.jacoco.cli/0.8.13"),
                 "org.jacoco.cli-0.8.13-nodeps.jar");
 
-        Toolbox t = outils(dir.resolve("cache"), List.of(), m2);
+        Toolbox t = tools(dir.resolve("cache"), List.of(), m2);
 
-        assertEquals(apporte, t.jacocoCli());
+        assertEquals(brings, t.jacocoCli());
     }
 
     @Test
     @DisplayName("Le cache de l'outil garde la priorité sur tout le reste")
     void theToolsOwnCacheComesFirst(@TempDir Path dir) throws Exception {
         Path cache = dir.resolve("cache");
-        Path attendu = fichier(cache, "jfr-converter-4.1.jar");
-        fichier(dir.resolve("voisinage"), "jfr-converter-4.1.jar");
-        fichier(dir.resolve("m2/tools/profiler/jfr-converter/4.1"), "jfr-converter-4.1.jar");
+        Path expected = file(cache, "jfr-converter-4.1.jar");
+        file(dir.resolve("voisinage"), "jfr-converter-4.1.jar");
+        file(dir.resolve("m2/tools/profiler/jfr-converter/4.1"), "jfr-converter-4.1.jar");
 
-        Toolbox t = outils(cache, List.of(dir.resolve("voisinage")), dir.resolve("m2"));
+        Toolbox t = tools(cache, List.of(dir.resolve("voisinage")), dir.resolve("m2"));
 
-        assertEquals(attendu, t.asyncProfilerConverter());
+        assertEquals(expected, t.asyncProfilerConverter());
     }
 
     @Test
     @DisplayName("Un Arthas déjà décompressé est reconnu, sous ses deux noms de répertoire")
     void findsAnAlreadyUnpackedArthas(@TempDir Path dir) throws Exception {
-        Path voisinage = dir.resolve("voisinage");
-        fichier(voisinage.resolve("arthas"), "arthas-boot.jar");
+        Path neighbourhood = dir.resolve("voisinage");
+        file(neighbourhood.resolve("arthas"), "arthas-boot.jar");
 
-        Toolbox t = outils(dir.resolve("cache"), List.of(voisinage), dir.resolve("m2"));
+        Toolbox t = tools(dir.resolve("cache"), List.of(neighbourhood), dir.resolve("m2"));
 
-        assertEquals(voisinage.resolve("arthas"), t.arthasHome());
+        assertEquals(neighbourhood.resolve("arthas"), t.arthasHome());
     }
 
     @Test
     @DisplayName("Les répertoires sont fouillés dans l'ordre annoncé : le premier gagne")
     void searchesInTheAnnouncedOrder(@TempDir Path dir) throws Exception {
-        Path designe = dir.resolve("designe");
-        Path voisinage = dir.resolve("voisinage");
-        Path attendu = fichier(designe, "jacocoagent.jar");
-        fichier(voisinage, "jacocoagent.jar");
+        Path designates = dir.resolve("designe");
+        Path neighbourhood = dir.resolve("voisinage");
+        Path expected = file(designates, "jacocoagent.jar");
+        file(neighbourhood, "jacocoagent.jar");
 
-        Toolbox t = outils(dir.resolve("cache"), List.of(designe, voisinage), dir.resolve("m2"));
+        Toolbox t = tools(dir.resolve("cache"), List.of(designates, neighbourhood), dir.resolve("m2"));
 
-        assertEquals(attendu, t.jacocoAgent());
+        assertEquals(expected, t.jacocoAgent());
     }
 
     @Test
@@ -120,11 +120,11 @@ class ToolboxTest {
         // ferait le jar construit avec -Pcomplet. Rien sur le disque, dépôt injoignable.
         Path cache = dir.resolve("cache");
 
-        Path obtenu = outils(cache, List.of(), dir.resolve("m2")).asyncProfilerConverter();
+        Path obtained = tools(cache, List.of(), dir.resolve("m2")).asyncProfilerConverter();
 
-        assertEquals(cache.resolve("jfr-converter-4.1.jar"), obtenu,
+        assertEquals(cache.resolve("jfr-converter-4.1.jar"), obtained,
                 "un -javaagent veut un fichier : le composant doit atterrir sur le disque");
-        assertTrue(Files.isRegularFile(obtenu));
+        assertTrue(Files.isRegularFile(obtained));
         assertTrue(Files.list(cache).noneMatch(f -> f.getFileName().toString().startsWith("ex-")),
                 "aucun fichier de travail ne doit rester derrière");
     }
@@ -133,49 +133,49 @@ class ToolboxTest {
     @DisplayName("Un composant qui déclare la bonne version ne déclenche aucun avertissement")
     void staysSilentWhenTheBroughtComponentDeclaresTheRightVersion(@TempDir Path dir)
             throws Exception {
-        Path bon = jarAvecVersion(dir.resolve("jacocoagent.jar"), "0.8.13");
+        Path bon = jarWithVersion(dir.resolve("jacocoagent.jar"), "0.8.13");
 
-        assertEquals("", Toolbox.mention(bon, "0.8.13"),
+        assertEquals("", Toolbox.note(bon, "0.8.13"),
                 "avertir quand tout va bien apprend à ne plus lire les avertissements");
     }
 
     @Test
     @DisplayName("Une version différente est nommée, pas seulement soupçonnée")
     void namesTheVersionWhenItDiffers(@TempDir Path dir) throws Exception {
-        Path ancien = jarAvecVersion(dir.resolve("jacocoagent.jar"), "0.8.11");
+        Path previous = jarWithVersion(dir.resolve("jacocoagent.jar"), "0.8.11");
 
-        String mention = Toolbox.mention(ancien, "0.8.13");
+        String note = Toolbox.note(previous, "0.8.13");
 
-        assertTrue(mention.contains("0.8.11") && mention.contains("0.8.13"),
-                "les deux versions doivent apparaître : " + mention);
+        assertTrue(note.contains("0.8.11") && note.contains("0.8.13"),
+                "les deux versions doivent apparaître : " + note);
     }
 
     @Test
     @DisplayName("Un fichier qui ne déclare rien reste « non vérifié », sans échouer")
     void keepsTheOldCautionWhenNothingIsDeclared(@TempDir Path dir) throws Exception {
         // Les archives d'async-profiler et d'Arthas sont dans ce cas, un fichier tronqué aussi.
-        Path muet = jarAvecVersion(dir.resolve("sans-version.jar"), null);
-        Path pasUnJar = fichier(dir, "texte.jar");
+        Path silent = jarWithVersion(dir.resolve("sans-version.jar"), null);
+        Path notAJar = file(dir, "texte.jar");
 
-        assertTrue(Toolbox.mention(muet, "4.1").contains("not verified"));
-        assertTrue(Toolbox.mention(pasUnJar, "4.1").contains("not verified"),
+        assertTrue(Toolbox.note(silent, "4.1").contains("not verified"));
+        assertTrue(Toolbox.note(notAJar, "4.1").contains("not verified"),
                 "ne pas savoir n'est pas un défaut : surtout, ne pas lever d'exception");
     }
 
     /** @param version {@code null} pour un jar dont le manifeste n'en déclare aucune. */
-    private Path jarAvecVersion(Path cible, String version) throws IOException {
-        Manifest manifeste = new Manifest();
-        manifeste.getMainAttributes().put(Attributes.Name.MANIFEST_VERSION, "1.0");
+    private Path jarWithVersion(Path target, String version) throws IOException {
+        Manifest manifest = new Manifest();
+        manifest.getMainAttributes().put(Attributes.Name.MANIFEST_VERSION, "1.0");
         if (version != null) {
-            manifeste.getMainAttributes().put(Attributes.Name.IMPLEMENTATION_VERSION, version);
+            manifest.getMainAttributes().put(Attributes.Name.IMPLEMENTATION_VERSION, version);
         }
-        Files.createDirectories(cible.getParent());
-        try (JarOutputStream out = new JarOutputStream(Files.newOutputStream(cible), manifeste)) {
+        Files.createDirectories(target.getParent());
+        try (JarOutputStream out = new JarOutputStream(Files.newOutputStream(target), manifest)) {
             out.putNextEntry(new java.util.zip.ZipEntry("rien.txt"));
             out.write("rien".getBytes(StandardCharsets.UTF_8));
             out.closeEntry();
         }
-        return cible;
+        return target;
     }
 
     @Test
@@ -188,35 +188,35 @@ class ToolboxTest {
         String code = Files.readString(
                 Path.of("src/main/java/lab/xray/Toolbox.java"), StandardCharsets.UTF_8);
 
-        for (String[] paire : new String[][]{{"jacoco.version", "JACOCO_VERSION"},
+        for (String[] pair : new String[][]{{"jacoco.version", "JACOCO_VERSION"},
                                              {"arthas.version", "ARTHAS_VERSION"},
                                              {"async.version", "ASYNC_VERSION"}}) {
-            String duPom = entre(pom, "<" + paire[0] + ">", "</" + paire[0] + ">");
-            String duCode = entre(code, paire[1] + " = \"", "\"");
-            assertEquals(duCode, duPom, paire[0] + " et " + paire[1] + " doivent coïncider");
+            String fromPom = between(pom, "<" + pair[0] + ">", "</" + pair[0] + ">");
+            String fromCode = between(code, pair[1] + " = \"", "\"");
+            assertEquals(fromCode, fromPom, pair[0] + " et " + pair[1] + " doivent coïncider");
         }
     }
 
-    private static String entre(String texte, String debut, String fin) {
-        int i = texte.indexOf(debut);
-        assertTrue(i >= 0, "marqueur introuvable : " + debut);
-        i += debut.length();
-        return texte.substring(i, texte.indexOf(fin, i));
+    private static String between(String text, String start, String end) {
+        int i = text.indexOf(start);
+        assertTrue(i >= 0, "marqueur introuvable : " + start);
+        i += start.length();
+        return text.substring(i, text.indexOf(end, i));
     }
 
     @Test
     @DisplayName("Introuvable, le message dit où l'on a cherché et comment s'en sortir")
     void tellsWhereItLookedWhenNothingIsFound(@TempDir Path dir) {
         Path cache = dir.resolve("cache");
-        Path voisinage = dir.resolve("voisinage");
+        Path neighbourhood = dir.resolve("voisinage");
 
-        Toolbox t = outils(cache, List.of(voisinage), dir.resolve("m2"));
+        Toolbox t = tools(cache, List.of(neighbourhood), dir.resolve("m2"));
 
-        IOException echec = assertThrows(IOException.class, t::jacocoAgent);
-        String message = echec.getMessage();
+        IOException failure = assertThrows(IOException.class, t::jacocoAgent);
+        String message = failure.getMessage();
         assertTrue(message.contains("org.jacoco.agent-0.8.13-runtime.jar"),
                 "le composant manquant doit être nommé : " + message);
-        assertTrue(message.contains(cache.toString()) && message.contains(voisinage.toString()),
+        assertTrue(message.contains(cache.toString()) && message.contains(neighbourhood.toString()),
                 "les répertoires fouillés doivent être listés : " + message);
         assertTrue(message.contains("--composants") && message.contains("--repo"),
                 "les deux issues doivent être rappelées : " + message);

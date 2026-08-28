@@ -23,11 +23,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 class AnnotationsTest {
 
-    private Path run(Path dir, String nom) throws IOException {
-        Path run = dir.resolve("runs").resolve(nom);
+    private Path run(Path dir, String name) throws IOException {
+        Path run = dir.resolve("runs").resolve(name);
         Files.createDirectories(run);
         Files.writeString(run.resolve("run-context.json"),
-                Json.write(Map.of("uuid", "UUID-" + nom)), StandardCharsets.UTF_8);
+                Json.write(Map.of("uuid", "UUID-" + name)), StandardCharsets.UTF_8);
         return run;
     }
 
@@ -35,24 +35,24 @@ class AnnotationsTest {
     @DisplayName("Le fichier posé DANS l'exécution l'emporte sur celui d'à côté")
     void insideWinsOverSibling(@TempDir Path dir) throws IOException {
         Path run = run(dir, "essai");
-        Files.writeString(run.resolve(Annotations.DANS_LE_RUN),
+        Files.writeString(run.resolve(Annotations.IN_THE_RUN),
                 Json.write(Map.of("nom", "dedans")), StandardCharsets.UTF_8);
-        Files.writeString(run.resolveSibling("essai" + Annotations.SUFFIXE),
+        Files.writeString(run.resolveSibling("essai" + Annotations.SUFFIX),
                 Json.write(Map.of("nom", "à côté")), StandardCharsets.UTF_8);
 
-        Object lu = Annotations.forRun(run, "UUID-essai", Map.of("UUID-essai", "central"));
-        assertEquals("dedans", ((Map<?, ?>) lu).get("nom"));
+        Object read = Annotations.forRun(run, "UUID-essai", Map.of("UUID-essai", "central"));
+        assertEquals("dedans", ((Map<?, ?>) read).get("nom"));
     }
 
     @Test
     @DisplayName("À défaut, celui d'à côté l'emporte sur le fichier commun")
     void siblingWinsOverCentral(@TempDir Path dir) throws IOException {
         Path run = run(dir, "essai");
-        Files.writeString(run.resolveSibling("essai" + Annotations.SUFFIXE),
+        Files.writeString(run.resolveSibling("essai" + Annotations.SUFFIX),
                 Json.write(Map.of("nom", "à côté")), StandardCharsets.UTF_8);
 
-        Object lu = Annotations.forRun(run, "UUID-essai", Map.of("UUID-essai", "central"));
-        assertEquals("à côté", ((Map<?, ?>) lu).get("nom"));
+        Object read = Annotations.forRun(run, "UUID-essai", Map.of("UUID-essai", "central"));
+        assertEquals("à côté", ((Map<?, ?>) read).get("nom"));
     }
 
     @Test
@@ -69,18 +69,18 @@ class AnnotationsTest {
     void writesWhereItAlreadyLives(@TempDir Path dir) throws IOException {
         Path run = run(dir, "essai");
         // Rien encore : l'annotation va dans le répertoire, pour suivre l'exécution.
-        assertEquals(run.resolve(Annotations.DANS_LE_RUN), Annotations.fileFor(run));
+        assertEquals(run.resolve(Annotations.IN_THE_RUN), Annotations.fileFor(run));
 
         // Elle vit à côté : on ne va pas en créer une seconde, prioritaire, dans le
         // répertoire — la saisie serait masquée par le fichier qu'on vient d'écrire.
-        Path aCote = run.resolveSibling("essai" + Annotations.SUFFIXE);
-        Files.writeString(aCote, "{}", StandardCharsets.UTF_8);
-        assertEquals(aCote, Annotations.fileFor(run));
+        Path beside = run.resolveSibling("essai" + Annotations.SUFFIX);
+        Files.writeString(beside, "{}", StandardCharsets.UTF_8);
+        assertEquals(beside, Annotations.fileFor(run));
 
         Annotations.write(run, Map.of("nom", "reprise"));
         assertEquals("reprise",
-                ((Map<?, ?>) Annotations.readFile(aCote)).get("nom"));
-        assertFalse(Files.exists(run.resolve(Annotations.DANS_LE_RUN)),
+                ((Map<?, ?>) Annotations.readFile(beside)).get("nom"));
+        assertFalse(Files.exists(run.resolve(Annotations.IN_THE_RUN)),
                 "aucun second fichier ne doit apparaître");
     }
 
@@ -89,10 +89,10 @@ class AnnotationsTest {
     void emptyAnnotationRemovesTheFile(@TempDir Path dir) throws IOException {
         Path run = run(dir, "essai");
         Annotations.write(run, Map.of("nom", "posé"));
-        assertTrue(Files.exists(run.resolve(Annotations.DANS_LE_RUN)));
+        assertTrue(Files.exists(run.resolve(Annotations.IN_THE_RUN)));
 
         Annotations.write(run, Map.of());
-        assertFalse(Files.exists(run.resolve(Annotations.DANS_LE_RUN)));
+        assertFalse(Files.exists(run.resolve(Annotations.IN_THE_RUN)));
     }
 
     @Test
@@ -102,8 +102,8 @@ class AnnotationsTest {
         run(dir, "deux");
         Files.createDirectories(dir.resolve("runs/pas-une-execution"));
 
-        Map<String, Path> parUuid = Annotations.runsByUuid(dir);
-        assertEquals(2, parUuid.size(), "un répertoire sans contexte n'est pas une exécution");
-        assertEquals(dir.resolve("runs/un"), parUuid.get("UUID-un"));
+        Map<String, Path> byUuid = Annotations.runsByUuid(dir);
+        assertEquals(2, byUuid.size(), "un répertoire sans contexte n'est pas une exécution");
+        assertEquals(dir.resolve("runs/un"), byUuid.get("UUID-un"));
     }
 }

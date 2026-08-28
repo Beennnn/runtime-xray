@@ -38,7 +38,7 @@ import java.util.Set;
 public final class Diagnostic {
 
     /** Assez pour comprendre, pas assez pour recopier le rapport. */
-    private static final int EXEMPLES = 40;
+    private static final int EXAMPLES = 40;
 
     /**
      * Le nombre de classes recensées dans le bytecode, toutes racines confondues.
@@ -60,27 +60,27 @@ public final class Diagnostic {
      * @return le contenu écrit, pour que l'appelant puisse en tirer un résumé sans le relire
      */
     public static Map<String, Object> write(Path commonDir, List<Object> runs,
-                                            Sources.Index index, Map<String, Object> contexte)
+                                            Sources.Index index, Map<String, Object> context)
             throws IOException {
         Map<String, Object> d = new LinkedHashMap<>();
         d.put("outil", "runtime-xray");
         d.put("version", version());
         d.put("date", ZonedDateTime.now().format(DateTimeFormatter.ISO_OFFSET_DATE_TIME));
-        d.put("machine", environnement());
-        if (contexte != null && !contexte.isEmpty()) d.put("lancement", contexte);
+        d.put("machine", environment());
+        if (context != null && !context.isEmpty()) d.put("lancement", context);
         d.put("sortie", commonDir.toAbsolutePath().normalize().toString());
-        d.put("executions", executions(runs));
+        d.put("executions", runs(runs));
         d.put("sources", index.diagnostic());
-        List<Object> bytecode = bytecode(contexte);
+        List<Object> bytecode = bytecode(context);
         d.put("bytecode", bytecode);
-        Map<String, Object> rapprochement = rapprochement(runs, index);
+        Map<String, Object> matching = matching(runs, index);
         // La recherche ne part que s'il y a quelque chose à chercher : elle parcourt le
         // disque, et sur un rapport complet elle n'aurait rien à trouver.
-        if (nombre(rapprochement.get("fichiersSansSource")) > 0) {
-            rapprochement.put("pistes", Sources.chercherRacines(
-                    manquantes(runs, index), ouChercher(commonDir, index, bytecode)));
+        if (number(matching.get("fichiersSansSource")) > 0) {
+            matching.put("pistes", Sources.searchRoots(
+                    missing(runs, index), whereToLook(commonDir, index, bytecode)));
         }
-        d.put("rapprochement", rapprochement);
+        d.put("rapprochement", matching);
 
         Path out = commonDir.resolve("diagnostic.json");
         Files.writeString(out, Json.write(d), StandardCharsets.UTF_8);
@@ -95,34 +95,34 @@ public final class Diagnostic {
      * Pour chaque fichier manquant on cherche le même nom ailleurs dans l'index — c'est le
      * cas d'une racine mal placée, et il se corrige d'un chemin.
      */
-    static Map<String, Object> rapprochement(List<Object> runs, Sources.Index index) {
-        Set<String> attendus = mesures(runs);
+    static Map<String, Object> matching(List<Object> runs, Sources.Index index) {
+        Set<String> expected = samples(runs);
 
-        List<Object> trouves = new ArrayList<>();
-        List<Object> manquants = new ArrayList<>();
-        for (String cle : attendus) {
-            if (index.parCle().containsKey(cle)) {
-                if (trouves.size() < EXEMPLES) trouves.add(cle);
+        List<Object> found = new ArrayList<>();
+        List<Object> missing = new ArrayList<>();
+        for (String key : expected) {
+            if (index.byKey().containsKey(key)) {
+                if (found.size() < EXAMPLES) found.add(key);
             } else {
-                if (manquants.size() < EXEMPLES) manquants.add(manquant(cle, index));
+                if (missing.size() < EXAMPLES) missing.add(missing(key, index));
             }
         }
 
-        int nbManquants = 0;
-        for (String cle : attendus) if (!index.parCle().containsKey(cle)) nbManquants++;
+        int missingCount = 0;
+        for (String key : expected) if (!index.byKey().containsKey(key)) missingCount++;
 
         Map<String, Object> m = new LinkedHashMap<>();
-        m.put("fichiersMesures", attendus.size());
-        m.put("fichiersAvecSource", attendus.size() - nbManquants);
-        m.put("fichiersSansSource", nbManquants);
-        m.put("exemplesTrouves", trouves);
-        m.put("exemplesManquants", manquants);
-        m.put("conclusion", conclusion(attendus.size(), nbManquants, index));
+        m.put("fichiersMesures", expected.size());
+        m.put("fichiersAvecSource", expected.size() - missingCount);
+        m.put("fichiersSansSource", missingCount);
+        m.put("exemplesTrouves", found);
+        m.put("exemplesManquants", missing);
+        m.put("conclusion", conclusion(expected.size(), missingCount, index));
         // Les fichiers lus qui ne correspondent à aucune classe mesurée : leur nombre suffit
         // à la page, qui n'a rien à en montrer. Les énumérer y recopierait l'arborescence.
-        int sansClasse = 0;
-        for (String cle : index.parCle().keySet()) if (!attendus.contains(cle)) sansClasse++;
-        m.put("sourcesSansClasse", sansClasse);
+        int withoutClass = 0;
+        for (String key : index.byKey().keySet()) if (!expected.contains(key)) withoutClass++;
+        m.put("sourcesSansClasse", withoutClass);
         return m;
     }
 
@@ -132,28 +132,28 @@ public final class Diagnostic {
      * <p>Toutes, et non celle qu'on regarde : une classe absente d'une exécution mais
      * présente dans une autre reste une classe dont on veut le code.
      */
-    static Set<String> mesures(List<Object> runs) {
-        Set<String> attendus = new LinkedHashSet<>();
+    static Set<String> samples(List<Object> runs) {
+        Set<String> expected = new LinkedHashSet<>();
         for (Object r : runs) {
             if (r instanceof Map<?, ?> run && run.get("packages") instanceof Map<?, ?> pkgs) {
                 for (Object classes : pkgs.values()) {
                     if (!(classes instanceof Iterable<?> list)) continue;
                     for (Object c : list) {
                         if (c instanceof Map<?, ?> cls && cls.get("source") instanceof String s) {
-                            attendus.add(s);
+                            expected.add(s);
                         }
                     }
                 }
             }
         }
-        return attendus;
+        return expected;
     }
 
     /** Les clés que la couverture réclame et que l'index n'a pas. */
-    static java.util.Set<String> manquantes(List<Object> runs, Sources.Index index) {
+    static java.util.Set<String> missing(List<Object> runs, Sources.Index index) {
         java.util.Set<String> out = new LinkedHashSet<>();
-        for (String cle : mesures(runs)) {
-            if (!index.parCle().containsKey(cle)) out.add(cle);
+        for (String key : samples(runs)) {
+            if (!index.byKey().containsKey(key)) out.add(key);
         }
         return out;
     }
@@ -170,38 +170,38 @@ public final class Diagnostic {
      * <p>On ne remonte jamais plus haut que ces indices, et jamais vers la racine du disque :
      * une recherche qui balaie tout finirait par proposer les sources d'un autre projet.
      */
-    static List<Path> ouChercher(Path commonDir, Sources.Index index, List<Object> bytecode) {
+    static List<Path> whereToLook(Path commonDir, Sources.Index index, List<Object> bytecode) {
         List<Path> bases = new ArrayList<>();
         // 1. autour du bytecode réellement analysé
         for (Object o : bytecode) {
-            if (o instanceof Map<?, ?> b && b.get("absolu") instanceof String chemin) {
-                remonter(Path.of(chemin), 2, bases);
+            if (o instanceof Map<?, ?> b && b.get("absolu") instanceof String path) {
+                climb(Path.of(path), 2, bases);
             }
         }
         // 2. autour des racines de sources déjà données — le cas « d'un cran à côté »
-        for (Object o : index.racines()) {
-            if (o instanceof Map<?, ?> r && r.get("absolue") instanceof String chemin) {
-                remonter(Path.of(chemin), 1, bases);
+        for (Object o : index.roots()) {
+            if (o instanceof Map<?, ?> r && r.get("absolue") instanceof String path) {
+                climb(Path.of(path), 1, bases);
             }
         }
         // 3. le répertoire depuis lequel l'analyse a été lancée
         bases.add(Path.of(System.getProperty("user.dir")));
         // 4. à défaut, le voisinage du rapport lui-même
-        remonter(commonDir, 1, bases);
+        climb(commonDir, 1, bases);
         return bases;
     }
 
     /** Un chemin et ses ascendants, jusqu'à {@code crans} — jamais au-delà. */
-    private static void remonter(Path depart, int crans, List<Path> bases) {
-        Path p = depart.toAbsolutePath().normalize();
+    private static void climb(Path start, int notches, List<Path> bases) {
+        Path p = start.toAbsolutePath().normalize();
         if (Files.isRegularFile(p)) p = p.getParent();          // un jar désigne son répertoire
-        for (int i = 0; i <= crans && p != null && p.getParent() != null; i++) {
+        for (int i = 0; i <= notches && p != null && p.getParent() != null; i++) {
             bases.add(p);
             p = p.getParent();
         }
     }
 
-    private static long nombre(Object o) {
+    private static long number(Object o) {
         return o instanceof Number n ? n.longValue() : 0;
     }
 
@@ -212,13 +212,13 @@ public final class Diagnostic {
      * depuis une racine décalée. On donne alors le chemin réel : c'est de lui qu'on déduit
      * la racine à passer.
      */
-    private static Map<String, Object> manquant(String cle, Sources.Index index) {
+    private static Map<String, Object> missing(String key, Sources.Index index) {
         Map<String, Object> m = new LinkedHashMap<>();
-        m.put("cherche", cle);
-        String nom = cle.substring(cle.lastIndexOf('/') + 1);
-        Object homonymes = index.parNom().get(nom);
-        m.put("memeNomAilleurs", homonymes);
-        m.put("explication", homonymes == null
+        m.put("cherche", key);
+        String name = key.substring(key.lastIndexOf('/') + 1);
+        Object homonyms = index.byName().get(name);
+        m.put("memeNomAilleurs", homonyms);
+        m.put("explication", homonyms == null
                 ? "no file of that name under the roots given"
                 : "a file of that name exists, but the package it declares is not the one "
                   + "the coverage reports — this is probably not the same class");
@@ -237,100 +237,100 @@ public final class Diagnostic {
      * <p>Les classes internes ({@code Machin$1}) sont écartées : elles n'ont pas de fichier
      * source à elles, et elles tripleraient la liste sans rien apprendre.
      */
-    static List<Object> bytecode(Map<String, Object> contexte) {
+    static List<Object> bytecode(Map<String, Object> context) {
         List<Object> out = new ArrayList<>();
-        if (contexte == null) return out;
-        Object racines = contexte.get("racinesClasses");
-        if (!(racines instanceof Iterable<?> liste)) return out;
+        if (context == null) return out;
+        Object roots = context.get("racinesClasses");
+        if (!(roots instanceof Iterable<?> list)) return out;
 
         int budget = MAX_CLASSES;
-        for (Object o : liste) {
-            if (!(o instanceof Map<?, ?> racine)) continue;
-            String chemin = String.valueOf(racine.get("absolu"));
-            Path p = Path.of(chemin);
-            Map<String, Object> vue = new LinkedHashMap<>();
-            vue.put("chemin", String.valueOf(racine.get("chemin")));
-            vue.put("absolu", chemin);
+        for (Object o : list) {
+            if (!(o instanceof Map<?, ?> root)) continue;
+            String path = String.valueOf(root.get("absolu"));
+            Path p = Path.of(path);
+            Map<String, Object> view = new LinkedHashMap<>();
+            view.put("chemin", String.valueOf(root.get("chemin")));
+            view.put("absolu", path);
             boolean jar = Files.isRegularFile(p);
-            vue.put("type", jar ? "jar" : Files.isDirectory(p) ? "directory" : "missing");
-            vue.put("existe", Files.exists(p));
+            view.put("type", jar ? "jar" : Files.isDirectory(p) ? "directory" : "missing");
+            view.put("existe", Files.exists(p));
 
             List<Object> classes = new ArrayList<>();
-            boolean tronque = false;
+            boolean truncated = false;
             try {
-                for (String nom : jar ? classesDuJar(p) : classesDuRepertoire(p)) {
-                    if (classes.size() >= budget) { tronque = true; break; }
-                    classes.add(nom);
+                for (String name : jar ? classesInJar(p) : classesInDir(p)) {
+                    if (classes.size() >= budget) { truncated = true; break; }
+                    classes.add(name);
                 }
             } catch (IOException e) {
-                vue.put("motif", "lecture impossible : " + e.getMessage());
+                view.put("motif", "lecture impossible : " + e.getMessage());
             }
             budget -= classes.size();
-            vue.put("classes", classes);
-            vue.put("nombre", classes.size());
-            vue.put("tronque", tronque);
-            out.add(vue);
+            view.put("classes", classes);
+            view.put("nombre", classes.size());
+            view.put("tronque", truncated);
+            out.add(view);
         }
         return out;
     }
 
-    private static List<String> classesDuJar(Path jar) throws IOException {
-        List<String> noms = new ArrayList<>();
+    private static List<String> classesInJar(Path jar) throws IOException {
+        List<String> names = new ArrayList<>();
         try (java.util.zip.ZipFile zip = new java.util.zip.ZipFile(jar.toFile())) {
             for (java.util.Enumeration<? extends java.util.zip.ZipEntry> e = zip.entries();
                  e.hasMoreElements(); ) {
-                String nom = e.nextElement().getName();
-                if (retenue(nom)) noms.add(nom.substring(0, nom.length() - ".class".length()));
+                String name = e.nextElement().getName();
+                if (kept(name)) names.add(name.substring(0, name.length() - ".class".length()));
             }
         }
-        noms.sort(null);
-        return noms;
+        names.sort(null);
+        return names;
     }
 
-    private static List<String> classesDuRepertoire(Path dir) throws IOException {
+    private static List<String> classesInDir(Path dir) throws IOException {
         if (!Files.isDirectory(dir)) return List.of();
-        List<String> noms = new ArrayList<>();
-        try (java.util.stream.Stream<Path> fichiers = Files.walk(dir)) {
-            for (Path f : (Iterable<Path>) fichiers::iterator) {
+        List<String> names = new ArrayList<>();
+        try (java.util.stream.Stream<Path> files = Files.walk(dir)) {
+            for (Path f : (Iterable<Path>) files::iterator) {
                 String rel = dir.relativize(f).toString().replace('\\', '/');
-                if (retenue(rel)) noms.add(rel.substring(0, rel.length() - ".class".length()));
+                if (kept(rel)) names.add(rel.substring(0, rel.length() - ".class".length()));
             }
         }
-        noms.sort(null);
-        return noms;
+        names.sort(null);
+        return names;
     }
 
     /** Une classe de premier niveau, et pas un artefact du compilateur. */
-    private static boolean retenue(String nom) {
-        return nom.endsWith(".class") && !nom.contains("$") && !nom.endsWith("package-info.class")
-                && !nom.startsWith("META-INF/");
+    private static boolean kept(String name) {
+        return name.endsWith(".class") && !name.contains("$") && !name.endsWith("package-info.class")
+                && !name.startsWith("META-INF/");
     }
 
     /** Une phrase, celle qu'on lirait en premier. */
-    private static String conclusion(int attendus, int manquants, Sources.Index index) {
-        if (index.racines().isEmpty()) {
+    private static String conclusion(int expected, int missing, Sources.Index index) {
+        if (index.roots().isEmpty()) {
             return "no source directory was given: the annotated code cannot be shown. "
                  + "Set SOURCE_DIRS in the configuration, or --sources on the command line.";
         }
-        if (index.fichiers() == 0) {
+        if (index.files() == 0) {
             return "the roots given yielded no .java file — see sources.racines for the "
                  + "absolute path of each one and the reason.";
         }
-        if (attendus == 0) {
+        if (expected == 0) {
             return "no coverage to match: the measurement recorded nothing.";
         }
-        if (manquants == 0) {
+        if (missing == 0) {
             return "every measured class has its source.";
         }
-        if (manquants == attendus) {
-            return "no measured class has its source, although " + index.fichiers()
+        if (missing == expected) {
+            return "no measured class has its source, although " + index.files()
                  + " .java file(s) were read: the sources found are not those of the "
                  + "application analysed, or they are only a part of them.";
         }
-        return manquants + " measured class(es) out of " + attendus + " have no source.";
+        return missing + " measured class(es) out of " + expected + " have no source.";
     }
 
-    private static List<Object> executions(List<Object> runs) {
+    private static List<Object> runs(List<Object> runs) {
         List<Object> out = new ArrayList<>();
         for (Object r : runs) {
             if (!(r instanceof Map<?, ?> run)) continue;
@@ -342,15 +342,15 @@ public final class Diagnostic {
             e.put("paquetsMasques", run.get("paquetsMasques"));
             e.put("contexte", run.get("context"));
             // Des tailles, pas des contenus : de quoi voir qu'une mesure est vide.
-            e.put("classesMesurees", compter(run.get("packages")));
-            e.put("fichiersCouverts", taille(run.get("coverage")));
-            e.put("methodesInspectees", taille(run.get("values")));
+            e.put("classesMesurees", count(run.get("packages")));
+            e.put("fichiersCouverts", size(run.get("coverage")));
+            e.put("methodesInspectees", size(run.get("values")));
             out.add(e);
         }
         return out;
     }
 
-    private static int compter(Object packages) {
+    private static int count(Object packages) {
         int n = 0;
         if (packages instanceof Map<?, ?> m) {
             for (Object v : m.values()) {
@@ -360,11 +360,11 @@ public final class Diagnostic {
         return n;
     }
 
-    private static int taille(Object o) {
+    private static int size(Object o) {
         return o instanceof Map<?, ?> m ? m.size() : 0;
     }
 
-    private static Map<String, Object> environnement() {
+    private static Map<String, Object> environment() {
         Map<String, Object> m = new LinkedHashMap<>();
         m.put("java", System.getProperty("java.version"));
         m.put("jvm", System.getProperty("java.vm.name"));

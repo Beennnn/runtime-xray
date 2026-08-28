@@ -43,59 +43,59 @@ final class Access {
     private static final String COOKIE = "xray_session";
 
     /** Une session ouverte vaut une journée de travail, pas davantage. */
-    private static final long DUREE_MS = 12 * 60 * 60 * 1000L;
+    private static final long DURATION_MS = 12 * 60 * 60 * 1000L;
 
     /** Au-delà, les plus anciennes sont oubliées : la mémoire n'est pas un journal. */
     private static final int MAX_SESSIONS = 512;
 
     /** Ce qu'il faut rater pour être mis de côté, et pour combien de temps. */
-    private static final int ECHECS_TOLERES = 5;
-    private static final long MISE_A_L_ECART_MS = 30_000L;
+    private static final int TOLERATED_FAILURES = 5;
+    private static final long THROTTLE_MS = 30_000L;
 
-    private static final SecureRandom ALEA = new SecureRandom();
+    private static final SecureRandom RANDOM = new SecureRandom();
 
     private final String secret;
     private final Map<String, Long> sessions = new ConcurrentHashMap<>();
-    private final Map<String, Echecs> echecs = new ConcurrentHashMap<>();
+    private final Map<String, Failures> failures = new ConcurrentHashMap<>();
 
     private Access(String secret) {
         this.secret = secret;
     }
 
     /** Un garde qui laisse tout passer : le cas normal, sur son poste. */
-    static Access ouvert() {
+    static Access open() {
         return new Access(null);
     }
 
     /** Un garde qui exige {@code secret}. */
-    static Access avecSecret(String secret) {
+    static Access withSecret(String secret) {
         if (secret == null || secret.isBlank()) {
             throw new IllegalArgumentException("an empty secret guards nothing");
         }
-        String propre = secret.trim();
+        String clean = secret.trim();
         // Un accent dans le secret se perd en route : l'en-tête « Authorization » ne
         // transporte que de l'ASCII, et une variable d'environnement traverse un shell dont
         // on ne connaît pas l'encodage. Le refuser ici avec sa raison vaut mieux qu'un 401
         // inexplicable une fois le serveur déployé.
-        for (int i = 0; i < propre.length(); i++) {
-            char c = propre.charAt(i);
+        for (int i = 0; i < clean.length(); i++) {
+            char c = clean.charAt(i);
             if (c < 0x20 || c > 0x7E) {
                 throw new IllegalArgumentException("the shared secret must be ASCII "
                         + "printable (\"" + c + "\" survives neither the Authorization header "
                         + "nor some environment variables)");
             }
         }
-        return new Access(propre);
+        return new Access(clean);
     }
 
     /** Un secret tiré au sort, pour qui n'a pas envie d'en inventer un. */
-    static String secretTireAuSort() {
-        byte[] octets = new byte[18];
-        ALEA.nextBytes(octets);
-        return Base64.getUrlEncoder().withoutPadding().encodeToString(octets);
+    static String randomSecret() {
+        byte[] bytes = new byte[18];
+        RANDOM.nextBytes(bytes);
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
     }
 
-    boolean garde() {
+    boolean guards() {
         return secret != null;
     }
 
@@ -106,19 +106,19 @@ final class Access {
      * navigateur ; l'en-tête {@code Authorization: Bearer} pour tout le reste — un
      * {@code curl} de vérification, un script d'intégration.
      */
-    boolean autorise(HttpExchange ex) {
-        if (!garde()) return true;
+    boolean allows(HttpExchange ex) {
+        if (!guards()) return true;
 
-        String entete = ex.getRequestHeaders().getFirst("Authorization");
-        if (entete != null && entete.regionMatches(true, 0, "Bearer ", 0, 7)
-                && memeSecret(entete.substring(7).trim())) {
+        String header = ex.getRequestHeaders().getFirst("Authorization");
+        if (header != null && header.regionMatches(true, 0, "Bearer ", 0, 7)
+                && sameSecret(header.substring(7).trim())) {
             return true;
         }
         String session = cookie(ex, COOKIE);
         if (session == null) return false;
-        Long fin = sessions.get(session);
-        if (fin == null) return false;
-        if (fin < System.currentTimeMillis()) {
+        Long end = sessions.get(session);
+        if (end == null) return false;
+        if (end < System.currentTimeMillis()) {
             sessions.remove(session);
             return false;
         }
@@ -132,71 +132,71 @@ final class Access {
      * même endroit, on cesse de répondre pendant un moment. Ce n'est pas une défense contre
      * un attaquant patient — c'en est une contre un script qui essaie mille mots.
      */
-    String ouvrirSession(String propose, String origine) {
-        if (misDeCote(origine)) return null;
-        if (propose == null || !memeSecret(propose.trim())) {
-            rate(origine);
+    String openSession(String propose, String origin) {
+        if (throttled(origin)) return null;
+        if (propose == null || !sameSecret(propose.trim())) {
+            recordFailure(origin);
             return null;
         }
-        echecs.remove(origine);
-        purger();
-        byte[] octets = new byte[24];
-        ALEA.nextBytes(octets);
-        String id = Base64.getUrlEncoder().withoutPadding().encodeToString(octets);
-        sessions.put(id, System.currentTimeMillis() + DUREE_MS);
+        failures.remove(origin);
+        purge();
+        byte[] bytes = new byte[24];
+        RANDOM.nextBytes(bytes);
+        String id = Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+        sessions.put(id, System.currentTimeMillis() + DURATION_MS);
         return id;
     }
 
-    boolean misDeCote(String origine) {
-        Echecs e = echecs.get(origine);
-        return e != null && e.compte >= ECHECS_TOLERES
-                && System.currentTimeMillis() - e.dernier < MISE_A_L_ECART_MS;
+    boolean throttled(String origin) {
+        Failures e = failures.get(origin);
+        return e != null && e.count >= TOLERATED_FAILURES
+                && System.currentTimeMillis() - e.last < THROTTLE_MS;
     }
 
     /** L'en-tête à poser pour que le navigateur garde la session ouverte. */
-    String enteteCookie(String session) {
+    String cookieHeader(String session) {
         // Pas de « Secure » : il rendrait le cookie inopérant en HTTP simple, et c'est
         // ainsi que ce serveur est lancé. Le TLS, s'il y en a, est terminé devant.
         return COOKIE + "=" + session + "; Path=/; HttpOnly; SameSite=Strict; Max-Age="
-                + (DUREE_MS / 1000);
+                + (DURATION_MS / 1000);
     }
 
-    private void rate(String origine) {
-        echecs.compute(origine, (k, e) -> {
-            Echecs suite = e == null || System.currentTimeMillis() - e.dernier > MISE_A_L_ECART_MS
-                    ? new Echecs() : e;
-            suite.compte++;
-            suite.dernier = System.currentTimeMillis();
-            return suite;
+    private void recordFailure(String origin) {
+        failures.compute(origin, (k, e) -> {
+            Failures rest = e == null || System.currentTimeMillis() - e.last > THROTTLE_MS
+                    ? new Failures() : e;
+            rest.count++;
+            rest.last = System.currentTimeMillis();
+            return rest;
         });
     }
 
     /** Comparaison à durée constante : la durée d'un refus ne doit rien dire du secret. */
-    private boolean memeSecret(String propose) {
+    private boolean sameSecret(String propose) {
         return MessageDigest.isEqual(propose.getBytes(StandardCharsets.UTF_8),
                 secret.getBytes(StandardCharsets.UTF_8));
     }
 
-    private void purger() {
-        long maintenant = System.currentTimeMillis();
-        sessions.entrySet().removeIf(e -> e.getValue() < maintenant);
+    private void purge() {
+        long now = System.currentTimeMillis();
+        sessions.entrySet().removeIf(e -> e.getValue() < now);
         if (sessions.size() >= MAX_SESSIONS) sessions.clear();
     }
 
-    private static String cookie(HttpExchange ex, String nom) {
-        List<String> entetes = ex.getRequestHeaders().get("Cookie");
-        if (entetes == null) return null;
-        for (String entete : entetes) {
-            for (String morceau : entete.split(";")) {
-                String[] paire = morceau.trim().split("=", 2);
-                if (paire.length == 2 && paire[0].equals(nom)) return paire[1].trim();
+    private static String cookie(HttpExchange ex, String name) {
+        List<String> headers = ex.getRequestHeaders().get("Cookie");
+        if (headers == null) return null;
+        for (String header : headers) {
+            for (String chunk : header.split(";")) {
+                String[] pair = chunk.trim().split("=", 2);
+                if (pair.length == 2 && pair[0].equals(name)) return pair[1].trim();
             }
         }
         return null;
     }
 
     /** L'adresse d'où vient la requête, telle qu'on la compte pour les ratés. */
-    static String origine(HttpExchange ex) {
+    static String origin(HttpExchange ex) {
         return ex.getRemoteAddress() == null ? "?"
                 : String.valueOf(ex.getRemoteAddress().getAddress());
     }
@@ -208,10 +208,10 @@ final class Access {
      * même quand rien d'autre n'est encore servi — c'est la première chose que voit
      * quelqu'un à qui on a donné une adresse.
      */
-    static String pageEntree(String vers, String message) {
-        String cible = vers == null || vers.isBlank() ? "/" : vers;
-        String alerte = message == null ? ""
-                : "<p class=ko role=alert>" + echapper(message) + "</p>";
+    static String entryPage(String requested, String message) {
+        String target = requested == null || requested.isBlank() ? "/" : requested;
+        String alert = message == null ? ""
+                : "<p class=ko role=alert>" + escape(message) + "</p>";
         // Remplacement littéral, et non « formatted » : la feuille de style contient des
         // « % » (width:100%), que le formateur prendrait pour des conversions.
         return """
@@ -247,38 +247,38 @@ final class Access {
                   <input type=hidden name=vers value="{{cible}}">
                   <button type=submit>Enter</button>
                 </form>
-                """.replace("{{alerte}}", alerte).replace("{{cible}}", echapper(cible));
+                """.replace("{{alerte}}", alert).replace("{{cible}}", escape(target));
     }
 
     /** Le chemin vers la page d'entrée, avec la page demandée en mémoire. */
-    static String versEntree(String demande) {
+    static String toEntryPage(String request) {
         return "/__xray/entrer?vers="
-                + URLEncoder.encode(demande == null ? "/" : demande, StandardCharsets.UTF_8);
+                + URLEncoder.encode(request == null ? "/" : request, StandardCharsets.UTF_8);
     }
 
     /** Le formulaire renvoie du {@code application/x-www-form-urlencoded} : rien de plus. */
-    static Map<String, String> champs(String corps) {
+    static Map<String, String> fields(String body) {
         Map<String, String> out = new java.util.LinkedHashMap<>();
-        for (String morceau : corps.split("&")) {
-            if (morceau.isBlank()) continue;
-            String[] paire = morceau.split("=", 2);
-            out.put(decoder(paire[0]), paire.length == 2 ? decoder(paire[1]) : "");
+        for (String chunk : body.split("&")) {
+            if (chunk.isBlank()) continue;
+            String[] pair = chunk.split("=", 2);
+            out.put(decoder(pair[0]), pair.length == 2 ? decoder(pair[1]) : "");
         }
         return out;
     }
 
-    private static String decoder(String texte) {
-        return java.net.URLDecoder.decode(texte, StandardCharsets.UTF_8);
+    private static String decoder(String text) {
+        return java.net.URLDecoder.decode(text, StandardCharsets.UTF_8);
     }
 
-    private static String echapper(String texte) {
-        return texte.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+    private static String escape(String text) {
+        return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
                 .replace("\"", "&quot;");
     }
 
     /** Ce qu'on affiche au démarrage : jamais le secret, seulement son existence. */
-    void annoncer(boolean local) {
-        if (garde()) {
+    void announce(boolean local) {
+        if (guards()) {
             System.out.println();
             System.out.println("   🔒 Access guarded by a shared secret.");
             System.out.println("      Visitors type it once, the session lasts 12 h.");
@@ -295,15 +295,15 @@ final class Access {
         }
     }
 
-    private static final class Echecs {
-        int compte;
-        long dernier;
+    private static final class Failures {
+        int count;
+        long last;
     }
 
     /** Le secret retenu : celui de la ligne de commande, sinon celui de l'environnement. */
-    static String secretDemande(String surLaLigne, Map<String, String> environnement) {
-        if (surLaLigne != null) return surLaLigne;
-        String env = environnement.get("XRAY_SERVE_TOKEN");
+    static String secretRequested(String onTheLine, Map<String, String> environment) {
+        if (onTheLine != null) return onTheLine;
+        String env = environment.get("XRAY_SERVE_TOKEN");
         return env == null || env.isBlank() ? null : env.trim();
     }
 }

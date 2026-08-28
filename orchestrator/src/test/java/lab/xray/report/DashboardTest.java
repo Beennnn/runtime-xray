@@ -195,11 +195,11 @@ class DashboardTest {
 
         Map<String, Object> data = dataOf(Dashboard.build(out, List.of(sources(dir)), 8));
         @SuppressWarnings("unchecked")
-        String chemin = String.valueOf(((Map<String, Object>)
+        String path = String.valueOf(((Map<String, Object>)
                 ((List<Object>) data.get("runs")).get(0)).get("chemin"));
-        assertFalse(chemin.startsWith("/"), "un chemin absolu casserait la page une fois déplacée");
-        assertTrue(chemin.endsWith("/"), "le chemin doit être un préfixe utilisable tel quel");
-        assertEquals("runs/relatif/", chemin);
+        assertFalse(path.startsWith("/"), "un chemin absolu casserait la page une fois déplacée");
+        assertTrue(path.endsWith("/"), "le chemin doit être un préfixe utilisable tel quel");
+        assertEquals("runs/relatif/", path);
     }
 
     @Test
@@ -283,16 +283,16 @@ class DashboardTest {
         Map<String, Object> data = dataOf(Dashboard.build(out, List.of(sources(dir)), 8));
         @SuppressWarnings("unchecked")
         Map<String, Object> run = (Map<String, Object>) ((List<Object>) data.get("runs")).get(0);
-        Map<?, ?> elagage = (Map<?, ?>) run.get("elagage");
-        assertNotNull(elagage, "sans lui, la page rouvrirait l'arbre entier à chaque lecture");
-        assertEquals("app/Main.main", elagage.get("racine"));
-        assertEquals(List.of("app/Main.main;app/Moteur.ecrire"), elagage.get("coupes"));
+        Map<?, ?> pruning = (Map<?, ?>) run.get("elagage");
+        assertNotNull(pruning, "sans lui, la page rouvrirait l'arbre entier à chaque lecture");
+        assertEquals("app/Main.main", pruning.get("racine"));
+        assertEquals(List.of("app/Main.main;app/Moteur.ecrire"), pruning.get("coupes"));
 
         // L'élagage cadre la lecture : la mesure, elle, reste entière. L'arbre vit sous
         // l'exécution, dans son bloc — la page ne le porte plus.
-        String arbre = Files.readString(out.resolve(String.valueOf(run.get("chemin")))
+        String tree = Files.readString(out.resolve(String.valueOf(run.get("chemin")))
                 .resolve("vue/arbre.js"), StandardCharsets.UTF_8);
-        assertTrue(arbre.contains("\"total\":40"), "le total mesuré ne bouge pas : " + arbre);
+        assertTrue(tree.contains("\"total\":40"), "le total mesuré ne bouge pas : " + tree);
     }
 
     @Test
@@ -349,13 +349,13 @@ class DashboardTest {
         Map<String, Object> run = (Map<String, Object>) ((List<Object>) data.get("runs")).get(0);
         assertNotNull(run.get("methods"), "l'arbre des classes s'affiche d'emblée : il reste");
         assertNotNull(run.get("context"));
-        Path vue = out.resolve(String.valueOf(run.get("chemin"))).resolve("vue");
-        for (String bloc : List.of("couverture.js", "arbre.js", "valeurs.js")) {
-            assertTrue(Files.isRegularFile(vue.resolve(bloc)), bloc + " doit être sous l'exécution");
+        Path view = out.resolve(String.valueOf(run.get("chemin"))).resolve("vue");
+        for (String block : List.of("couverture.js", "arbre.js", "valeurs.js")) {
+            assertTrue(Files.isRegularFile(view.resolve(block)), block + " doit être sous l'exécution");
         }
         assertEquals("app/Moteur", run.get("tracedClass"),
                 "la classe inspectée vient du contexte, pas d'une valeur codée en dur");
-        assertTrue(Files.readString(vue.resolve("valeurs.js"), StandardCharsets.UTF_8)
+        assertTrue(Files.readString(view.resolve("valeurs.js"), StandardCharsets.UTF_8)
                         .contains("app/Moteur.calculer"),
                 "les valeurs relevées vivent dans le bloc de leur exécution");
     }
@@ -413,11 +413,11 @@ class DashboardTest {
         String page = Files.readString(Dashboard.build(out, List.of(sources(dir)), 8),
                 StandardCharsets.UTF_8);
 
-        for (String chemin : List.of("exports/profil.perf.txt", "exports/profil.cpuprofile",
+        for (String path : List.of("exports/profil.perf.txt", "exports/profil.cpuprofile",
                 "exports/couverture.lcov", "exports/valeurs.json",
                 "async-profiler/profil.collapsed", "execution.log")) {
-            assertEquals(1, page.split(java.util.regex.Pattern.quote(chemin), -1).length - 1,
-                    "« " + chemin + " » est écrit plus d'une fois : les deux listes vont diverger");
+            assertEquals(1, page.split(java.util.regex.Pattern.quote(path), -1).length - 1,
+                    "« " + path + " » est écrit plus d'une fois : les deux listes vont diverger");
         }
         assertTrue(page.contains("id=\"dlmenu\""), "le menu des exports doit être là");
     }
@@ -524,10 +524,10 @@ class DashboardTest {
         // Volontairement une racine qui ne contient pas la source de la classe mesurée.
         Dashboard.build(out, List.of(dir.resolve("ailleurs")), 8);
 
-        Path fichier = out.resolve("diagnostic.json");
-        assertTrue(Files.isRegularFile(fichier), "le diagnostic doit exister sans qu'on le demande");
+        Path file = out.resolve("diagnostic.json");
+        assertTrue(Files.isRegularFile(file), "le diagnostic doit exister sans qu'on le demande");
         Map<String, Object> d = (Map<String, Object>) Json.read(
-                Files.readString(fichier, StandardCharsets.UTF_8));
+                Files.readString(file, StandardCharsets.UTF_8));
 
         assertNotNull(d.get("machine"), "l'environnement explique la moitié des symptômes");
         assertNotNull(d.get("executions"), "les exécutions et leurs rapports sont dans le fichier");
@@ -535,13 +535,13 @@ class DashboardTest {
         assertEquals(1L, ((Number) rap.get("fichiersMesures")).longValue());
         assertEquals(1L, ((Number) rap.get("fichiersSansSource")).longValue());
         assertNotNull(rap.get("conclusion"), "une phrase qu'on lit en premier");
-        List<Object> manquants = (List<Object>) rap.get("exemplesManquants");
-        assertEquals("app/Moteur.java", ((Map<String, Object>) manquants.get(0)).get("cherche"),
+        List<Object> missing = (List<Object>) rap.get("exemplesManquants");
+        assertEquals("app/Moteur.java", ((Map<String, Object>) missing.get(0)).get("cherche"),
                 "le fichier doit nommer la clé exacte que la couverture réclamait");
 
         Map<String, Object> sources = (Map<String, Object>) d.get("sources");
-        List<Object> racines = (List<Object>) sources.get("racines");
-        assertEquals(Boolean.FALSE, ((Map<String, Object>) racines.get(0)).get("existe"),
+        List<Object> roots = (List<Object>) sources.get("racines");
+        assertEquals(Boolean.FALSE, ((Map<String, Object>) roots.get(0)).get("existe"),
                 "une racine inexistante doit se voir, pas disparaître");
     }
 
@@ -555,8 +555,8 @@ class DashboardTest {
         fixtureRun(out.resolve("runs"), "essai", "UUID-T", true);
         Dashboard.build(out, List.of(sources(dir)), 8);
 
-        String texte = Files.readString(out.resolve("diagnostic.json"), StandardCharsets.UTF_8);
-        assertFalse(texte.contains("serve-token") || texte.contains("secret"),
+        String text = Files.readString(out.resolve("diagnostic.json"), StandardCharsets.UTF_8);
+        assertFalse(text.contains("serve-token") || text.contains("secret"),
                 "aucun secret ne doit voyager avec le diagnostic");
     }
 
@@ -574,20 +574,20 @@ class DashboardTest {
         Files.createDirectories(classes);
         Files.writeString(classes.resolve("Moteur.class"), "faux bytecode", StandardCharsets.UTF_8);
 
-        Map<String, Object> lancement = new java.util.LinkedHashMap<>();
-        lancement.put("commande", "java -jar app.jar");
-        lancement.put("methodeRacine", "app.Moteur");
-        lancement.put("racinesClasses", List.of(Map.of(
+        Map<String, Object> launch = new java.util.LinkedHashMap<>();
+        launch.put("commande", "java -jar app.jar");
+        launch.put("methodeRacine", "app.Moteur");
+        launch.put("racinesClasses", List.of(Map.of(
                 "chemin", "classes", "absolu", dir.resolve("classes").toString(), "existe", true)));
 
-        Path page = Dashboard.build(out, List.of(sources(dir)), 8, PackageFilter.NONE, lancement);
+        Path page = Dashboard.build(out, List.of(sources(dir)), 8, PackageFilter.NONE, launch);
         Map<String, Object> data = dataOf(page);
         Map<String, Object> d = (Map<String, Object>) data.get("diagnostic");
 
         List<Object> bytecode = (List<Object>) d.get("bytecode");
         assertEquals(1, bytecode.size(), "la racine de bytecode doit être recensée");
-        Map<String, Object> racine = (Map<String, Object>) bytecode.get(0);
-        assertEquals(List.of("app/Moteur"), racine.get("classes"),
+        Map<String, Object> root = (Map<String, Object>) bytecode.get(0);
+        assertEquals(List.of("app/Moteur"), root.get("classes"),
                 "les classes trouvées sont ce qui permet de répondre « où est-elle ? »");
 
         String html = Files.readString(page, StandardCharsets.UTF_8);
@@ -636,9 +636,9 @@ class DashboardTest {
 
         Map<String, Object> data = dataOf(Dashboard.build(out, List.of(src), 8));
 
-        Map<String, Object> embarquees = (Map<String, Object>) data.get("sourcesDisponibles");
-        assertTrue(embarquees.containsKey("app/Moteur.java"), "la classe mesurée garde son code");
-        assertFalse(embarquees.containsKey("app/JamaisMesuree.java"),
+        Map<String, Object> bundled = (Map<String, Object>) data.get("sourcesDisponibles");
+        assertTrue(bundled.containsKey("app/Moteur.java"), "la classe mesurée garde son code");
+        assertFalse(bundled.containsKey("app/JamaisMesuree.java"),
                 "une source sans classe mesurée ne peut pas s'afficher, donc ne voyage pas");
         assertFalse(Files.readString(out.resolve("vue/sources/app.js"), StandardCharsets.UTF_8)
                         .contains("JamaisMesuree"),
@@ -647,9 +647,9 @@ class DashboardTest {
         // Mais rien de fonctionnel ne part : le diagnostic sait toujours qu'elle a été lue,
         // et l'arbre « Où est chaque classe » continue de la situer.
         Map<String, Object> d = (Map<String, Object>) data.get("diagnostic");
-        Map<String, Object> parNom =
+        Map<String, Object> byName =
                 (Map<String, Object>) ((Map<String, Object>) d.get("sources")).get("parNom");
-        assertTrue(parNom.containsKey("JamaisMesuree.java"),
+        assertTrue(byName.containsKey("JamaisMesuree.java"),
                 "le diagnostic doit continuer de dire où chaque fichier a été lu");
         assertEquals(1L, ((Number) ((Map<String, Object>) d.get("rapprochement"))
                 .get("sourcesSansClasse")).longValue(),
@@ -683,12 +683,12 @@ class DashboardTest {
         // élargissait la colonne à 3680 px dans une fenêtre de 1280 : le code ne défilait pas
         // horizontalement, et son ascenseur vertical partait à 4016 px, hors de l'écran. On
         // ne pouvait ni descendre dans le fichier, ni voir la fin de la ligne.
-        String gabarit = new String(Objects.requireNonNull(
+        String template = new String(Objects.requireNonNull(
                 Dashboard.class.getResourceAsStream("/lab/xray/dashboard.html")).readAllBytes(),
                 StandardCharsets.UTF_8);
-        assertTrue(gabarit.contains("minmax(0, 1fr)"),
+        assertTrue(template.contains("minmax(0, 1fr)"),
                 "sans le zéro, la colonne du code s'élargit au lieu de défiler");
-        assertFalse(gabarit.contains("grid-template-columns:var(--navw,330px) 6px 1fr"),
+        assertFalse(template.contains("grid-template-columns:var(--navw,330px) 6px 1fr"),
                 "c'est exactement la forme qui avait poussé l'ascenseur hors de l'écran");
     }
 }

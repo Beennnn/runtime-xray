@@ -25,7 +25,7 @@ import java.util.concurrent.TimeUnit;
 public final class RunSession {
 
     /** Le rythme de redessin : assez lent pour ne rien coûter, assez vif pour vivre. */
-    private static final long INTERVALLE_MS = 1000L;
+    private static final long INTERVAL_MS = 1000L;
 
     private static final DateTimeFormatter HUMAN =
             DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss", Locale.ROOT);
@@ -46,7 +46,7 @@ public final class RunSession {
     }
 
     /** Dernier temps processeur relevé pour chaque processus de l'application observée. */
-    private final java.util.Map<Long, Duration> cpuParProcessus = new java.util.HashMap<>();
+    private final java.util.Map<Long, Duration> cpuPerProcess = new java.util.HashMap<>();
 
     /** Les arguments réels de la JVM observée, relevés pendant qu'elle tournait. */
     public final List<String> jvmArguments = new ArrayList<>();
@@ -77,7 +77,7 @@ public final class RunSession {
                 inspectValues(process);
             }
             System.out.println("▶ Waiting for the run to finish");
-            boolean finished = attendre(process);
+            boolean finished = await(process);
             status = finished
                     ? "ended normally (code " + process.exitValue() + ")"
                     : "stopped after " + config.maxSeconds + " s (safety limit)";
@@ -108,32 +108,32 @@ public final class RunSession {
      * peut durer plus que son intervalle si la machine est chargée, et {@code MAX_SECONDS}
      * est une promesse faite à l'opérateur.
      */
-    private boolean attendre(Process process) throws InterruptedException {
-        Progression progression = Progression.pour(System.out);
-        Path journal = runDir.resolve("execution.log");
-        long limite = config.maxSeconds * 1000L;
-        long debut = System.nanoTime();
-        try (Suivi suivi = Suivi.ouvrir(Path.of(config.outDir), runDir,
-                runDir.getFileName().toString(), config.javaCommand, config.suiviPort)) {
+    private boolean await(Process process) throws InterruptedException {
+        Progress progress = Progress.of(System.out);
+        Path log = runDir.resolve("execution.log");
+        long limit = config.maxSeconds * 1000L;
+        long start = System.nanoTime();
+        try (Follow follow = Follow.open(Path.of(config.outDir), runDir,
+                runDir.getFileName().toString(), config.javaCommand, config.followPort)) {
             while (true) {
-                if (process.waitFor(INTERVALLE_MS, TimeUnit.MILLISECONDS)) {
-                    progression.fin();
-                    suivi.fin("ended, code " + process.exitValue(),
-                            (System.nanoTime() - debut) / 1_000_000_000L);
+                if (process.waitFor(INTERVAL_MS, TimeUnit.MILLISECONDS)) {
+                    progress.end();
+                    follow.end("ended, code " + process.exitValue(),
+                            (System.nanoTime() - start) / 1_000_000_000L);
                     return true;
                 }
-                long ecoule = (System.nanoTime() - debut) / 1_000_000L;
-                if (ecoule >= limite) {
-                    progression.fin();
-                    suivi.fin("stopped by the safety limit", ecoule / 1000L);
+                long elapsed = (System.nanoTime() - start) / 1_000_000L;
+                if (elapsed >= limit) {
+                    progress.end();
+                    follow.end("stopped by the safety limit", elapsed / 1000L);
                     return false;
                 }
-                Duration cpu = tempsProcesseur(process);
-                long octets = tailleDe(journal);
+                Duration cpu = cpuTime(process);
+                long bytes = sizeOf(log);
                 // Un seul calcul de charge, celui de la bande : le fichier en porte le
                 // résultat plutôt que de le refaire.
-                double coeurs = progression.avancement(Duration.ofMillis(ecoule), cpu, octets);
-                suivi.avancement(Duration.ofMillis(ecoule), cpu, octets, coeurs);
+                double cores = progress.tick(Duration.ofMillis(elapsed), cpu, bytes);
+                follow.tick(Duration.ofMillis(elapsed), cpu, bytes, cores);
             }
         }
     }
@@ -152,23 +152,23 @@ public final class RunSession {
      * dire. Un numéro de processus réattribué serait sous-compté ; sur la durée d'une
      * exécution observée, la confusion est théorique et la conséquence, un carré plus pâle.
      */
-    private Duration tempsProcesseur(Process process) {
-        releve(process.toHandle());
-        process.descendants().forEach(this::releve);
+    private Duration cpuTime(Process process) {
+        reading(process.toHandle());
+        process.descendants().forEach(this::reading);
         Duration total = Duration.ZERO;
-        for (Duration part : cpuParProcessus.values()) total = total.plus(part);
+        for (Duration share : cpuPerProcess.values()) total = total.plus(share);
         return total;
     }
 
-    private void releve(ProcessHandle processus) {
-        processus.info().totalCpuDuration().ifPresent(cpu -> cpuParProcessus.merge(
-                processus.pid(), cpu, (ancien, nouveau) ->
-                        nouveau.compareTo(ancien) > 0 ? nouveau : ancien));
+    private void reading(ProcessHandle processes) {
+        processes.info().totalCpuDuration().ifPresent(cpu -> cpuPerProcess.merge(
+                processes.pid(), cpu, (previous, current) ->
+                        current.compareTo(previous) > 0 ? current : previous));
     }
 
-    private static long tailleDe(Path fichier) {
+    private static long sizeOf(Path file) {
         try {
-            return Files.size(fichier);
+            return Files.size(file);
         } catch (IOException absent) {
             return 0;
         }

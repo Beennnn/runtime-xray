@@ -41,10 +41,10 @@ public final class Sources {
      * répertoire personnel — se traverse sinon pendant des minutes, pour un index inutile.
      * Le fait d'avoir tronqué est dit, car il change la lecture du diagnostic.
      */
-    private static final int MAX_FICHIERS = 20_000;
+    private static final int MAX_FILES = 20_000;
 
     /** {@code package com.example.app;} — la première ligne qui en a la forme fait foi. */
-    private static final Pattern PAQUET =
+    private static final Pattern PACKAGE =
             Pattern.compile("^\\s*package\\s+([\\p{L}_$][\\p{L}\\p{N}_$]*(?:\\s*\\.\\s*[\\p{L}_$][\\p{L}\\p{N}_$]*)*)\\s*;");
 
     private Sources() {}
@@ -57,20 +57,20 @@ public final class Sources {
      * @param parNom   {@code Fichier.java} → les endroits où ce nom a été trouvé
      * @param tronque  vrai si le parcours s'est arrêté sur la limite
      */
-    public record Index(Map<String, Object> parCle, List<Object> racines,
-                        Map<String, Object> parNom, boolean tronque) {
+    public record Index(Map<String, Object> byKey, List<Object> roots,
+                        Map<String, Object> byName, boolean truncated) {
 
-        public int fichiers() {
-            return parCle.size();
+        public int files() {
+            return byKey.size();
         }
 
         /** Le diagnostic seul, sans le code : c'est lui qui voyage dans la page et le fichier. */
         public Map<String, Object> diagnostic() {
             Map<String, Object> m = new LinkedHashMap<>();
-            m.put("racines", racines);
-            m.put("fichiers", fichiers());
-            m.put("tronque", tronque);
-            m.put("parNom", parNom);
+            m.put("racines", roots);
+            m.put("fichiers", files());
+            m.put("tronque", truncated);
+            m.put("parNom", byName);
             return m;
         }
     }
@@ -80,79 +80,79 @@ public final class Sources {
      *              dans le diagnostic plutôt qu'ignorée en silence
      */
     public static Index load(List<Path> roots) {
-        Map<String, Object> parCle = new LinkedHashMap<>();
-        Map<String, Object> parNom = new LinkedHashMap<>();
-        List<Object> racines = new ArrayList<>();
-        boolean tronque = false;
+        Map<String, Object> byKey = new LinkedHashMap<>();
+        Map<String, Object> byName = new LinkedHashMap<>();
+        List<Object> rootViews = new ArrayList<>();
+        boolean truncated = false;
 
         for (Path root : roots) {
-            Map<String, Object> vue = new LinkedHashMap<>();
-            vue.put("demandee", root.toString());
-            vue.put("absolue", absolu(root));
-            boolean existe = Files.isDirectory(root);
-            vue.put("existe", existe);
-            vue.put("fichiers", 0);
-            racines.add(vue);
-            if (!existe) {
-                vue.put("motif", Files.exists(root)
+            Map<String, Object> view = new LinkedHashMap<>();
+            view.put("demandee", root.toString());
+            view.put("absolue", absolu(root));
+            boolean exists = Files.isDirectory(root);
+            view.put("existe", exists);
+            view.put("fichiers", 0);
+            rootViews.add(view);
+            if (!exists) {
+                view.put("motif", Files.exists(root)
                         ? "this path exists but is not a directory"
                         : "this path does not exist");
                 continue;
             }
 
-            int avant = parCle.size();
+            int before = byKey.size();
             // Les liens sont suivis : une arborescence de sources montée ailleurs, ou un
             // répertoire lié, est un cas courant sur les postes de développement.
             try (Stream<Path> files = Files.walk(root, FileVisitOption.FOLLOW_LINKS)) {
-                for (Path p : (Iterable<Path>) files.filter(Sources::estSource)::iterator) {
-                    if (parCle.size() >= MAX_FICHIERS) {
-                        tronque = true;
+                for (Path p : (Iterable<Path>) files.filter(Sources::isSource)::iterator) {
+                    if (byKey.size() >= MAX_FILES) {
+                        truncated = true;
                         break;
                     }
-                    indexer(root, p, parCle, parNom);
+                    index(root, p, byKey, byName);
                 }
             } catch (IOException e) {
                 // Une racine illisible ne doit pas faire échouer tout le rapport : on la
                 // retient telle quelle dans le diagnostic, et on passe à la suivante.
-                vue.put("motif", "parcours interrompu : " + e.getMessage());
+                view.put("motif", "parcours interrompu : " + e.getMessage());
             }
-            vue.put("fichiers", parCle.size() - avant);
+            view.put("fichiers", byKey.size() - before);
         }
-        return new Index(parCle, racines, parNom, tronque);
+        return new Index(byKey, rootViews, byName, truncated);
     }
 
-    private static boolean estSource(Path p) {
+    private static boolean isSource(Path p) {
         return p.getFileName() != null && p.getFileName().toString().endsWith(".java");
     }
 
-    private static void indexer(Path root, Path fichier,
-                                Map<String, Object> parCle, Map<String, Object> parNom) {
-        List<String> lignes;
+    private static void index(Path root, Path file,
+                                Map<String, Object> byKey, Map<String, Object> byName) {
+        List<String> lines;
         try {
-            lignes = lire(fichier);
+            lines = read(file);
         } catch (IOException e) {
             // Un fichier illisible ne doit pas faire échouer tout le rapport :
             // on le signale et on continue.
-            System.err.println("   source skipped: " + fichier + " (" + e.getMessage() + ")");
+            System.err.println("   source skipped: " + file + " (" + e.getMessage() + ")");
             return;
         }
-        String nom = fichier.getFileName().toString();
-        String paquet = paquetDeclare(lignes);
-        String relatif = root.relativize(fichier).toString().replace('\\', '/');
-        String cle = paquet == null ? relatif : paquet.replace('.', '/') + "/" + nom;
+        String name = file.getFileName().toString();
+        String pkg = declaredPackage(lines);
+        String relative = root.relativize(file).toString().replace('\\', '/');
+        String key = pkg == null ? relative : pkg.replace('.', '/') + "/" + name;
 
-        parCle.put(cle, lignes);
+        byKey.put(key, lines);
 
-        Map<String, Object> ou = new LinkedHashMap<>();
-        ou.put("cle", cle);
-        ou.put("chemin", absolu(fichier));
-        ou.put("paquet", paquet);
-        ou.put("racine", absolu(root));
+        Map<String, Object> where = new LinkedHashMap<>();
+        where.put("cle", key);
+        where.put("chemin", absolu(file));
+        where.put("paquet", pkg);
+        where.put("racine", absolu(root));
         // Le même nom de fichier peut vivre dans plusieurs paquets : c'est précisément le
         // cas où il faut montrer les deux plutôt que d'en choisir un.
         @SuppressWarnings("unchecked")
-        List<Object> endroits = (List<Object>) parNom.computeIfAbsent(nom, k -> new ArrayList<>());
-        endroits.add(ou);
+        List<Object> places = (List<Object>) byName.computeIfAbsent(name, k -> new ArrayList<>());
+        places.add(where);
     }
 
     /**
@@ -161,11 +161,11 @@ public final class Sources {
      * <p>On s'arrête à la première ligne qui ouvre le type : au-delà, un {@code package}
      * ne serait plus une déclaration mais du texte — une chaîne, un commentaire.
      */
-    static String paquetDeclare(List<String> lignes) {
-        for (String ligne : lignes) {
-            Matcher m = PAQUET.matcher(ligne);
+    static String declaredPackage(List<String> lines) {
+        for (String line : lines) {
+            Matcher m = PACKAGE.matcher(line);
             if (m.find()) return m.group(1).replaceAll("\\s+", "");
-            if (ligne.matches("^\\s*(public\\s+|final\\s+|abstract\\s+|sealed\\s+|non-sealed\\s+)*"
+            if (line.matches("^\\s*(public\\s+|final\\s+|abstract\\s+|sealed\\s+|non-sealed\\s+)*"
                     + "(class|interface|enum|record)\\s+.*")) {
                 return null;
             }
@@ -182,7 +182,7 @@ public final class Sources {
      * jamais. Un accent isolé peut en ressortir de travers ; c'est très au-dessus de
      * l'alternative, qui était de ne pas afficher le fichier du tout.
      */
-    private static List<String> lire(Path p) throws IOException {
+    private static List<String> read(Path p) throws IOException {
         try {
             return Files.readAllLines(p, StandardCharsets.UTF_8);
         } catch (java.nio.charset.CharacterCodingException e) {
@@ -205,17 +205,17 @@ public final class Sources {
      * quelques milliers ; au-delà, on cherche ailleurs qu'où il faut, et il vaut mieux
      * s'arrêter que d'y passer une minute.
      */
-    private static final int BUDGET_RECHERCHE = 120_000;
+    private static final int SEARCH_BUDGET = 120_000;
 
     /** Jusqu'où descendre sous chaque base. Douze niveaux couvrent un paquet profond. */
-    private static final int PROFONDEUR = 12;
+    private static final int DEPTH = 12;
 
     /**
      * Ce qu'on ne traverse jamais : ni les métadonnées d'un gestionnaire de versions, ni les
      * dépendances récupérées, ni le bytecode. Aucun {@code .java} utile n'y vit, et ce sont
      * les répertoires qui font exploser le parcours.
      */
-    private static final java.util.Set<String> ECARTES = java.util.Set.of(
+    private static final java.util.Set<String> DROPPED = java.util.Set.of(
             ".git", ".svn", ".hg", ".idea", ".vscode", ".gradle", ".m2", ".mvn",
             "node_modules", "classes", "test-classes", "runtime-xray-out");
 
@@ -238,67 +238,67 @@ public final class Sources {
      * @param bases      les endroits où chercher, du plus probable au moins probable
      * @return au plus {@link #MAX_PISTES} racines, la plus explicative en tête
      */
-    public static List<Object> chercherRacines(java.util.Set<String> manquantes, List<Path> bases) {
-        if (manquantes.isEmpty() || bases.isEmpty()) return List.of();
+    public static List<Object> searchRoots(java.util.Set<String> missing, List<Path> bases) {
+        if (missing.isEmpty() || bases.isEmpty()) return List.of();
 
         // Par nom de fichier : c'est le seul filtre qu'on puisse appliquer SANS ouvrir le
         // fichier, et il écarte l'immense majorité des candidats pour le prix d'un test.
-        java.util.Set<String> noms = new java.util.HashSet<>();
-        for (String cle : manquantes) noms.add(cle.substring(cle.lastIndexOf('/') + 1));
+        java.util.Set<String> names = new java.util.HashSet<>();
+        for (String key : missing) names.add(key.substring(key.lastIndexOf('/') + 1));
 
         Map<String, int[]> credits = new LinkedHashMap<>();
-        Map<String, List<String>> preuves = new LinkedHashMap<>();
-        int[] budget = { BUDGET_RECHERCHE };
+        Map<String, List<String>> evidence = new LinkedHashMap<>();
+        int[] budget = { SEARCH_BUDGET };
 
-        for (Path base : dedoublonner(bases)) {
+        for (Path base : deduplicate(bases)) {
             if (budget[0] <= 0) break;
-            explorer(base, base, 0, noms, manquantes, credits, preuves, budget);
+            explore(base, base, 0, names, missing, credits, evidence, budget);
         }
 
-        List<Map.Entry<String, int[]>> classees = new ArrayList<>(credits.entrySet());
+        List<Map.Entry<String, int[]>> classified = new ArrayList<>(credits.entrySet());
         // Le plus explicatif d'abord ; à égalité, le chemin le plus court — c'est celui qui
         // couvre le plus large, donc celui qui vieillira le mieux dans une configuration.
-        classees.sort((a, b) -> {
-            int parLeCompte = Integer.compare(b.getValue()[0], a.getValue()[0]);
-            return parLeCompte != 0 ? parLeCompte
+        classified.sort((a, b) -> {
+            int byCount = Integer.compare(b.getValue()[0], a.getValue()[0]);
+            return byCount != 0 ? byCount
                                     : Integer.compare(a.getKey().length(), b.getKey().length());
         });
 
-        List<Object> pistes = new ArrayList<>();
-        for (Map.Entry<String, int[]> e : classees) {
-            if (pistes.size() >= MAX_PISTES) break;
-            Map<String, Object> piste = new LinkedHashMap<>();
-            piste.put("racine", e.getKey());
-            piste.put("resout", e.getValue()[0]);
-            piste.put("surTotal", manquantes.size());
-            piste.put("exemples", preuves.get(e.getKey()));
-            pistes.add(piste);
+        List<Object> leads = new ArrayList<>();
+        for (Map.Entry<String, int[]> e : classified) {
+            if (leads.size() >= MAX_LEADS) break;
+            Map<String, Object> lead = new LinkedHashMap<>();
+            lead.put("racine", e.getKey());
+            lead.put("resout", e.getValue()[0]);
+            lead.put("surTotal", missing.size());
+            lead.put("exemples", evidence.get(e.getKey()));
+            leads.add(lead);
         }
-        return pistes;
+        return leads;
     }
 
     /** Assez de pistes pour qu'un projet à plusieurs modules s'y retrouve, pas assez pour noyer. */
-    private static final int MAX_PISTES = 5;
+    private static final int MAX_LEADS = 5;
 
     /** Trois exemples suffisent à reconnaître un projet ; le compte fait le reste. */
-    private static final int PREUVES_PAR_PISTE = 3;
+    private static final int EVIDENCE_PER_LEAD = 3;
 
-    private static void explorer(Path racineDeRecherche, Path dir, int niveau,
-                                 java.util.Set<String> noms, java.util.Set<String> manquantes,
-                                 Map<String, int[]> credits, Map<String, List<String>> preuves,
+    private static void explore(Path searchRoot, Path dir, int level,
+                                 java.util.Set<String> names, java.util.Set<String> missing,
+                                 Map<String, int[]> credits, Map<String, List<String>> evidence,
                                  int[] budget) {
-        if (niveau > PROFONDEUR || budget[0] <= 0) return;
-        try (Stream<Path> enfants = Files.list(dir)) {
-            for (Path enfant : (Iterable<Path>) enfants::iterator) {
+        if (level > DEPTH || budget[0] <= 0) return;
+        try (Stream<Path> children = Files.list(dir)) {
+            for (Path child : (Iterable<Path>) children::iterator) {
                 if (--budget[0] <= 0) return;
-                String nom = enfant.getFileName().toString();
-                if (Files.isDirectory(enfant)) {
-                    if (!ECARTES.contains(nom) && !nom.startsWith(".")) {
-                        explorer(racineDeRecherche, enfant, niveau + 1, noms, manquantes,
-                                 credits, preuves, budget);
+                String name = child.getFileName().toString();
+                if (Files.isDirectory(child)) {
+                    if (!DROPPED.contains(name) && !name.startsWith(".")) {
+                        explore(searchRoot, child, level + 1, names, missing,
+                                 credits, evidence, budget);
                     }
-                } else if (noms.contains(nom)) {
-                    crediter(enfant, nom, manquantes, credits, preuves);
+                } else if (names.contains(name)) {
+                    credit(child, name, missing, credits, evidence);
                 }
             }
         } catch (IOException | RuntimeException e) {
@@ -313,31 +313,31 @@ public final class Sources {
      * <p>C'est ce test qui sépare une proposition d'une devinette. Un {@code Application.java}
      * trouvé dans un autre projet ne déclarera pas {@code com.example.app}, donc ne comptera pas.
      */
-    private static void crediter(Path fichier, String nom, java.util.Set<String> manquantes,
-                                 Map<String, int[]> credits, Map<String, List<String>> preuves) {
-        String paquet;
+    private static void credit(Path file, String name, java.util.Set<String> missing,
+                                 Map<String, int[]> credits, Map<String, List<String>> evidence) {
+        String pkg;
         try {
-            paquet = paquetDeclare(entete(fichier));
+            pkg = declaredPackage(header(file));
         } catch (IOException e) {
             return;
         }
-        if (paquet == null) return;
-        String cle = paquet.replace('.', '/') + "/" + nom;
-        if (!manquantes.contains(cle)) return;
+        if (pkg == null) return;
+        String key = pkg.replace('.', '/') + "/" + name;
+        if (!missing.contains(key)) return;
 
         // La racine, c'est le chemin amputé de son paquet : le répertoire qu'il aurait fallu
         // désigner. On le donne tel quel, même si le niveau n'a plus d'importance pour
         // l'index — c'est celui qu'un lecteur reconnaîtra comme « le répertoire de sources ».
-        Path racine = fichier.getParent();
-        for (int i = paquet.split("\\.").length; i > 0 && racine != null; i--) {
-            racine = racine.getParent();
+        Path root = file.getParent();
+        for (int i = pkg.split("\\.").length; i > 0 && root != null; i--) {
+            root = root.getParent();
         }
-        if (racine == null) return;
+        if (root == null) return;
 
-        String chemin = absolu(racine);
-        credits.computeIfAbsent(chemin, k -> new int[1])[0]++;
-        List<String> exemples = preuves.computeIfAbsent(chemin, k -> new ArrayList<>());
-        if (exemples.size() < PREUVES_PAR_PISTE) exemples.add(cle);
+        String path = absolu(root);
+        credits.computeIfAbsent(path, k -> new int[1])[0]++;
+        List<String> examples = evidence.computeIfAbsent(path, k -> new ArrayList<>());
+        if (examples.size() < EVIDENCE_PER_LEAD) examples.add(key);
     }
 
     /**
@@ -346,13 +346,13 @@ public final class Sources {
      * <p>La déclaration de paquet est en tête par construction du langage. Lire le fichier
      * entier pour la trouver multiplierait le coût de la recherche par la taille du projet.
      */
-    private static List<String> entete(Path p) throws IOException {
-        List<String> lignes = new ArrayList<>();
+    private static List<String> header(Path p) throws IOException {
+        List<String> lines = new ArrayList<>();
         try (java.io.BufferedReader r = Files.newBufferedReader(p, StandardCharsets.ISO_8859_1)) {
-            String ligne;
-            while (lignes.size() < 60 && (ligne = r.readLine()) != null) lignes.add(ligne);
+            String line;
+            while (lines.size() < 60 && (line = r.readLine()) != null) lines.add(line);
         }
-        return lignes;
+        return lines;
     }
 
     /**
@@ -361,20 +361,20 @@ public final class Sources {
      * <p>Chercher sous un répertoire puis sous son parent parcourt deux fois le même contenu,
      * et sur une arborescence profonde c'est ce qui épuise le budget avant d'avoir trouvé.
      */
-    static List<Path> dedoublonner(List<Path> bases) {
-        List<Path> retenues = new ArrayList<>();
-        List<Path> triees = new ArrayList<>();
+    static List<Path> deduplicate(List<Path> bases) {
+        List<Path> kept = new ArrayList<>();
+        List<Path> sortedList = new ArrayList<>();
         for (Path b : bases) {
             if (b == null) continue;
             Path n = b.toAbsolutePath().normalize();
-            if (Files.isDirectory(n) && !triees.contains(n)) triees.add(n);
+            if (Files.isDirectory(n) && !sortedList.contains(n)) sortedList.add(n);
         }
         // Du plus court au plus long : un parent retenu couvre déjà tous ses descendants.
-        triees.sort(java.util.Comparator.comparingInt(x -> x.toString().length()));
-        for (Path candidat : triees) {
-            boolean dejaCouvert = retenues.stream().anyMatch(candidat::startsWith);
-            if (!dejaCouvert) retenues.add(candidat);
+        sortedList.sort(java.util.Comparator.comparingInt(x -> x.toString().length()));
+        for (Path candidate : sortedList) {
+            boolean alreadyCovered = kept.stream().anyMatch(candidate::startsWith);
+            if (!alreadyCovered) kept.add(candidate);
         }
-        return retenues;
+        return kept;
     }
 }

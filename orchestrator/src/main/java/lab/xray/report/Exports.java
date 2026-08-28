@@ -58,12 +58,12 @@ public final class Exports {
      * quand on espace ses relevés, et la même réserve s'applique : ce qui pèse très peu peut
      * disparaître. Le facteur retenu est annoncé sur la sortie standard.
      */
-    private static final long MAX_OCTETS = 32L * 1024 * 1024;
+    private static final long MAX_BYTES = 32L * 1024 * 1024;
 
     /** Formats disponibles. Le nom est celui qu'on écrit sur la ligne de commande. */
     public enum Format {
         PERF("perf", "perf"), CPUPROFILE("cpuprofile", "cpuprofile"),
-        LCOV("lcov", "lcov"), VALEURS("valeurs", "values");
+        LCOV("lcov", "lcov"), VALUES("valeurs", "values");
 
         public final String option;
 
@@ -96,8 +96,8 @@ public final class Exports {
                 return Set.of(values());
             }
             Set<Format> out = new java.util.LinkedHashSet<>();
-            for (String part : list.split("[,\\s]+")) {
-                if (!part.isBlank()) out.add(of(part));
+            for (String share : list.split("[,\\s]+")) {
+                if (!share.isBlank()) out.add(of(share));
             }
             return out;
         }
@@ -129,7 +129,7 @@ public final class Exports {
             Files.createDirectories(dir);
             written.add(lcov(Coverage.parse(jacoco), dir.resolve("couverture.lcov")));
         }
-        if (formats.contains(Format.VALEURS)) {
+        if (formats.contains(Format.VALUES)) {
             Inspection inspection = Inspection.read(
                     runDir.resolve("arthas/watch-params.txt"),
                     runDir.resolve("arthas/trace-calltree.txt"),
@@ -153,21 +153,21 @@ public final class Exports {
      * que le symbole est là.
      */
     private static Path perf(Path collapsed, Path out, int intervalMs) throws IOException {
-        List<String> lignes = Files.readAllLines(collapsed, StandardCharsets.UTF_8);
-        Allegement allegement = Allegement.pour(lignes);
+        List<String> lines = Files.readAllLines(collapsed, StandardCharsets.UTF_8);
+        Thinning thinning = Thinning.of(lines);
         long emitted = 0;
-        double reste = 0;
+        double remains = 0;
         try (BufferedWriter w = Files.newBufferedWriter(out, StandardCharsets.UTF_8)) {
-            for (String line : lignes) {
+            for (String line : lines) {
                 Sample sample = Sample.of(line);
                 if (sample == null) continue;
                 // Le reliquat se reporte d'une pile à l'autre : sans lui, tout ce qui pèse
                 // moins que le facteur disparaîtrait, et le total s'effondrerait.
-                double du = sample.count * allegement.facteur + reste;
-                long combien = (long) Math.floor(du);
-                reste = du - combien;
-                for (long i = 0; i < combien; i++, emitted++) {
-                    double when = emitted * (intervalMs / 1000.0) / allegement.facteur;
+                double du = sample.count * thinning.factor + remains;
+                long howMany = (long) Math.floor(du);
+                remains = du - howMany;
+                for (long i = 0; i < howMany; i++, emitted++) {
+                    double when = emitted * (intervalMs / 1000.0) / thinning.factor;
                     w.write(String.format(Locale.ROOT, "java 1/1 %.6f: 1 cpu-clock:%n", when));
                     for (int f = sample.frames.length - 1; f >= 0; f--) {
                         w.write("\t0 " + sample.frames[f] + " ([jit])\n");
@@ -176,11 +176,11 @@ public final class Exports {
                 }
             }
         }
-        if (allegement.allege()) {
+        if (thinning.thinned()) {
             System.out.println("   perf export thinned out: " + emitted + " samples out of "
-                    + allegement.total + " (" + Math.round(allegement.facteur * 100)
+                    + thinning.total + " (" + Math.round(thinning.factor * 100)
                     + "%) — this format rewrites the whole stack at every sample, and would\n"
-                    + "      otherwise weigh " + allegement.octets / (1024 * 1024) + " MB.");
+                    + "      otherwise weigh " + thinning.bytes / (1024 * 1024) + " MB.");
             System.out.println("      The shape of the profile is kept; very small shares "
                     + "may vanish. The cpuprofile, itself, carries everything.");
         }
@@ -193,29 +193,29 @@ public final class Exports {
      * <p>Le facteur vaut 1 tant que le fichier tient sous le plafond : la grande majorité des
      * mesures ne sont pas concernées, et un export qui ne change rien ne doit rien annoncer.
      */
-    private record Allegement(long total, long octets, double facteur) {
+    private record Thinning(long total, long bytes, double factor) {
 
         /** Ce qu'écrit une ligne d'échantillon, en-tête comprise, mesuré sur les données. */
-        static Allegement pour(List<String> lignes) {
-            long total = 0, octets = 0;
-            for (String line : lignes) {
+        static Thinning of(List<String> lines) {
+            long total = 0, bytes = 0;
+            for (String line : lines) {
                 Sample sample = Sample.of(line);
                 if (sample == null) continue;
                 total += sample.count;
-                long parEchantillon = ENTETE;
+                long perSample = HEADER;
                 for (String frame : sample.frames) {
-                    parEchantillon += frame.length() + DECOR;
+                    perSample += frame.length() + DECOR;
                 }
-                octets += sample.count * parEchantillon;
+                bytes += sample.count * perSample;
             }
-            return new Allegement(total, octets,
-                    octets <= MAX_OCTETS ? 1.0 : (double) MAX_OCTETS / octets);
+            return new Thinning(total, bytes,
+                    bytes <= MAX_BYTES ? 1.0 : (double) MAX_BYTES / bytes);
         }
 
-        boolean allege() { return facteur < 1.0; }
+        boolean thinned() { return factor < 1.0; }
 
         /** « java 1/1 12.345678: 1 cpu-clock: » plus la ligne vide de fin. */
-        private static final int ENTETE = 34;
+        private static final int HEADER = 34;
         /** La tabulation, l'adresse, l'espace, « ([jit]) » et le retour à la ligne. */
         private static final int DECOR = 13;
     }

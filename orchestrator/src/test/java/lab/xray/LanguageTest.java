@@ -41,40 +41,40 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * commet vraiment — une phrase entière écrite dans la langue du dépôt plutôt que dans celle
  * de l'outil.
  */
-class LangueTest {
+class LanguageTest {
 
     /** Les mots outils qui trahissent une phrase française. Sans « on », qui est anglais. */
-    private static final Pattern FRANCAIS = Pattern.compile(
+    private static final Pattern FRENCH = Pattern.compile(
             "(^|[^\\w])(le|la|les|des|une|du|de|qui|que|pour|dans|est|sont|pas|sur|avec"
             + "|cette|aux|par|leur|elle|aucun|aucune|été|nous|vous|ils)([^\\w]|$)",
             Pattern.CASE_INSENSITIVE);
 
-    private static final Pattern LITTERALE = Pattern.compile("\"((?:[^\"\\\\\\n]|\\\\.)*)\"");
+    private static final Pattern LITERAL = Pattern.compile("\"((?:[^\"\\\\\\n]|\\\\.)*)\"");
 
     @Test
     @DisplayName("Aucune phrase française ne subsiste dans ce que l'outil écrit")
     void noFrenchSentenceIsLeftInWhatTheToolWrites() throws IOException {
-        Path racine = Path.of("src/main/java");
-        assertTrue(Files.isDirectory(racine), "les sources doivent être là : " + racine);
+        Path root = Path.of("src/main/java");
+        assertTrue(Files.isDirectory(root), "les sources doivent être là : " + root);
 
-        List<String> trouvees = new ArrayList<>();
-        try (Stream<Path> fichiers = Files.walk(racine)) {
-            for (Path f : fichiers.filter(p -> p.toString().endsWith(".java")).toList()) {
+        List<String> found = new ArrayList<>();
+        try (Stream<Path> files = Files.walk(root)) {
+            for (Path f : files.filter(p -> p.toString().endsWith(".java")).toList()) {
                 String source = Files.readString(f, StandardCharsets.UTF_8);
-                Matcher m = LITTERALE.matcher(source);
+                Matcher m = LITERAL.matcher(source);
                 while (m.find()) {
-                    String texte = m.group(1);
+                    String text = m.group(1);
                     // Quatre mots au moins : en deçà, c'est un identifiant, une clé JSON ou
                     // un fragment de format — et beaucoup sont français pour de bonnes
                     // raisons, à commencer par les noms d'options qui ne casseront jamais.
-                    if (texte.chars().filter(c -> c == ' ').count() >= 3
-                            && FRANCAIS.matcher(texte).find()) {
-                        trouvees.add(racine.relativize(f) + " : " + texte);
+                    if (text.chars().filter(c -> c == ' ').count() >= 3
+                            && FRENCH.matcher(text).find()) {
+                        found.add(root.relativize(f) + " : " + text);
                     }
                 }
             }
         }
-        assertEquals(List.of(), trouvees,
+        assertEquals(List.of(), found,
                 "phrase(s) française(s) dans un littéral : l'outil parle anglais, et une "
                 + "phrase ajoutée dans la langue du dépôt ne se voit qu'à l'exécution, "
                 + "sur le poste de quelqu'un qui ne lit pas le français");

@@ -43,16 +43,16 @@ public final class CommandLine {
     }
 
     public static boolean needsShell(String command) {
-        boolean inSingle = false, inDouble = false, debutDeMot = true;
+        boolean inSingle = false, inDouble = false, wordStart = true;
         for (int i = 0; i < command.length(); i++) {
             char c = command.charAt(i);
-            if (c == '\'' && !inDouble) { inSingle = !inSingle; debutDeMot = false; }
-            else if (c == '"' && !inSingle) { inDouble = !inDouble; debutDeMot = false; }
-            else if (inSingle || inDouble) debutDeMot = false;
-            else if (Character.isWhitespace(c)) debutDeMot = true;
+            if (c == '\'' && !inDouble) { inSingle = !inSingle; wordStart = false; }
+            else if (c == '"' && !inSingle) { inDouble = !inDouble; wordStart = false; }
+            else if (inSingle || inDouble) wordStart = false;
+            else if (Character.isWhitespace(c)) wordStart = true;
             else {
-                if (c == TILDE ? debutDeMot : SHELL_CHARS.indexOf(c) >= 0) return true;
-                debutDeMot = false;
+                if (c == TILDE ? wordStart : SHELL_CHARS.indexOf(c) >= 0) return true;
+                wordStart = false;
             }
         }
         return false;

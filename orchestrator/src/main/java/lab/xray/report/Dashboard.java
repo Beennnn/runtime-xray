@@ -41,7 +41,7 @@ public final class Dashboard {
      *               qu'on ferait aujourd'hui.
      */
     public static Path build(Path commonDir, List<Path> sourceRoots, int valuesPerMethod,
-                             PackageFilter hidden, Map<String, Object> lancement)
+                             PackageFilter hidden, Map<String, Object> launch)
             throws Exception {
         Map<String, Object> overrides = Annotations.readCentral(commonDir);
         List<Path> bases = findRuns(commonDir, 0, 3);
@@ -63,16 +63,16 @@ public final class Dashboard {
         // que la PREMIÈRE IMAGE montre : l'identité des exécutions, l'arbre des classes, et
         // les clés des sources — jamais leur contenu.
         Map<String, Object> data =
-                new LinkedHashMap<>(Blocs.ecrire(commonDir, runs, sourcesAffichables(runs, index)));
+                new LinkedHashMap<>(Blocks.write(commonDir, runs, showableSources(runs, index)));
         // Le diagnostic voyage AVEC la page, pas seulement à côté : c'est lui qui permet au
         // panneau de code de dire ce qu'il a cherché quand il n'a rien à montrer. Une page
         // transmise en pièce jointe reste alors explicable sans son répertoire d'origine.
-        Map<String, Object> diagnostic = Diagnostic.write(commonDir, runs, index, lancement);
-        data.put("diagnostic", sansCode(diagnostic));
-        // Le même contenu, mais rangé pour être filtré plutôt que parcouru — voir Faits.
+        Map<String, Object> diagnostic = Diagnostic.write(commonDir, runs, index, launch);
+        data.put("diagnostic", withoutCode(diagnostic));
+        // Le même contenu, mais rangé pour être filtré plutôt que parcouru — voir Facts.
         // Rien de ce qui précède ne change : ce fichier s'ajoute, il ne remplace pas.
-        Faits.ecrire(commonDir, runs, index, diagnostic);
-        data.put("fusion", fusionPresente(commonDir, runs.size()));
+        Facts.write(commonDir, runs, index, diagnostic);
+        data.put("fusion", mergePresent(commonDir, runs.size()));
 
         String template = loadTemplate();
         String page = template.replace("/*__DATA__*/", Json.write(data));
@@ -81,7 +81,7 @@ public final class Dashboard {
 
         // La campagne sur une page, en SVG : la vue interactive répond aux questions qu'on
         // lui pose, elle ne se transmet pas. Ce schéma-là se colle dans une diapositive.
-        Diagramme.ecrire(commonDir, runs);
+        Diagram.write(commonDir, runs);
 
         // Le même contenu en Markdown, sans surcoût de collecte : c'est le seul format
         // qu'une forge affiche comme une page et non comme du code source.
@@ -115,13 +115,13 @@ public final class Dashboard {
      * continue de dire ce qui a été lu et où. Seul ce qui n'avait aucun chemin d'affichage
      * cesse de voyager.
      */
-    static Map<String, Object> sourcesAffichables(List<Object> runs, Sources.Index index) {
-        Map<String, Object> retenues = new LinkedHashMap<>();
-        for (String cle : Diagnostic.mesures(runs)) {
-            Object lignes = index.parCle().get(cle);
-            if (lignes != null) retenues.put(cle, lignes);
+    static Map<String, Object> showableSources(List<Object> runs, Sources.Index index) {
+        Map<String, Object> kept = new LinkedHashMap<>();
+        for (String key : Diagnostic.samples(runs)) {
+            Object lines = index.byKey().get(key);
+            if (lines != null) kept.put(key, lines);
         }
-        return retenues;
+        return kept;
     }
 
     /**
@@ -131,20 +131,20 @@ public final class Dashboard {
      * manquer pour de bonnes raisons — bytecode inconnu en réassemblage, composant JaCoCo
      * introuvable — et un lien mort vaut moins que pas de lien.
      */
-    private static Map<String, Object> fusionPresente(Path commonDir, int executions) {
+    private static Map<String, Object> mergePresent(Path commonDir, int runs) {
         Map<String, Object> m = new LinkedHashMap<>();
         Path html = commonDir.resolve("jacoco-fusion/html");
         m.put("couverture", Files.isRegularFile(html.resolve("index.html")));
         m.put("xml", Files.isRegularFile(html.resolve("jacoco.xml")));
         m.put("csv", Files.isRegularFile(html.resolve("jacoco.csv")));
-        m.put("executions", executions);
+        m.put("executions", runs);
         return m;
     }
 
-    private static Map<String, Object> sansCode(Map<String, Object> diagnostic) {
-        Map<String, Object> allege = new LinkedHashMap<>(diagnostic);
-        allege.remove("executions");
-        return allege;
+    private static Map<String, Object> withoutCode(Map<String, Object> diagnostic) {
+        Map<String, Object> thinned = new LinkedHashMap<>(diagnostic);
+        thinned.remove("executions");
+        return thinned;
     }
 
     private static Map<String, Object> readRun(Path base, Path commonDir,
