@@ -70,6 +70,7 @@ public final class Main {
         Path configFile = null;
         boolean printOptionsOnly = false;
         String contexteQuestion = null;
+        java.util.List<String> contexteFamilles = java.util.List.of();
         boolean reportOnly = false;
         boolean serve = false;
         int servePort = 8787;
@@ -100,6 +101,11 @@ public final class Main {
                 // et rien de plus. Aucun réseau, aucun fournisseur — voir Contexte.
                 case "--contexte" -> contexteQuestion =
                         i + 1 < args.length && !args[i + 1].startsWith("--") ? args[++i] : "";
+                // Le chemin des scripts : nommer les familles plutôt que de faire
+                // interpréter une phrase, dont le résultat n'est reproductible que tant
+                // qu'on ne touche pas aux mots-clés.
+                case "--familles" -> contexteFamilles =
+                        java.util.List.of(args[++i].split("\\s*,\\s*"));
                 case "--report-only" -> reportOnly = true;
                 case "--export" -> config.exportFormats = args[++i];
                 case "--niveau" -> config.level = args[++i];
@@ -146,9 +152,13 @@ public final class Main {
         // réclamer pour une lecture serait le même contresens que de générer un gabarit
         // devant un --report-only.
         if (contexteQuestion != null) {
-            System.out.print(lab.xray.report.Contexte.pour(
-                    Path.of(config.outDir), contexteQuestion,
-                    lab.xray.report.Contexte.BUDGET));
+            var paquet = lab.xray.report.Contexte.pour(Path.of(config.outDir),
+                    contexteQuestion, contexteFamilles, lab.xray.report.Contexte.BUDGET);
+            // Ce qui a été compris part sur la sortie d'erreur, et le paquet sur la sortie
+            // standard : l'opérateur voit l'un sans que l'autre en soit pollué quand il
+            // est redirigé — ce qu'il est presque toujours.
+            System.err.println(paquet.annonce());
+            System.out.print(paquet.texte());
             return 0;
         }
 
@@ -906,6 +916,28 @@ public final class Main {
                   --composants <rép>   Composants déjà présents sur la machine, à prendre
                                        tels quels. À défaut : le voisinage du jar, puis le
                                        dépôt Maven local. Le réseau est le dernier recours.
+                  --contexte ["q"]     N'exécute rien : écrit sur la sortie standard un extrait
+                                       borné du rapport, prêt à donner à lire. La question
+                                       CHOISIT les faits joints — par simples mots-clés, pas par
+                                       compréhension — et elle est recopiée dans le paquet.
+                                       Les familles retenues sont annoncées sur la sortie
+                                       d'erreur. Mots reconnus, par famille jointe :
+                                         classe.jamais_executee  jamais, mort, morte, inutilis,
+                                                                 non couvert, pas couvert,
+                                                                 dead, unused
+                                         couverture.execution    couvert, couverture, coverage,
+                                         + classe                taux, pourcent
+                                         methode.chaude          temps, lent, lente, coût, cout,
+                                                                 chaud, perf, rapide, profil
+                                         source.introuvable      source, introuvable, manque,
+                                         + piste.source          manquant, racine, code
+                                         execution               exécution, execution, campagne,
+                                                                 quand, machine, commande
+                                       Aucun mot reconnu : vue d'ensemble, et c'est dit.
+                  --familles a,b       Nomme les familles de faits à joindre, au lieu de les
+                                       déduire de la question. Chemin des scripts : le résultat
+                                       ne dépend plus des mots employés. Une famille inconnue
+                                       s'arrête, avec la liste de celles qui existent.
                   --report-only        Assemble la vue depuis des mesures déjà collectées.
                   --serve [port]       Sert le rapport (défaut : 8787) et laisse la page
                                        écrire ses annotations à côté des exécutions, puis la

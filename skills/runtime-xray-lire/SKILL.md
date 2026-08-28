@@ -30,6 +30,16 @@ java -jar runtime-xray.jar --out <le-dossier> --contexte "la question posée"
 répondent, leur vocabulaire, et en tête ce qui n'a *pas* été mesuré. Rien n'est envoyé nulle
 part.
 
+La question **choisit** les faits joints — par simples mots-clés, pas par compréhension —
+et **voyage** dans le paquet. Ce qui a été retenu est annoncé sur la **sortie d'erreur** ;
+`--help` donne la table des mots reconnus. Pour un résultat reproductible, nommer les
+familles au lieu de les faire déduire :
+
+```sh
+java -jar runtime-xray.jar --out <le-dossier> --contexte "…" \
+     --familles classe.jamais_executee,methode.chaude
+```
+
 Si le jar n'est pas à portée, lire `faits.jsonl` directement : **sa première ligne contient
 son propre dictionnaire**, il n'y a pas de documentation à aller chercher.
 
