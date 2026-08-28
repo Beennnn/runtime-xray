@@ -1,67 +1,65 @@
 # JMC Agent
 
-> **Statut : 📄 sur documentation** — non exécuté ici ; pas trouvé sous forme directement
-> exécutable sur Maven Central (le groupe `org.openjdk.jmc` n'y publie que les bibliothèques).
+> **Status: 📄 on documentation** — not run here; not found in a directly runnable form on
+> Maven Central (the `org.openjdk.jmc` group publishes only the libraries there).
 
-## Ce que c'est
+## What it is
 
-Un agent JVM du projet Mission Control qui **ajoute des événements JFR sur mesure**, sans
-toucher au code source. On décrit dans un fichier XML les méthodes à instrumenter et les
-valeurs à capturer ; l'agent réécrit le bytecode au chargement.
+A JVM agent from the Mission Control project that **adds bespoke JFR events**, without touching
+the source code. One describes in an XML file the methods to instrument and the values to
+capture; the agent rewrites the bytecode at load time.
 
-## Sa philosophie
+## Its philosophy
 
-**Étendre JFR plutôt que le remplacer.** Tout ce que JFR sait déjà faire — enregistrement
-à faible surcoût, format standard, lecture dans JMC — reste acquis ; l'agent ne fait
-qu'ajouter des événements que la JVM n'émet pas nativement, dont **les valeurs des
-paramètres et les valeurs de retour**.
+**Extending JFR rather than replacing it.** Everything JFR already does — low-overhead
+recording, standard format, reading in JMC — stays acquired; the agent only adds events the JVM
+does not emit natively, among them **the parameter values and the return values**.
 
-## Ce qu'il sait faire
+## What it can do
 
-| Capacité | |
+| Capability | |
 |---|---|
-| **Valeurs des paramètres** | ✅ — déclarées en XML, capturées dans des événements JFR |
-| Valeurs de retour, champs | ✅ |
-| Arbre d'appel | ✅ via les piles JFR |
-| Lignes exécutées | ❌ |
+| **Parameter values** | ✅ — declared in XML, captured into JFR events |
+| Return values, fields | ✅ |
+| Call tree | ✅ through the JFR stacks |
+| Executed lines | ❌ |
 
-## Son interface
+## Its interface
 
-Pas d'interface propre : les événements produits se lisent **dans JMC**, à côté des
-événements natifs. Avantage réel — la capture de paramètres se retrouve corrélée au GC,
-aux verrous et aux temps d'exécution dans un seul et même enregistrement.
+No interface of its own: the events produced are read **in JMC**, beside the native events. A
+real advantage — the parameter capture ends up correlated with the GC, the locks and the
+execution times in one and the same recording.
 
-## Comment on navigue dedans
+## How one navigates in it
 
-Comme JFR : dans JMC (desktop) ou IntelliJ Ultimate. **Pas de page web**, donc pas de
-canal direct vers un lecteur non technique.
+Like JFR: in JMC (desktop) or IntelliJ Ultimate. **No web page**, hence no direct channel
+towards a non-technical reader.
 
-## Mise en œuvre
+## Setting up
 
-Un XML de sondes à écrire, puis `-javaagent:agent.jar=probes.xml`. La configuration est
-plus lourde qu'un flag — ça pèse contre le **critère n° 1**, mais elle est déclarative
-et versionnable, donc rejouable à l'identique.
+An XML of probes to write, then `-javaagent:agent.jar=probes.xml`. The configuration is heavier
+than a flag — that weighs against **criterion no. 1** — but it is declarative and versionable,
+hence replayable identically.
 
-## Licence et coût
+## Licence and cost
 
-Projet OpenJDK Mission Control, **open source**, **0 €**. Fonctionne hors ligne une fois le
-jar récupéré.
+An OpenJDK Mission Control project, **open source**, **€0**. Works offline once the jar is
+fetched.
 
-## Ce qu'on peut en espérer
+## What one can hope for from it
 
-**La piste gratuite la plus cohérente pour les valeurs de paramètres**, précisément parce
-qu'elle s'appuie sur JFR, déjà présent. À tester juste après Arthas — et d'autant plus
-intéressante si le portage vers Java 25 est décidé, puisque tout converge alors vers un
-seul enregistrement JFR.
+**The most coherent free track for the parameter values**, precisely because it leans on JFR,
+already present. To be tested right after Arthas — and all the more interesting if the port to
+Java 25 is decided, since everything then converges towards a single JFR recording.
 
-## Comparable à
+## Comparable to
 
-- **[Arthas](arthas.md)** — Le concurrent immédiat, et il a un avantage net : il fonctionne en deux commandes, sans écrire de XML. L'avantage du JMC Agent est ailleurs — sa sortie est **structurée** (des événements JFR), donc réutilisable.
-- **[BTrace](btrace-byteman.md) · [Byteman](btrace-byteman.md)** — Même travail d'instrumentation, exprimé en code plutôt qu'en déclaration.
-- **[JFR](jfr-jmc.md)** — Il ne le remplace pas, il l'**étend** : mêmes enregistrements, mêmes outils de lecture, avec des événements en plus.
+- **[Arthas](arthas.md)** — The immediate competitor, and it has a clear advantage: it works in two commands, with no XML to write. The JMC Agent's advantage lies elsewhere — its output is **structured** (JFR events), hence reusable.
+- **[BTrace](btrace-byteman.md) · [Byteman](btrace-byteman.md)** — The same instrumentation work, expressed as code rather than as a declaration.
+- **[JFR](jfr-jmc.md)** — It does not replace it, it **extends** it: same recordings, same reading tools, with extra events.
 
-## Facile / moins facile
+## Easy / less easy
 
-**Ce qui est facile.** S'adosser à l'existant : les événements produits arrivent dans le même enregistrement JFR que le GC et les verrous, corrélés.
+**What is easy.** Leaning on what is already there: the events produced arrive in the same JFR recording as the GC and the locks, correlated.
 
-**Ce qui l'est moins.** **Trouver un binaire prêt à l'emploi** — il n'est pas publié sous forme exécutable sur Maven Central. Écrire le XML de sondes. Et lire le résultat, qui suppose JMC.
+**What is less so.** **Finding a ready-to-use binary** — it is not published in runnable form on Maven Central. Writing the XML of probes. And reading the result, which supposes JMC.

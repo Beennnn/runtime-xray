@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# async-profiler — arbre d'appel par échantillonnage, rendu en flame graph HTML autonome.
+# async-profiler — call tree by sampling, rendered as a self-contained HTML flame graph.
 #
-# Pourquoi cet outil : c'est le seul gratuit qui produit, sans serveur ni compte, un
-# HTML unique navigable (zoom, recherche, survol) qu'on peut envoyer par mail.
+# Why this tool: it is the only free one that produces, with no server and no account, a
+# single navigable HTML (zoom, search, hover) one can send by mail.
 set -euo pipefail
 
 REPO_ROOT="$(git rev-parse --show-toplevel)"
@@ -15,13 +15,13 @@ cd "$REPO_ROOT"
 mvn -q clean package
 mkdir -p "$OUT"
 
-# itimer : sur macOS, perf_events n'existe pas — c'est le mode d'échantillonnage retenu.
-# DebugNonSafepoints : sans ce flag, les frames sont attribuées au mauvais numéro de ligne.
+# itimer: on macOS, perf_events does not exist — it is the sampling mode retained.
+# DebugNonSafepoints: without this flag, the frames are attributed to the wrong line number.
 for fmt in flamegraph tree; do
   java -agentpath:"$LIB"=start,event=itimer,interval=1ms,include='lab/sample/*',$fmt,file="$OUT/$fmt.html" \
        -XX:+UnlockDiagnosticVMOptions -XX:+DebugNonSafepoints \
        -jar sample-app/target/sample-app.jar > /dev/null
 done
 
-echo "→ flame graph : $OUT/flamegraph.html"
-echo "→ arbre d'appel : $OUT/tree.html"
+echo "→ flame graph: $OUT/flamegraph.html"
+echo "→ call tree: $OUT/tree.html"

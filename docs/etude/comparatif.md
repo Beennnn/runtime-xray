@@ -1,173 +1,171 @@
-# Tableau comparatif
+# Comparison table
 
-> Rempli à partir de deux sources distinctes, jamais mélangées : ce qui a été
-> **exécuté sur ce poste** (et dont la sortie est versionnée dans `reports-demo/`),
-> et ce qui provient de la **documentation publique** et reste à vérifier.
-> Critères et protocole : [la méthode](methode.md).
+> Filled in from two distinct sources, never mixed: what was **run on this machine** (and
+> whose output is versioned in `reports-demo/`), and what comes from the **public
+> documentation** and remains to be verified.
+> Criteria and protocol: [the method](methode.md).
 
-## 0. Statut de vérification
+## 0. Verification status
 
-| Statut | Sens |
+| Status | Meaning |
 |---|---|
-| ✅ **Testé ici** | Exécuté sur `sample-app`, sortie versionnée |
-| ⛔ **Bloqué par licence** | Exige une licence ou un essai commercial activé par un humain |
-| 🚧 **Bloqué techniquement** | Gratuit, mais non exécutable dans cet environnement — raison indiquée |
-| 📄 **Sur documentation** | Non exécuté ; fiche établie sur sources publiques, à confirmer |
+| ✅ **Tested here** | Run on `sample-app`, output versioned |
+| ⛔ **Blocked by licence** | Demands a licence or a commercial trial activated by a human |
+| 🚧 **Blocked technically** | Free, but not runnable in this environment — reason given |
+| 📄 **On documentation** | Not run; sheet established on public sources, to be confirmed |
 
-**Sans licence**
+**Without licence**
 
-| Outil | Statut | Preuve / raison |
+| Tool | Status | Proof / reason |
 |---|---|---|
-| JaCoCo | ✅ Testé ici | [`reports-demo/generated/jacoco/html/`](../../reports-demo/generated/jacoco) |
-| async-profiler | ✅ Testé ici | [`flamegraph.html`](../../reports-demo/generated/async-profiler/flamegraph.html) + [`tree.html`](../../reports-demo/generated/async-profiler/tree.html) |
-| JFR (Flight Recorder) | ✅ Testé ici | [`recording.jfr`](../../reports-demo/generated/jfr) + `method-timing.txt` |
-| JDK Mission Control | 📄 Sur documentation | GUI desktop : l'ouverture du `.jfr` produit ici n'a pas été faite |
-| VisualVM | 📄 Sur documentation | GUI desktop, attachement manuel |
-| IntelliJ IDEA | 📄 Sur documentation | Vérification = ouvrir l'IDE ; non automatisable ici |
-| Arthas | ✅ Testé ici | [`reports-demo/generated/arthas/`](../../reports-demo/generated/arthas) — installé hors ligne depuis Maven Central, vérifié avec le trafic HTTP coupé |
-| JMC Agent | 📄 Sur documentation | Non publié sur Maven Central sous une forme directement exécutable |
-| BTrace / Byteman | 📄 Sur documentation | Non exécutés |
-| OpenTelemetry Java agent | 📄 Sur documentation | Exige un collecteur + un backend de visualisation |
-| Glowroot | 📄 Sur documentation | Exige un agent + son serveur embarqué |
-| Kieker | 📄 Sur documentation | Non exécuté |
-| OpenClover | 📄 Sur documentation | Non exécuté |
+| JaCoCo | ✅ Tested here | [`reports-demo/generated/jacoco/html/`](../../reports-demo/generated/jacoco) |
+| async-profiler | ✅ Tested here | [`flamegraph.html`](../../reports-demo/generated/async-profiler/flamegraph.html) + [`tree.html`](../../reports-demo/generated/async-profiler/tree.html) |
+| JFR (Flight Recorder) | ✅ Tested here | [`recording.jfr`](../../reports-demo/generated/jfr) + `method-timing.txt` |
+| JDK Mission Control | 📄 On documentation | Desktop GUI: opening the `.jfr` produced here was not done |
+| VisualVM | 📄 On documentation | Desktop GUI, manual attachment |
+| IntelliJ IDEA | 📄 On documentation | Verifying = opening the IDE; not automatable here |
+| Arthas | ✅ Tested here | [`reports-demo/generated/arthas/`](../../reports-demo/generated/arthas) — installed offline from Maven Central, verified with the HTTP traffic cut |
+| JMC Agent | 📄 On documentation | Not published on Maven Central in a directly runnable form |
+| BTrace / Byteman | 📄 On documentation | Not run |
+| OpenTelemetry Java agent | 📄 On documentation | Demands a collector + a visualisation backend |
+| Glowroot | 📄 On documentation | Demands an agent + its embedded server |
+| Kieker | 📄 On documentation | Not run |
+| OpenClover | 📄 On documentation | Not run |
 
-**Avec licence** — prix et démarches : [les clés d'évaluation](cles-evaluation.md)
+**With licence** — prices and steps: [the evaluation keys](cles-evaluation.md)
 
-| Outil | Statut | Preuve / raison |
+| Tool | Status | Proof / reason |
 |---|---|---|
-| JProfiler | ⛔ Bloqué par licence | Essai 10 jours à activer manuellement |
-| YourKit | ⛔ Bloqué par licence | Essai 15 jours à activer manuellement |
-| XRebel (Perforce) | ⛔ Bloqué par licence | Licence commerciale |
-| Dynatrace / Datadog / New Relic | ⛔ Bloqué par licence | SaaS, compte + agent |
+| JProfiler | ⛔ Blocked by licence | 10-day trial to be activated manually |
+| YourKit | ⛔ Blocked by licence | 15-day trial to be activated manually |
+| XRebel (Perforce) | ⛔ Blocked by licence | Commercial licence |
+| Dynatrace / Datadog / New Relic | ⛔ Blocked by licence | SaaS, account + agent |
 
-## 1. Couverture fonctionnelle — les trois données recherchées
+## 1. Functional coverage — the three kinds of data sought
 
-Les trois colonnes reprennent mot pour mot la demande : lignes exécutées, arbre d'appel,
-valeurs des paramètres.
+The three columns take up the request word for word: executed lines, call tree, parameter
+values.
 
-| Outil | Lignes exécutées | Arbre d'appel | Valeurs des paramètres |
+| Tool | Executed lines | Call tree | Parameter values |
 |---|---|---|---|
-| **JaCoCo** ✅ | ✅ **oui**, ligne à ligne + branches | ❌ non | ❌ non |
-| **async-profiler** ✅ | ❌ non (échantillonne, ne prouve rien sur le non-exécuté) | ✅ **oui**, complet et interactif | ❌ non |
-| **JFR** ✅ | ⚠️ partiel — piles échantillonnées, pas une couverture | ✅ oui (piles + `jdk.MethodTrace` ciblé) | ❌ non — la signature `(List, int)` est affichée, **pas les valeurs** |
-| **JMC** 📄 | ⚠️ idem JFR | ✅ oui, vue graphique du `.jfr` | ❌ non |
-| **VisualVM** 📄 | ❌ non | ✅ oui (sampler / instrumentation) | ❌ non |
-| **Arthas** ✅ | ❌ non | ✅ **oui, par appel, avec les numéros de ligne** | ✅ **oui** — les valeurs, pas les types |
-| **BTrace** 📄 | ❌ non | ✅ oui | ✅ oui (scripts d'instrumentation) |
-| **Byteman** 📄 | ❌ non | ⚠️ indirect | ✅ oui (règles d'injection) |
-| **JMC Agent** 📄 | ❌ non | ✅ via JFR | ✅ oui — capture déclarative (XML) de paramètres et valeurs de retour dans des événements JFR |
-| **OpenTelemetry** 📄 | ❌ non | ✅ oui (spans imbriqués) | ⚠️ seulement ce qu'on met en attribut de span |
-| **Glowroot** 📄 | ❌ non | ✅ oui (traces par transaction) | ⚠️ limité, configurable |
-| **Kieker** 📄 | ⚠️ traces d'exécution | ✅ oui — **conçu pour reconstruire l'architecture** à partir des traces | ✅ oui (probes paramétrables) |
-| **OpenClover** 📄 | ✅ oui, + couverture **par test** | ❌ non | ❌ non |
-| **JProfiler** ⛔ | ❌ non | ✅ oui, très riche | ✅ oui — *method splitting by parameter values* |
-| **YourKit** ⛔ | ❌ non | ✅ oui | ✅ oui (*probes*, Open API) |
+| **JaCoCo** ✅ | ✅ **yes**, line by line + branches | ❌ no | ❌ no |
+| **async-profiler** ✅ | ❌ no (it samples, proves nothing about what did not run) | ✅ **yes**, complete and interactive | ❌ no |
+| **JFR** ✅ | ⚠️ partial — sampled stacks, not a coverage | ✅ yes (stacks + targeted `jdk.MethodTrace`) | ❌ no — the `(List, int)` signature is displayed, **not the values** |
+| **JMC** 📄 | ⚠️ same as JFR | ✅ yes, graphical view of the `.jfr` | ❌ no |
+| **VisualVM** 📄 | ❌ no | ✅ yes (sampler / instrumentation) | ❌ no |
+| **Arthas** ✅ | ❌ no | ✅ **yes, per call, with the line numbers** | ✅ **yes** — the values, not the types |
+| **BTrace** 📄 | ❌ no | ✅ yes | ✅ yes (instrumentation scripts) |
+| **Byteman** 📄 | ❌ no | ⚠️ indirect | ✅ yes (injection rules) |
+| **JMC Agent** 📄 | ❌ no | ✅ through JFR | ✅ yes — declarative capture (XML) of parameters and return values into JFR events |
+| **OpenTelemetry** 📄 | ❌ no | ✅ yes (nested spans) | ⚠️ only what one puts in a span attribute |
+| **Glowroot** 📄 | ❌ no | ✅ yes (traces per transaction) | ⚠️ limited, configurable |
+| **Kieker** 📄 | ⚠️ execution traces | ✅ yes — **designed to reconstruct the architecture** from the traces | ✅ yes (parameterisable probes) |
+| **OpenClover** 📄 | ✅ yes, + coverage **per test** | ❌ no | ❌ no |
+| **JProfiler** ⛔ | ❌ no | ✅ yes, very rich | ✅ yes — *method splitting by parameter values* |
+| **YourKit** ⛔ | ❌ no | ✅ yes | ✅ yes (*probes*, Open API) |
 
-> **Le constat central se lit dans cette table** : *aucun outil ne couvre seul les trois
-> colonnes.* La couverture de lignes et la capture de paramètres relèvent de familles
-> techniques différentes — l'une instrumente tout le bytecode en permanence, l'autre
-> greffe des sondes sur quelques méthodes ciblées. **Le résultat sera forcément une
-> combinaison d'au moins deux outils**, et c'est cela qu'il faut arbitrer, pas « lequel
-> gagne ».
+> **The central finding reads off this table**: *no tool covers the three columns on its own.*
+> Line coverage and parameter capture belong to different technical families — one instruments
+> all the bytecode permanently, the other grafts probes onto a few targeted methods. **The
+> result will necessarily be a combination of at least two tools**, and that is what has to be
+> settled, not "which one wins".
 
-## 2. Où se regarde le résultat — IDE, page web, plateforme
+## 2. Where the result is looked at — IDE, web page, platform
 
-C'est l'axe décisif de l'étude : *voir par où le code est passé et naviguer dedans*, pour
-un développeur **comme** pour un non-développeur.
+This is the study's decisive axis: *seeing where the code went and navigating inside it*, for a
+developer **as much as** for a non-developer.
 
-| Outil | Page web autonome (hors IDE) | Dans l'IDE | Dans GitHub / GitLab | GUI desktop |
+| Tool | Self-contained web page (outside an IDE) | In the IDE | In GitHub / GitLab | Desktop GUI |
 |---|---|---|---|---|
-| **JaCoCo** ✅ | ✅ **oui — code source annoté, cliquable, ligne à ligne** ([capture](../assets/shots/jacoco-source-weather.png)) | ✅ IntelliJ, Eclipse, VS Code | ⚠️ **GitLab oui** (visualisation native dans la diff de MR, via un XML Cobertura converti) ; **GitHub non nativement** (exige Codecov / Coveralls / un commentaire de PR) | ❌ |
-| **async-profiler** ✅ | ✅ **oui — flame graph + arbre d'appel HTML autonome**, zoom et recherche ([capture](../assets/shots/async-tree.png)) | ⚠️ via IntelliJ Ultimate (qui l'embarque) | ❌ | ❌ |
-| **JFR** ✅ | ❌ — sortie binaire + texte CLI | ✅ IntelliJ Ultimate ouvre les `.jfr` | ❌ | ✅ via JMC |
-| **JMC** 📄 | ❌ | ❌ | ❌ | ✅ application Eclipse RCP |
-| **VisualVM** 📄 | ❌ | ⚠️ plugin IDE existant | ❌ | ✅ |
-| **Arthas** 🚧 | ✅ console web (`http://<hôte>:8563`) | ❌ | ❌ | ❌ |
-| **Glowroot** 📄 | ✅ **oui — interface web complète embarquée** | ❌ | ❌ | ❌ |
-| **OpenTelemetry** 📄 | ✅ via Jaeger / Grafana Tempo | ❌ | ❌ | ❌ |
-| **OpenClover** 📄 | ✅ rapport HTML avec source annotée | ⚠️ plugins historiques | ⚠️ comme JaCoCo | ❌ |
-| **SonarQube** 📄 | ✅ **oui — source annotée + navigation, pensée pour non-développeurs** ; consomme le XML JaCoCo | ✅ SonarLint | ✅ décoration native des MR/PR | ❌ |
-| **Codecov / Coveralls** 📄 | ✅ source annotée en ligne | ❌ | ✅ **oui — commentaire de PR + vue par ligne** | ❌ |
-| **JProfiler** ⛔ | ⚠️ export HTML/CSV des snapshots | ✅ plugin IntelliJ natif | ❌ | ✅ |
-| **YourKit** ⛔ | ⚠️ export multi-formats | ✅ plugin IDE | ❌ | ✅ |
+| **JaCoCo** ✅ | ✅ **yes — annotated source code, clickable, line by line** ([screenshot](../assets/shots/jacoco-source-weather.png)) | ✅ IntelliJ, Eclipse, VS Code | ⚠️ **GitLab yes** (native visualisation in the MR diff, through a converted Cobertura XML); **GitHub not natively** (demands Codecov / Coveralls / a PR comment) | ❌ |
+| **async-profiler** ✅ | ✅ **yes — flame graph + self-contained HTML call tree**, zoom and search ([screenshot](../assets/shots/async-tree.png)) | ⚠️ through IntelliJ Ultimate (which embeds it) | ❌ | ❌ |
+| **JFR** ✅ | ❌ — binary output + CLI text | ✅ IntelliJ Ultimate opens `.jfr` files | ❌ | ✅ through JMC |
+| **JMC** 📄 | ❌ | ❌ | ❌ | ✅ Eclipse RCP application |
+| **VisualVM** 📄 | ❌ | ⚠️ an IDE plugin exists | ❌ | ✅ |
+| **Arthas** 🚧 | ✅ web console (`http://<host>:8563`) | ❌ | ❌ | ❌ |
+| **Glowroot** 📄 | ✅ **yes — complete embedded web interface** | ❌ | ❌ | ❌ |
+| **OpenTelemetry** 📄 | ✅ through Jaeger / Grafana Tempo | ❌ | ❌ | ❌ |
+| **OpenClover** 📄 | ✅ HTML report with annotated source | ⚠️ historic plugins | ⚠️ like JaCoCo | ❌ |
+| **SonarQube** 📄 | ✅ **yes — annotated source + navigation, designed for non-developers**; consumes the JaCoCo XML | ✅ SonarLint | ✅ native decoration of MRs/PRs | ❌ |
+| **Codecov / Coveralls** 📄 | ✅ annotated source online | ❌ | ✅ **yes — PR comment + per-line view** | ❌ |
+| **JProfiler** ⛔ | ⚠️ HTML/CSV export of the snapshots | ✅ native IntelliJ plugin | ❌ | ✅ |
+| **YourKit** ⛔ | ⚠️ multi-format export | ✅ IDE plugin | ❌ | ✅ |
 
-### Ce que ça implique pour les deux publics
+### What this implies for the two audiences
 
-- **Développeur** → l'IDE gagne : IntelliJ affiche la couverture directement dans la marge
-  de l'éditeur, et on saute d'un appel à l'autre avec les raccourcis habituels. Chemin le
-  plus court : produire un `.exec` JaCoCo et le charger dans l'IDE.
-- **Non-développeur** → la page web autonome gagne, et **JaCoCo est le seul outil testé
-  ici qui la produise pour la couverture** : un dossier HTML, aucun serveur, aucun compte,
-  cliquable de la vue d'ensemble jusqu'à la ligne coloriée. Publiable tel quel sur GitHub
-  Pages, donc partageable par simple URL.
-- **Revue de code (GitHub/GitLab)** → ce n'est **pas** un point fort de la couverture Java
-  brute. GitLab sait le faire nativement mais exige une conversion au format Cobertura ;
-  GitHub demande un service tiers. Aucun des deux ne montre un **arbre d'appel** — pour ça,
-  la page web autonome reste le seul canal réaliste.
+- **Developer** → the IDE wins: IntelliJ displays the coverage directly in the editor's
+  margin, and one jumps from one call to another with the usual shortcuts. Shortest path:
+  produce a JaCoCo `.exec` and load it into the IDE.
+- **Non-developer** → the self-contained web page wins, and **JaCoCo is the only tool tested
+  here that produces one for the coverage**: an HTML folder, no server, no account, clickable
+  from the overview down to the coloured line. Publishable as it is on GitHub Pages, hence
+  shareable by a simple URL.
+- **Code review (GitHub/GitLab)** → this is **not** a strong point of raw Java coverage.
+  GitLab can do it natively but demands a conversion to the Cobertura format; GitHub demands a
+  third-party service. Neither of the two shows a **call tree** — for that, the self-contained
+  web page remains the only realistic channel.
 
-## 3. Facilité de mise en œuvre (critère n° 1)
+## 3. Ease of setting up (criterion no. 1)
 
-| Outil | Mode d'intégration | Ce qu'il faut faire avant d'avoir un rapport | Verdict |
+| Tool | Mode of integration | What has to be done before having a report | Verdict |
 |---|---|---|---|
-| **JFR** ✅ | Option JVM native | Un flag `-XX:StartFlightRecording` — **rien à installer**, c'est dans le JDK | ⭐ le plus simple |
-| **JaCoCo** ✅ | Agent JVM (`-javaagent`) | Récupérer un jar, lancer avec l'agent, générer le rapport (3 commandes, scriptées ici) | ⭐ simple |
-| **async-profiler** ✅ | Agent natif (`-agentpath`) | Rien à installer : le jar Maven embarque la bibliothèque native | ⭐ simple |
-| **VisualVM** 📄 | Attachement au process | Lancer l'appli, ouvrir l'outil, cliquer sur le process | ⭐ simple, mais manuel |
-| **JProfiler** ⛔ | Agent + GUI | Installer, licencier, attacher — annoncé « zéro configuration » | à vérifier en essai |
-| **Arthas** 🚧 | Attachement au process | Un jar, puis des commandes interactives | simple si le réseau le permet |
-| **OpenTelemetry** 📄 | Agent JVM | Agent **+ collecteur + backend** à déployer | ⚠️ lourd pour un diagnostic ponctuel |
-| **Kieker** 📄 | Agent + configuration | Instrumentation à configurer, puis analyse hors ligne | ⚠️ le plus lourd — c'est un cadre de recherche |
+| **JFR** ✅ | Native JVM option | One `-XX:StartFlightRecording` flag — **nothing to install**, it is in the JDK | ⭐ the simplest |
+| **JaCoCo** ✅ | JVM agent (`-javaagent`) | Fetch a jar, launch with the agent, generate the report (3 commands, scripted here) | ⭐ simple |
+| **async-profiler** ✅ | Native agent (`-agentpath`) | Nothing to install: the Maven jar embeds the native library | ⭐ simple |
+| **VisualVM** 📄 | Attaching to the process | Launch the app, open the tool, click on the process | ⭐ simple, but manual |
+| **JProfiler** ⛔ | Agent + GUI | Install, licence, attach — announced as "zero configuration" | to be verified in a trial |
+| **Arthas** 🚧 | Attaching to the process | One jar, then interactive commands | simple if the network allows it |
+| **OpenTelemetry** 📄 | JVM agent | Agent **+ collector + backend** to deploy | ⚠️ heavy for a one-off diagnosis |
+| **Kieker** 📄 | Agent + configuration | Instrumentation to configure, then offline analysis | ⚠️ the heaviest — it is a research framework |
 
-> Rappel : c'est le critère n° 1. Un outil qui demande une demi-journée de configuration
-> perd contre un flag JVM, même s'il en montre davantage.
+> A reminder: this is criterion no. 1. A tool that demands half a day of configuration loses
+> against a JVM flag, even if it shows more.
 
-## 4. Licence et coût (critère n° 5)
+## 4. Licence and cost (criterion no. 5)
 
-| Outil | Licence | Modèle | Coût indicatif |
+| Tool | Licence | Model | Indicative cost |
 |---|---|---|---|
-| JaCoCo | EPL 2.0 | open source | 0 € |
-| async-profiler | Apache 2.0 | open source | 0 € |
-| JFR | GPLv2 + Classpath Exception (OpenJDK) | inclus dans le JDK | 0 € |
-| JMC | UPL 1.0 *(à confirmer)* | open source | 0 € |
-| VisualVM | GPLv2 + CE *(à confirmer)* | open source | 0 € |
-| Arthas | Apache 2.0 | open source | 0 € |
-| BTrace / Byteman | open source *(licences exactes à confirmer)* | open source | 0 € |
-| Kieker | Apache 2.0 | open source / académique | 0 € |
-| OpenClover | Apache 2.0 | open source | 0 € |
-| Glowroot | Apache 2.0 | open source | 0 € |
-| OpenTelemetry | Apache 2.0 | open source | 0 € + coût du backend |
-| IntelliJ IDEA Community | Apache 2.0 | gratuit | 0 € — **mais le profiler intégré est réservé à Ultimate** |
-| IntelliJ IDEA Ultimate | commerciale | abonnement | ordre de grandeur : quelques centaines €/an *(à vérifier sur la grille JetBrains)* |
-| JProfiler | commerciale | licence perpétuelle + maintenance | ~500 $ / licence, ~200 $ académique *(ordre de grandeur, à confirmer)* |
-| YourKit | commerciale | licence | équivalent ; **gratuit pour l'open source**, tarif réduit académique *(à confirmer)* |
-| XRebel | commerciale | abonnement | à chiffrer |
-| Dynatrace / Datadog / New Relic | commerciale | SaaS à l'usage | le plus cher ; hors sujet pour un diagnostic ponctuel |
+| JaCoCo | EPL 2.0 | open source | €0 |
+| async-profiler | Apache 2.0 | open source | €0 |
+| JFR | GPLv2 + Classpath Exception (OpenJDK) | included in the JDK | €0 |
+| JMC | UPL 1.0 *(to be confirmed)* | open source | €0 |
+| VisualVM | GPLv2 + CE *(to be confirmed)* | open source | €0 |
+| Arthas | Apache 2.0 | open source | €0 |
+| BTrace / Byteman | open source *(exact licences to be confirmed)* | open source | €0 |
+| Kieker | Apache 2.0 | open source / academic | €0 |
+| OpenClover | Apache 2.0 | open source | €0 |
+| Glowroot | Apache 2.0 | open source | €0 |
+| OpenTelemetry | Apache 2.0 | open source | €0 + the backend's cost |
+| IntelliJ IDEA Community | Apache 2.0 | free | €0 — **but the integrated profiler is reserved to Ultimate** |
+| IntelliJ IDEA Ultimate | commercial | subscription | order of magnitude: a few hundred €/year *(to be checked on the JetBrains price list)* |
+| JProfiler | commercial | perpetual licence + maintenance | ~$500 / licence, ~$200 academic *(order of magnitude, to be confirmed)* |
+| YourKit | commercial | licence | equivalent; **free for open source**, reduced academic rate *(to be confirmed)* |
+| XRebel | commercial | subscription | to be priced |
+| Dynatrace / Datadog / New Relic | commercial | usage-based SaaS | the most expensive; beside the point for a one-off diagnosis |
 
-> ⚠️ **Aucun tarif de cette table n'a été relevé sur la page tarifaire du fournisseur au
-> cours de cette session.** Ils viennent de connaissances générales et doivent
-> être confirmés avant toute décision d'achat.
+> ⚠️ **No price in this table was read from the vendor's pricing page during this session.**
+> They come from general knowledge and must be confirmed before any purchasing decision.
 
-## 5. Synthèse provisoire
+## 5. Provisional summary
 
-Ce qui est **établi par l'exécution** (et non par lecture) :
+What is **established by running it** (and not by reading):
 
-1. **Pour « par où le code est passé », JaCoCo est déjà la réponse.** Il produit un site
-   HTML où l'on descend de la vue d'ensemble jusqu'au source colorié ligne par ligne, sans
-   IDE, sans serveur, sans compte. Sur `sample-app` : 91,1 % des instructions et 81,8 % des
-   branches couvertes, avec `PlaneSpeed` à 0 % et la branche `SNOW` en rouge — exactement
-   ce qu'un lecteur non technique doit pouvoir constater seul.
-2. **Pour l'arbre d'appel, async-profiler donne le meilleur rapport effort/résultat gratuit** :
-   un HTML autonome, dépliable et cherchable, obtenu avec un seul flag JVM.
-3. **Pour les valeurs de paramètres, rien de gratuit n'a pu être démontré ici.** JFR affiche
-   la signature, pas les valeurs — c'est vérifié, pas supposé. Les pistes gratuites
-   (Arthas, JMC Agent, BTrace, Byteman) restent à tester ; c'est précisément le terrain où
-   les commerciaux revendiquent leur valeur.
+1. **For "where the code went", JaCoCo is already the answer.** It produces an HTML site where
+   one descends from the overview down to the source coloured line by line, with no IDE, no
+   server, no account. On `sample-app`: 91.1 % of instructions and 81.8 % of branches covered,
+   with `PlaneSpeed` at 0 % and the `SNOW` branch in red — exactly what a non-technical reader
+   must be able to see alone.
+2. **For the call tree, async-profiler gives the best free effort-to-result ratio**: a
+   self-contained HTML, unfoldable and searchable, obtained with a single JVM flag.
+3. **For the parameter values, nothing free could be demonstrated here.** JFR displays the
+   signature, not the values — that is verified, not supposed. The free tracks (Arthas, JMC
+   Agent, BTrace, Byteman) remain to be tested; it is precisely the ground on which the
+   commercial tools claim their value.
 
-Ce qui **reste à trancher** — voir [la méthode](methode.md#6-ce-qui-reste-à-faire) :
+What **remains to be settled** — see [the method](methode.md#7-what-remains-to-be-done):
 
-- l'essai JProfiler / YourKit sur ce même `sample-app`, seul moyen de savoir si le payant
-  se justifie **sur le seul point où le gratuit décroche** ;
-- la piste gratuite de capture de paramètres la plus crédible (Arthas ou JMC Agent) ;
-- la publication du rapport JaCoCo sur GitHub Pages, pour valider le canal « URL
-  partagée à un non-développeur ».
+- the JProfiler / YourKit trial on this same `sample-app`, the only way of knowing whether the
+  paid route is justified **on the one point where the free one falls short**;
+- the most credible free track for capturing parameters (Arthas or JMC Agent);
+- publishing the JaCoCo report on GitHub Pages, to validate the "URL shared with a
+  non-developer" channel.

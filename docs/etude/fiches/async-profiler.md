@@ -1,102 +1,102 @@
 # async-profiler
 
-> **Statut : ✅ testé ici** — sorties dans [`reports-demo/generated/async-profiler/`](../../../reports-demo/generated/async-profiler)
+> **Status: ✅ tested here** — outputs in [`reports-demo/generated/async-profiler/`](../../../reports-demo/generated/async-profiler)
 
-## Ce que c'est
+## What it is
 
-Un profiler par échantillonnage pour la JVM, sous forme d'agent natif. Il interrompt
-régulièrement le programme, note la pile d'appel, et agrège le tout en un arbre.
+A sampling profiler for the JVM, in the form of a native agent. It regularly interrupts the
+program, notes the call stack, and aggregates the whole into a tree.
 
-## Sa philosophie
+## Its philosophy
 
-**Mesurer sans déformer.** Les profilers qui instrumentent chaque méthode changent le
-comportement qu'ils mesurent — la JVM n'optimise plus pareil. async-profiler échantillonne
-à intervalle fixe, avec un surcoût de quelques pourcents.
+**Measuring without deforming.** Profilers that instrument every method change the behaviour
+they measure — the JVM no longer optimises the same way. async-profiler samples at a fixed
+interval, with an overhead of a few per cent.
 
-Le prix de cette discrétion : c'est **statistique**. Une méthode rare peut n'apparaître
-dans aucun échantillon. Il ne peut donc jamais affirmer qu'un code n'a *pas* tourné —
-c'est exactement le complément de JaCoCo.
+The price of that discretion: it is **statistical**. A rare method may appear in no sample at
+all. It can therefore never assert that a piece of code did *not* run — which is exactly
+JaCoCo's complement.
 
-## Ce qu'il sait faire
+## What it can do
 
-| Capacité | |
+| Capability | |
 |---|---|
-| Arbre d'appel | ✅ complet, avec % de temps par branche |
-| Flame graph | ✅ HTML autonome interactif |
-| Lignes exécutées | ❌ (échantillonnage : aucune preuve de non-exécution) |
-| Valeurs des paramètres | ❌ |
-| Profils mémoire, verrous, temps réel | ✅ (`alloc`, `lock`, `wall`) |
-| Formats | HTML (flame graph, arbre), collapsed, JFR |
+| Call tree | ✅ complete, with % of time per branch |
+| Flame graph | ✅ self-contained interactive HTML |
+| Executed lines | ❌ (sampling: no proof of non-execution) |
+| Parameter values | ❌ |
+| Memory, lock, wall-clock profiles | ✅ (`alloc`, `lock`, `wall`) |
+| Formats | HTML (flame graph, tree), collapsed, JFR |
 
-## Son interface
+## Its interface
 
-Un **fichier HTML unique**, sans dépendance externe.
+A **single HTML file**, with no external dependency.
 
-**Vue arbre** — dépliable, cherchable, avec pourcentage et compte d'échantillons :
+**Tree view** — unfoldable, searchable, with the percentage and the sample count:
 
-![Arbre d'appel](../../assets/shots/async-tree.png)
+![Call tree](../../assets/shots/async-tree.png)
 
-**Flame graph** — la largeur d'une barre est le temps passé ; on clique pour zoomer :
+**Flame graph** — a bar's width is the time spent; one clicks to zoom in:
 
 ![Flame graph](../../assets/shots/async-flamegraph.png)
 
-## Comment on navigue dedans
+## How one navigates in it
 
-- **Hors IDE** — un seul fichier `.html` : on l'ouvre, on déplie, on cherche un nom de
-  méthode, on zoome sur une branche. Envoyable par pièce jointe, lisible hors ligne.
-- **Dans IntelliJ** — IntelliJ IDEA **Ultimate** embarque async-profiler comme moteur de
-  son profiler intégré. Community, non. Autrement dit : le moteur est gratuit, c'est le
-  confort de l'IDE qui est payant.
-- **Pas d'intégration GitHub / GitLab** — un arbre d'appel n'a pas sa place dans une diff.
+- **Outside an IDE** — a single `.html` file: one opens it, unfolds, searches for a method
+  name, zooms on a branch. Sendable as an attachment, readable offline.
+- **In IntelliJ** — IntelliJ IDEA **Ultimate** embeds async-profiler as the engine of its
+  integrated profiler. Community, no. Put otherwise: the engine is free, it is the IDE's
+  comfort that is paid for.
+- **No GitHub / GitLab integration** — a call tree has no place in a diff.
 
-## Mise en œuvre
+## Setting up
 
 ```bash
-# Rien à installer : l'orchestrateur récupère le jar depuis Maven Central (ou le miroir
-# interne) et en extrait la bibliothèque native de la plateforme, une seule fois.
-# Pour une installation manuelle, la variable ASYNC_PROFILER_LIB pointe une copie à soi.
-brew install async-profiler       # facultatif, si l'on préfère l'installer soi-même
+# Nothing to install: the orchestrator fetches the jar from Maven Central (or the internal
+# mirror) and extracts the platform's native library from it, once only.
+# For a manual installation, the ASYNC_PROFILER_LIB variable points at a copy of one's own.
+brew install async-profiler       # optional, if one prefers to install it oneself
 ./tools/async-profiler/collect.sh
 ```
 
-Puis un seul flag JVM. **Aucune modification du code analysé.**
+Then a single JVM flag. **No modification of the analysed code.**
 
-> ⚠️ Sur macOS, `perf_events` n'existe pas : utiliser `event=itimer`.
+> ⚠️ On macOS, `perf_events` does not exist: use `event=itimer`.
 >
-> ⚠️ Sans `-XX:+DebugNonSafepoints`, les frames sont attribuées au mauvais numéro de ligne.
+> ⚠️ Without `-XX:+DebugNonSafepoints`, the frames are attributed to the wrong line number.
 >
-> ⚠️ Sans `include=lab/sample/*`, 60 % des échantillons sont les threads du compilateur
-> JIT — exact, mais illisible pour qui cherche son propre code.
+> ⚠️ Without `include=lab/sample/*`, 60 % of the samples are the JIT compiler's threads —
+> exact, but unreadable for somebody looking for their own code.
 
-## Licence et coût
+## Licence and cost
 
-**Apache 2.0**, open source, **0 €**. Binaire natif installé une fois : fonctionne hors ligne.
+**Apache 2.0**, open source, **€0**. A native binary installed once: it works offline.
 
-## Ce qu'on peut en espérer
+## What one can hope for from it
 
-**Seul** : la meilleure réponse gratuite à « montre-moi l'arbre d'appel », dans un format
-qu'on partage sans rien installer chez le destinataire.
+**Alone**: the best free answer to "show me the call tree", in a format one shares with nothing
+to install on the recipient's side.
 
-**Combiné** : avec JaCoCo, on couvre deux des trois besoins de l'étude pour 0 €, hors ligne.
-Il sait aussi écrire au format JFR, donc alimenter Mission Control.
+**Combined**: with JaCoCo, two of the study's three needs are covered for €0, offline. It can
+also write in the JFR format, hence feed Mission Control.
 
-## Mesuré ici
+## Measured here
 
-Après affinage du programme, **71 % des échantillons ont une feuille dans `lab.sample`**,
-et les cinq premières feuilles du profil sont des méthodes métier. Le profil a d'ailleurs
-servi à corriger trois défauts réels du programme d'exemple — voir
-[le détail technique](../../outil/technique.md#affinages-décidés-à-la-mesure-pas-au-jugé).
+After refining the program, **71 % of the samples have a leaf in `lab.sample`**, and the
+profile's top five leaves are business methods. The profile moreover served to fix three real
+defects in the example program — see
+[the technical details](../../outil/technique.md#refinements-decided-by-measurement-not-by-guesswork).
 
-## Comparable à
+## Comparable to
 
-- **[JFR](jfr-jmc.md)** — **Le concurrent direct** : même nature de donnée, des piles échantillonnées. Sous Java 21, async-profiler gagne sur la mise en œuvre et la lisibilité (HTML autonome contre binaire + application de bureau). Sous Java 25, JFR passe devant grâce au comptage exact.
-- **[VisualVM](visualvm.md)** — Même service, en interface graphique. Plus immédiat à ouvrir, mais rien n'en sort : ni fichier à transmettre, ni commande à rejouer.
-- **[JProfiler](jprofiler.md) · [YourKit](yourkit.md)** — Payants, et plus riches : ils corrèlent le profil avec la mémoire, les verrous, et les valeurs d'arguments. Sur le seul arbre d'appel, l'écart est faible.
-- **[IntelliJ Ultimate](intellij.md)** — Ce n'est pas un concurrent : son profiler **embarque async-profiler**. On paie l'intégration, pas le moteur.
-- **[JaCoCo](jacoco.md)** — **Complémentaire.** L'un dit où le temps passe, l'autre ce qui n'a jamais tourné.
+- **[JFR](jfr-jmc.md)** — **The direct competitor**: the same nature of data, sampled stacks. Under Java 21, async-profiler wins on setting up and on readability (self-contained HTML against a binary + a desktop application). Under Java 25, JFR moves ahead thanks to exact counting.
+- **[VisualVM](visualvm.md)** — The same service, in a graphical interface. More immediate to open, but nothing comes out of it: no file to hand on, no command to replay.
+- **[JProfiler](jprofiler.md) · [YourKit](yourkit.md)** — Paid, and richer: they correlate the profile with memory, locks, and argument values. On the call tree alone, the gap is small.
+- **[IntelliJ Ultimate](intellij.md)** — Not a competitor: its profiler **embeds async-profiler**. One pays for the integration, not for the engine.
+- **[JaCoCo](jacoco.md)** — **Complementary.** One says where the time goes, the other what never ran.
 
-## Facile / moins facile
+## Easy / less easy
 
-**Ce qui est facile.** Un flag, un fichier HTML qu'on ouvre ou qu'on envoie. Zéro configuration une fois installé.
+**What is easy.** One flag, one HTML file one opens or sends. Zero configuration once installed.
 
-**Ce qui l'est moins.** Écarter le bruit : sans `include=`, 60 % des échantillons sont le compilateur JIT, et sans `DebugNonSafepoints` les numéros de ligne sont faux — deux options qu'il faut connaître. Et **interpréter un profil échantillonné** : il ne prouve jamais qu'un code n'a pas tourné.
+**What is less so.** Getting rid of the noise: without `include=`, 60 % of the samples are the JIT compiler, and without `DebugNonSafepoints` the line numbers are wrong — two options one has to know about. And **interpreting a sampled profile**: it never proves that a piece of code did not run.

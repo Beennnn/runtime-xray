@@ -1,167 +1,163 @@
-# Clés d'évaluation — comment les obtenir, où les ranger
+# Evaluation keys — how to obtain them, where to keep them
 
-> Cette page décrit les démarches à faire pour intégrer les outils sous licence à l'étude.
-> **Ce sont des actions humaines** : elles demandent une adresse e-mail nominative et,
-> selon l'éditeur, une validation manuelle. Aucune ne peut être automatisée depuis ce
-> dépôt, et **aucune n'a été entreprise** — cette page recense les procédures, elle ne
-> rend compte d'aucune démarche.
+> This page describes the steps to take to bring the licensed tools into the study.
+> **These are human actions**: they demand a named e-mail address and, depending on the
+> publisher, a manual validation. None can be automated from this repository, and **none has
+> been undertaken** — this page lists the procedures, it reports on no step actually taken.
 
-## Règle absolue : aucune clé dans le dépôt
+## Absolute rule: no key in the repository
 
-Le dépôt est **public**. Une clé de licence commise reste dans l'historique git même après
-suppression du fichier, et les scanners automatiques la trouvent en quelques minutes.
-Trois protections, cumulées :
+The repository is **public**. A committed licence key stays in the git history even after the
+file is deleted, and automatic scanners find it within minutes. Three protections, cumulative:
 
-1. **Les clés vivent hors du dépôt**, dans
-   `~/gdrive/claude/projects/pro/artifacts/runtime-xray-licences/` — hors de `~/dev`, donc
-   hors de toute arborescence git, et répliqué automatiquement (Drive → NAS).
-2. **Les scripts les lisent par variable d'environnement**, jamais depuis un fichier du dépôt :
+1. **The keys live outside the repository**, in a directory outside any git tree — and, ideally,
+   replicated automatically by whatever backup the machine already has.
+2. **The scripts read them through an environment variable**, never from a file in the
+   repository:
 
    ```bash
-   # ~/gdrive/claude/projects/pro/artifacts/runtime-xray-licences/licences.sh
+   # ~/licences/runtime-xray/licences.sh
    export JPROFILER_LICENSE_KEY="..."
    export JPROFILER_LICENSE_NAME="..."
    export YOURKIT_LICENSE_KEY="..."
    ```
 
    ```bash
-   source ~/gdrive/claude/projects/pro/artifacts/runtime-xray-licences/licences.sh
+   source ~/licences/runtime-xray/licences.sh
    ./tools/jprofiler/collect.sh
    ```
 
-3. **Le `.gitignore` bloque les formes usuelles** (`*.license`, `licence*.sh`, `.env.local`)
-   — filet de sécurité, pas ligne de défense principale : la vraie protection est que le
-   fichier ne soit pas dans l'arborescence.
+3. **The `.gitignore` blocks the usual shapes** (`*.license`, `licence*.sh`, `.env.local`) — a
+   safety net, not the main line of defence: the real protection is that the file is not in the
+   tree at all.
 
-> Alternative si l'on préfère ne rien laisser en clair sur le disque : le trousseau macOS.
-> `security add-generic-password -s runtime-xray -a jprofiler -w '<clé>'` pour déposer,
-> `security find-generic-password -s runtime-xray -a jprofiler -w` pour relire dans un script.
+> An alternative for those who prefer to leave nothing in the clear on disk: the macOS keychain.
+> `security add-generic-password -s runtime-xray -a jprofiler -w '<key>'` to deposit,
+> `security find-generic-password -s runtime-xray -a jprofiler -w` to read back in a script.
 
-## Avant de demander quoi que ce soit : ce qu'on a déjà
+## Before asking for anything: what we already have
 
-Demander un essai n'a de sens que si l'on sait **ce qu'on cherche à obtenir en plus**.
-Voici l'état vérifié du socle gratuit, sur la même application, sous Java 21 :
+Asking for a trial only makes sense if one knows **what one is trying to obtain on top**. Here
+is the verified state of the free base, on the same application, under Java 21:
 
-| Besoin | Outil | Ce qu'on obtient, concrètement |
+| Need | Tool | What one gets, concretely |
 |---|---|---|
-| Lignes exécutées | JaCoCo | Site HTML, code colorié ligne à ligne, 91,1 % des instructions couvertes, classes mortes en rouge |
-| Arbre d'appel cumulé | async-profiler | HTML autonome dépliable, % de temps par branche, 71 % des échantillons sur des méthodes métier |
-| Arbre d'appel d'**un** appel | Arthas `trace` | L'arbre d'une invocation, **avec les numéros de ligne**, branches conditionnelles comprises |
-| **Valeurs des paramètres** | Arthas `watch` | `@Mode[CAR] @Weather[SUNNY] @TimeOfDay[RUSH_HOUR]` et la valeur de retour |
+| Executed lines | JaCoCo | HTML site, code coloured line by line, 91.1 % of instructions covered, dead classes in red |
+| Cumulative call tree | async-profiler | Self-contained unfoldable HTML, % of time per branch, 71 % of samples on business methods |
+| Call tree of **one** call | Arthas `trace` | The tree of one invocation, **with the line numbers**, conditional branches included |
+| **Parameter values** | Arthas `watch` | `@Mode[CAR] @Weather[SUNNY] @TimeOfDay[RUSH_HOUR]` and the return value |
 
-**Les trois besoins de l'étude sont couverts, pour 0 €, hors ligne.** L'essai commercial ne
-sert donc plus à combler un manque : il sert à répondre à une question plus étroite.
+**The study's three needs are covered, for €0, offline.** The commercial trial therefore no
+longer serves to fill a gap: it serves to answer a narrower question.
 
-## Ce qu'on attend des outils commerciaux — et pourquoi
+## What is expected of the commercial tools, and why
 
-### Le gain principal : l'agrégation par valeur de paramètre
+### The main gain: aggregation by parameter value
 
-C'est le seul point où l'on peut raisonnablement attendre mieux, et il mérite d'être
-énoncé précisément parce que c'est lui qui justifierait la dépense.
+This is the only point where one can reasonably expect better, and it deserves to be stated
+precisely because it is what would justify the expense.
 
-**Ce qu'Arthas fait** : il montre les valeurs de **quelques appels individuels** — les
-cinq prochains, par exemple. Utile pour comprendre un cas, insuffisant pour raisonner sur
-un ensemble.
+**What Arthas does**: it shows the values of **a few individual calls** — the next five, for
+example. Useful for understanding one case, insufficient for reasoning about a set.
 
-**Ce que JProfiler revendique** (*method splitting by parameter values*) : **scinder l'arbre
-d'appel par valeur d'argument**. Sur 16 000 000 d'appels, cela donnerait un sous-arbre pour
-`mode=CAR`, un autre pour `mode=TRAIN`, avec leurs temps respectifs — c'est-à-dire la
-réponse à *« quel contexte coûte cher ? »*, et non seulement *« que s'est-il passé sur cet
-appel-ci ? »*.
+**What JProfiler claims** (*method splitting by parameter values*): **splitting the call tree
+by argument value**. Over 16,000,000 calls, that would give one subtree for `mode=CAR`, another
+for `mode=TRAIN`, with their respective times — that is to say, the answer to *"which context
+costs a lot?"*, and not only *"what happened on this particular call?"*.
 
-Arthas ne sait pas agréger ainsi. **C'est le gain à vérifier, et c'est le seul qui vaille
-549 $.**
+Arthas cannot aggregate that way. **That is the gain to verify, and it is the only one worth
+$549.**
 
-### Le gain secondaire : un seul outil au lieu de trois
+### The secondary gain: one tool instead of three
 
-Aujourd'hui : un agent pour la couverture, un agent pour le profil, une console attachée
-pour les valeurs — trois procédures, trois formats de sortie. Un profileur commercial
-réunirait le profil et les valeurs dans une session unique, avec la corrélation
-temps / mémoire / verrous dans les mêmes vues.
+Today: an agent for the coverage, an agent for the profile, an attached console for the values
+— three procedures, three output formats. A commercial profiler would bring the profile and the
+values together in a single session, with the time / memory / lock correlation in the same
+views.
 
-Gain réel, mais **de confort** : la décision n° 1 l'a explicitement classé secondaire.
+A real gain, but **one of comfort**: decision no. 1 explicitly classed it secondary.
 
-### Ce qu'il ne faut PAS en attendre
+### What must NOT be expected of them
 
-- **La couverture de lignes** — ni JProfiler ni YourKit ne la produisent. JaCoCo reste
-  nécessaire dans tous les cas.
-- **Un rapport lisible par un non-développeur** — leurs instantanés s'exportent, mais ils
-  ne valent pas le HTML annoté de JaCoCo sur ce terrain. Le canal retenu (décision n° 3)
-  ne changerait pas.
-- **L'intégration IntelliJ** — déclassée par la décision n° 5, puisqu'on ne peut pas
-  supposer que tout le monde a Ultimate.
+- **Line coverage** — neither JProfiler nor YourKit produces it. JaCoCo stays necessary in
+  every case.
+- **A report readable by a non-developer** — their snapshots export, but they are not worth
+  JaCoCo's annotated HTML on that ground. The channel retained (decision no. 3) would not
+  change.
+- **IntelliJ integration** — downgraded by decision no. 5, since one cannot suppose everybody
+  has Ultimate.
 
-### Le critère de décision, en une phrase
+### The decision criterion, in one sentence
 
-> Si le *method splitting by parameter values* apporte quelque chose qu'Arthas ne donne pas
-> en trois commandes, la licence se justifie. Sinon, non.
+> If *method splitting by parameter values* brings something Arthas does not give in three
+> commands, the licence is justified. Otherwise, no.
 
-C'est ce qu'il faut aller vérifier pendant les 10 et 15 jours d'essai — pas « est-ce que
-l'outil est bon », mais **cette question-là**.
+That is what has to be verified during the 10 and 15 days of trial — not "is the tool good",
+but **that question**.
 
 ## JProfiler (ej-technologies)
 
 | | |
 |---|---|
-| **Démarche** | Formulaire en ligne : [ej-technologies.com/jprofiler/trial](https://www.ej-technologies.com/jprofiler/trial) |
-| **Informations demandées** | Nom, société, adresse e-mail. La clé arrive **par e-mail** — l'adresse doit être exacte |
-| **Durée** | 10 jours *(à confirmer sur le formulaire au moment de la demande)* |
-| **Données conservées par l'éditeur** | Nom, société, e-mail et IP anonymisée ; un e-mail de relance est envoyé pendant l'évaluation |
-| **Téléchargement** | [ej-technologies.com/download/jprofiler](https://www.ej-technologies.com/download/jprofiler/files) |
-| **Licence open source** | Gratuite pour les projets open source — à demander à l'éditeur |
-| **⚠️ Hors ligne** | La question n'est pas le téléchargement (autorisé) mais **l'activation** : une clé saisie une fois et validée localement convient ; une vérification en ligne **à chaque lancement** serait éliminatoire. À faire confirmer par l'éditeur |
+| **Step** | Online form: [ej-technologies.com/jprofiler/trial](https://www.ej-technologies.com/jprofiler/trial) |
+| **Information asked for** | Name, company, e-mail address. The key arrives **by e-mail** — the address must be exact |
+| **Duration** | 10 days *(to be confirmed on the form at the time of the request)* |
+| **Data kept by the publisher** | Name, company, e-mail and anonymised IP; a reminder e-mail is sent during the evaluation |
+| **Download** | [ej-technologies.com/download/jprofiler](https://www.ej-technologies.com/download/jprofiler/files) |
+| **Open-source licence** | Free for open-source projects — to be asked of the publisher |
+| **⚠️ Offline** | The question is not the download (allowed) but the **activation**: a key entered once and validated locally is fine; an online check **at every launch** would be disqualifying. To be confirmed by the publisher |
 
-**Prix (relevés le 2026-08-20 sur la boutique de l'éditeur)** — licences perpétuelles :
+**Prices (read on 2026-08-20 on the publisher's store)** — perpetual licences:
 
-| | Sans support | Avec 1 an de support et mises à jour |
+| | Without support | With 1 year of support and updates |
 |---|---|---|
-| Licence simple | **549 $** | 768 $ |
-| Licence flottante (1 utilisateur simultané) | **2 199 $** | 3 078 $ |
+| Single licence | **$549** | $768 |
+| Floating licence (1 concurrent user) | **$2,199** | $3,078 |
 
 ## YourKit Java Profiler
 
 | | |
 |---|---|
-| **Démarche** | Téléchargement direct : [yourkit.com/download](https://www.yourkit.com/download/) — l'essai est intégré |
-| **Durée** | **15 jours** |
-| **Licence open source** | **Gratuite**, en contrepartie d'un lien vers YourKit sur les pages du projet. À demander au service commercial |
-| **Académique / scientifique** | Abonnement à **99 $/an** par poste, **999 $/an** pour un établissement entier |
-| **⚠️ Hors ligne** | Les licences **flottantes** interrogent par défaut un **serveur de licences dans le cloud pendant l'exécution** — c'est éliminatoire. Une option **auto-hébergée** existe : c'est elle qu'il faut demander. Les licences *seat*, validées localement, ne posent pas ce problème |
+| **Step** | Direct download: [yourkit.com/download](https://www.yourkit.com/download/) — the trial is built in |
+| **Duration** | **15 days** |
+| **Open-source licence** | **Free**, in exchange for a link to YourKit on the project's pages. To be asked of the sales department |
+| **Academic / scientific** | Subscription at **$99/year** per seat, **$999/year** for a whole institution |
+| **⚠️ Offline** | **Floating** licences query, by default, a **licence server in the cloud during the run** — that is disqualifying. A **self-hosted** option exists: that is the one to ask for. *Seat* licences, validated locally, do not pose this problem |
 
-**Prix (relevés le 2026-08-20 sur [la page tarifaire](https://www.yourkit.com/java/profiler/purchase/))** :
+**Prices (read on 2026-08-20 on [the pricing page](https://www.yourkit.com/java/profiler/purchase/))**:
 
-| | Abonnement annuel | Perpétuel |
+| | Annual subscription | Perpetual |
 |---|---|---|
-| 1 poste (Basic) | 449 $ | **549 $** |
-| 1 poste (Advanced) | 579 $ | 713 $ |
-| 5 postes (Basic) | 1 259 $ | 1 539 $ |
-| Flottante 1 utilisateur (Basic) | 2 249 $ | 2 749 $ |
-| Flottante 5 utilisateurs (Basic) | 2 699 $ | 3 299 $ |
+| 1 seat (Basic) | $449 | **$549** |
+| 1 seat (Advanced) | $579 | $713 |
+| 5 seats (Basic) | $1,259 | $1,539 |
+| Floating 1 user (Basic) | $2,249 | $2,749 |
+| Floating 5 users (Basic) | $2,699 | $3,299 |
 
 ## IntelliJ IDEA Ultimate (JetBrains)
 
 | | |
 |---|---|
-| **Démarche** | Essai de 30 jours depuis la Toolbox ou le site JetBrains |
-| **Licence gratuite** | Programmes existants pour l'open source, l'enseignement et les étudiants |
-| **⚠️ Hors ligne** | L'activation JetBrains passe normalement par un compte en ligne ; un **serveur de licences auto-hébergé** existe pour les licences organisationnelles. À vérifier selon le cadre |
-| **Utilité pour l'étude** | Limitée : le profiler intégré embarque async-profiler, déjà disponible gratuitement en ligne de commande |
+| **Step** | 30-day trial from the Toolbox or the JetBrains site |
+| **Free licence** | Existing programmes for open source, teaching and students |
+| **⚠️ Offline** | JetBrains activation normally goes through an online account; a **self-hosted licence server** exists for organisational licences. To be checked according to the setting |
+| **Usefulness for the study** | Limited: the integrated profiler embeds async-profiler, already available free on the command line |
 
-## Ce qu'il faut mesurer une fois les clés obtenues
+## What has to be measured once the keys are obtained
 
-Pour que l'essai serve à décider et pas seulement à regarder, rejouer **exactement** le
-protocole des outils gratuits — même `sample-app`, même exécution de 10 s, sous Java 21
-puis Java 25 :
+For the trial to serve to decide and not only to look, replay **exactly** the free tools'
+protocol — same `sample-app`, same 10 s run, under Java 21 then Java 25:
 
-1. **La capture des valeurs de paramètres** — c'est le seul point qui justifie la dépense.
-   Vérifier concrètement que le *method splitting by parameter values* de JProfiler sépare
-   bien les appels de `RoutePlanner.travelTimeMinutes` selon le mode de transport passé.
-2. **Le surcoût réel** — comparer le temps affiché par `Metrics` avec et sans l'outil.
-   Les 10 s de référence donnent une base de comparaison immédiate.
-3. **Ce qui sort de l'outil** — un instantané exportable et lisible par un non-développeur,
-   ou bien une interface qu'il faut installer pour consulter ? C'est le **critère n° 2**.
-4. **L'activation hors ligne** — la question qui peut tout disqualifier. À traiter en
-   premier, avant même d'installer.
+1. **The capture of parameter values** — it is the only point that justifies the expense.
+   Verify concretely that JProfiler's *method splitting by parameter values* really does
+   separate the calls of `RoutePlanner.travelTimeMinutes` according to the mode of transport
+   passed.
+2. **The real overhead** — compare the time reported by `Metrics` with and without the tool.
+   The 10 s of reference give an immediate basis for comparison.
+3. **What comes out of the tool** — an exportable snapshot readable by a non-developer, or an
+   interface one has to install in order to consult it? That is **criterion no. 2**.
+4. **Offline activation** — the question that can disqualify everything. To be handled first,
+   before even installing.
 
-Consigner les résultats dans [le comparatif](comparatif.md) en faisant passer la ligne de
-⛔ à ✅, et déposer les sorties dans `reports-demo/generated/<outil>/`.
+Record the results in [the comparison](comparatif.md) by moving the line from ⛔ to ✅, and drop
+the outputs into `reports-demo/generated/<tool>/`.

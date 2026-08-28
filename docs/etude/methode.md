@@ -1,101 +1,101 @@
-# Méthodologie
+# Method
 
-Objectif : comparer des outils hétérogènes sur une base commune, sans biais de
-familiarité, et **sans jamais présenter une lecture de documentation comme une mesure**.
+Aim: to compare heterogeneous tools on a common basis, with no familiarity bias, and **never
+presenting a reading of the documentation as a measurement**.
 
-## 1. Le cas d'usage de référence
+## 1. The reference use case
 
-Tous les outils analysent **la même exécution** : le programme
-[`sample-app`](../../sample-app) et sa fonction
+All the tools analyse **the same run**: the program [`sample-app`](../../sample-app) and its
+function
 [`RoutePlanner.travelTimeMinutes(Trip)`](../../sample-app/src/main/java/lab/sample/RoutePlanner.java).
 
-L'exécution est :
+The run is:
 
-- **déterministe** — ni horloge, ni aléatoire : deux exécutions produisent la même trace.
-  Sans ça, comparer deux rapports reviendrait à comparer deux exécutions différentes, et
-  l'écart observé ne dirait plus rien de l'outil ;
-- **calibrée à ~10 secondes** — le minimum pour qu'un outil qui s'attache à un process
-  vivant ait le temps d'être lancé et d'enregistrer ;
-- **rejouée sous Java 21 puis Java 25**, les deux plateformes évaluées.
+- **deterministic** — no clock, no randomness: two runs produce the same trace. Without that,
+  comparing two reports would amount to comparing two different runs, and the difference
+  observed would no longer say anything about the tool;
+- **calibrated to ~10 seconds** — the minimum for a tool that attaches to a live process to
+  have time to be launched and to record;
+- **replayed under Java 21 then Java 25**, the two platforms evaluated.
 
-Le programme est conçu pour **départager** : appels conditionnés par le contexte, deux
-chemins jamais empruntés, une récursion, un dispatch virtuel, une opération bloquante.
-Détail dans [le détail technique](../outil/technique.md).
+The program is designed to **tell tools apart**: calls conditioned by the context, two paths
+never taken, a recursion, a virtual dispatch, a blocking operation. Detail in [the technical
+details](../outil/technique.md).
 
-## 2. Les cinq critères, dans l'ordre
+## 2. The five criteria, in order
 
-L'ordre n'est pas décoratif : il tranche les cas où deux outils sont bons différemment.
+The order is not decorative: it settles the cases where two tools are good in different ways.
 
-1. **Facilité de mise en œuvre** — se mesure en nombre de gestes entre « rien » et « un
-   rapport ». Un flag JVM bat une configuration XML, même si la seconde montre davantage.
-2. **Lisibilité des rapports** — se mesure en répondant : *un non-développeur peut-il
-   l'ouvrir seul et y comprendre quelque chose ?* Un fichier HTML autonome bat une
-   application de bureau à installer.
-3. **Couverture fonctionnelle** — les trois données recherchées, notées séparément et **hiérarchisées** :
-   lignes exécutées et arbre d'appel sont l'objectif ; les valeurs des paramètres sont une
-   **option de seconde priorité**. Pas de moyenne : un outil qui fait deux tiers du travail
-   ne vaut pas 66 %, il vaut « il en faut un second ». Et un outil qui excellerait sur
-   l'option en étant faible sur les deux premières ne serait pas retenu.
-4. **Intégration IDE** — IntelliJ en priorité, ou l'équivalent web : une page de code
-   annoté où l'on navigue hors IDE.
-5. **Coût** — départage seulement à capacités comparables, et intègre le coût caché
-   (serveur à maintenir, configuration à écrire, licence à activer en ligne).
+1. **Ease of setting up** — measured in the number of gestures between "nothing" and "a
+   report". A JVM flag beats an XML configuration, even if the second shows more.
+2. **Readability of the reports** — measured by answering: *can a non-developer open it alone
+   and understand something in it?* A self-contained HTML file beats a desktop application to
+   install.
+3. **Functional coverage** — the three kinds of data sought, scored separately and **ranked**:
+   executed lines and call tree are the objective; the parameter values are a **second-priority
+   option**. No average: a tool that does two thirds of the work is not worth 66 %, it is worth
+   "a second one is needed". And a tool that excelled on the option while being weak on the
+   first two would not be retained.
+4. **IDE integration** — IntelliJ first, or the web equivalent: a page of annotated code one
+   navigates outside an IDE.
+5. **Cost** — decides only between comparable capabilities, and includes the hidden cost (a
+   server to maintain, a configuration to write, a licence to activate online).
 
-**Hors critères, mesuré en bonus** : temps de calcul et RAM. L'application les rapporte
-elle-même, ce qui donne une référence indépendante pour estimer le surcoût d'un outil.
+**Outside the criteria, measured as a bonus**: computation time and RAM. The application
+reports them itself, which gives an independent reference for estimating a tool's overhead.
 
-Ces chiffres ne servent qu'à ça. **L'optimisation des performances du code analysé est un
-sujet à part entière, et il vient plus tard** : d'abord comprendre ce que fait le code —
-c'est l'objet de ce dépôt —, ensuite le reconcevoir, et alors seulement l'optimiser en
-fonction de contraintes de performance qui lui seront propres. Les mesures rapportées ici
-ne préjugent en rien de cette étape : elles servent à savoir si un outil d'analyse ralentit
-trop l'exécution pour rester utilisable, pas à juger le code.
+Those figures serve only that. **Optimising the performance of the analysed code is a subject
+in its own right, and it comes later**: first understand what the code does — that is this
+repository's object — then redesign it, and only then optimise it according to performance
+constraints of its own. The measurements reported here prejudge nothing of that step: they
+serve to know whether an analysis tool slows the run too much to stay usable, not to judge the
+code.
 
-## 3. Trois modes d'intégration — et pourquoi ça compte
+## 3. Three modes of integration — and why it matters
 
-Ces outils **ne sont pas des dépendances Maven**. C'est la principale surprise structurelle
-de l'exercice, et elle conditionne la façon d'ajouter un outil au dépôt.
+These tools **are not Maven dependencies**. That is the exercise's main structural surprise,
+and it conditions the way a tool is added to the repository.
 
-| Mode | Exemples | Ce que ça implique |
+| Mode | Examples | What it implies |
 |---|---|---|
-| Agent JVM | JaCoCo, async-profiler, JProfiler, Glowroot | Un flag au lancement, rien à changer dans le code |
-| Option native du JDK | JFR | Rien à installer du tout |
-| Attachement à un process vivant | VisualVM, JMC, Arthas | La JVM doit tourner encore — d'où le calibrage à 10 s |
-| Plugin de build | OpenClover, JaCoCo en mode tests | Ne mesure que ce que les tests couvrent — autre question |
+| JVM agent | JaCoCo, async-profiler, JProfiler, Glowroot | A flag at launch, nothing to change in the code |
+| Native JDK option | JFR | Nothing to install at all |
+| Attaching to a live process | VisualVM, JMC, Arthas | The JVM must still be running — hence the calibration to 10 s |
+| Build plugin | OpenClover, JaCoCo in test mode | Measures only what the tests cover — another question |
 
-## 4. Les statuts de vérification
+## 4. The verification statuses
 
-Chaque affirmation porte son niveau de preuve. C'est la règle la plus importante du
-document.
+Every claim carries its level of proof. It is the most important rule of the document.
 
-| Statut | Sens |
+| Status | Meaning |
 |---|---|
-| ✅ **Testé ici** | Exécuté sur `sample-app`, sortie versionnée dans `reports-demo/generated/` |
-| ⛔ **Bloqué par licence** | Exige une licence ou un essai activé par un humain |
-| 🚧 **Bloqué techniquement** | Gratuit, mais non exécutable dans cet environnement — la raison est écrite |
-| 📄 **Sur documentation** | Non exécuté ; fiche établie sur sources publiques, à confirmer |
+| ✅ **Tested here** | Run on `sample-app`, output versioned in `reports-demo/generated/` |
+| ⛔ **Blocked by licence** | Demands a licence or a trial activated by a human |
+| 🚧 **Blocked technically** | Free, but not runnable in this environment — the reason is written down |
+| 📄 **On documentation** | Not run; sheet established on public sources, to be confirmed |
 
-Un chiffre issu d'un site tiers porte **sa date de relevé**. Un chiffre non vérifié est
-signalé comme tel plutôt que présenté avec assurance.
+A figure coming from a third-party site carries **the date it was read**. An unverified figure
+is flagged as such rather than presented with assurance.
 
-## 5. La séparation sans licence / avec licence
+## 5. The no-licence / with-licence separation
 
-Les outils sont rangés en deux catégories, jamais mélangées dans un même classement. La
-frontière recoupe presque exactement la contrainte hors ligne et la question du budget :
-comparer un outil gratuit et un outil à 549 $ sur une même colonne « note globale » ferait
-disparaître la seule question qui compte — *qu'est-ce que l'argent achète exactement ?*
+The tools are put in two categories, never mixed in the same ranking. The boundary almost
+exactly follows the offline constraint and the budget question: comparing a free tool and a
+$549 tool in the same "overall score" column would make the only question that matters
+disappear — *what exactly does the money buy?*
 
-## 6. Neutralité
+## 6. Neutrality
 
-Chaque affirmation doit pouvoir être reliée à une source : une sortie versionnée dans ce
-dépôt, ou une URL datée. Les jugements de valeur non étayés n'ont pas leur place — « riche »
-ou « puissant » ne veulent rien dire tant qu'on n'a pas dit *sur quel critère*.
+Every claim must be traceable to a source: an output versioned in this repository, or a dated
+URL. Unsupported value judgements have no place here — "rich" or "powerful" mean nothing until
+one has said *on what criterion*.
 
-Quand une mesure contredit une attente, c'est la mesure qui gagne, et l'écart est écrit :
-plusieurs constats de ce dépôt viennent de là — le traçage JFR absent en Java 21, les 129 Mo
-d'enregistrement pour 10 s, le profil d'abord dominé par la fabrication du jeu de test.
+When a measurement contradicts an expectation, it is the measurement that wins, and the
+difference is written down: several of this repository's findings come from there — JFR
+tracing absent under Java 21, the 129 MB of recording for 10 s, the profile at first dominated
+by building the test data.
 
-## 7. Ce qui reste à faire
+## 7. What remains to be done
 
-Voir [les résultats](../resultat/resultats.md#ce-qui-reste-à-faire-pour-trancher) — les actions humaines,
-essais commerciaux en tête, sont listées là.
+See [the results](../resultat/resultats.md#what-remains-to-be-done-to-settle-it) — the human
+actions, commercial trials first, are listed there.

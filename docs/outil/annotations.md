@@ -1,200 +1,194 @@
-# Annoter les exécutions — seul, sur son poste, ou à plusieurs
+# Annotating the runs — alone, on your own machine, or together
 
-> Une mesure sans nom ne se retrouve pas. Ce document décrit ce qu'on peut ajouter à une
-> exécution après l'avoir mesurée, où ça s'écrit, et les trois façons de faire vivre ces
-> annotations — du navigateur seul au serveur partagé.
+> A measurement without a name cannot be found again. This document describes what can be
+> added to a run after measuring it, where it is written, and the three ways of keeping those
+> annotations alive — from the browser alone to a shared server.
 >
-> **Dans la page, tout cela s'appelle la « fiche » d'une exécution** : c'est le mot lisible
-> pour ce que ce document nomme ses annotations. La fiche est ce qui vient d'un humain ;
-> tout le reste de la page vient de la mesure, et les deux ne se mélangent jamais.
+> **In the page, all of this is called a run's "card"**: that is the readable word for what
+> this document calls its annotations. The card is what comes from a human; all the rest of
+> the page comes from the measurement, and the two never mix.
 
-## Le problème
+## The problem
 
-Trois exécutions dans un rapport, c'est déjà trois répertoires horodatés dont les noms ne
-disent rien. Au bout d'une semaine, personne ne sait plus laquelle portait le jeu de
-données réduit, laquelle a servi à la démonstration, ni pourquoi celle du milieu avait été
-relancée.
+Three runs in a report is already three timestamped directories whose names say nothing. A
+week later, nobody remembers which one carried the reduced data set, which one was used for
+the demonstration, or why the middle one had been re-run.
 
-Ce que la mesure ne peut pas produire — **ce qu'on cherchait, ce qu'on a compris, ce qu'il
-reste à vérifier** — doit donc pouvoir s'écrire après coup, et rester attaché à
-l'exécution. C'est tout l'objet de ce qui suit.
+What the measurement cannot produce — **what one was after, what one understood, what is left
+to check** — must therefore be writable afterwards, and stay attached to the run. That is the
+whole subject of what follows.
 
-## Ce qu'on peut ajouter
+## What can be added
 
-| | Ce que c'est | À quoi ça sert |
+| | What it is | What it is for |
 |---|---|---|
-| **Nom** | Le libellé affiché partout où l'exécution apparaît | Retrouver *celle-là* dans un sélecteur qui en montre cinq |
-| **Description** | Du texte libre | Dire ce qu'on cherchait et ce qu'on a vu — le rapport ne le devinera jamais |
-| **Étiquettes** | Des clés, chacune avec un texte **facultatif** | Rattacher à un ticket, un environnement, une version ; marquer « à rejouer » sans autre commentaire |
-| **Élagage** | Des branches coupées, une racine ramenée | Ne montrer que la branche qui compte — voir plus bas |
+| **Name** | The label shown everywhere the run appears | Finding *that* one in a selector showing five |
+| **Description** | Free text | Saying what one was after and what one saw — the report will never guess it |
+| **Labels** | Keys, each with an **optional** text | Tying to a ticket, an environment, a version; marking "to replay" with no further comment |
+| **Pruning** | Branches cut, a root brought back | Showing only the branch that matters — see below |
 
-Tout cela se saisit dans la page, sur le **bandeau d'identité** posé sous le nom de
-l'exécution, ou s'écrit à la main dans un fichier. Les deux chemins mènent au même endroit.
+All of it is typed into the page, on the **identity band** placed under the run's name, or
+written by hand into a file. Both paths lead to the same place.
 
-## Trois identités, et pourquoi il en faut trois
+## Three identities, and why three are needed
 
-| | Ce que c'est | Change ? |
+| | What it is | Changes? |
 |---|---|---|
-| **Identifiant** | Généré au lancement, écrit dans `run-context.json` | **jamais** — c'est la clé stable, celle qui survit à tous les renommages |
-| **Nom au lancement** | Le `--name` donné à la mesure | jamais — il dit ce qu'on **croyait** mesurer, et permet le retour arrière |
-| **Nom dans l'outil** | Posé après coup | oui, autant de fois qu'on veut — il dit ce qu'on a **compris** |
+| **Identifier** | Generated at launch, written into `run-context.json` | **never** — it is the stable key, the one that survives every renaming |
+| **Name at launch** | The `--name` given to the measurement | never — it says what one **thought** one was measuring, and allows going back |
+| **Name in the tool** | Put on afterwards | yes, as many times as one likes — it says what one **understood** |
 
-Le nom affiché suit cet ordre : **le nom posé dans l'outil**, sinon **celui du lancement**,
-sinon **l'identifiant abrégé**. Rien n'est inventé au passage : une exécution lancée sans
-`--name` s'affiche sous son identifiant, jamais sous un libellé de commodité — « exécution
-du 21/08 à 00:41 » se ferait passer pour une intention de l'opérateur alors que ce n'en est
-pas une.
+The name shown follows this order: **the name put on in the tool**, failing that **the
+launch's**, failing that **the shortened identifier**. Nothing is invented on the way: a run
+launched without `--name` shows under its identifier, never under a convenience label — "run
+of 21/08 at 00:41" would pass itself off as an intention of the operator when it is not one.
 
-## Les trois modes
+## The three modes
 
-Une page ouverte comme fichier ne peut rien écrire sur le disque : c'est une règle du
-navigateur, et c'est aussi ce qui rend la page transmissible telle quelle. D'où trois
-façons de faire vivre les annotations, du plus simple au plus partagé. **Aucune n'exclut
-les autres** : c'est le même format, et on passe de l'une à l'autre sans rien convertir.
+A page opened as a file can write nothing to disk: that is a browser rule, and it is also
+what makes the page passable on as it is. Hence three ways of keeping the annotations alive,
+from the simplest to the most shared. **None excludes the others**: it is the same format,
+and one moves from one to the next without converting anything.
 
-| | Ce qu'on fait | Ce que ça donne | Ce que ça suppose |
+| | What one does | What it gives | What it supposes |
 |---|---|---|---|
-| **1. Chacun dans son navigateur** | Ouvrir la page, annoter | Immédiat. Les annotations restent dans ce navigateur d'une visite à l'autre. **Exporter** rend un fichier, **importer** reprend celui d'un collègue | Rien |
-| **2. Sur son poste** | `--serve`, puis annoter | La page écrit à côté des exécutions et le rapport est régénéré : l'annotation est acquise, y compris pour qui rouvrira le fichier sans serveur | Lancer l'outil |
-| **3. Un serveur partagé** | `--serve --serve-host 0.0.0.0` sur une machine où l'on dépose les résultats | Tout le monde y accède par un navigateur et **annote en parallèle**, sans s'écraser | Une machine, et un accès filtré ou un secret partagé |
+| **1. Each in their own browser** | Open the page, annotate | Immediate. The annotations stay in that browser from one visit to the next. **Export** hands over a file, **import** takes in a colleague's | Nothing |
+| **2. On your own machine** | `--serve`, then annotate | The page writes beside the runs and the report is regenerated: the annotation is secured, including for whoever reopens the file with no server | Running the tool |
+| **3. A shared server** | `--serve --serve-host 0.0.0.0` on a machine where the results are dropped | Everyone reaches it through a browser and **annotates in parallel**, without overwriting each other | A machine, and either filtered access or a shared secret |
 
 ```bash
-# 2. sur son poste — http://localhost:8787
+# 2. on your own machine — http://localhost:8787
 java -jar runtime-xray.jar --report-only --out runtime-xray-out --serve
 
-# 3. serveur partagé — on y dépose des répertoires d'exécution, tout le monde lit et annote
+# 3. shared server — run directories are dropped there, everyone reads and annotates
 java -jar runtime-xray.jar --report-only --out /srv/runtime-xray --serve 8080 --serve-host 0.0.0.0
 
-# 3 bis. le même, gardé par un secret partagé (tiré au sort et affiché une fois)
+# 3 bis. the same, guarded by a shared secret (drawn at random and shown once)
 java -jar runtime-xray.jar --report-only --out /srv/runtime-xray --serve 8080 \
   --serve-host 0.0.0.0 --serve-token
 ```
 
-La page reconnaît d'elle-même le mode où elle se trouve : servie par l'outil, elle propose
-**enregistrer** dans sa barre du haut, sous **fiche** ; ouverte comme fichier ou depuis un
-hébergement statique, elle s'en tient à **exporter** et **importer**, et le bandeau annonce
-alors *gardé dans ce navigateur*.
+The page recognises by itself which mode it is in: served by the tool, it offers **save** in
+its top bar, under **card**; opened as a file or from static hosting, it sticks to **export**
+and **import**, and the band then announces *kept in this browser*.
 
-Où trouver quoi dans la page : le bandeau **fiche**, sous le fil d'Ariane en vue d'ensemble,
-porte ce qui se saisit — nom, description, étiquettes ; le groupe **fiche** de la barre du
-haut porte ce qui s'en fait — enregistrer, exporter, importer, voir le JSON. Rien de
-modifiable ne vit dans le corps de la page : un rapport se lit, il ne se remplit pas.
+Where to find what in the page: the **card** band, under the breadcrumb in the overview,
+carries what is typed in — name, description, labels; the **card** group in the top bar
+carries what is done with it — save, export, import, view the JSON. Nothing editable lives in
+the body of the page: a report is read, it is not filled in.
 
-### Annoter à plusieurs
+### Annotating together
 
-C'est la seule difficulté réelle du mode 3, et elle est traitée là où elle se pose :
+That is the only real difficulty of mode 3, and it is dealt with where it arises:
 
-- **L'écriture porte sur une exécution**, jamais sur le fichier entier. Deux personnes qui
-  annotent deux exécutions ne se voient donc jamais.
-- Sur la **même** exécution, chacun envoie l'empreinte de ce qu'il avait sous les yeux. Si
-  quelqu'un est passé entre-temps, le second reçoit **« modifiée entre-temps »** et la
-  version enregistrée, et choisit : garder la sienne, ou *reprendre la version
-  enregistrée*. Personne n'écrase personne en silence.
-- La page **relit le serveur toutes les quinze secondes** : les noms posés par les autres
-  arrivent tout seuls, sans recharger.
-- Tant qu'une saisie n'est pas envoyée, le bandeau l'annonce — *non enregistré* — et le
-  bouton **enregistrer** se marque d'un point.
+- **A write bears on one run**, never on the whole file. Two people annotating two runs
+  therefore never meet.
+- On the **same** run, each sends the fingerprint of what they had in front of them. If
+  somebody went past in the meantime, the second one gets **"changed in the meantime"** and
+  the recorded version, and chooses: keep theirs, or *take the recorded version*. Nobody
+  overwrites anybody in silence.
+- The page **re-reads the server every fifteen seconds**: names put on by others arrive on
+  their own, without reloading.
+- As long as an entry has not been sent, the band announces it — *unsaved* — and the **save**
+  button is marked with a dot.
 
-### Déposer des résultats pendant qu'il tourne
+### Dropping results while it runs
 
-C'est le geste même du mode 3 : on copie un répertoire d'exécution dans `runs/`, et tout le
-monde doit le voir. Le serveur **sonde le répertoire toutes les dix secondes** et réassemble
-la page dès qu'une exécution apparaît ou disparaît — il n'y a rien à redémarrer.
+That is mode 3's very gesture: one copies a run directory into `runs/`, and everyone must see
+it. The server **polls the directory every ten seconds** and reassembles the page as soon as
+a run appears or disappears — there is nothing to restart.
 
-Les pages ouvertes ne se rechargent pas d'elles-mêmes : quelqu'un est peut-être en train de
-lire une méthode ou d'écrire une description. Elles l'annoncent, en bas à droite — *« Le
-rapport a changé sur le serveur — 4 exécutions à présent »* — et laissent recharger quand
-c'est le moment.
+Open pages do not reload by themselves: somebody may be reading a method or writing a
+description. They announce it, at the bottom right — *"The report changed on the server — 4
+runs now"* — and let one reload when the moment is right.
 
-Le sondage est délibéré, plutôt qu'une surveillance du système de fichiers : les résultats
-arrivent souvent par un partage réseau, où les notifications de modification sont au mieux
-irrégulières. Dix secondes suffisent — on ne dépose pas une exécution dix fois par minute.
+The polling is deliberate, rather than watching the file system: results often arrive over a
+network share, where change notifications are irregular at best. Ten seconds is enough — one
+does not drop a run ten times a minute.
 
-### Fermer la porte : `--serve-token`
+### Closing the door: `--serve-token`
 
-Les modes 1 et 2 n'ont rien à garder — la boucle locale ne laisse entrer que la machine
-elle-même. Le mode 3 change la question : quiconque atteint le port lit les rapports et
-annote. D'où un secret partagé, **facultatif** :
+Modes 1 and 2 have nothing to guard — the local loopback lets in only the machine itself.
+Mode 3 changes the question: anyone who reaches the port reads the reports and annotates.
+Hence a shared secret, **optional**:
 
 ```bash
---serve-token "phrase choisie"   # celui-ci, et pas un autre
---serve-token                    # sans valeur : tiré au sort et affiché une fois
-XRAY_SERVE_TOKEN=... --serve     # même effet, sans l'exposer dans « ps »
+--serve-token "chosen phrase"    # this one, and no other
+--serve-token                    # with no value: drawn at random and shown once
+XRAY_SERVE_TOKEN=... --serve     # the same effect, without exposing it in "ps"
 ```
 
-Ce que cela donne :
+What it gives:
 
-- un visiteur tombe sur une page d'entrée, saisit le secret, et **la session dure douze
-  heures** — il ne le retape pas à chaque page ;
-- la session est un cookie `HttpOnly`, `SameSite=Strict`, qui **ne contient pas le secret** ;
-- un script ou un `curl` passe par `Authorization: Bearer <secret>`, sans formulaire ;
-- après cinq essais ratés depuis la même adresse, on cesse de répondre pendant une
-  trentaine de secondes ;
-- si la session expire pendant qu'on annote, **rien n'est perdu** : la page le dit, ce qui
-  n'était pas encore enregistré reste dans le navigateur, et il suffit de se reconnecter.
+- a visitor lands on an entry page, types the secret, and **the session lasts twelve hours** —
+  they do not retype it on every page;
+- the session is an `HttpOnly`, `SameSite=Strict` cookie, which **does not contain the
+  secret**;
+- a script or a `curl` goes through `Authorization: Bearer <secret>`, with no form;
+- after five failed attempts from the same address, answering stops for about thirty seconds;
+- if the session expires while annotating, **nothing is lost**: the page says so, what was not
+  yet saved stays in the browser, and one only has to log in again.
 
-Sans l'option, rien ne change : le serveur reste ouvert, et le dit au démarrage.
+Without the option, nothing changes: the server stays open, and says so at start-up.
 
 ```
-⚠️ Écoute au-delà de la boucle locale, SANS authentification :
-   quiconque atteint ce port peut lire les rapports et annoter.
-   À placer derrière ce qui filtre déjà les accès, ou à garder
-   par --serve-token.
+⚠️ Listening beyond the local loopback, WITHOUT authentication:
+   anyone who reaches this port can read the reports and annotate.
+   To be placed behind something that already filters access, or
+   guarded by --serve-token.
 ```
 
-### Ce que ce secret vaut, et ce qu'il ne vaut pas
+### What that secret is worth, and what it is not
 
-Un secret partagé, ce ne sont pas des comptes. **L'outil ne sait pas qui annote** — il ne
-l'a jamais su, et les fichiers d'annotation ne portent aucun auteur. Le prétendre serait
-mentir sur ce qu'ils contiennent.
+A shared secret is not accounts. **The tool does not know who annotates** — it never did, and
+the annotation files carry no author. Claiming otherwise would be lying about what they hold.
 
-Trois réserves, à lire avant de déployer :
+Three caveats, to read before deploying:
 
-- **En HTTP simple, le secret circule en clair.** Pour qu'il protège vraiment, il faut du
-  TLS devant, terminé par un mandataire. Sur un réseau interne de confiance il arrête un
-  passant ; il n'arrête pas quelqu'un qui écoute le réseau.
-- **Un secret sur la ligne de commande se lit dans `ps`** par les autres comptes de la
-  machine. `XRAY_SERVE_TOKEN` existe pour cela.
-- **Il doit tenir en ASCII imprimable.** Un accent ne traverse ni l'en-tête
-  `Authorization` ni certaines variables d'environnement : l'outil le refuse au démarrage,
-  avec sa raison, plutôt que de laisser un 401 inexplicable une fois déployé.
+- **Over plain HTTP, the secret travels in the clear.** For it to really protect, TLS is
+  needed in front, terminated by a proxy. On a trusted internal network it stops a passer-by;
+  it does not stop someone listening to the network.
+- **A secret on the command line is readable in `ps`** by the machine's other accounts.
+  `XRAY_SERVE_TOKEN` exists for that.
+- **It must fit in printable ASCII.** An accent crosses neither the `Authorization` header nor
+  certain environment variables: the tool refuses it at start-up, with its reason, rather than
+  leaving an inexplicable 401 once deployed.
 
-Autrement dit il **complète** un filtrage réseau, il ne le remplace pas. C'est un outil de
-diagnostic, pas un service : la seule écriture qu'il accepte est l'annotation d'une
-exécution, dans un fichier dont il choisit lui-même le nom, et le service de fichiers
-refuse tout chemin qui sortirait du répertoire servi.
+In other words it **complements** network filtering, it does not replace it. It is a
+diagnostic tool, not a service: the only write it accepts is a run's annotation, in a file
+whose name it chooses itself, and the file serving refuses any path that would leave the
+served directory.
 
-## Où le fichier est écrit
+## Where the file is written
 
-En vision fichier, **une exécution est un répertoire**. Son annotation peut vivre à trois
-endroits, et l'ordre de priorité est celui-ci :
+Seen as files, **a run is a directory**. Its annotation can live in three places, and the
+order of priority is this one:
 
-| Emplacement | Ce que ça implique |
+| Location | What it implies |
 |---|---|
-| `runs/<exécution>/config.json` | **Prioritaire.** L'annotation est *dans* l'exécution : elle la suit partout — copie, archive, envoi à un collègue |
-| `runs/<exécution>-config.json` | À côté du répertoire, même nom suffixé. L'exécution reste intacte : utile si elle est en lecture seule, signée, ou produite par quelqu'un d'autre |
-| `noms.json` | Un seul fichier à la racine, indexé par identifiant. C'est le **format d'échange** : celui qu'exporte la page |
+| `runs/<run>/config.json` | **Takes priority.** The annotation is *inside* the run: it follows it everywhere — a copy, an archive, sending it to a colleague |
+| `runs/<run>-config.json` | Beside the directory, the same name suffixed. The run stays untouched: useful if it is read-only, signed, or produced by someone else |
+| `noms.json` | A single file at the root, indexed by identifier. It is the **exchange format**: the one the page exports |
 
-Deux règles, et elles se justifient de la même façon :
+Two rules, and they are justified the same way:
 
-- **le plus proche de l'exécution l'emporte** — celui qui a rangé l'annotation avec la
-  mesure a exprimé une intention plus précise que celui qui a rempli le fichier commun ;
-- **la source retenue est prise entière** — mélanger un nom venu d'un fichier et une
-  description venue d'un autre donnerait une annotation que personne n'a écrite, et que
-  personne ne saurait corriger.
+- **the closest to the run wins** — whoever filed the annotation with the measurement
+  expressed a more precise intention than whoever filled in the shared file;
+- **the chosen source is taken whole** — mixing a name from one file with a description from
+  another would give an annotation nobody wrote, and nobody could correct.
 
-Le serveur, lui, écrit **là où l'annotation vit déjà**, et dans le répertoire de
-l'exécution si elle n'existait pas encore.
+The server, for its part, writes **where the annotation already lives**, and into the run's
+directory if it did not exist yet.
 
-### Les deux formes
+### The two shapes
 
-Un fichier d'exécution ne porte pas d'identifiant — il est déjà dans le bon répertoire :
+A run's file carries no identifier — it is already in the right directory:
 
 ```json
 {
-  "nom": "Recette du 21/08 — nuit",
-  "description": "24 M d'itérations. Vérifier la branche météo.",
-  "etiquettes": { "ticket": "RX-142", "à-rejouer": "" },
+  "nom": "Acceptance of 21/08 — night",
+  "description": "24 M iterations. Check the weather branch.",
+  "etiquettes": { "ticket": "RX-142", "to-replay": "" },
   "elagage": {
     "racine": "lab/sample/Main.main;lab/sample/RoutePlanner.travelTimeMinutes",
     "coupes": ["lab/sample/Main.main;lab/sample/Scenarios.at"]
@@ -202,91 +196,85 @@ Un fichier d'exécution ne porte pas d'identifiant — il est déjà dans le bon
 }
 ```
 
-Le fichier commun, lui, est indexé par identifiant, et accepte le nom seul — c'est la forme
-qui circulait avant les descriptions et les étiquettes, et elle reste lue telle quelle :
+The shared file, for its part, is indexed by identifier, and accepts the name alone — that
+is the shape that circulated before descriptions and labels, and it is still read as it is:
 
 ```json
 {
-  "8BF7DA2E-1C5A-4435-A3E3-4FE50CD41A2F": "Recette — jeu de données réduit",
+  "8BF7DA2E-1C5A-4435-A3E3-4FE50CD41A2F": "Acceptance — reduced data set",
 
   "637985B7-4F91-46E6-BD08-8980D92653E8": {
-    "nom": "Recette du 21/08 — nuit",
-    "description": "24 M d'itérations. Vérifier la branche météo.",
+    "nom": "Acceptance of 21/08 — night",
+    "description": "24 M iterations. Check the weather branch.",
     "etiquettes": { "ticket": "RX-142" }
   }
 }
 ```
 
-Supprimer une entrée rétablit le nom d'origine. À la fin de chaque mesure, l'outil rappelle
-l'identifiant de l'exécution et les deux formes possibles, prêts à être collés.
+Deleting an entry restores the original name. At the end of every measurement, the tool
+recalls the run's identifier and the two possible shapes, ready to be pasted.
 
-## Élaguer l'arbre
+## Pruning the tree
 
-Un arbre d'appel complet montre **tout** ce qui a tourné : le démarrage, les rouages, les
-branches qui n'intéressent personne aujourd'hui. Ce qu'on transmet à quelqu'un, c'est
-souvent **une** branche. Deux gestes, sous le bouton *élaguer* au bout de chaque ligne de
-l'onglet **Exécutions** :
+A complete call tree shows **everything** that ran: the start-up, the plumbing, the branches
+nobody cares about today. What one passes on to somebody is often **one** branch. Two
+gestures, under the *prune* button at the end of each line of the **Runs** tab:
 
-| Geste | Ce qu'il fait |
+| Gesture | What it does |
 |---|---|
-| **Couper cette branche** | Retire ce nœud et tout ce qui en part — **sur ce chemin seulement**. La même méthode appelée depuis ailleurs reste visible |
-| **Repartir d'ici** | Masque les niveaux au-dessus : l'arbre commence à ce nœud |
+| **Cut this branch** | Removes this node and everything leaving it — **on this path only**. The same method called from elsewhere stays visible |
+| **Start again from here** | Hides the levels above: the tree begins at this node |
 
-Les chemins s'écrivent comme dans le fichier de piles repliées — les frames de la racine au
-nœud, séparées par `;`. Un chemin devenu introuvable, parce que la mesure a changé, est
-ignoré plutôt qu'appliqué de travers.
+The paths are written as in the folded-stacks file — the frames from the root to the node,
+separated by `;`. A path that has become unfindable, because the measurement changed, is
+ignored rather than applied wrongly.
 
-**Ce que l'élagage ne fait pas : corriger la mesure.** Les pourcentages restent rapportés
-au total mesuré, les fichiers d'origine et [les exports](exports.md) ne bougent pas, et un
-bandeau rappelle en permanence ce qui est coupé, avec de quoi tout rétablir. Le graphe de
-temps de la vue d'ensemble suit le même cadrage — deux endroits de la page ne doivent pas
-raconter deux histoires.
+**What pruning does not do: correct the measurement.** The percentages stay relative to the
+measured total, the original files and [the exports](exports.md) do not move, and a band is a
+permanent reminder of what is cut, with what is needed to restore it all. The overview's time
+graph follows the same framing — two places in the page must not tell two stories.
 
-## Depuis la page
+## From the page
 
-Le **bandeau d'identité**, sous le nom de l'exécution en vue d'ensemble, tient sur une
-ligne : l'identifiant abrégé, le nom — modifiable sur place, c'est le titre de la vue —, la
-description, les étiquettes, et l'état de la saisie. Ce qui ne se modifie pas ne prend pas
-de place : le nom du lancement et l'identifiant complet vivent dans l'infobulle du champ
-qu'ils expliquent.
+The **identity band**, under the run's name in the overview, fits on one line: the shortened
+identifier, the name — editable in place, it is the view's title —, the description, the
+labels, and the state of the entry. What cannot be edited takes up no room: the launch name
+and the full identifier live in the tooltip of the field they explain.
 
-Rien d'éditable n'est posé dans le corps de la page : **le rapport se lit, il ne se remplit
-pas**. Les gestes, eux, rejoignent les autres boutons dans la barre du haut, sous
-**annotations** :
+Nothing editable is placed in the body of the page: **a report is read, it is not filled in**.
+The gestures join the other buttons in the top bar, under **card**:
 
-| Bouton | Ce qu'il fait |
+| Button | What it does |
 |---|---|
-| **enregistrer** | Écrit l'annotation de cette exécution à côté de ses résultats. N'apparaît que si la page est servie par l'outil, et se marque d'un point tant qu'il reste quelque chose à envoyer |
-| **exporter** | Télécharge le fichier d'annotations de tout le rapport — à déposer à côté des exécutions, ou à envoyer |
-| **importer** | Reprend un fichier existant : un `noms.json` entier, ou le `config.json` d'une seule exécution |
-| **JSON** | Affiche ce qui serait écrit, par-dessus la page, pour le relire ou le copier |
+| **save** | Writes this run's annotation beside its results. Appears only if the page is served by the tool, and is marked with a dot as long as something is left to send |
+| **export** | Downloads the annotation file for the whole report — to drop beside the runs, or to send |
+| **import** | Takes in an existing file: a whole `noms.json`, or one run's `config.json` |
+| **JSON** | Shows what would be written, over the page, to re-read or copy it |
 
-La même barre porte, sous **exports**, les quatre formats destinés à d'autres outils. Ceux
-qui n'ont pas été produits y restent **nommés mais éteints** : une capacité qui ne vit que
-dans une option de ligne de commande n'existe pas pour qui lit la page. Un clic dessus donne
-la commande qui les produit — voir [Reprendre le résultat dans un autre outil](exports.md).
+The same bar carries, under **exports**, the four formats meant for other tools. Those that
+were not produced stay **named but switched off** there: a capability that lives only in a
+command-line option does not exist for whoever reads the page. Clicking one gives the command
+that produces it — see [Taking the result into another tool](exports.md).
 
-## Réserves
+## Caveats
 
-- **Le navigateur oublie.** Mode 1, les annotations vivent dans le stockage local du
-  navigateur : elles disparaissent avec lui, ne suivent pas d'une machine à l'autre, et ne
-  sont pas visibles par les autres. C'est pour cela que l'export existe.
-- **Les annotations ne sont pas dans les exports.** [Ce qui part vers un autre
-  outil](exports.md) est la mesure, pas ce qu'on en a dit — un profil `perf` n'a pas
-  d'endroit où loger une description.
-- **Le secret partagé n'identifie personne.** Il dit qui peut entrer, pas qui a écrit
-  quoi : deux personnes derrière le même secret sont indiscernables dans les fichiers
-  d'annotation. C'est suffisant pour un outil de diagnostic ; ce ne l'est pas pour un
-  registre de décisions.
-- **Le serveur régénère la page après chaque écriture.** Sur un rapport très gros, cela
-  prend quelques secondes ; c'est fait en arrière-plan, et plusieurs écritures rapprochées
-  ne déclenchent qu'un assemblage de plus, à la fin.
-- **Ni verrou ni historique.** Deux personnes sur la même exécution sont départagées au
-  moment d'écrire, mais rien ne conserve la version remplacée : on la voit au moment du
-  refus, pas après.
+- **The browser forgets.** In mode 1, the annotations live in the browser's local storage:
+  they disappear with it, do not follow from one machine to another, and are not visible to
+  others. That is why export exists.
+- **The annotations are not in the exports.** [What goes out to another tool](exports.md) is
+  the measurement, not what was said about it — a `perf` profile has nowhere to lodge a
+  description.
+- **The shared secret identifies nobody.** It says who may enter, not who wrote what: two
+  people behind the same secret are indistinguishable in the annotation files. That is enough
+  for a diagnostic tool; it is not enough for a register of decisions.
+- **The server regenerates the page after every write.** On a very large report that takes a
+  few seconds; it is done in the background, and several writes close together trigger only
+  one more assembly, at the end.
+- **Neither lock nor history.** Two people on the same run are told apart at write time, but
+  nothing keeps the replaced version: it is seen at the moment of refusal, not afterwards.
 
-## À lire ensuite
+## What to read next
 
-- [Mode d'emploi](mode-emploi.md) — tous les paramètres, dont `--serve` et `--serve-host`
-- [Lire le rapport](lire-le-rapport.md) — ce que la page montre, ce qu'elle replie
-- [Reprendre le résultat dans un autre outil](exports.md) — perf, cpuprofile, LCOV
+- [Manual](mode-emploi.md) — every setting, including `--serve` and `--serve-host`
+- [Reading the report](lire-le-rapport.md) — what the page shows, what it folds away
+- [Taking the result into another tool](exports.md) — perf, cpuprofile, LCOV

@@ -1,115 +1,113 @@
-# Faire lire le rapport par un modèle de langage
+# Having the report read by a language model
 
-> Un rapport `runtime-xray` répond à des questions qu'on met dix minutes à formuler et une
-> heure à instruire à la main. Un modèle de langage les instruit en quelques secondes — à
-> condition qu'on lui donne **le bon texte**, et non la page.
+> A `runtime-xray` report answers questions that take ten minutes to formulate and an hour to
+> work out by hand. A language model works them out in a few seconds — provided it is given
+> **the right text**, and not the page.
 
-## Le besoin, énoncé une fois
+## The need, stated once
 
-Ce n'est pas un problème d'API.
+This is not an API problem.
 
-Ça y ressemble : il faut choisir un fournisseur, une forme de requête, une bibliothèque. Mais
-ce choix-là change tous les six mois et diffère d'un service à l'autre, alors que ce qui ne
-change pas, c'est le besoin en dessous : donner à lire **un texte borné, exact, et qui se
-comprend seul**.
+It looks like one: a provider must be chosen, a request shape, a library. But that choice
+changes every six months and differs from one service to the next, whereas what does not
+change is the need underneath: handing over **a bounded, exact text that is understood on its
+own**.
 
-D'où la règle tenue ici, jumelle de celle des [exports](exports.md) :
+Hence the rule held here, twin to that of the [exports](exports.md):
 
-> **L'outil produit le contexte. Il ne parle à personne.**
+> **The tool produces the context. It speaks to nobody.**
 
-Aucune classe de `runtime-xray` ne connaît le nom d'un fournisseur, n'ouvre une connexion ni
-ne lit une clé. Ce qu'il produit se colle dans une fenêtre de discussion, se donne à un agent
-qui lit l'espace de travail, ou se poste par une commande de trois lignes. Le jour où le
-protocole à la mode change, seules ces trois lignes sont à refaire.
+No class of `runtime-xray` knows a provider's name, opens a connection or reads a key. What
+it produces is pasted into a chat window, given to an agent that reads the workspace, or
+posted by a three-line command. The day the fashionable protocol changes, only those three
+lines have to be redone.
 
-## Le fichier de faits
+## The facts file
 
-Un rapport `runtime-xray` s'accompagne d'un `faits.jsonl` : **un objet JSON par ligne**, où
-chaque ligne se comprend seule.
+A `runtime-xray` report comes with a `faits.jsonl`: **one JSON object per line**, where each
+line is understood on its own.
 
 ```jsonl
-{"fact":"class.never_executed","classe":"com.example.app.Ancien","runsAnalysed":["recette-1","recette-2"]}
-{"fact":"method.hot","methode":"com.example.app.Repository.charger","samples":4821,"pct":31.2,"measure":"async-profiler.samples","execution":"recette-1"}
+{"fact":"class.never_executed","classe":"com.example.app.Legacy","runsAnalysed":["acceptance-1","acceptance-2"]}
+{"fact":"method.hot","methode":"com.example.app.Repository.load","samples":4821,"pct":31.2,"measure":"async-profiler.samples","execution":"acceptance-1"}
 ```
 
-Il n'y a rien à installer pour le lire : `grep`, `jq`, une boucle de trois lignes, ou un
-modèle de langage. Trois décisions le rendent utilisable, et il perd tout son intérêt dès
-qu'il en manque une.
+There is nothing to install to read it: `grep`, `jq`, a three-line loop, or a language model.
+Three decisions make it usable, and it loses all its interest as soon as one is missing.
 
-**Une ligne porte tout son sens.** Dix lignes prises au milieu du fichier se comprennent
-sans les précédentes. Pas de structure imbriquée à reconstituer, pas de référence à un
-identifiant défini plus haut, et jamais une mesure sans son unité — un chiffre sans unité
-oblige le lecteur à deviner, et il devinera.
+**A line carries all its meaning.** Ten lines taken from the middle of the file are understood
+without the preceding ones. No nested structure to reconstitute, no reference to an identifier
+defined higher up, and never a measurement without its unit — a figure without a unit forces
+the reader to guess, and they will guess.
 
-**Le vocabulaire voyage avec la donnée.** La première ligne est un fait `campagne` qui porte
-un dictionnaire des familles de faits et de ce que chacune veut dire. Une documentation posée
-à côté se perd — dans un zip, dans une pièce jointe, dans un dossier recopié. Celle-ci se
-recopie avec le fichier.
+**The vocabulary travels with the data.** The first line is a `campagne` fact carrying a
+dictionary of the fact families and what each one means. Documentation placed beside gets
+lost — in a zip, in an attachment, in a copied folder. This one is copied with the file.
 
-**Ce qui n'a PAS été mesuré est écrit.** Sous Windows, async-profiler ne publie aucun
-binaire : il n'y a pas de mesure de temps. Sans une ligne pour le dire, « 0 relevé » se lit
-exactement comme « ce code n'a jamais tourné » — et un lecteur tranchera, dans le mauvais
-sens, avec assurance. Les faits `unavailable` et `caveat` existent pour ça. Ils disent
-ce qui manque, pourquoi, ce qu'on ne peut donc **pas** en conclure, et le remède.
+**What was NOT measured is written down.** Under Windows, async-profiler publishes no binary:
+there is no time measurement. Without a line to say so, "0 samples" reads exactly like "this
+code never ran" — and a reader will decide, the wrong way, with confidence. The `unavailable`
+and `caveat` facts exist for that. They say what is missing, why, what one therefore **cannot**
+conclude from it, and the remedy.
 
-Le format se donne dans le manifeste de la page (`faitsFormat`), et le rapport HTML n'a
-besoin de rien de tout ceci : `faits.jsonl` **s'ajoute** sans rien retirer.
+The format is given in the page's manifest (`faitsFormat`), and the HTML report needs none of
+this: `faits.jsonl` **adds itself** without removing anything.
 
-## Le paquet de contexte
+## The context pack
 
-Donner `faits.jsonl` en entier à un modèle marche jusqu'à ce que le fichier dépasse la
-fenêtre — c'est-à-dire dès la première campagne sérieuse. Le tronquer au premier N kilo-octets
-marche encore moins bien : les réserves sont en tête, les mesures en queue, et couper la queue
-donne un paquet qui n'a plus rien à dire.
+Giving a model the whole of `faits.jsonl` works until the file exceeds the window — that is,
+from the first serious campaign onwards. Truncating it at the first N kilobytes works even
+less well: the caveats are at the top, the measurements at the bottom, and cutting off the
+bottom gives a pack with nothing left to say.
 
-`--contexte` fait ce travail :
+`--context` does that work:
 
 ```bash
-java -jar runtime-xray.jar --out runtime-xray-out --contexte "which classes never ran?"
+java -jar runtime-xray.jar --out runtime-xray-out --context "which classes never ran?"
 ```
 
-Sur la sortie standard, un texte Markdown prêt à coller, qui porte dans cet ordre :
+On standard output, a ready-to-paste Markdown text, carrying, in this order:
 
-1. **de quoi il s'agit** — une observation d'application Java pendant son exécution ;
-2. **trois pièges de lecture** — dont « un zéro peut vouloir dire *pas mesuré* » ;
-3. **la campagne** et **le vocabulaire des faits** ;
-4. **ce qui n'a PAS été mesuré**, avant tout chiffre ;
-5. **les faits retenus** pour cette question, en JSONL ;
-6. s'il a fallu écarter des faits, **combien et lesquels**.
+1. **what it is about** — an observation of a Java application while it ran;
+2. **three reading traps** — including "a zero may mean *not measured*";
+3. **the campaign** and **the fact vocabulary**;
+4. **what was NOT measured**, before any figure;
+5. **the facts kept** for this question, in JSONL;
+6. if facts had to be left out, **how many and which**.
 
-Trois décisions le tiennent, et chacune est gardée par un test.
+Three decisions hold it, and each one is guarded by a test.
 
-**L'ordre est l'information.** Les indisponibilités passent avant les mesures parce qu'un
-lecteur qui voit les chiffres d'abord les a déjà interprétés quand il arrive aux réserves.
-C'est vrai d'un humain ; ça l'est plus encore d'un modèle, qui produira une réponse assurée
-sur un zéro qui ne mesurait rien.
+**The order is the information.** The unavailabilities come before the measurements because a
+reader who sees the figures first has already interpreted them by the time they reach the
+caveats. That is true of a human; it is more so of a model, which will produce a confident
+answer about a zero that measured nothing.
 
-**Une indisponibilité n'est jamais élaguée.** Le budget (40 000 caractères par défaut,
-environ dix mille jetons — de quoi tenir dans la fenêtre d'un modèle modeste, comme le sont
-souvent ceux qu'on héberge soi-même) coupe des mesures, jamais des réserves. Une réponse
-fausse et assurée coûte plus cher qu'une absence de réponse.
+**An unavailability is never pruned.** The budget (40,000 characters by default, about ten
+thousand tokens — enough to fit in the window of a modest model, as self-hosted ones often
+are) cuts measurements, never caveats. A wrong, confident answer costs more than no answer at
+all.
 
-**Rien n'est coupé en silence.** Quand le budget force à écarter, le paquet dit combien, de
-quelles familles, et que la sélection est INCOMPLÈTE — donc qu'on n'en tire ni total ni
-classement. Un extrait qu'on croit complet fait conclure sur un échantillon.
+**Nothing is cut in silence.** When the budget forces something out, the pack says how many,
+from which families, and that the selection is INCOMPLETE — hence that neither a total nor a
+ranking is to be drawn from it. An extract believed complete makes one conclude on a sample.
 
-### La question a deux rôles, et c'est ce qui la rend ambiguë
+### The question has two roles, and that is what makes it ambiguous
 
-Elle **choisit** les faits — grossièrement, par mots-clés — et elle **voyage**, recopiée
-telle quelle en tête du paquet, parce que le vrai destinataire n'est pas le programme.
+It **chooses** the facts — coarsely, by keywords — and it **travels**, copied as it is at the
+top of the pack, because the real addressee is not the program.
 
-Le choix est délibérément grossier : la sélection ne doit jamais être la partie
-intelligente — une sélection fine écarterait le fait qui contredit l'hypothèse, exactement
-celui qu'il fallait garder. Mais un texte libre laisse croire à une compréhension qui
-n'existe pas, alors deux choses le compensent :
+The choice is deliberately coarse: the selection must never be the clever part — a fine
+selection would leave out the fact that contradicts the hypothesis, exactly the one that had
+to be kept. But free text suggests an understanding that does not exist, so two things make
+up for it:
 
-- **Ce qui a été compris est annoncé sur la sortie d'erreur** — « familles retenues d'après
-  la question : … », ou « aucun mot-clé reconnu — vue d'ensemble : … ». La sortie standard
-  reste le paquet seul, donc redirigeable.
-- **`--help` donne la table des mots reconnus.** Un texte libre non documenté n'est pas
-  découvrable ; celui-ci l'est, et un test garde la table contre le pourrissement.
+- **What was understood is announced on standard error** — "families kept from the question:
+  …", or "no keyword recognised — overview: …". Standard output stays the pack alone, hence
+  redirectable.
+- **`--help` gives the table of recognised words.** Undocumented free text is not
+  discoverable; this one is, and a test guards the table against rot.
 
-| Si la question contient… | Familles jointes |
+| If the question holds… | Families attached |
 |---|---|
 | `never` `dead` `unused` `uncovered` `not covered` | `class.never_executed` |
 | `cover` `coverage` `percent` | `coverage.run` + `class` |
@@ -117,162 +115,158 @@ n'existe pas, alors deux choses le compensent :
 | `source` `missing` `root` | `source.missing` + `source.hint` |
 | `run` `campaign` `when` `machine` `command` | `run` |
 
-**Un mot-clé ouvre un mot**, il n'est pas cherché n'importe où dans la phrase : « screenshot »
-ne déclenche donc pas `hot`, ni « generate » `rate`. Les flexions restent attrapées — `missing`
-et `manqu` couvrent « manquant », « manquantes ». **Les mots français sont reconnus aussi**,
-sans être documentés : l'outil parle anglais, et une seconde table rendrait la première
-illisible pour ceux à qui elle s'adresse.
+**A keyword opens a word**, it is not looked for anywhere in the sentence: "screenshot"
+therefore does not trigger `hot`, nor "generate" `rate`. Inflections are still caught —
+`missing` and `manqu` cover "manquant", "manquantes". **French words are recognised too**,
+without being documented: the tool speaks English, and a second table would make the first
+unreadable for those it addresses.
 
 ```
-$ runtime-xray --out rapport --contexte "welche Klassen liefen nie" > paquet.md
-   aucun mot-clé reconnu dans la question — vue d'ensemble : execution, couverture…
+$ runtime-xray --out report --context "welche Klassen liefen nie" > pack.md
+   no keyword recognised in the question — overview: execution, coverage…
 ```
 
-### Pour un script : nommer les familles
+### For a script: naming the families
 
-Un script n'a pas besoin qu'on interprète une phrase, il a besoin d'un résultat
-reproductible. `--familles` court-circuite les mots-clés :
+A script does not need a sentence interpreted, it needs a reproducible result. `--families`
+short-circuits the keywords:
 
 ```sh
-runtime-xray --out rapport --contexte "classes mortes de la recette" \
+runtime-xray --out report --context "dead classes of the acceptance run" \
              --families class.never_executed,coverage.run
 ```
 
-La question continue de voyager — c'est son autre rôle — mais ne choisit plus rien. Une
-famille inconnue **s'arrête**, avec la liste de celles qui existent : c'est l'inverse du
-texte libre, et délibérément. Une phrase qu'on ne reconnaît pas vient d'un humain qui
-cherche, donc on lui donne la vue d'ensemble ; une famille qui n'existe pas vient d'un
-script qui a un défaut, et le lui taire produirait un paquet silencieusement différent de
-ce qu'il croit lire.
+The question still travels — that is its other role — but no longer chooses anything. An
+unknown family **stops**, with the list of those that exist: that is the opposite of free
+text, and deliberately so. A sentence one does not recognise comes from a human searching, so
+one gives them the overview; a family that does not exist comes from a script with a defect,
+and keeping quiet about it would produce a pack silently different from what it believes it
+is reading.
 
-**Aucune valeur capturée ne part.** Les valeurs de paramètres relevées par Arthas restent
-dans leur bloc, sur le disque. Elles sont volumineuses, et elles portent parfois ce qu'on ne
-veut pas voir voyager vers un service hébergé ailleurs. Deux tests le gardent, un sur le
-fichier de faits, un sur le paquet de contexte.
+**No captured value leaves.** The argument values recorded by Arthas stay in their block, on
+disk. They are bulky, and they sometimes carry what one does not want travelling to a service
+hosted elsewhere. Two tests guard this, one on the facts file, one on the context pack.
 
-## Trois niveaux d'effort
+## Three levels of effort
 
-### Niveau 0 — copier-coller, ou un agent qui lit le dossier
+### Level 0 — copy and paste, or an agent that reads the folder
 
-Rien à installer, rien à configurer, aucune clé.
+Nothing to install, nothing to configure, no key.
 
 ```bash
-java -jar runtime-xray.jar --out runtime-xray-out --contexte "where does the time go?" | pbcopy
+java -jar runtime-xray.jar --out runtime-xray-out --context "where does the time go?" | pbcopy
 ```
 
-Et si l'on travaille déjà avec un assistant qui lit l'espace de travail — dans un éditeur,
-dans un terminal — il n'y a même pas ça à faire : lui indiquer `runtime-xray-out/faits.jsonl`
-suffit, le fichier explique son propre vocabulaire.
+And if one already works with an assistant that reads the workspace — in an editor, in a
+terminal — there is not even that to do: pointing it at `runtime-xray-out/faits.jsonl` is
+enough, the file explains its own vocabulary.
 
-Deux compétences prêtes à recopier dans `.claude/skills/` portent ce qu'il faut savoir de
-part et d'autre — conduire une campagne, et lire un rapport sans en tirer de fausse
-conclusion : [`skills/`](../../skills/README.md).
+Two skills ready to copy into `.claude/skills/` carry what needs to be known on both sides —
+running a campaign, and reading a report without drawing a false conclusion from it:
+[`skills/`](../../skills/README.md).
 
-**C'est le niveau à essayer d'abord**, et il couvre la plupart des besoins. Les deux suivants
-ne servent que si l'on veut poser la question *sans humain dans la boucle*.
+**That is the level to try first**, and it covers most needs. The two that follow serve only
+if one wants to ask the question *with no human in the loop*.
 
-#### Le cas d'un assistant intégré à l'éditeur
+#### The case of an assistant built into the editor
 
-Beaucoup d'assistants d'édition de code se branchent sur **une adresse et un modèle**, dans
-la forme de requête décrite plus bas — c'est le montage le plus répandu, et il n'impose rien
-sur l'éditeur du modèle : une passerelle auto-hébergée s'y déclare comme un service
-commercial.
+Many code-editing assistants hook onto **an address and a model**, in the request shape
+described below — it is the most widespread arrangement, and it imposes nothing about who
+publishes the model: a self-hosted gateway declares itself there like a commercial service.
 
-Pour eux, il n'y a **rien à intégrer** : ils lisent déjà l'espace de travail. Il suffit de
-poser le rapport dedans et de nommer le fichier.
+For them, there is **nothing to integrate**: they already read the workspace. One only has to
+put the report in it and name the file.
 
 ```
 Read runtime-xray-out/faits.jsonl and tell me which classes never ran.
 ```
 
-Le fichier porte son propre vocabulaire en première ligne, et la [compétence de
-lecture](../../skills/README.md) porte les pièges — un zéro qui peut vouloir dire « pas
-mesuré », une source introuvable qui n'est jamais « le code n'existe pas ». Recopier les
-deux compétences dans `.claude/skills/` du projet suffit pour que l'assistant les applique
-sans qu'on ait à les rappeler à chaque question.
+The file carries its own vocabulary on its first line, and the [reading
+skill](../../skills/README.md) carries the traps — a zero that may mean "not measured", a
+source that cannot be found and is never "the code does not exist". Copying the two skills
+into the project's `.claude/skills/` is enough for the assistant to apply them without having
+to be reminded at every question.
 
-Le paquet de `--contexte` reste utile quand le rapport est gros : il choisit, borne, et met
-les absences en tête — ce qu'un assistant qui lit un fichier de plusieurs mégaoctets ne fera
-pas de lui-même.
+The `--context` pack stays useful when the report is large: it chooses, bounds, and puts the
+absences first — which an assistant reading a file of several megabytes will not do by
+itself.
 
-### Niveau 1 — une commande
+### Level 1 — one command
 
-`bin/ask.sh` prend une question, produit le contexte par l'outil, le poste, et écrit la
-réponse. Aucune dépendance : `curl` et `jq`.
+`bin/ask.sh` takes a question, produces the context through the tool, posts it, and writes the
+answer. No dependency: `curl` and `jq`.
 
 ```bash
 ./bin/ask.sh --out runtime-xray-out "which classes never ran?"
 ./bin/ask.sh --api anthropic --model … "where does the time go?"
-./bin/ask.sh --context-only --out runtime-xray-out "…"   # rien n'est envoyé
+./bin/ask.sh --context-only --out runtime-xray-out "…"   # nothing is sent
 ```
 
-Le script est **délibérément mince**, et c'est tout son intérêt : le travail utile — choisir
-les faits, joindre la légende, mettre les absences en tête, borner le volume — est fait par
-l'outil, qui est éprouvé par des tests. Ce qui reste ici, c'est de poster un texte.
+The script is **deliberately thin**, and that is the whole point: the useful work — choosing
+the facts, attaching the legend, putting the absences first, bounding the volume — is done by
+the tool, which the tests hold. What is left here is posting a text.
 
-**La clé se lit dans l'environnement**, jamais sur la ligne de commande : celle-ci se
-retrouve dans l'historique du terminal et dans la liste des processus, où tout le monde la
-lit.
+**The key is read from the environment**, never from the command line: that line ends up in
+the shell history and in the process list, where everyone can read it.
 
 ```bash
-export XRAY_CLE=…          # ou OPENAI_API_KEY / ANTHROPIC_API_KEY / GEMINI_API_KEY
+export XRAY_KEY=…          # or OPENAI_API_KEY / ANTHROPIC_API_KEY / GEMINI_API_KEY
 ```
 
-#### Pourquoi trois formes de requête et pas une
+#### Why three request shapes and not one
 
-Il n'existe pas de standard. Il existe une forme majoritaire, ce qui n'est pas la même chose,
-et une forme majoritaire qu'on prend pour un standard est un pari qu'on a oublié d'avoir
-fait. Les trois enveloppes sont donc écrites côte à côte dans le script — on voit du premier
-coup d'œil que seul l'emballage change :
+There is no standard. There is a majority shape, which is not the same thing, and a majority
+shape taken for a standard is a bet one has forgotten making. The three envelopes are
+therefore written side by side in the script — one glance shows that only the wrapping
+changes:
 
-| `--api` | Forme | La consigne système | Le texte de la réponse |
+| `--api` | Shape | The system instruction | The answer's text |
 |---|---|---|---|
-| `openai` | `POST …/chat/completions` | un message de rôle `system` | `.choices[0].message.content` |
-| `anthropic` | `POST …/v1/messages` | un champ `system` à part | `.content[0].text` |
+| `openai` | `POST …/chat/completions` | a message with role `system` | `.choices[0].message.content` |
+| `anthropic` | `POST …/v1/messages` | a separate `system` field | `.content[0].text` |
 | `gemini` | `POST …/models/X:generateContent` | `system_instruction` | `.candidates[0].content.parts[0].text` |
 
-**`openai` désigne la forme de la requête, pas le fournisseur.** C'est le point le plus
-souvent mal compris : la plupart des passerelles auto-hébergées et des services commerciaux
-acceptent cette forme, quel que soit le modèle derrière. Une passerelle interne se désigne
-donc ainsi, sans que rien du montage ne suppose quoi que ce soit sur l'éditeur du modèle :
+**`openai` names the shape of the request, not the vendor.** This is the point most often
+misunderstood: most self-hosted gateways and commercial services accept that shape, whatever
+the model behind it. An internal gateway is therefore named this way, with nothing in the
+arrangement supposing anything about who publishes the model:
 
 ```bash
-./bin/ask.sh --url https://passerelle.interne/v1/chat/completions --model … "…"
+./bin/ask.sh --url https://gateway.internal/v1/chat/completions --model … "…"
 ```
 
-Le jour où une quatrième forme s'impose, il y a une trentaine de lignes à écrire dans un
-`case`, et rien d'autre à toucher — ni dans l'outil, ni dans le format.
+The day a fourth shape matters, that is thirty lines to write in a `case`, and nothing else to
+touch — neither in the tool, nor in the format.
 
-### Niveau 2 — dans une chaîne d'intégration
+### Level 2 — in an integration pipeline
 
-Le contexte étant un texte sur la sortie standard, il se pose où l'on veut : dans un ticket,
-dans un commentaire de proposition de fusion, dans un message d'équipe.
+The context being a text on standard output, it goes wherever one wants: into a ticket, into a
+merge-request comment, into a team message.
 
 ```bash
-java -jar runtime-xray.jar --out "$OUT" --contexte "which classes never ran?" \
-  > contexte.md
+java -jar runtime-xray.jar --out "$OUT" --context "which classes never ran?" \
+  > context.md
 ```
 
-Deux précautions, et elles sont du même ordre que pour n'importe quel appel sortant :
+Two precautions, and they are of the same order as for any outgoing call:
 
-- **Ce qui sort de la machine** est un texte de faits — noms de classes et de méthodes,
-  chiffres de couverture et d'échantillons. Pas de code source, pas de valeurs capturées. Sur
-  un code dont les noms de classes sont eux-mêmes sensibles, la question à trancher reste
-  entière, et `--context-only` permet de la regarder avant d'envoyer quoi que ce soit.
-- **Un appel sortant est un appel sortant.** Sur le parc visé par cet outil — des machines
-  sans réseau — le niveau 0 est le seul qui fonctionne, et il fonctionne très bien.
+- **What leaves the machine** is a text of facts — class and method names, coverage and
+  sample figures. No source code, no captured values. On a codebase whose class names are
+  themselves sensitive, the question to settle remains open, and `--context-only` allows
+  looking at it before sending anything at all.
+- **An outgoing call is an outgoing call.** On the estate this tool targets — machines with no
+  network — level 0 is the only one that works, and it works very well.
 
-## Ce qui n'est pas fait, et pourquoi
+## What is not done, and why
 
-**Pas de client HTTP dans l'outil.** Il faudrait y mettre un nom de fournisseur, une clé, une
-politique de nouvelle tentative, un quota. Chacun de ces quatre points est une décision
-d'exploitation, propre au site, qui n'a rien à faire dans un jar sans dépendance dont la
-raison d'être est de tourner sur une machine fermée.
+**No HTTP client in the tool.** It would need a provider's name, a key, a retry policy, a
+quota. Each of those four points is an operational decision, specific to the site, which has
+no business in a dependency-free jar whose reason for being is to run on a closed machine.
 
-**Pas de serveur.** Le rapport est un dossier de fichiers ; les fichiers sont déjà une
-interface, lisible par tout ce qui sait ouvrir un fichier, et qui survit à la version du
-programme qui les a écrits. Un serveur ajouterait un port à ouvrir, un cycle de vie à
-surveiller, et une raison de plus pour l'outil de ne pas démarrer.
+**No server.** The report is a folder of files; files are already an interface, readable by
+anything that can open a file, and one that outlives the version of the program that wrote
+them. A server would add a port to open, a life cycle to watch, and one more reason for the
+tool not to start.
 
-**Pas de sélection intelligente des faits.** Voir plus haut : ce serait précisément l'endroit
-où l'on perdrait le fait qui contredit l'hypothèse.
+**No clever selection of the facts.** See above: that would be precisely where one would lose
+the fact that contradicts the hypothesis.

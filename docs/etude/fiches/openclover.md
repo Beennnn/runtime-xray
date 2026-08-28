@@ -1,45 +1,46 @@
 # OpenClover
 
-> **Statut : 📄 sur documentation** — non exécuté ici.
+> **Status: 📄 on documentation** — not run here.
 
-## Ce que c'est
-Un outil de couverture Java, héritier de Clover (Atlassian), passé en open source.
+## What it is
+A Java coverage tool, heir to Clover (Atlassian), turned open source.
 
-## Sa philosophie
-**Relier la couverture aux tests qui la produisent.** Là où JaCoCo répond « cette ligne
-a-t-elle été exécutée ? », OpenClover répond « **par quel test** ? ». Il conserve le lien
-entre chaque test et les lignes qu'il a touchées.
+## Its philosophy
+**Linking the coverage to the tests that produce it.** Where JaCoCo answers "was this line
+executed?", OpenClover answers "**by which test**?". It keeps the link between each test and
+the lines it touched.
 
-## Ce qu'il sait faire
-Lignes et branches ✅ · **couverture par test** ✅ · couverture par méthode ✅ ·
-arbre d'appel ❌ · valeurs des paramètres ❌.
+## What it can do
+Lines and branches ✅ · **coverage per test** ✅ · coverage per method ✅ ·
+call tree ❌ · parameter values ❌.
 
-## Son interface
-Rapport HTML avec code source annoté, comparable à JaCoCo, enrichi de la vue par test.
+## Its interface
+An HTML report with annotated source code, comparable to JaCoCo's, enriched by the per-test
+view.
 
-## Comment on navigue dedans
-Page web autonome ✅, comme JaCoCo. Plugins IDE historiques, à l'état de maintenance
-incertain *(à vérifier)*.
+## How one navigates in it
+Self-contained web page ✅, like JaCoCo. Historic IDE plugins, of uncertain maintenance
+*(to be checked)*.
 
-## Mise en œuvre
-Instrumentation à la **compilation** (et non à l'exécution comme JaCoCo) : il faut
-brancher son plugin dans le build. Plus intrusif.
+## Setting up
+Instrumentation at **compile time** (and not at run time as with JaCoCo): its plugin has to be
+plugged into the build. More intrusive.
 
-## Licence et coût
-**Apache 2.0**, **0 €**. Hors ligne.
+## Licence and cost
+**Apache 2.0**, **€0**. Offline.
 
-## Ce qu'on peut en espérer
-Intéressant seulement si la question « quel test couvre quoi ? » devient centrale. Pour le
-besoin décrit — la couverture d'une **exécution**, pas d'une suite de tests — JaCoCo est
-plus direct et mieux soutenu.
+## What one can hope for from it
+Interesting only if the question "which test covers what?" becomes central. For the need
+described — the coverage of a **run**, not of a test suite — JaCoCo is more direct and better
+supported.
 
-## Comparable à
+## Comparable to
 
-- **[JaCoCo](jacoco.md)** — **Le concurrent direct**, et celui qui est retenu ici : instrumentation à l'exécution plutôt qu'à la compilation, écosystème nettement plus vivant. OpenClover ne reprend l'avantage que si la question devient « quel test couvre quoi ? ».
-- **[SonarQube](sonarqube.md)** — Même rôle d'afficheur pour l'un comme pour l'autre.
+- **[JaCoCo](jacoco.md)** — **The direct competitor**, and the one retained here: instrumentation at run time rather than at compile time, a markedly livelier ecosystem. OpenClover regains the advantage only if the question becomes "which test covers what?".
+- **[SonarQube](sonarqube.md)** — The same displayer role for one as for the other.
 
-## Facile / moins facile
+## Easy / less easy
 
-**Ce qui est facile.** Lire le rapport : même famille que JaCoCo, mêmes réflexes.
+**What is easy.** Reading the report: same family as JaCoCo, same reflexes.
 
-**Ce qui l'est moins.** **L'insérer dans le build** — l'instrumentation se fait à la compilation, donc elle touche le processus de construction. Et évaluer la vitalité du projet, moins soutenu que JaCoCo.
+**What is less so.** **Inserting it into the build** — the instrumentation happens at compile time, so it touches the build process. And judging the project's vitality, less supported than JaCoCo.

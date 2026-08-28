@@ -1,57 +1,57 @@
-# Détails techniques
+# Technical details
 
-> Page destinée à qui va **rejouer** ou **étendre** l'évaluation. Le décideur n'en a pas
-> besoin : les résultats sont dans [les résultats](../resultat/resultats.md).
+> A page for whoever is going to **replay** or **extend** the evaluation. A decision-maker
+> does not need it: the results are in [the results](../resultat/resultats.md).
 
-## Le programme analysé
+## The analysed program
 
-[`sample-app/`](../../sample-app) — 27 classes, 9 paquets. Le **code métier** n'a aucune
-dépendance : ce qu'un outil affiche vient de ce code, pas du bruit d'un framework.
+[`sample-app/`](../../sample-app) — 27 classes, 9 packages. The **business code** has no
+dependency: what a tool shows comes from that code, not from a framework's noise.
 
-Trois dépendances existent néanmoins, chacune pour produire un cas que le code local ne peut
-pas fabriquer :
+Three dependencies exist nonetheless, each to produce a case the local code cannot
+manufacture:
 
-| Dépendance | Ce qu'elle démontre |
+| Dependency | What it demonstrates |
 |---|---|
-| `commons-lang3` | Du code à analyser qui ne vient pas d'un répertoire de classes mais d'un **jar**, comme une dépendance interne livrée compilée. Une seule de ses classes est appelée (`Range`, dans `Breaks`) |
-| `slf4j-api` + `slf4j-simple` | Une bibliothèque **hors JDK**, visible dans l'arbre d'appel puisque rien ne la replie d'office, et donc masquable par configuration — l'appel est laissé dans la boucle chaude exprès |
+| `commons-lang3` | Code to analyse that comes not from a directory of classes but from a **jar**, like an internal dependency delivered compiled. Only one of its classes is called (`Range`, in `Breaks`) |
+| `slf4j-api` + `slf4j-simple` | A library **outside the JDK**, visible in the call tree since nothing folds it away by default, and therefore hideable by configuration — the call is left in the hot loop on purpose |
 
-Les jar de dépendances sont copiés dans `target/libs/` plutôt que fondus dans un jar
-unique : l'étude a besoin d'un **chemin stable vers le jar d'une dépendance** pour le donner
-à analyser, et un jar-uber effacerait justement la distinction qu'on veut montrer.
+The dependency jars are copied into `target/libs/` rather than melted into a single jar: the
+study needs a **stable path to a dependency's jar** in order to hand it over for analysis,
+and an uber-jar would erase precisely the distinction one wants to show.
 
-La fonction sous analyse est
+The function under analysis is
 [`RoutePlanner.travelTimeMinutes(Trip)`](../../sample-app/src/main/java/lab/sample/RoutePlanner.java) :
-« combien de temps pour aller de A à B ? ». Elle est conçue pour **départager les outils**,
-pas pour être réaliste.
+"how long does it take to get from A to B?". It is designed to **tell the tools apart**,
+not to be realistic.
 
-### Le graphe d'appel dépend du contexte
+### The call graph depends on the context
 
-C'est le point central : selon le trajet, ce ne sont pas les mêmes fonctions qui tournent.
+That is the central point: depending on the trip, it is not the same functions that run.
 
-| Contexte du trajet | Ce qui s'exécute |
+| Trip context | What executes |
 |---|---|
-| Voiture **et** heure de pointe | `traffic.Traffic` → `RushHourDelay` — sinon tout ce sous-arbre est absent |
-| Train | `transfer.Connections` (récursif) → `Timetable`, seule opération **bloquante** |
-| Vélo ou marche | `weather.WeatherPenalty` puis `LuggagePenalty` |
-| Tous sauf le train | `terrain.Terrain` → `Elevation`, 24 sous-segments — le cœur de calcul |
-| Durée > 2 h | `comfort.Breaks`, décidé sur une **valeur calculée**, pas sur un argument reçu |
+| Car **and** rush hour | `traffic.Traffic` → `RushHourDelay` — otherwise this whole sub-tree is absent |
+| Train | `transfer.Connections` (recursive) → `Timetable`, the only **blocking** operation |
+| Bike or walking | `weather.WeatherPenalty` then `LuggagePenalty` |
+| Everything but the train | `terrain.Terrain` → `Elevation`, 24 sub-segments — the computational core |
+| Duration > 2 h | `comfort.Breaks`, decided on a **computed value**, not on an argument received |
 
-Deux appels de la même méthode parcourent donc des arbres différents. Un outil qui ne
-donne qu'un cumul global ne permet pas de le voir ; un outil qui trace par invocation, oui.
+Two calls of the same method therefore walk different trees. A tool that gives only a global
+total does not let one see it; a tool that traces per invocation does.
 
-### Les trous de couverture sont volontaires
+### The coverage holes are deliberate
 
-| Élément | Pourquoi |
+| Item | Why |
 |---|---|
-| Le paquet `export` entier | `ItineraryExporter` et `CsvExporter` compilent, ont l'air utiles, et ne sont **jamais appelés**. C'est le cas le plus intéressant en reprise de code : un paquet complet en rouge fait poser la question « qui appelle ça ? » |
-| `speed.PlaneSpeed` | Jamais instanciée — une **classe entière** doit ressortir en rouge |
-| Branche `Weather.SNOW` | Jamais empruntée, **à l'intérieur** d'une méthode exécutée des millions de fois : un pourcentage par classe le masque, un rapport ligne à ligne le montre |
-| Branche `Mode.PLANE` de `Speeds` | Volontairement instanciée dans le `switch` et non en champ `static final`, sinon la classe serait chargée et compterait comme partiellement couverte |
+| The whole `export` package | `ItineraryExporter` and `CsvExporter` compile, look useful, and are **never called**. It is the most interesting case when taking over code: a whole package in red makes one ask "who calls this?" |
+| `speed.PlaneSpeed` | Never instantiated — a **whole class** must come out red |
+| The `Weather.SNOW` branch | Never taken, **inside** a method executed millions of times: a percentage per class hides it, a line-by-line report shows it |
+| The `Mode.PLANE` branch of `Speeds` | Deliberately instantiated inside the `switch` and not as a `static final` field, otherwise the class would be loaded and would count as partly covered |
 
-### Points de mesure
+### Measurement points
 
-L'application imprime elle-même son temps par étape et la mémoire occupée
+The application prints its own time per stage and the memory in use
 ([`Metrics`](../../sample-app/src/main/java/lab/sample/Metrics.java)) :
 
 ```
@@ -60,70 +60,68 @@ L'application imprime elle-même son temps par étape et la mémoire occupée
   [computation finished        ] stage     9927 ms | total     9935 ms | memory ~1 MB / 8192 MB max
 ```
 
-C'est une **référence indépendante** : quand un outil annonce un temps, on peut le
-confronter à une mesure qui ne vient pas de lui, et constater combien l'outil lui-même
-ralentit l'exécution.
+It is an **independent reference**: when a tool announces a time, one can confront it with a
+measurement that does not come from it, and note how much the tool itself slows the run down.
 
-⚠️ Ces chiffres sont un bonus, **pas un critère de choix** — et ils ne disent rien de la
-performance du code. **L'optimisation sera étudiée à part, plus tard** : quand le code aura
-été compris grâce à ces outils, puis reconçu avec ses propres contraintes de performance.
-Ici, la seule question posée est : *l'outil d'analyse ralentit-il assez peu pour rester
-utilisable ?*
+⚠️ These figures are a bonus, **not a selection criterion** — and they say nothing about the
+code's performance. **Optimisation will be studied separately, later**: once the code has
+been understood thanks to these tools, then redesigned with its own performance constraints.
+Here the only question asked is: *does the analysis tool slow things down little enough to
+stay usable?*
 
-### Calibrage à ~10 secondes
+### Calibrated to ~10 seconds
 
-`DEFAULT_ITERATIONS = 16_000_000`, calibré pour que le calcul dure **~10 s**. C'est le
-minimum pour qu'un outil qui s'attache à un process vivant (VisualVM, JMC, JProfiler) ait
-le temps d'être lancé, de sélectionner la JVM et d'enregistrer quelque chose. L'option
-`--hold-seconds` maintient en plus la JVM en vie après le calcul.
+`DEFAULT_ITERATIONS = 16_000_000`, calibrated so the computation lasts **~10 s**. That is the
+minimum for a tool attaching to a live process (VisualVM, JMC, JProfiler) to have time to be
+launched, to select the JVM and to record something. The `--hold-seconds` option additionally
+keeps the JVM alive after the computation.
 
-### Affinages décidés à la mesure, pas au jugé
+### Refinements decided by measurement, not by guesswork
 
-Trois modifications du programme viennent d'un profil observé, chacune commentée dans le
-code :
+Three changes to the program come from an observed profile, each commented in the code:
 
-1. **Fabrication du jeu de test sortie de la boucle mesurée** — elle captait ~70 % des
-   échantillons ; l'arbre montrait `StringConcatHelper` au lieu du calcul d'itinéraire.
-2. **Modèles de vitesse en instances partagées** — les allouer à chaque appel représentait
-   ~25 % des échantillons, du bruit d'allocation pur.
-3. **Boucle indexée au lieu de `for-each` sur une liste immuable** — l'itérateur alloué par
-   étape représentait la moitié des échantillons.
+1. **Building the test set moved out of the measured loop** — it captured ~70 % of the
+   samples; the tree showed `StringConcatHelper` instead of the route computation.
+2. **Speed models as shared instances** — allocating them on every call accounted for ~25 %
+   of the samples, pure allocation noise.
+3. **An indexed loop instead of `for-each` over an immutable list** — the iterator allocated
+   per leg accounted for half the samples.
 
-Résultat : **71 % des échantillons ont une feuille dans `lab.sample`**, et les cinq
-premières feuilles du profil sont des méthodes métier.
+Result: **71 % of the samples have a leaf in `lab.sample`**, and the profile's first five
+leaves are business methods.
 
-## Comment chaque outil s'intègre
+## How each tool integrates
 
-Point structurant : **ces outils ne sont pas des dépendances Maven.**
+A structuring point: **these tools are not Maven dependencies.**
 
-| Mode | Outils | Ce que ça implique |
+| Mode | Tools | What it implies |
 |---|---|---|
-| **Agent JVM** (`-javaagent`, `-agentpath`) | JaCoCo, async-profiler, JProfiler, YourKit, Glowroot, OpenTelemetry, Kieker | Un flag au lancement ; rien à changer dans le code |
-| **Option native du JDK** | JFR | Rien à installer du tout |
-| **Attachement à un process vivant** | VisualVM, JMC, Arthas, JProfiler, YourKit | Nécessite que la JVM tourne encore — d'où le calibrage à 10 s |
-| **Plugin de build** | JaCoCo (mode tests), OpenClover | Ne mesure que ce que les tests couvrent — pas la même question |
+| **JVM agent** (`-javaagent`, `-agentpath`) | JaCoCo, async-profiler, JProfiler, YourKit, Glowroot, OpenTelemetry, Kieker | One flag at launch; nothing to change in the code |
+| **Native JDK option** | JFR | Nothing to install at all |
+| **Attaching to a live process** | VisualVM, JMC, Arthas, JProfiler, YourKit | Requires the JVM to still be running — hence the 10 s calibration |
+| **Build plugin** | JaCoCo (test mode), OpenClover | Measures only what the tests cover — not the same question |
 
-## Rejouer l'évaluation
+## Replaying the evaluation
 
 ```bash
 mvn -q clean package
 java -jar sample-app/target/sample-app.jar
 
-./tools/jacoco/collect.sh          # couverture, rapport HTML annoté
-./tools/async-profiler/collect.sh  # flame graph + arbre d'appel HTML
-./tools/jfr/collect.sh             # enregistrement JFR
+./tools/jacoco/collect.sh          # coverage, annotated HTML report
+./tools/async-profiler/collect.sh  # flame graph + HTML call tree
+./tools/jfr/collect.sh             # JFR recording
 ```
 
-[`tools/java-env.sh`](../../tools/java-env.sh) force **Java 21** pour tous les collecteurs :
-sans ça, on documenterait des capacités que la plateforme cible n'a pas.
+[`tools/java-env.sh`](../../tools/java-env.sh) forces **Java 21** for every collector:
+without that, one would be documenting capabilities the target platform does not have.
 
-## Pièges rencontrés, et leur correctif
+## Traps met, and their fix
 
-| Piège | Correctif appliqué |
+| Trap | Fix applied |
 |---|---|
-| `-Djacoco.outputDirectory` **n'est pas honoré** par le goal `report` : le rapport atterrit dans `target/site/jacoco` | Copie explicite plutôt que confiance à une propriété fantôme |
-| Sans `-XX:+DebugNonSafepoints`, async-profiler attribue les frames au **mauvais numéro de ligne** | Flag ajouté dans le collecteur |
-| Sans `include=lab/sample/*`, 60 % des échantillons sont les threads du compilateur JIT | Filtre ajouté — vrai, mais illisible pour qui cherche son propre code |
-| Tracer une méthode du chemin chaud avec JFR : **129 Mo pour 10 s** d'exécution | `maxsize` + traçage ciblé sur la méthode rare |
-| Le `.jfr` binaire **déclenche le scanner de secrets de GitHub** (faux positif « Grafana token ») | Binaire exclu du dépôt ; les extraits texte sont versionnés |
-| Sur macOS, `perf_events` n'existe pas | `event=itimer` pour async-profiler |
+| `-Djacoco.outputDirectory` **is not honoured** by the `report` goal: the report lands in `target/site/jacoco` | An explicit copy rather than trust in a phantom property |
+| Without `-XX:+DebugNonSafepoints`, async-profiler attributes frames to the **wrong line number** | Flag added in the collector |
+| Without `include=lab/sample/*`, 60 % of the samples are the JIT compiler's threads | Filter added — true, but unreadable for whoever is looking for their own code |
+| Tracing a hot-path method with JFR: **129 MB for 10 s** of run | `maxsize` + tracing targeted on the rare method |
+| The binary `.jfr` **trips GitHub's secret scanner** (false positive "Grafana token") | Binary excluded from the repository; the text extracts are versioned |
+| On macOS, `perf_events` does not exist | `event=itimer` for async-profiler |

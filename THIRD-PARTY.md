@@ -1,61 +1,60 @@
-# Code tiers présent dans ce dépôt
+# Third-party code present in this repository
 
-La [licence du dépôt](LICENSE) — 0BSD, sans aucune condition — couvre **le code écrit
-ici** : l'orchestrateur (`orchestrator/`), le programme de démonstration (`sample-app/`),
-les scripts (`tools/`, `bin/`), la documentation (`docs/`) et la page d'accueil (`site/`).
+The [repository's licence](LICENSE) — 0BSD, with no condition at all — covers **the code
+written here**: the orchestrator (`orchestrator/`), the demonstration program
+(`sample-app/`), the scripts (`tools/`, `bin/`), the documentation (`docs/`) and the home
+page (`site/`).
 
-Elle ne couvre pas, et ne peut pas couvrir, les fichiers ci-dessous : ils appartiennent à
-leurs auteurs et restent sous leur licence d'origine.
+It does not cover, and cannot cover, the files below: they belong to their authors and stay
+under their original licence.
 
-## Fichiers tiers versionnés
+## Versioned third-party files
 
-Ce sont des **sorties d'outils** conservées comme pièces justificatives de l'étude. Elles
-embarquent les ressources que ces outils placent eux-mêmes dans leurs rapports.
+These are **tool outputs** kept as supporting evidence for the study. They embed the
+resources those tools themselves place in their reports.
 
-| Chemin | Origine | Licence |
+| Path | Origin | Licence |
 |---|---|---|
-| `reports-demo/**/jacoco-resources/`<br>`reports-demo/executions/**/jacoco-resources/` | Ressources de rapport JaCoCo (`report.css`, `sort.js`, les GIF d'icônes) | [EPL-2.0](https://www.eclipse.org/legal/epl-2.0/) |
-| `**/jacoco-resources/prettify.js`<br>`**/jacoco-resources/prettify.css` | google-code-prettify, redistribué par JaCoCo | Apache-2.0 |
-| `reports-demo/executions/**/async-profiler/flamegraph*.html` | Flamegraphes async-profiler, JS de navigation inclus | Apache-2.0 |
+| `reports-demo/**/jacoco-resources/`<br>`reports-demo/executions/**/jacoco-resources/` | JaCoCo report resources (`report.css`, `sort.js`, the icon GIFs) | [EPL-2.0](https://www.eclipse.org/legal/epl-2.0/) |
+| `**/jacoco-resources/prettify.js`<br>`**/jacoco-resources/prettify.css` | google-code-prettify, redistributed by JaCoCo | Apache-2.0 |
+| `reports-demo/executions/**/async-profiler/flamegraph*.html` | async-profiler flame graphs, navigation JS included | Apache-2.0 |
 
-Ces répertoires sont **regénérables** : ils ne sont versionnés que pour que les
-affirmations du [comparatif](docs/etude/comparatif.md) restent vérifiables sans relancer
-toute la chaîne.
+These directories are **regenerable**: they are versioned only so that the claims of the
+[comparison](docs/etude/comparatif.md) stay verifiable without replaying the whole chain.
 
-## Outils récupérés à l'exécution
+## Tools fetched at run time
 
-Le jar ordinaire (`runtime-xray.jar`, ~170 Ko) ne redistribue rien de ce qui suit : il le
-télécharge depuis un dépôt Maven au premier lancement, dans `~/.runtime-xray`.
+The ordinary jar (`runtime-xray.jar`, ~170 KB) redistributes none of what follows: it
+downloads it from a Maven repository at first launch, into `~/.runtime-xray`.
 
-| Outil | Licence |
+| Tool | Licence |
 |---|---|
 | [JaCoCo](https://www.jacoco.org/) | EPL-2.0 |
 | [async-profiler](https://github.com/async-profiler/async-profiler) | Apache-2.0 |
 | [Arthas](https://arthas.aliyun.com/) | Apache-2.0 |
 
-### Deux éditions, elles, les redistribuent
+### Two editions, for their part, do redistribute them
 
-`runtime-xray-jacoco.jar` (~950 Ko, `mvn -Pjacoco package`) et `runtime-xray-complet.jar`
-(~19 Mo, `mvn -Pcomplet package`) **embarquent** ces outils, sous la forme exacte de leurs
-archives publiées sur Maven Central — aucune modification, aucun désassemblage, aucun mélange
-avec notre code. Ils les déposent dans `~/.runtime-xray` au premier lancement, puis s'effacent
-du chemin.
+`runtime-xray-jacoco.jar` (~950 KB, `mvn -Pjacoco package`) and `runtime-xray-complet.jar`
+(~19 MB, `mvn -Pcomplet package`) **embed** those tools, in the exact form of their archives
+published on Maven Central — no modification, no disassembly, no mixing with our code. They
+lay them down in `~/.runtime-xray` at first launch, then take themselves out of the path.
 
-Ces artefacts existent pour un seul cas : la machine sans réseau, où un fichier unique à
-porter vaut mieux qu'un cache à préparer. Ils ne sont pas publiés sur Maven Central.
+These artefacts exist for one case only: the machine with no network, where a single file to
+carry beats a cache to prepare. They are not published on Maven Central.
 
-Ce qui s'y applique, et qui ne s'applique pas au jar ordinaire :
+What applies to them, and does not apply to the ordinary jar:
 
-| Fichier embarqué | Dans quelle édition | Origine | Licence |
+| Embedded file | In which edition | Origin | Licence |
 |---|---|---|---|
-| `lab/xray/composants/org.jacoco.agent-*-runtime.jar`<br>`lab/xray/composants/org.jacoco.cli-*-nodeps.jar` | `jacoco` et `complet` | [JaCoCo](https://www.jacoco.org/) | [EPL-2.0](https://www.eclipse.org/legal/epl-2.0/) |
+| `lab/xray/composants/org.jacoco.agent-*-runtime.jar`<br>`lab/xray/composants/org.jacoco.cli-*-nodeps.jar` | `jacoco` and `complet` | [JaCoCo](https://www.jacoco.org/) | [EPL-2.0](https://www.eclipse.org/legal/epl-2.0/) |
 | `lab/xray/composants/async-profiler-*.jar`<br>`lab/xray/composants/jfr-converter-*.jar` | `complet` | [async-profiler](https://github.com/async-profiler/async-profiler) | Apache-2.0 |
 | `lab/xray/composants/arthas-packaging-*-bin.zip` | `complet` | [Arthas](https://arthas.aliyun.com/) | Apache-2.0 |
 
-L'EPL-2.0 autorise cette redistribution sous forme binaire et demande que la licence
-accompagne les fichiers et que la source reste accessible : les archives sont intactes,
-elles portent leurs propres notices, et les sources de JaCoCo sont publiées par le projet
-lui-même. La licence 0BSD de ce dépôt ne couvre ni ne modifie ces fichiers.
+The EPL-2.0 allows this redistribution in binary form and asks that the licence accompany the
+files and that the source stay accessible: the archives are intact, they carry their own
+notices, and JaCoCo's sources are published by the project itself. This repository's 0BSD
+licence neither covers nor modifies these files.
 
-Toute la capacité d'observation vient de ces trois projets. Ce dépôt n'apporte que
-l'assemblage de leurs sorties.
+The whole observation capability comes from those three projects. This repository brings only
+the assembly of their outputs.

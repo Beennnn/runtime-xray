@@ -1,110 +1,110 @@
 # JaCoCo
 
-> **Statut : ✅ testé ici** — sortie versionnée dans [`reports-demo/generated/jacoco/`](../../../reports-demo/generated/jacoco)
+> **Status: ✅ tested here** — output versioned in [`reports-demo/generated/jacoco/`](../../../reports-demo/generated/jacoco)
 
-## Ce que c'est
+## What it is
 
-La référence de la couverture de code Java. Un agent JVM qui note, pendant l'exécution,
-quelles instructions et quelles branches ont été empruntées, puis produit un rapport.
+The reference for Java code coverage. A JVM agent that notes, during the run, which
+instructions and which branches were taken, then produces a report.
 
-## Sa philosophie
+## Its philosophy
 
-**Ne rien supposer, tout compter.** JaCoCo n'échantillonne pas : il instrumente le
-bytecode et enregistre chaque passage. Conséquence directe et précieuse : il sait ce qui
-**n'a pas** été exécuté — ce qu'aucun profiler par échantillonnage ne peut affirmer.
+**Suppose nothing, count everything.** JaCoCo does not sample: it instruments the bytecode and
+records every pass. A direct and precious consequence: it knows what was **not** executed —
+something no sampling profiler can assert.
 
-Corollaire : il ne dit rien du *temps*, ni de l'ordre des appels. Il répond à « par où
-est-on passé ? », pas à « combien de temps y a-t-on passé ? ».
+Corollary: it says nothing about *time*, nor about the order of the calls. It answers "where
+did we go?", not "how long did we spend there?".
 
-## Ce qu'il sait faire
+## What it can do
 
-| Capacité | |
+| Capability | |
 |---|---|
-| Lignes exécutées | ✅ à la ligne près |
-| Branches | ✅ partiellement couvertes signalées |
-| Complexité cyclomatique | ✅ par méthode |
-| Arbre d'appel | ❌ |
-| Valeurs des paramètres | ❌ |
-| Formats de sortie | HTML, XML, CSV |
+| Executed lines | ✅ to the line |
+| Branches | ✅ partially covered ones flagged |
+| Cyclomatic complexity | ✅ per method |
+| Call tree | ❌ |
+| Parameter values | ❌ |
+| Output formats | HTML, XML, CSV |
 
-## Son interface
+## Its interface
 
-Un site HTML statique, à trois niveaux de navigation.
+A static HTML site, with three levels of navigation.
 
-**Vue d'ensemble** — triable par colonne, on repère d'un coup d'œil les packages faibles :
+**Overview** — sortable by column, one spots the weak packages at a glance:
 
-![Vue d'ensemble JaCoCo](../../assets/shots/jacoco-index.png)
+![JaCoCo overview](../../assets/shots/jacoco-index.png)
 
-**Code source annoté** — le niveau qui compte :
+**Annotated source code** — the level that matters:
 
-![Source annotée](../../assets/shots/jacoco-source-weather.png)
+![Annotated source](../../assets/shots/jacoco-source-weather.png)
 
-Le code lui-même est colorié : vert exécuté, rouge jamais atteint, jaune partiellement
-couvert. Les losanges dans la marge détaillent les branches. Le fil d'Ariane en haut
-(*sample-app › lab.sample.weather › WeatherPenalty.java*) permet de remonter.
+The code itself is coloured: green executed, red never reached, yellow partially covered. The
+diamonds in the margin detail the branches. The breadcrumb at the top
+(*sample-app › lab.sample.weather › WeatherPenalty.java*) allows going back up.
 
-**Une classe entière jamais exécutée** ressort intégralement en rouge :
+**A whole class never executed** comes out entirely in red:
 
-![Classe non couverte](../../assets/shots/jacoco-source-plane.png)
+![Uncovered class](../../assets/shots/jacoco-source-plane.png)
 
-## Comment on navigue dedans
+## How one navigates in it
 
-- **Hors IDE** — on ouvre `index.html` dans un navigateur et on clique : package → classe
-  → source. Aucun serveur, aucun compte. C'est un dossier de fichiers : on le zippe, on
-  l'envoie, le destinataire l'ouvre. **C'est le canal le plus simple pour un
-  non-technicien**, et il fonctionne hors ligne.
-- **Dans IntelliJ** — le fichier `.exec` s'importe (*Run › Show Coverage Data…*) et la
-  couverture s'affiche dans la marge de l'éditeur, avec la navigation habituelle de l'IDE.
-  *(À confirmer sur poste : non vérifié ici.)*
-- **Dans GitLab** — visualisation native de la couverture dans la diff d'une merge
-  request, à condition de convertir le XML JaCoCo au format Cobertura.
-- **Dans GitHub** — pas de support natif ; il faut un service tiers (Codecov, Coveralls),
-  donc une connexion sortante — **incompatible avec la contrainte hors ligne**.
+- **Outside an IDE** — one opens `index.html` in a browser and clicks: package → class →
+  source. No server, no account. It is a folder of files: one zips it, one sends it, the
+  recipient opens it. **It is the simplest channel for a non-technician**, and it works
+  offline.
+- **In IntelliJ** — the `.exec` file imports (*Run › Show Coverage Data…*) and the coverage
+  shows in the editor's margin, with the IDE's usual navigation. *(To be confirmed on a
+  machine: not verified here.)*
+- **In GitLab** — native visualisation of the coverage in a merge request's diff, provided the
+  JaCoCo XML is converted to the Cobertura format.
+- **In GitHub** — no native support; a third-party service is needed (Codecov, Coveralls),
+  hence an outbound connection — **incompatible with the offline constraint**.
 
-## Mise en œuvre
+## Setting up
 
 ```bash
 ./tools/jacoco/collect.sh
 ```
 
-Le script fait trois choses : récupérer le jar de l'agent, lancer l'application avec
-`-javaagent`, puis générer le rapport. **Aucune modification du code analysé.**
+The script does three things: fetch the agent's jar, launch the application with `-javaagent`,
+then generate the report. **No modification of the analysed code.**
 
-> ⚠️ Le mode habituel de JaCoCo est le plugin Maven qui mesure la couverture **des tests**.
-> Ce n'est pas la question posée ici : on veut la couverture d'une **exécution réelle**.
-> D'où l'usage de l'agent directement.
+> ⚠️ JaCoCo's usual mode is the Maven plugin that measures the coverage **of the tests**. That
+> is not the question asked here: we want the coverage of a **real run**. Hence using the agent
+> directly.
 
-> ⚠️ `-Djacoco.outputDirectory` n'est pas honoré par le goal `report` — le rapport
-> atterrit dans `target/site/jacoco` quoi qu'on fasse. Le script copie explicitement.
+> ⚠️ `-Djacoco.outputDirectory` is not honoured by the `report` goal — the report lands in
+> `target/site/jacoco` whatever one does. The script copies it explicitly.
 
-## Licence et coût
+## Licence and cost
 
-**EPL 2.0**, open source, **0 €**. Aucune limite d'usage, aucun appel réseau à
-l'exécution : le jar s'installe une fois et fonctionne hors ligne.
+**EPL 2.0**, open source, **€0**. No usage limit, no network call at run time: the jar is
+installed once and works offline.
 
-## Ce qu'on peut en espérer
+## What one can hope for from it
 
-**Seul** : la réponse complète et définitive à « par où le code est passé », avec un
-rapport navigable exploitable par un non-développeur. C'est déjà le besoin n° 1 du projet.
+**Alone**: the complete and definitive answer to "where did the code go", with a navigable
+report a non-developer can use. That is already the project's need no. 1.
 
-**Combiné** : son XML alimente SonarQube (interface web plus soignée, pensée pour un
-public non technique) ou la visualisation native de GitLab. Il se combine sans conflit
-avec un profiler d'arbre d'appel, les deux agents cohabitant sur la même JVM.
+**Combined**: its XML feeds SonarQube (a more polished web interface, designed for a
+non-technical audience) or GitLab's native visualisation. It combines without conflict with a
+call-tree profiler, both agents cohabiting on the same JVM.
 
-## Mesuré ici
+## Measured here
 
-Sur `sample-app`, sous Java 21 : **91,1 % des instructions**, **81,8 % des branches**.
-`PlaneSpeed` et la branche `SNOW` ressortent bien comme non exécutées.
+On `sample-app`, under Java 21: **91.1 % of instructions**, **81.8 % of branches**.
+`PlaneSpeed` and the `SNOW` branch do come out as not executed.
 
-## Comparable à
+## Comparable to
 
-- **[OpenClover](openclover.md)** — Même métier — la couverture — mais il conserve le lien avec **le test** qui a couvert chaque ligne. Plus riche sur cet axe, plus intrusif : il instrumente à la compilation, pas à l'exécution. Pour la couverture d'un **run**, JaCoCo est plus direct.
-- **[SonarQube](sonarqube.md)** — Ce n'est pas un concurrent : il **consomme** le XML de JaCoCo. Il l'affiche mieux, avec un historique — au prix d'un serveur à maintenir.
-- **[IntelliJ IDEA](intellij.md)** — Autre consommateur, pas autre mesureur : il affiche le `.exec` dans la marge de l'éditeur.
-- **[async-profiler](async-profiler.md)** — **Complémentaire, jamais substituable.** JaCoCo sait ce qui n'a *pas* tourné, un profiler par échantillonnage ne le saura jamais.
+- **[OpenClover](openclover.md)** — The same trade — coverage — but it keeps the link with **the test** that covered each line. Richer on that axis, more intrusive: it instruments at compile time, not at run time. For the coverage of a **run**, JaCoCo is more direct.
+- **[SonarQube](sonarqube.md)** — Not a competitor: it **consumes** JaCoCo's XML. It displays it better, with a history — at the price of a server to maintain.
+- **[IntelliJ IDEA](intellij.md)** — Another consumer, not another measurer: it displays the `.exec` in the editor's margin.
+- **[async-profiler](async-profiler.md)** — **Complementary, never a substitute.** JaCoCo knows what did *not* run; a sampling profiler never will.
 
-## Facile / moins facile
+## Easy / less easy
 
-**Ce qui est facile.** Obtenir un rapport : un flag JVM, trois commandes scriptées. **Le lire sans formation** : le code colorié se comprend sans savoir ce qu'est une branche.
+**What is easy.** Getting a report: one JVM flag, three scripted commands. **Reading it with no training**: the coloured code is understood without knowing what a branch is.
 
-**Ce qui l'est moins.** Mesurer une **exécution** plutôt qu'une suite de tests — c'est l'usage minoritaire, moins documenté. L'afficher dans GitLab (conversion Cobertura à faire) ou GitHub (service tiers, donc en ligne). Et **masquer les lignes non exécutées à l'intérieur d'un fichier** : impossible nativement, seule l'exclusion de classes entières l'est.
+**What is less so.** Measuring a **run** rather than a test suite — that is the minority use, less documented. Displaying it in GitLab (a Cobertura conversion to do) or GitHub (a third-party service, hence online). And **hiding the non-executed lines inside a file**: impossible natively, only excluding whole classes is.

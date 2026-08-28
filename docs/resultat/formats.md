@@ -1,43 +1,43 @@
-# Découpler la collecte de l'affichage — les formats pivots
+# Decoupling collection from display — the pivot formats
 
-> Question de départ : *peut-on séparer le résultat des appels de son affichage, via un format
-> standardisé, pour le regarder ensuite dans IntelliJ ou dans un outil web ?*
+> Starting question: *can the result of the calls be separated from its display, through a
+> standardised format, so as to look at it afterwards in IntelliJ or in a web tool?*
 
-**Réponse courte : oui pour la couverture, oui pour l'arbre d'appel, non pour les valeurs
-de paramètres.** Et pour les deux premiers, ce découplage n'est pas à construire — il
-existe déjà, et il a été vérifié ici.
+**Short answer: yes for the coverage, yes for the call tree, no for the parameter values.**
+And for the first two, that decoupling is not something to build — it already exists, and it
+was verified here.
 
-## Couverture — le découplage est natif
+## Coverage — the decoupling is native
 
-JaCoCo sépare déjà les deux moments : l'agent écrit un fichier de **données brutes**
-(`jacoco.exec`), et le rendu est une opération distincte, rejouable autant de fois qu'on
-veut, avec un périmètre différent à chaque fois.
+JaCoCo already separates the two moments: the agent writes a file of **raw data**
+(`jacoco.exec`), and the rendering is a distinct operation, replayable as many times as one
+likes, with a different perimeter each time.
 
-C'est exactement ce que fait [`collect-focused.sh`](../../tools/jacoco/collect-focused.sh) :
-même `.exec`, deuxième rendu restreint aux classes réellement exécutées. **La donnée est
-collectée une fois, affichée plusieurs fois.**
+That is exactly what [`collect-focused.sh`](../../tools/jacoco/collect-focused.sh) does: same
+`.exec`, second rendering restricted to the classes actually executed. **The data is
+collected once, displayed several times.**
 
-| Format | Écrit par | Lu par |
+| Format | Written by | Read by |
 |---|---|---|
-| **`jacoco.exec`** (binaire) | l'agent JaCoCo | la CLI JaCoCo, IntelliJ *(import à confirmer)* |
-| **XML JaCoCo** | le rendu JaCoCo | **SonarQube**, Jenkins, la plupart des outils de qualité |
-| **CSV** | le rendu JaCoCo | n'importe quel script — c'est la source du [résumé Markdown](../../reports-demo/executions/rapport.md) |
-| **Cobertura XML** | conversion depuis le XML JaCoCo | **GitLab**, nativement, dans la diff d'une merge request |
-| **LCOV** | monde JS surtout | VS Code (extensions de couverture), Codecov |
-| **`.ic` IntelliJ** | IDEA | IDEA seul — format fermé, à éviter comme pivot |
+| **`jacoco.exec`** (binary) | the JaCoCo agent | the JaCoCo CLI, IntelliJ *(import to be confirmed)* |
+| **JaCoCo XML** | the JaCoCo rendering | **SonarQube**, Jenkins, most quality tools |
+| **CSV** | the JaCoCo rendering | any script — it is the source of the [Markdown summary](../../reports-demo/executions/rapport.md) |
+| **Cobertura XML** | conversion from the JaCoCo XML | **GitLab**, natively, in a merge request's diff |
+| **LCOV** | mostly the JS world | VS Code (coverage extensions), Codecov |
+| **IntelliJ `.ic`** | IDEA | IDEA alone — closed format, to be avoided as a pivot |
 
-**Le pivot à retenir : le XML JaCoCo.** C'est lui que consomme l'écosystème. Le
-`.exec` reste utile en amont, puisqu'il permet de re-rendre autrement sans réexécuter.
+**The pivot to keep: the JaCoCo XML.** That is what the ecosystem consumes. The `.exec` stays
+useful upstream, since it allows re-rendering differently without re-running.
 
-## Arbre d'appel — deux pivots, dont un vérifié ici
+## Call tree — two pivots, one of them verified here
 
-async-profiler écrit **sept formats** : `flat`, `traces`, `collapsed`, `flamegraph`,
-`tree`, `jfr`, `otlp`. Les trois derniers intéressent le découplage.
+async-profiler writes **seven formats**: `flat`, `traces`, `collapsed`, `flamegraph`, `tree`,
+`jfr`, `otlp`. The last three are the ones that matter for decoupling.
 
-### JFR — le pivot riche, et la démonstration
+### JFR — the rich pivot, and the demonstration
 
-**Vérifié sur ce poste** : async-profiler écrit un `.jfr`, et l'outil `jfr` du JDK le relit
-sans rien savoir de son origine.
+**Verified on this machine**: async-profiler writes a `.jfr`, and the JDK's `jfr` tool reads
+it back knowing nothing of its origin.
 
 ```
 $ jfr summary reports-demo/generated/formats/profil.jfr
@@ -46,89 +46,86 @@ $ jfr summary reports-demo/generated/formats/profil.jfr
  jdk.NativeLibrary                     525
 ```
 
-**C'est le découplage demandé, fait** : un profil collecté par un outil tiers, dans un
-format du JDK, lisible par les outils du JDK — donc par **JMC** et par **IntelliJ IDEA
-Ultimate**, qui ouvrent les `.jfr` nativement.
+**This is the decoupling asked for, done**: a profile collected by a third-party tool, in a
+JDK format, readable by the JDK's tools — hence by **JMC** and by **IntelliJ IDEA Ultimate**,
+which open `.jfr` files natively.
 
-### Collapsed — le pivot universel des flame graphs
+### Collapsed — the universal flame-graph pivot
 
-Le format « piles repliées » (une ligne par pile d'appel, suivie d'un compte) est la
-lingua franca du profilage :
+The "folded stacks" format (one line per call stack, followed by a count) is the lingua
+franca of profiling:
 
 ```
 lab/sample/Main.main;lab/sample/RoutePlanner.travelTimeMinutes;lab/sample/terrain/Terrain.slowdownFactor 63
 ```
 
-Trivial à produire, trivial à relire — c'est d'ailleurs à partir de lui qu'est calculé le
-classement des méthodes du [résumé Markdown](../../reports-demo/executions/rapport.md). Il est lu par
-**speedscope** (visualiseur web statique, donc auto-hébergeable hors ligne), par le
-`flamegraph.pl` historique, et par les backends de profilage continu. *(Ces trois
-lectures reposent sur la documentation : non testées ici.)*
+Trivial to produce, trivial to read back — it is moreover from it that the method ranking of
+the [Markdown summary](../../reports-demo/executions/rapport.md) is computed. It is read by
+**speedscope** (a static web viewer, hence self-hostable offline), by the historic
+`flamegraph.pl`, and by continuous-profiling backends. *(These three readings rest on the
+documentation: not tested here.)*
 
-### OTLP — le pivot des backends
+### OTLP — the backends' pivot
 
-`-o otlp` produit un profil au format OpenTelemetry, destiné aux backends de profils
-continus. Pertinent seulement si le besoin bascule vers de la supervision — écarté par la
-décision n° 4.
+`-o otlp` produces a profile in the OpenTelemetry format, meant for continuous-profile
+backends. Relevant only if the need swings towards monitoring — ruled out by decision no. 4.
 
-## Valeurs des paramètres — aucun format standard
+## Parameter values — no standard format
 
-C'est le point faible, et il faut le dire nettement.
+This is the weak point, and it has to be said plainly.
 
-| Outil | Ce qu'il produit | Standardisé ? |
+| Tool | What it produces | Standardised? |
 |---|---|---|
-| Arthas | texte de console, expressions OGNL rendues | ❌ ad hoc, sans schéma |
-| JProfiler / YourKit | instantanés | ❌ formats propriétaires |
-| **JMC Agent** | **des événements JFR avec champs typés** | ✅ **JFR** |
+| Arthas | console text, OGNL expressions rendered | ❌ ad hoc, with no schema |
+| JProfiler / YourKit | snapshots | ❌ proprietary formats |
+| **JMC Agent** | **JFR events with typed fields** | ✅ **JFR** |
 
-**Une seule voie standardisée existe : JFR.** Un événement JFR porte des champs typés, et
-c'est précisément ce qu'exploite le [JMC Agent](../etude/fiches/jmc-agent.md) — on déclare en XML les
-paramètres à capturer, ils deviennent des événements JFR, lisibles par n'importe quel outil
-qui lit le JFR.
+**One single standardised way exists: JFR.** A JFR event carries typed fields, and that is
+precisely what the [JMC Agent](../etude/fiches/jmc-agent.md) exploits — one declares in XML
+the parameters to capture, they become JFR events, readable by any tool that reads JFR.
 
-**Conséquence stratégique** : si le découplage des valeurs de paramètres devient un
-objectif, la piste JMC Agent cesse d'être une simple alternative à Arthas. Elle devient la
-seule qui produise une donnée **structurée et réutilisable**, là où Arthas produit du texte
-à relire à l'œil. C'est un argument que le tableau des capacités seul ne fait pas apparaître.
+**Strategic consequence**: if decoupling the parameter values becomes an objective, the JMC
+Agent track stops being a mere alternative to Arthas. It becomes the only one that produces
+**structured and reusable** data, where Arthas produces text to be read back by eye. That is
+an argument the capability table alone does not bring out.
 
-## Les trois architectures possibles
+## The three possible architectures
 
 ```
-1.  agent JaCoCo ──► jacoco.exec ──┬─► HTML annoté        (navigateur, hors ligne)
-                                   ├─► XML ──► SonarQube  (portail web auto-hébergé)
-                                   ├─► XML ──► Cobertura ──► GitLab (diff de MR)
-                                   └─► CSV ──► résumé Markdown (rendu par la forge)
+1.  JaCoCo agent ────► jacoco.exec ─┬─► annotated HTML     (browser, offline)
+                                    ├─► XML ──► SonarQube  (self-hosted web portal)
+                                    ├─► XML ──► Cobertura ──► GitLab (MR diff)
+                                    └─► CSV ──► Markdown summary (rendered by the forge)
 
 2.  async-profiler ──┬─► .jfr ──────► JMC / IntelliJ Ultimate
-                     ├─► collapsed ─► speedscope (web statique) / flamegraph.pl
-                     └─► HTML ───────► navigateur, sans rien installer
+                     ├─► collapsed ─► speedscope (static web) / flamegraph.pl
+                     └─► HTML ───────► browser, with nothing to install
 
-3.  JMC Agent ──► événements JFR ──► JMC / IntelliJ Ultimate   (valeurs de paramètres)
+3.  JMC Agent ──► JFR events ──► JMC / IntelliJ Ultimate   (parameter values)
 ```
 
-## Les limites, honnêtement
+## The limits, honestly
 
-- **Aucun format ne porte les trois données ensemble.** Il faudra toujours au moins deux
-  fichiers : un pour la couverture, un pour le profil. Un « rapport unifié » n'existe pas.
-- **Les visualiseurs web de profils ne montrent pas le code source annoté.** speedscope
-  affiche un flame graph, pas vos fichiers. Pour naviguer dans le code, le HTML de JaCoCo
-  reste incontournable.
-- **Le pivot vers GitLab demande une conversion** JaCoCo → Cobertura, à outiller.
-- **speedscope, Perfetto et consorts sont des applications web** : statiques et donc
-  auto-hébergeables hors ligne, mais à installer et à maintenir — ce que les décisions
-  n° 3 et 4 cherchaient justement à éviter.
+- **No format carries the three kinds of data together.** There will always be at least two
+  files: one for the coverage, one for the profile. A "unified report" does not exist.
+- **Web profile viewers do not show annotated source code.** speedscope displays a flame
+  graph, not your files. To navigate the code, JaCoCo's HTML remains unavoidable.
+- **The pivot towards GitLab demands a conversion** JaCoCo → Cobertura, to be tooled.
+- **speedscope, Perfetto and the like are web applications**: static and therefore
+  self-hostable offline, but to be installed and maintained — which is precisely what
+  decisions no. 3 and 4 were trying to avoid.
 
-## Ce que ça change pour le choix
+## What it changes for the choice
 
-Rien sur les outils retenus : JaCoCo et async-profiler produisent déjà les formats pivots,
-sans effort supplémentaire. **Le découplage est un acquis, pas un chantier.**
+Nothing about the tools retained: JaCoCo and async-profiler already produce the pivot
+formats, with no extra effort. **The decoupling is an asset, not a project.**
 
-Mais il ouvre une porte : le jour où l'affichage ne convient plus — parce qu'il faut un
-portail, parce qu'il faut GitLab, parce qu'il faut IntelliJ — **on change l'affichage sans
-changer la collecte**. Aucun de ces outils ne vous enferme dans sa propre visionneuse.
+But it opens a door: the day the display no longer suits — because a portal is needed,
+because GitLab is needed, because IntelliJ is needed — **one changes the display without
+changing the collection**. None of these tools locks you into its own viewer.
 
-C'est cette porte que franchit `--export` : les mesures y sont réécrites en `perf script`,
-en `cpuprofile` et en LCOV, pour être ouvertes dans Firefox Profiler, speedscope ou un
-éditeur — sans que rien de la collecte ne change. Le recensement des formats ouverts,
-retenus et écartés avec le motif, est dans [Reprendre le résultat dans un autre
-outil](../outil/exports.md).
+That is the door `--export` walks through: the measurements are rewritten there as `perf
+script`, as `cpuprofile` and as LCOV, to be opened in Firefox Profiler, speedscope or an
+editor — without anything about the collection changing. The census of the open formats,
+those retained and those ruled out with the reason, is in [Taking the measurement into
+another tool](../outil/exports.md).

@@ -1,63 +1,62 @@
-# Diffuser l'outil
+# Distributing the tool
 
-> Question de départ : *comment met-on cet outil entre les mains de quelqu'un d'autre ?*
+> Starting question: *how does one put this tool into someone else's hands?*
 
-## Ce que l'outil est aujourd'hui
+## What the tool is today
 
-**Un seul jar**, `runtime-xray.jar`, sans aucune dépendance hors du JDK :
-`java -jar runtime-xray.jar --config mon-projet.conf`. Ni bash, ni Python.
+**A single jar**, `runtime-xray.jar`, with no dependency outside the JDK:
+`java -jar runtime-xray.jar --config my-project.conf`. No bash, no Python.
 
-Ça n'a pas toujours été le cas — et c'est cette question qui a déclenché la réécriture. La
-version d'origine était un script shell plus un script Python : deux prérequis de plus sur
-une machine où **Java est forcément présent**, et aucune portabilité Windows. L'argument
-« si on le distribue comme un fichier, autant que ce soit un jar » a tenu.
+It was not always so — and it is that question that set off the rewrite. The original
+version was a shell script plus a Python script: two more prerequisites on a machine where
+**Java is necessarily present**, and no Windows portability at all. The argument "if it is
+distributed as one file, it may as well be a jar" held.
 
-Le même jar sert aussi le rapport : `--serve` en fait un petit serveur HTTP, sans rien
-installer de plus. Diffuser l'outil et **héberger les résultats pour une équipe** ne
-demandent donc qu'un seul fichier — voir [Annoter les exécutions](annotations.md) et
-[Publier le rapport](../resultat/publication.md), qui le compare aux autres canaux.
+The same jar also serves the report: `--serve` turns it into a small HTTP server, with
+nothing else to install. Distributing the tool and **hosting the results for a team**
+therefore take a single file — see [Annotating the runs](annotations.md) and [Publishing the
+report](../resultat/publication.md), which compares it with the other channels.
 
-## Les trois voies, comparées
+## The three routes, compared
 
-| Voie | Effort pour celui qui l'utilise | Quand la choisir |
+| Route | Effort for whoever uses it | When to choose it |
 |---|---|---|
-| **Jar joint au dépôt de code** *(retenu)* | un `curl`, rien à installer, aucun clone | Par défaut |
-| **Dépôt Maven, public ou interne** | idem, servi par le tuyau qui existe déjà | Réseau fermé, où le miroir Maven est souvent le seul canal ouvert |
-| **Construction depuis les sources** | cloner, installer Maven, compiler | Seulement pour modifier l'outil |
+| **Jar attached to the code repository** *(chosen)* | one `curl`, nothing to install, no clone | By default |
+| **Maven repository, public or internal** | the same, served by the pipe that already exists | A closed network, where the Maven mirror is often the only open channel |
+| **Building from source** | clone, install Maven, compile | Only to modify the tool |
 
-⚠️ Le point souvent manqué : **en réseau fermé, un dépôt public est inutile.** Déposer le
-jar sur un miroir interne donne exactement le même bénéfice, sans compte, sans signature,
-sans processus de publication.
+⚠️ The point often missed: **on a closed network, a public repository is useless.** Putting
+the jar on an internal mirror gives exactly the same benefit, with no account, no signature,
+no publication process.
 
-L'intérêt d'un dépôt Maven, quel qu'il soit, n'est pas « être une bibliothèque » — personne
-ne mettra cet outil en `<dependency>`. C'est de **passer par le tuyau qui existe déjà** :
-derrière un pare-feu, le miroir Maven est souvent le seul canal ouvert, et c'est déjà par
-lui que l'outil récupère ses composants d'analyse.
+The interest of a Maven repository, whichever it is, is not "being a library" — nobody will
+put this tool in a `<dependency>`. It is **going through the pipe that already exists**:
+behind a firewall, the Maven mirror is often the only open channel, and it is already how the
+tool fetches its analysis components.
 
-## Ce qu'un dépôt Maven public exige
+## What a public Maven repository demands
 
-La démarche a été menée jusqu'au bout une fois, sur la version `1.0.0`, pour savoir ce
-qu'elle coûte réellement :
+The process was carried through to the end once, on version `1.0.0`, to find out what it
+really costs:
 
-- un **espace de noms** qu'on prouve posséder, ce qui suppose de prouver un compte ou un
-  domaine ;
-- des artefacts **signés GPG**, la clé publiée sur un serveur public, accompagnés des jars
-  `sources` et `javadoc` ;
-- une publication par un portail, avec des règles de validation strictes et un paquet à
-  relire avant confirmation ;
-- des versions **immuables** : rien ne se corrige après coup, seulement une version de plus.
+- a **namespace** one proves ownership of, which supposes proving an account or a domain;
+- artefacts **signed with GPG**, the key published on a public server, together with the
+  `sources` and `javadoc` jars;
+- publication through a portal, with strict validation rules and a bundle to review before
+  confirming;
+- **immutable** versions: nothing is corrected afterwards, only one more version.
 
-Conclusion : le prix est réel, et le bénéfice — **ne rien avoir à faire** pour celui qui
-essaie l'outil — s'obtient tout aussi bien en joignant le jar au dépôt de code. C'est la
-voie retenue : pas de clone, pas de JDK à aligner, pas de build à réussir, pas de compte à
-créer, un `curl` et un `java -jar`. Le dépôt Maven garde un avantage propre, mais un seul :
-en réseau fermé, il est parfois le seul canal ouvert.
+Conclusion: the price is real, and the benefit — **nothing to do** for whoever tries the tool
+— is obtained just as well by attaching the jar to the code repository. That is the route
+chosen: no clone, no JDK to line up, no build to get right, no account to create, one `curl`
+and one `java -jar`. A Maven repository keeps one advantage of its own, but only one: on a
+closed network, it is sometimes the only open channel.
 
-## Ce que la réécriture en Java a apporté
+## What the rewrite in Java brought
 
-- **un seul fichier** à transporter, au lieu de trois plus deux interpréteurs ;
-- **aucune dépendance** hors du JDK — vérifiable : le module n'a que JUnit, en portée test ;
-- la **portabilité Windows**, gratuite, qui manquait ;
-- accessoirement, une **couverture de test réelle** sur la logique d'assemblage : lecture du
-  XML de couverture, repli des frames, liens non cassés dans la page produite. Un script
-  shell ne se teste pas comme ça.
+- **one single file** to carry, instead of three plus two interpreters;
+- **no dependency** outside the JDK — checkable: the module has only JUnit, in test scope;
+- **Windows portability**, for free, which was missing;
+- incidentally, **real test coverage** on the assembly logic: reading the coverage XML,
+  folding frames away, unbroken links in the produced page. A shell script is not tested like
+  that.

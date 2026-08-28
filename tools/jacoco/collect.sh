@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# JaCoCo — couverture de lignes/branches d'une EXÉCUTION (pas d'une suite de tests).
+# JaCoCo — line/branch coverage of a RUN (not of a test suite).
 #
-# Pourquoi l'agent et non le plugin Maven : le brief porte sur « les lignes exécutées
-# à l'appel d'une fonction », donc sur un run réel. Le plugin jacoco-maven-plugin ne
-# mesure que ce que les tests couvrent — ce n'est pas la même question.
+# Why the agent and not the Maven plugin: the brief bears on "the lines executed when a
+# function is called", hence on a real run. The jacoco-maven-plugin measures only what the
+# tests cover — that is not the same question.
 set -euo pipefail
 
-JACOCO_VERSION="0.8.13"   # épinglé : une version flottante changerait le rapport sans prévenir
+JACOCO_VERSION="0.8.13"   # pinned: a floating version would change the report without warning
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 # shellcheck source=../java-env.sh
 source "$REPO_ROOT/tools/java-env.sh"
@@ -25,9 +25,9 @@ mkdir -p "$OUT"
 java -javaagent:"$AGENT"=destfile="$OUT/jacoco.exec" \
      -jar sample-app/target/sample-app.jar
 
-# Le goal report écrit dans target/site/jacoco du module ; -Djacoco.outputDirectory
-# n'est PAS honoré (vérifié : le rapport atterrit quand même dans target/site).
-# On copie donc explicitement plutôt que de faire confiance à une propriété fantôme.
+# The report goal writes into the module's target/site/jacoco; -Djacoco.outputDirectory is
+# NOT honoured (verified: the report lands in target/site anyway). So we copy explicitly
+# rather than trusting a phantom property.
 mvn -q "org.jacoco:jacoco-maven-plugin:${JACOCO_VERSION}:report" \
   -Djacoco.dataFile="$OUT/jacoco.exec" \
   -pl sample-app
@@ -35,4 +35,4 @@ mvn -q "org.jacoco:jacoco-maven-plugin:${JACOCO_VERSION}:report" \
 rm -rf "$OUT/html"
 cp -R sample-app/target/site/jacoco "$OUT/html"
 
-echo "→ rapport : $OUT/html/index.html"
+echo "→ report: $OUT/html/index.html"

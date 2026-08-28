@@ -1,69 +1,68 @@
 # IntelliJ IDEA
 
-> **Statut : 📄 sur documentation** — la vérification suppose d'ouvrir l'IDE ;
-> non automatisable ici. IntelliJ IDEA **Community** est installé sur ce poste.
+> **Status: 📄 on documentation** — verifying supposes opening the IDE; not automatable here.
+> IntelliJ IDEA **Community** is installed on this machine.
 
-## Ce que c'est
+## What it is
 
-L'IDE cible du projet. Il compte ici à deux titres : il **affiche** des données produites
-par d'autres outils (couverture), et il **embarque** son propre profiler dans l'édition
-Ultimate.
+The project's target IDE. It counts here on two grounds: it **displays** data produced by
+other tools (coverage), and it **embeds** its own profiler in the Ultimate edition.
 
-## Sa philosophie
+## Its philosophy
 
-**Ramener la mesure là où on écrit le code.** Un rapport dans un navigateur oblige à faire
-l'aller-retour mentalement ; une marge colorée dans l'éditeur met l'information sur la
-ligne concernée, à portée de tous les raccourcis de navigation habituels (aller à la
-déclaration, chercher les usages, remonter la hiérarchie d'appels).
+**Bringing the measurement back to where the code is written.** A report in a browser forces
+one to make the round trip mentally; a coloured margin in the editor puts the information on
+the line concerned, within reach of all the usual navigation shortcuts (go to declaration, find
+usages, walk up the call hierarchy).
 
-## Ce qu'il sait faire
+## What it can do
 
-| Capacité | Community | Ultimate |
+| Capability | Community | Ultimate |
 |---|---|---|
-| Couverture affichée dans l'éditeur | ✅ | ✅ |
-| Import d'un `.exec` JaCoCo externe | ✅ *(à confirmer)* | ✅ |
-| Profiler intégré (arbre d'appel, flame graph) | ❌ | ✅ — **embarque async-profiler** |
-| Lecture d'enregistrements `.jfr` | ❌ | ✅ |
-| Valeurs des paramètres | ⚠️ via le **débogueur** : point d'arrêt non suspensif qui journalise une expression évaluée | idem |
+| Coverage displayed in the editor | ✅ | ✅ |
+| Import of an external JaCoCo `.exec` | ✅ *(to be confirmed)* | ✅ |
+| Integrated profiler (call tree, flame graph) | ❌ | ✅ — **embeds async-profiler** |
+| Reading `.jfr` recordings | ❌ | ✅ |
+| Parameter values | ⚠️ through the **debugger**: a non-suspending breakpoint that logs an evaluated expression | same |
 
-> La dernière ligne mérite attention : un point d'arrêt non bloquant qui imprime
-> `trip.mode()` à chaque passage capture des valeurs de paramètres **sans aucun outil
-> supplémentaire, gratuitement, dans l'IDE**. C'est artisanal et limité à une session de
-> débogage — mais c'est la réponse la plus immédiate au troisième besoin pour un développeur.
+> The last row deserves attention: a non-blocking breakpoint that prints `trip.mode()` at every
+> pass captures parameter values **with no extra tool at all, free, in the IDE**. It is
+> handmade and limited to a debugging session — but it is the most immediate answer to the
+> third need for a developer.
 
-## Comment on navigue dedans
+## How one navigates in it
 
-C'est **le** point fort : la couverture s'affiche dans la marge, on saute d'un appel à
-l'autre, on remonte la hiérarchie. Aucun autre canal n'offre cette fluidité **à un
-développeur**. En contrepartie : rien de tout cela n'est transmissible à un non-technicien
-— il faudrait qu'il installe l'IDE et ouvre le projet.
+This is **the** strong point: the coverage shows in the margin, one jumps from one call to
+another, one walks up the hierarchy. No other channel offers that fluidity **to a developer**.
+In exchange: none of it can be handed on to a non-technician — they would have to install the
+IDE and open the project.
 
-## Mise en œuvre
+## Setting up
 
-Charger un rapport de couverture existant : *Run › Show Coverage Data…*, puis désigner le
-`.exec` produit par [JaCoCo](jacoco.md). **À vérifier sur poste** — non testé ici.
+Load an existing coverage report: *Run › Show Coverage Data…*, then point at the `.exec`
+produced by [JaCoCo](jacoco.md). **To be checked on a machine** — not tested here.
 
-## Licence et coût
+## Licence and cost
 
-**Community** : Apache 2.0, gratuite — mais **sans le profiler intégré**.
-**Ultimate** : abonnement commercial *(tarif à vérifier sur la grille JetBrains)*.
+**Community**: Apache 2.0, free — but **without the integrated profiler**.
+**Ultimate**: commercial subscription *(price to be checked on the JetBrains list)*.
 
-## Ce qu'on peut en espérer
+## What one can hope for from it
 
-Pour le **critère n° 4**, IntelliJ est la réponse côté développeur, et l'édition Community
-suffit pour la couverture. L'abonnement Ultimate n'ajoute, pour ce besoin précis, que le
-confort d'avoir async-profiler dans l'IDE plutôt qu'en ligne de commande — le moteur étant
-le même et gratuit par ailleurs.
+For **criterion no. 4**, IntelliJ is the answer on the developer's side, and the Community
+edition suffices for the coverage. For that precise need, the Ultimate subscription adds only
+the comfort of having async-profiler in the IDE rather than on the command line — the engine
+being the same and free elsewhere.
 
-## Comparable à
+## Comparable to
 
-- **[JaCoCo](jacoco.md)** — Fournisseur, pas concurrent : IntelliJ **affiche** ce que JaCoCo a mesuré.
-- **[async-profiler](async-profiler.md)** — Le profiler d'Ultimate **est** async-profiler. Le choix se résume à : en ligne de commande (gratuit, sortie partageable) ou dans l'éditeur (payant, plus confortable).
-- **[JProfiler](jprofiler.md) · [YourKit](yourkit.md)** — Tous deux fournissent un plugin IntelliJ : l'IDE devient leur façade.
-- **[SonarQube](sonarqube.md)** — L'autre façon d'afficher la même couverture — dans un portail web plutôt que dans l'éditeur.
+- **[JaCoCo](jacoco.md)** — A supplier, not a competitor: IntelliJ **displays** what JaCoCo measured.
+- **[async-profiler](async-profiler.md)** — Ultimate's profiler **is** async-profiler. The choice comes down to: on the command line (free, shareable output) or in the editor (paid, more comfortable).
+- **[JProfiler](jprofiler.md) · [YourKit](yourkit.md)** — Both supply an IntelliJ plugin: the IDE becomes their front end.
+- **[SonarQube](sonarqube.md)** — The other way of displaying the same coverage — in a web portal rather than in the editor.
 
-## Facile / moins facile
+## Easy / less easy
 
-**Ce qui est facile.** Pour un développeur, lire la couverture dans la marge de l'éditeur et sauter d'un appel à l'autre : rien n'égale ça en confort.
+**What is easy.** For a developer, reading the coverage in the editor's margin and jumping from one call to another: nothing matches it for comfort.
 
-**Ce qui l'est moins.** **Sortir de l'IDE.** Rien n'est transmissible à quelqu'un qui ne l'a pas installé. Le profiler intégré est réservé à Ultimate, et l'import d'un `.exec` externe reste à confirmer sur poste.
+**What is less so.** **Getting out of the IDE.** Nothing can be handed on to somebody who has not installed it. The integrated profiler is reserved to Ultimate, and importing an external `.exec` remains to be confirmed on a machine.

@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# JFR (Java Flight Recorder) — inclus dans le JDK, coût zéro, aucune installation.
+# JFR (Java Flight Recorder) — included in the JDK, zero cost, no installation.
 #
-# JEP 520 (JDK 25) ajoute jdk.MethodTiming et jdk.MethodTrace : traçage ciblé d'une
-# méthode, avec sa pile d'appel. C'est ce qui rend JFR pertinent ici — avant JDK 25,
-# il fallait se contenter de l'échantillonnage.
+# JEP 520 (JDK 25) adds jdk.MethodTiming and jdk.MethodTrace: targeted tracing of a method,
+# with its call stack. That is what makes JFR relevant here — before JDK 25, one had to make
+# do with sampling.
 set -euo pipefail
 
 REPO_ROOT="$(git rev-parse --show-toplevel)"
@@ -11,26 +11,26 @@ REPO_ROOT="$(git rev-parse --show-toplevel)"
 source "$REPO_ROOT/tools/java-env.sh"
 OUT="$REPO_ROOT/reports-demo/generated/jfr"
 TARGET="lab.sample.RoutePlanner::travelTimeMinutes"
-# Cible du traçage : la consultation d'horaires, appelée quelques dizaines de fois
-# seulement (le reste est en cache). Tracer une méthode du chemin chaud produisait
-# 129 Mo d'enregistrement pour 10 s d'exécution — au-dessus de la limite de fichier
-# de GitHub, et illisible. Le traçage fin se cible, il ne se saupoudre pas.
+# The tracing target: the timetable lookup, called a few dozen times only (the rest is
+# cached). Tracing a method of the hot path produced 129 MB of recording for 10 s of running
+# — above GitHub's file limit, and unreadable. Fine tracing is targeted, it is not sprinkled
+# about.
 TRACED="lab.sample.transfer.Timetable::frequencyMinutes"
 
 cd "$REPO_ROOT"
 mvn -q clean package
 mkdir -p "$OUT"
 
-# jdk.MethodTiming / jdk.MethodTrace = JEP 520, livré avec le JDK 25.
-# Sous Java 21 (la cible du projet) ces réglages N'EXISTENT PAS : la JVM émet
-# « The .jfc option/setting 'jdk.MethodTiming#filter' doesn't exist. » et n'enregistre
-# que l'échantillonnage. On adapte la ligne de commande au lieu de faire semblant.
+# jdk.MethodTiming / jdk.MethodTrace = JEP 520, shipped with JDK 25.
+# Under Java 21 (the project's target) those settings DO NOT EXIST: the JVM emits
+# "The .jfc option/setting 'jdk.MethodTiming#filter' doesn't exist." and records only the
+# sampling. We adapt the command line instead of pretending.
 if [ "${JAVA_MAJOR:-21}" -ge 25 ]; then
   REC_OPTS="jdk.MethodTiming#filter=${TARGET},jdk.MethodTrace#filter=${TRACED},settings=profile,maxsize=12M"
-  echo "JEP 520 disponible : traçage de méthodes activé"
+  echo "JEP 520 available: method tracing enabled"
 else
   REC_OPTS="settings=profile,maxsize=12M"
-  echo "JEP 520 indisponible sous Java ${JAVA_MAJOR} : échantillonnage seul"
+  echo "JEP 520 unavailable under Java ${JAVA_MAJOR}: sampling only"
 fi
 
 java "-XX:StartFlightRecording:${REC_OPTS},filename=$OUT/recording.jfr" \
@@ -43,4 +43,4 @@ if [ "${JAVA_MAJOR:-21}" -ge 25 ]; then
 fi
 jfr print --events jdk.ExecutionSample "$OUT/recording.jfr" | head -200 > "$OUT/execution-sample-extrait.txt"
 
-echo "→ enregistrement : $OUT/recording.jfr (à ouvrir dans JDK Mission Control)"
+echo "→ recording: $OUT/recording.jfr (to be opened in JDK Mission Control)"

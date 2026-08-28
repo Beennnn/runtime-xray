@@ -1,425 +1,411 @@
-# Reprendre ce dépôt
+# Taking over this repository
 
-Ce fichier est lu au démarrage de toute session Claude Code ouverte sur ce dépôt. Il
-contient ce qu'il faut savoir avant de toucher au code, et l'état des travaux en cours.
-Le [README](README.md) explique l'outil ; ici, on explique le dépôt.
+This file is read at the start of every Claude Code session opened on this repository. It
+holds what one needs to know before touching the code, and the state of the work in
+progress. The [README](README.md) explains the tool; here, we explain the repository.
 
 ---
 
-## Construire et éprouver
+## Building and exercising
 
 ```bash
-mvn test                            # 248 tests, aucun n'accède au réseau
-mvn -DskipTests package             # orchestrator/target/runtime-xray.jar   (175 Ko)
-mvn -Pjacoco  -DskipTests package   # runtime-xray-jacoco.jar               (950 Ko)
-mvn -Pcomplet -DskipTests package   # runtime-xray-complet.jar               (19 Mo)
+mvn test                            # 255 tests, none of them touches the network
+mvn -DskipTests package             # orchestrator/target/runtime-xray.jar   (175 KB)
+mvn -Pjacoco  -DskipTests package   # runtime-xray-jacoco.jar               (950 KB)
+mvn -Pcomplet -DskipTests package   # runtime-xray-complet.jar               (19 MB)
 ```
 
-Les deux derniers profils embarquent les composants d'analyse et les déposent dans
-`~/.runtime-xray` au premier lancement : c'est ce qui rend l'outil utilisable sur une
-machine sans réseau. Ils ne sont **pas** la construction par défaut, et c'est délibéré —
-le jar ordinaire ne redistribue rien, ceux-là redistribuent de l'EPL-2.0 et de
-l'Apache-2.0. Voir [THIRD-PARTY.md](THIRD-PARTY.md), qui dit lequel porte quoi.
+The last two profiles embed the analysis components and lay them down in `~/.runtime-xray`
+at first launch: that is what makes the tool usable on a machine with no network. They are
+**not** the default build, and that is deliberate — the ordinary jar redistributes nothing,
+those two redistribute EPL-2.0 and Apache-2.0. See [THIRD-PARTY.md](THIRD-PARTY.md), which
+says which one carries what.
 
-Deux recettes de bout en bout vivent dans `bin/` : `acceptance-local.sh` éprouve ce qu'on
-s'apprête à publier, `acceptance-published.sh` éprouve l'artefact publié. Elles lancent une
-vraie JVM observée, ce que les tests unitaires ne font jamais.
+Two end-to-end acceptance recipes live in `bin/`: `acceptance-local.sh` exercises what one
+is about to publish, `acceptance-published.sh` exercises the published artefact. They launch
+a real observed JVM, which the unit tests never do.
 
-## Publier une version
+## Publishing a release
 
-Pousser une étiquette suffit — `.github/workflows/release.yml` fait le reste :
+Pushing a tag is enough — `.github/workflows/release.yml` does the rest:
 
 ```bash
 git tag -a v1.3.0 -m "runtime-xray 1.3.0" && git push origin v1.3.0
 ```
 
-Le workflow refuse de publier si l'étiquette ne correspond pas à la version du `pom.xml`.
-Penser donc à monter cette version **avant** d'étiqueter : trois fichiers, `pom.xml`,
+The workflow refuses to publish if the tag does not match the `pom.xml`'s version. So
+remember to raise that version **before** tagging: three files, `pom.xml`,
 `orchestrator/pom.xml`, `sample-app/pom.xml`.
 
-**Les liens de téléchargement se basculent tout seuls.** La dernière étape de
-`release.yml` réécrit sur `main`, une fois la release créée, l'URL de téléchargement, le
-nom du jar et la ligne « Version » du tableau — dans `README.md` et
-`docs/outil/mode-emploi.md`. Ils désignent la release **publiée**, donc ils ne peuvent
-pas se réécrire avant : nommer d'avance une étiquette qui n'existe pas offre un 404 au
-premier lecteur. Ne pas les toucher à la main entre l'étiquette et la fin du workflow.
+**The download links switch over by themselves.** The last step of `release.yml` rewrites on
+`main`, once the release is created, the download URL, the jar's name and the table's
+"Version" row — in `README.md` and `docs/outil/mode-emploi.md`. They designate the
+**published** release, so they cannot rewrite themselves beforehand: naming a tag in advance
+that does not exist offers a 404 to the first reader. Do not touch them by hand between the
+tag and the end of the workflow.
 
-Les autres numéros de version du README parlent d'autre chose — la licence MIT de la
-1.0.0 déjà publiée, l'exemple d'étiquetage — et les trois expressions sont écrites
-étroitement pour ne pas y toucher. Leur délimiteur est `#` et non `|` : la ligne
-« Version » est une ligne de tableau Markdown, pleine de barres verticales, et les
-échapper dans une commande délimitée par `|` donne un motif que BSD sed lit de travers —
-essayé, il réécrivait le fichier entier.
+The README's other version numbers speak of something else — the MIT licence of the already
+published 1.0.0, the tagging example — and the three expressions are written narrowly so as
+not to touch them. Their delimiter is `#` and not `|`: the "Version" row is a Markdown table
+row, full of vertical bars, and escaping them in a command delimited by `|` gives a pattern
+BSD sed reads wrong — tried, it rewrote the whole file.
 
-**Aucun binaire n'est versionné dans ce dépôt.** Git garde chaque exemplaire pour
-toujours ; le dépôt pèse 3,3 Mo, un seul jar complet le sextuplerait, et chaque version
-suivante s'ajouterait sans retour possible sans réécrire l'histoire. Les artefacts vivent
-attachés à une étiquette. Le seul fichier `.jar` suivi est un faux de 40 octets, en
-ressource de test.
+**No binary is versioned in this repository.** Git keeps every copy forever; the repository
+weighs 3.3 MB, one single complete jar would make it six times bigger, and every following
+release would add itself with no way back without rewriting history. The artefacts live
+attached to a tag. The only tracked `.jar` file is a 40-byte fake, as a test resource.
 
-## Publier la page d'accueil
+## Publishing the home page
 
-Rien à faire : `.github/workflows/page.yml` recopie `site/index.html` vers la racine de
-`gh-pages` dès que la source change sur `main`. La page se modifie donc **dans `site/`**,
-jamais sur `gh-pages`.
+Nothing to do: `.github/workflows/page.yml` copies `site/index.html` over to the root of
+`gh-pages` as soon as the source changes on `main`. The page is therefore modified **in
+`site/`**, never on `gh-pages`.
 
-Le workflow ne touche qu'`index.html`, et c'est délibéré : `gh-pages` porte aussi `demo/`,
-`jfr/` et `multi/` — des rapports engendrés qui n'existent nulle part dans `main`.
-Reconstruire la branche à partir de `site/` les effacerait.
+The workflow touches only `index.html`, and that is deliberate: `gh-pages` also carries
+`demo/`, `jfr/` and `multi/` — generated reports that exist nowhere in `main`. Rebuilding
+the branch from `site/` would wipe them out.
 
-`workflow_dispatch` republie à la demande, pour le cas où quelqu'un aurait corrigé
-directement sur `gh-pages`. Le déclenchement automatique est étroit — seul
-`site/index.html` le provoque — parce qu'une publication à chaque commit sur `main`
-n'apprendrait rien et ferait du bruit dans l'historique de la branche.
+`workflow_dispatch` republishes on demand, for the case where somebody has fixed something
+directly on `gh-pages`. The automatic trigger is narrow — only `site/index.html` sets it off
+— because publishing at every commit on `main` would teach nothing and would make noise in
+the branch's history.
 
-Le mécanisme naît d'une dérive : le 24 août 2026, la page servie était en retard d'un
-paragraphe sur sa source, depuis assez longtemps pour que personne ne sache dire depuis
-quand. Deux fichiers qui ont l'air d'exister chacun de leur côté ne divergent pas
-bruyamment.
+The mechanism was born of a drift: on 24 August 2026, the page served was a paragraph behind
+its source, and had been for long enough that nobody could say since when. Two files that
+look as though each exists on its own do not diverge noisily.
 
-## Comment l'outil trouve ses composants
+## How the tool finds its components
 
-C'est le mécanisme le plus souvent touché, et celui qui décide si l'outil démarre sur la
-machine visée — laquelle, par hypothèse, n'a pas de réseau. `Toolbox` cherche dans cet
-ordre, et ne sort sur le réseau qu'en dernier :
+This is the most often touched mechanism, and the one that decides whether the tool starts
+on the target machine — which, by hypothesis, has no network. `Toolbox` looks in this order,
+and goes out on the network only last:
 
-| Ordre | Endroit |
+| Order | Place |
 |---|---|
-| 1 | `~/.runtime-xray` — le cache que l'outil remplit lui-même |
-| 2 | `--composants <rép>`, `COMPOSANTS=`, `RUNTIME_XRAY_COMPOSANTS` |
-| 3 | le répertoire du jar, et son sous-répertoire `composants/` |
-| 4 | `~/.m2/repository` (ou `MAVEN_REPO_LOCAL`), en disposition Maven |
-| 5 | les composants embarqués, pour les éditions qui en portent |
-| 6 | le réseau — `--repo` / `MAVEN_REPO`, miroir interne compris |
+| 1 | `~/.runtime-xray` — the cache the tool fills itself |
+| 2 | `--components <dir>`, `COMPOSANTS=`, `RUNTIME_XRAY_COMPOSANTS` |
+| 3 | the jar's directory, and its `composants/` subdirectory |
+| 4 | `~/.m2/repository` (or `MAVEN_REPO_LOCAL`), in Maven layout |
+| 5 | the embedded components, for the editions that carry them |
+| 6 | the network — `--repo` / `MAVEN_REPO`, an internal mirror included |
 
-Les noms de Maven sont reconnus, ceux des distributions officielles aussi
-(`jacocoagent.jar`, `jacococli.jar`, `arthas-bin.zip`, un Arthas déjà décompressé). Quand
-un fichier déclare sa version dans son manifeste, elle est vérifiée et l'outil se tait si
-elle correspond. Quand rien n'aboutit, le message liste tous les chemins essayés : sur une
-machine fermée, c'est lui qui doit suffire à s'en sortir, et il doit le rester.
+Maven's names are recognised, and so are the official distributions' (`jacocoagent.jar`,
+`jacococli.jar`, `arthas-bin.zip`, an already-unpacked Arthas). When a file declares its
+version in its manifest, it is checked and the tool stays quiet if it matches. When nothing
+succeeds, the message lists every path tried: on a closed machine, that message is what must
+suffice to get out of it, and it must stay so.
 
-`bin/offline-kit.sh` assemble le paquet équivalent à emporter, empreintes comprises.
+`bin/offline-kit.sh` assembles the equivalent package to carry, fingerprints included.
 
-## Quand le rapport ne montre pas ce qu'on attendait
+## When the report does not show what was expected
 
-C'est le mode d'échec le plus coûteux de l'outil, parce qu'il est **silencieux** : un panneau
-de code vide se lit exactement comme un panneau qu'on n'a pas su remplir. Trois choses
-distinctes peuvent manquer, elles se corrigent de trois façons opposées, et rien dans la page
-ne permettait de les distinguer.
+This is the tool's most costly failure mode, because it is **silent**: an empty code panel
+reads exactly like a panel nobody could fill. Three distinct things can be missing, they are
+fixed in three opposite ways, and nothing in the page allowed telling them apart.
 
-- **`diagnostic.json`** est écrit à côté de la page à chaque assemblage, sans qu'on le
-  demande. Il porte l'environnement, la configuration du lancement, les racines réellement
-  ouvertes, les exécutions et leurs rapports, et le rapprochement classe par classe. C'est le
-  fichier à réclamer quand quelqu'un signale un rapport décevant — il évite le
-  aller-retour de captures d'écran. Il ne contient **aucun secret** ; un test le garde.
-- **La section « Analyse des sources »** de la vue d'ensemble le rend lisible : l'arbre
-  paquet par paquet, coloré par ce qui manque à chaque classe, et une recherche qui répond à
-  « cette classe, tu l'as trouvée, et où ? ».
-- **Le panneau à la place du code** dit la clé cherchée, les racines consultées et la ligne
-  exacte à ajouter à la configuration.
+- **`diagnostic.json`** is written beside the page at every assembly, without being asked
+  for. It carries the environment, the launch's configuration, the roots actually opened,
+  the runs and their reports, and the class-by-class matching. It is the file to ask for
+  when somebody reports a disappointing report — it saves the round trip of screenshots. It
+  contains **no secret**; a test guards that.
+- **The "Source analysis" section** of the overview makes it readable: the tree package by
+  package, coloured by what each class is missing, and a search that answers "this class,
+  did you find it, and where?".
+- **The panel in place of the code** says the key looked for, the roots consulted and the
+  exact line to add to the configuration.
 
-**Les quatre restrictions ne restreignent pas la même chose**, et c'est la confusion la plus
-fréquente — on élargit un filtre qui n'y était pour rien, on relance, on obtient le même
-rapport. `--sources` ne commande que l'affichage du code ; `--root` la capture des valeurs et
-le filtre de temps ; `--filter` la mesure du temps seule ; `--cover` l'instrumentation JaCoCo.
-Le tableau est dans la page, écrit à partir du symptôme et non de la documentation.
+**The four restrictions do not restrict the same thing**, and that is the most frequent
+confusion — one widens a filter that had nothing to do with it, re-runs, and gets the same
+report. `--sources` commands only the display of the code; `--root` the capture of values
+and the time filter; `--filter` the measurement of time alone; `--cover` JaCoCo's
+instrumentation. The table is in the page, written from the symptom and not from the
+documentation.
 
-**Quand il manque des sources, l'outil les cherche** — et ne les devine jamais. Deviner une
-racine d'après une convention serait commode là où on n'en a pas besoin, et faux là où on en
-aurait besoin : sur la machine où l'application tourne loin de son code, la convention ne
-désigne rien, ou pire, désigne les sources d'un autre projet. Du code faux affiché en face
-d'une couverture coûte plus cher qu'un panneau vide, parce qu'on le croit.
+**When sources are missing, the tool looks for them** — and never guesses them. Guessing a
+root from a convention would be handy where one does not need it, and wrong where one would:
+on the machine where the application runs far from its code, the convention designates
+nothing, or worse, designates another project's sources. Wrong code displayed against a
+coverage costs more than an empty panel, because it is believed.
 
-`Sources.searchRoots` cherche donc, et compte. Elle explore le voisinage du bytecode
-analysé, celui des racines déjà configurées et le répertoire de lancement — jamais au-delà —
-et ne retient un fichier que si le **paquet qu'il déclare** produit exactement une clé
-manquante. Un homonyme venu d'un autre projet ne compte pas ; un test le garde. Chaque
-proposition arrive avec son chiffre — « cette racine résoudrait 27 des 27 classes sans
-source » — et la ligne `SOURCE_DIRS=` à recopier. Quand rien ne concorde, elle le dit.
+`Sources.searchRoots` therefore looks, and counts. It explores the neighbourhood of the
+analysed bytecode, that of the roots already configured and the launch directory — never
+beyond — and keeps a file only if the **package it declares** produces exactly one missing
+key. A namesake from another project does not count; a test guards that. Every proposal
+arrives with its figure — "this root would resolve 27 of the 27 classes without source" —
+and the `SOURCE_DIRS=` line to copy. When nothing matches, it says so.
 
-**Réassembler ne perd pas ce que la mesure savait.** Chaque exécution enregistre ses
-racines de sources dans son `run-context.json` ; un `--report-only` sans `--sources` les
-reprend. Ce n'est pas une devinette et c'est ce qui le rend acceptable : l'exécution ne
-déduit rien, elle relit ce qu'elle a elle-même écrit. Ce qui est donné en ligne de commande
-l'emporte toujours — c'est le geste de quelqu'un qui est là, maintenant, et qui corrige
-peut-être un chemin qui a bougé.
+**Reassembling does not lose what the measurement knew.** Every run records its source roots
+in its `run-context.json`; a `--report-only` with no `--sources` takes them up again. It is
+not a guess and that is what makes it acceptable: the run deduces nothing, it reads back what
+it wrote itself. What is given on the command line always wins — it is the gesture of
+somebody who is there, now, and who is perhaps fixing a path that has moved.
 
-Une racine enregistrée qui n'existe plus est **adoptée quand même**, à dessein : le
-diagnostic sait déjà montrer une racine absente plutôt que de la faire disparaître, et sa
-conclusion nomme alors le chemin à corriger. La filtrer aurait remis le lecteur devant
-« no source directory was given » — la phrase qui l'envoyait chercher un réglage qu'il avait
-déjà fait, et le vrai coût du défaut d'origine.
+A recorded root that no longer exists is **adopted anyway**, by design: the diagnostic
+already knows how to show an absent root rather than make it disappear, and its conclusion
+then names the path to correct. Filtering it out would have put the reader back in front of
+"no source directory was given" — the sentence that sent them looking for a setting they had
+already made, and the real cost of the original defect.
 
-**L'index des sources est bâti sur le paquet déclaré**, pas sur le chemin relatif à la racine
-passée. `SOURCE_DIRS` peut donc désigner le projet entier, le répertoire de sources, ou un
-répertoire de paquet : cela retombe sur ses pieds. C'est ce qui a cassé le 26 août 2026 —
-une racine d'un cran trop haute suffisait à décaler l'index entier, donc « Source
-indisponible » sur les 447 classes d'une analyse.
+**The source index is built on the declared package**, not on the path relative to the root
+given. `SOURCE_DIRS` can therefore designate the whole project, the source directory, or a
+package directory: it lands on its feet. That is what broke on 26 August 2026 — a root one
+notch too high was enough to shift the whole index, hence "Source unavailable" on the 447
+classes of one analysis.
 
-## La bande d'activité pendant l'attente
+## The activity band during the wait
 
-`Progress` écrit une ligne qui se réécrit pendant que l'application observée travaille.
-Trois décisions la tiennent, et elles sont liées :
+`Progress` writes a line that rewrites itself while the observed application works. Three
+decisions hold it, and they are linked:
 
-- **Elle ne mesure rien.** Le temps processeur vient de `ProcessHandle.Info.totalCpuDuration`
-  — le système le compte de toute façon — et la taille de `execution.log` d'un fichier déjà
-  écrit. Rien n'est ajouté à la JVM observée. C'était la condition posée : un affichage de
-  confort qui déplacerait la mesure ferait mentir le rapport qu'il accompagne.
-- **Un carré par paquet aurait été plus parlant**, et n'a pas été retenu : les deux seules
-  façons d'obtenir le code réellement atteint en cours de route sont un `-Xlog:class+load`
-  dans `JAVA_TOOL_OPTIONS` — inconnu d'une JVM 8, qui refuserait alors de démarrer, or c'est
-  précisément le parc visé — ou un `output=tcpserver` sur l'agent JaCoCo, qui déplace
-  l'écriture du `.exec` hors du chemin qui fonctionne. Le coût portait sur la capture ; le
-  gain, sur l'affichage.
-- **Le compte est en cœurs occupés**, pas en pourcentage de la machine. Sur un serveur à
-  trente-deux cœurs, une application qui en sature un travaille à plein régime : ramenée à
-  3 %, elle s'afficherait endormie.
+- **It measures nothing.** The processor time comes from `ProcessHandle.Info.totalCpuDuration`
+  — the system counts it anyway — and the size of `execution.log` from a file already
+  written. Nothing is added to the observed JVM. That was the condition set: a comfort
+  display that shifted the measurement would make the report it accompanies lie.
+- **One square per package would have said more**, and was not retained: the only two ways of
+  obtaining the code actually reached along the way are an `-Xlog:class+load` in
+  `JAVA_TOOL_OPTIONS` — unknown to a JVM 8, which would then refuse to start, and that is
+  precisely the estate targeted — or an `output=tcpserver` on the JaCoCo agent, which moves
+  the writing of the `.exec` off the path that works. The cost bore on the capture; the gain,
+  on the display.
+- **The count is in busy cores**, not in a percentage of the machine. On a thirty-two-core
+  server, an application that saturates one of them is working flat out: brought back to
+  3 %, it would show as asleep.
 
-La bande, la page de `--suivi` et les messages de la console sont **en anglais**, comme le
-reste de ce que l'utilisateur voit. Les nombres suivent : `41.3 s`, `812.0 KB`, un
-horodatage en `yyyy-MM-dd HH:mm:ss`. Un nom d'option ou une valeur en français — `--niveau
-complet`, `--export tout` — reste accepté à vie ; ce n'est simplement plus lui qu'on
-affiche.
+The band, the `--follow` page and the console messages are **in English**, like the rest of
+what the user sees. The numbers follow: `41.3 s`, `812.0 KB`, a timestamp in
+`yyyy-MM-dd HH:mm:ss`. An option name or a value in French — `--niveau complet`,
+`--export tout` — stays accepted for life; it is simply no longer what is displayed.
 
-Elle se tait hors terminal (`System.console() == null`) : dans un tuyau ou un journal
-d'intégration, une ligne par seconde n'apprend rien et noie le reste. `RUNTIME_XRAY_PROGRESSION`
-la réclame quand même — un shell qui en lance un autre met souvent un tuyau au milieu alors
-qu'un opérateur regarde bien un écran au bout ; `=0` impose l'inverse. Les caractères
-`· ░ ▒ ▓ █` existent en CP850 comme en UTF-8, pour la même raison que le reste des messages.
+It stays quiet outside a terminal (`System.console() == null`): in a pipe or in an
+integration log, one line per second teaches nothing and drowns the rest.
+`RUNTIME_XRAY_PROGRESSION` asks for it anyway — a shell that launches another often puts a
+pipe in the middle while an operator is indeed watching a screen at the end; `=0` imposes the
+opposite. The characters `· ░ ▒ ▓ █` exist in CP850 as in UTF-8, for the same reason as the
+rest of the messages.
 
-## Suivre une exécution qui n'a pas de terminal
+## Following a run that has no terminal
 
-C'est le prolongement de la bande, et la réponse au cas qu'elle ne couvrait pas : l'outil
-lancé au fond de scripts imbriqués, sa sortie dans un tuyau, et **personne qui ne voit
-plus rien**.
+This is the band's continuation, and the answer to the case it did not cover: the tool
+launched at the bottom of nested scripts, its output in a pipe, and **nobody seeing anything
+any more**.
 
-- **`progression.jsonl` s'écrit toujours**, à la racine de `--out` — donc à un chemin qu'on
-  connaît sans connaître le nom de l'exécution. Une ligne par seconde, `tail -f` suffit. La
-  dernière porte `"event":"end"` : sans elle, un lecteur ne saurait pas s'arrêter.
-- **`--suivi [port]` sert une page** qui relit ce fichier, et rien d'autre. Elle montre ce
-  qu'une suite de lignes JSON montre mal — la *forme* de l'exécution. Boucle locale
-  seulement : elle affiche une commande et la sortie d'une application.
-- **Le calcul de charge est dans `Progress`, et nulle part ailleurs.**
-  `Progress.tick` le rend, `Follow` le recopie. Deux calculs séparés finiraient par
-  diverger, et le fichier contredirait la bande sans que rien ne le signale.
-- **Un échec d'écriture du fil n'emporte jamais la mesure** — c'est un confort, elle est ce
-  qu'on est venu chercher ; un test le garde, comme il garde que la fin du journal servie
-  soit bornée à 64 Ko.
+- **`progression.jsonl` is always written**, at the root of `--out` — hence at a path one
+  knows without knowing the run's name. One line per second, `tail -f` is enough. The last
+  one carries `"event":"end"`: without it, a reader would not know when to stop.
+- **`--follow [port]` serves a page** that reads that file back, and nothing else. It shows
+  what a sequence of JSON lines shows badly — the *shape* of the run. Local loopback only: it
+  displays a command and an application's output.
+- **The load computation is in `Progress`, and nowhere else.** `Progress.tick` renders it,
+  `Follow` copies it. Two separate computations would end up diverging, and the file would
+  contradict the band with nothing to signal it.
+- **A failure to write the feed never carries off the measurement** — it is a comfort, the
+  measurement is what one came for; a test guards that, as it guards that the served tail of
+  the log is bounded to 64 KB.
 
-## Couverture cumulée
+## Cumulative coverage
 
-Une campagne de recette, c'est dix exécutions, et la question posée devant le code est « est-ce
-que **quelque chose** a couvert cette ligne ? ». Deux mécanismes y répondent, et ils sont
-complémentaires :
+An acceptance campaign is ten runs, and the question asked in front of the code is "did
+**something** cover this line?". Two mechanisms answer it, and they are complementary:
 
-- **Dans la page**, cocher « cumuler » réunit les exécutions **cochées** et garde pour chaque
-  ligne *laquelle* l'a couverte, en pastilles. Cela marche sur n'importe quel sous-ensemble,
-  hors ligne, sans rien relancer — parce que l'union se calcule sur des données déjà là.
-- **`jacoco-fusion/`** porte le rapport JaCoCo de toutes les exécutions fusionnées
-  (`jacococli merge` puis `report`), pour le chiffre qui fait foi et qu'on transmet. Il perd
-  en revanche l'attribution : une fois les `.exec` additionnés, plus rien ne dit qui a couvert
-  quoi. Il n'est produit qu'à partir de deux exécutions, et seulement si le bytecode est connu.
+- **In the page**, ticking "accumulate" unites the **ticked** runs and keeps, for each line,
+  *which one* covered it, as pips. That works on any subset, offline, with nothing to re-run
+  — because the union is computed on data already there.
+- **`jacoco-fusion/`** carries the JaCoCo report of all the runs merged (`jacococli merge`
+  then `report`), for the figure that is authoritative and that one hands on. It loses the
+  attribution, on the other hand: once the `.exec` files are added together, nothing says any
+  more who covered what. It is produced only from two runs upwards, and only if the bytecode
+  is known.
 
-JaCoCo ne sait pas choisir ses exécutions à l'affichage : son rapport est un rendu statique,
-calculé sur les `.exec` qu'on lui donne. Un sous-ensemble arbitraire demanderait donc un
-rapport par combinaison — c'est précisément ce que le cumul dans la page évite.
+JaCoCo cannot choose its runs at display time: its report is a static rendering, computed on
+the `.exec` files it is given. An arbitrary subset would therefore demand one report per
+combination — which is precisely what accumulating in the page avoids.
 
-## Ce qu'on donne à lire à une IA
+## What we give an AI to read
 
-`faits.jsonl` s'écrit à côté de la page, un objet JSON par ligne, chacune se comprenant
-seule — son vocabulaire est dans sa première ligne, parce qu'une documentation posée à côté
-se perd dans le premier zip. `--contexte "une question"` en tire un extrait borné et prêt à
-coller. Trois décisions le tiennent, chacune gardée par un test dans `ContextTest` :
+`faits.jsonl` is written beside the page, one JSON object per line, each of them
+understandable on its own — its vocabulary is on its first line, because documentation laid
+down beside it gets lost in the first zip. `--context "a question"` draws a bounded, ready-to-
+paste extract from it. Three decisions hold it, each guarded by a test in `ContextTest`:
 
-- **Ce qui n'a PAS été mesuré passe avant les chiffres**, et n'est jamais élagué par le
-  budget. Un lecteur qui voit les chiffres d'abord les a déjà interprétés quand il arrive
-  aux réserves ; un modèle produira en plus une réponse assurée sur un zéro qui ne mesurait
-  rien.
-- **Rien n'est coupé en silence** — ni par le budget, ni quand une famille est vide. Un bloc
-  vide se lit exactement comme un bloc qu'on n'a pas su remplir, ici comme dans la page.
-- **La question a deux rôles**, et c'est ce qui la rend ambiguë : elle choisit les faits,
-  grossièrement, et elle voyage dans le paquet. Un texte libre laisse croire à une
-  compréhension qui n'existe pas — d'où l'annonce sur **stderr** de ce qui a été retenu, la
-  table des mots-clés dans `--help`, et `--familles` pour les scripts, qui court-circuite
-  l'interprétation. Une famille inconnue s'arrête là où une phrase inconnue donne la vue
-  d'ensemble : la première vient d'un script qui a un défaut, la seconde d'un humain qui
-  cherche.
-- **Le format des faits est en 2.0, et il n'y a pas de migrateur.** Ce n'est pas un oubli :
-  `faits.jsonl` est *dérivé* des mesures de `runs/`, comme la page, le diagnostic et les
-  blocs. Un `--report-only` le réécrit entièrement dans le format courant, avec au passage
-  tous les correctifs accumulés — un migrateur n'aurait renommé que des clés dans un fichier
-  resté périmé par ailleurs, et il aurait fallu le maintenir puis penser à le supprimer. Un
-  rapport 1.0 est donc *refusé* à la lecture, avec la commande qui le régénère ; et quand
-  `runs/` a disparu, le message le dit au lieu de proposer une commande qui échouerait. Les
-  noms de familles de la 1.0 restent acceptés par `--families`, à vie.
-- **Les lignes sont recopiées telles quelles.** Relire puis réécrire un JSON rendrait `41`
-  en `41.0` : le format ne distingue pas l'entier du flottant, et ce détail fait douter du
-  reste.
+- **What was NOT measured comes before the figures**, and is never pruned by the budget. A
+  reader who sees the figures first has already interpreted them by the time they reach the
+  caveats; a model will in addition produce a confident answer about a zero that measured
+  nothing.
+- **Nothing is cut silently** — neither by the budget, nor when a family is empty. An empty
+  block reads exactly like a block nobody could fill, here as in the page.
+- **The question has two roles**, and that is what makes it ambiguous: it chooses the facts,
+  coarsely, and it travels in the package. Free text lets one believe in an understanding
+  that does not exist — hence the announcement on **stderr** of what was retained, the table
+  of keywords in `--help`, and `--families` for scripts, which short-circuits the
+  interpretation. An unknown family stops there where an unknown sentence gives the overview:
+  the first comes from a script that has a defect, the second from a human who is searching.
+- **The facts format is at 2.0, and there is no migrator.** That is not an oversight:
+  `faits.jsonl` is *derived* from the measurements in `runs/`, like the page, the diagnostic
+  and the blocks. A `--report-only` rewrites it entirely in the current format, with all the
+  accumulated fixes along the way — a migrator would only have renamed keys in a file left
+  stale in every other respect, and it would have had to be maintained and then remembered
+  and deleted. A 1.0 report is therefore *refused* on reading, with the command that
+  regenerates it; and when `runs/` has disappeared, the message says so instead of proposing
+  a command that would fail. The 1.0 family names stay accepted by `--families`, for life.
+- **The lines are copied across as they are.** Reading a JSON back and rewriting it would
+  render `41` as `41.0`: the format does not tell an integer from a float, and that detail
+  makes one doubt the rest.
 
-`skills/` porte deux compétences à recopier dans le `.claude/skills/` d'un projet —
-conduire une campagne, lire un rapport — et le kit hors ligne les emporte, parce que c'est
-sur la machine isolée qu'on ne peut plus aller lire la documentation. Ce sont deux fichiers
-Markdown, mais ils sont **tenus par `SkillsTest`** : toute option qu'ils citent doit exister
-dans le `switch` de `Main`, et la table du vocabulaire doit coïncider avec
-`Facts.VOCABULARY`, dans les deux sens. Une option renommée ici et laissée écrite là-bas
-n'échoue nulle part — elle envoie quelqu'un dans le mur avec « Option inconnue » pour toute
-explication, sur la machine où il ne peut rien vérifier.
+`skills/` carries two skills to copy into a project's `.claude/skills/` — running a campaign,
+reading a report — and the offline kit takes them along, because it is on the isolated
+machine that one can no longer go and read the documentation. They are two Markdown files,
+but they are **held by `SkillsTest`**: every option they cite must exist in `Main`'s `switch`,
+and the vocabulary table must coincide with `Facts.VOCABULARY`, in both directions. An option
+renamed here and left written there fails nowhere — it sends somebody into a wall with
+"Unknown option" for all explanation, on the machine where they can check nothing.
 
-**L'outil ne parle à personne** : aucun nom de fournisseur, aucune clé, aucun appel réseau.
-Le format des requêtes change tous les six mois ; le besoin de donner un texte borné et
-exact, non. `bin/ask.sh` porte les trois enveloppes du moment (`openai`, `anthropic`,
-`gemini`) côte à côte, en une trentaine de lignes chacune — et « openai » y désigne la
-**forme** de la requête, pas le fournisseur. Les valeurs capturées ne sortent jamais : elles
-restent dans leur bloc, sur le disque, et deux tests le gardent.
+**The tool talks to nobody**: no vendor name, no key, no network call. The shape of the
+requests changes every six months; the need to give a bounded and exact text does not.
+`bin/ask.sh` carries the three envelopes of the moment (`openai`, `anthropic`, `gemini`) side
+by side, some thirty lines each — and "openai" there designates the **shape** of the request,
+not the vendor. The captured values never go out: they stay in their block, on disk, and two
+tests guard that.
 
-## La langue de la vue
+## The view's language
 
-La page s'ouvre **en anglais**. Un rapport s'envoie, se joint à un ticket, se lit par
-quelqu'un qui n'a pas lancé la mesure : rien ne dit qu'il parle français. Le sélecteur
-`EN | FR` de l'en-tête rend le français à qui le veut, et un navigateur qui annonce le
-français l'obtient d'emblée. Tout autre navigateur lit l'anglais — il n'y a pas de
-troisième langue, et il n'y en aura pas. Deux lettres, pas de drapeau : un drapeau nomme un
-pays, pas une langue.
+The page opens **in English**. A report is sent, attached to a ticket, read by somebody who
+did not launch the measurement: nothing says they speak French. The header's `EN | FR`
+selector gives French back to whoever wants it, and a browser that announces French gets it
+straight away. Every other browser reads English — there is no third language, and there will
+not be one. Two letters, no flag: a flag names a country, not a language.
 
-**Le gabarit est resté en français, et c'est la traduction qui parcourt le DOM.** La page
-fait cinq mille lignes et la moitié de son texte est composée dans des concaténations de
-balises ; y semer des clés aurait demandé de toucher chacune de ces lignes — donc de risquer
-un `id`, un sélecteur ou une comparaison sur chaque — pour un gain nul. Le dictionnaire vit
-dans un bloc à part, à la fin du fichier, et rien d'autre n'a bougé. Trois règles le tiennent :
+**The template stayed in French, and it is the translation that walks the DOM.** The page runs
+to five thousand lines and half its text is composed inside concatenations of tags; sowing
+keys through it would have demanded touching each of those lines — hence risking an `id`, a
+selector or a comparison on every one — for no gain. The dictionary lives in a block apart, at
+the end of the file, and nothing else moved. Three rules hold it:
 
-- **On ne traduit que des chaînes entières et connues.** Pas de remplacement de mots. Un nom
-  de classe, une valeur capturée, une ligne de code de l'application observée ne sont jamais
-  un libellé du dictionnaire. La **cellule de code** est en plus écartée du parcours — et
-  elle seule, parce que les replis et les annotations d'appel de la même ligne sont, eux, du
-  texte de l'outil. Les libellés de l'arbre le sont aussi : une classe nommée `Comment` ne
-  doit pas devenir `How`.
-- **Le français d'origine est gardé**, pas retraduit à l'envers. Un aller-retour sur un
-  dictionnaire non injectif perdrait du texte ; là il rend l'original à l'octet près.
-- **Un `title` réécrit après coup est surveillé comme un nœud ajouté.** La page en réaffecte
-  plusieurs — le bouton « tout déplier » change le sien à chaque bascule — et cela ne crée
-  aucun nœud, donc ne se voit pas dans `childList`.
+- **Only whole, known strings are translated.** No word replacement. A class name, a captured
+  value, a line of the observed application's code is never a label of the dictionary. The
+  **code cell** is in addition excluded from the walk — and it alone, because the folds and
+  the call annotations of the same line are, for their part, the tool's own text. The tree's
+  labels are excluded too: a class named `Comment` must not become `How`.
+- **The original French is kept**, not translated back. A round trip over a non-injective
+  dictionary would lose text; here it gives the original back to the byte.
+- **A `title` rewritten after the fact is watched like an added node.** The page reassigns
+  several — the "expand everything" button changes its own at every toggle — and that creates
+  no node, hence does not show in `childList`.
 
-**Le décrochage est le mode d'échec, et il est silencieux** : quelqu'un reformule un libellé
-dans le gabarit, le dictionnaire ne le connaît plus, et la vue anglaise affiche du français
-sans que rien ne le signale. `ViewLanguageTest` vérifie pour cela le corps statique en entier —
-chaque phrase française qu'il porte doit avoir sa traduction. Le reste du texte naît en
-JavaScript et ne se relève qu'au rendu : la vérification s'y fait au navigateur, avant de
-pousser, en relevant les chaînes affichées et en n'en gardant aucune française.
+**Drifting apart is the failure mode, and it is silent**: somebody rephrases a label in the
+template, the dictionary no longer knows it, and the English view displays French with nothing
+to signal it. `ViewLanguageTest` checks the whole static body for that reason — every French
+sentence it carries must have its translation. The rest of the text is born in JavaScript and
+only shows at render time: that check is done at the browser, before pushing, by collecting
+the strings displayed and keeping none that is French.
 
 ## Conventions
 
-- **L'outil parle anglais, et le code aussi désormais.** La bascule s'est faite par
-  étapes — l'aide, les exemples, les mots-clés, le format des faits, la vue, les messages
-  console, puis les noms du code, ses commentaires et ses `@DisplayName`, y compris ceux
-  de `sample-app`, dont le code s'affiche dans le rapport. **Tout nouveau code s'écrit
-  donc en anglais**, commentaires et `@DisplayName` compris.
+- **The tool speaks English, and so does the code now.** The switch happened in stages — the
+  help, the examples, the keywords, the facts format, the view, the console messages, then the
+  code's names, its comments and its `@DisplayName`s, including those of `sample-app`, whose
+  code is displayed in the report — and finally the documentation, the README, the study, the
+  tool sheets, the `bin/` and `tools/` scripts, the workflows and the diagrams. **All new code
+  is therefore written in English**, comments and `@DisplayName`s included, and so is every
+  document.
 
-  Les **scripts de `bin/`** ont suivi — noms de fichiers compris — parce qu'ils écrivent
-  eux aussi sur une console, et que leur sortie se lit comme celle de l'outil. Restent en
-  français, chacun pour une raison : le **gabarit** `dashboard.html`, parce que c'est la
-  traduction qui parcourt son DOM et non l'inverse (voir « La langue de la vue ») ; la
-  **documentation** et les **messages de commit**, qui s'adressent à qui reprend le dépôt
-  et non à qui lance l'outil. Les exemples, eux, sont en anglais **partout**, y
-  compris dans une prose française : `com.example.app`, `--contexte "which classes never
-  ran?"`. Un exemple français dans une documentation anglaise est ce qui se remarque en
-  premier.
-- **Un nom d'option français reste accepté pour toujours**, silencieusement, quand son
-  équivalent anglais arrivera. Les scripts déjà déployés ne cassent jamais. Seul
-  `faits.jsonl` cassera, en format 2.0, et c'est assumé : il a trois jours.
-- **Un commit explique pourquoi**, pas ce que le diff montre déjà. Le sujet est une
-  phrase, pas une étiquette.
-- **Un test garde une décision.** Les tests d'ici ne vérifient pas des lignes mais des
-  choix : que le dépôt Maven soit pointé sur une adresse morte dans `ToolboxTest` n'est
-  pas un détail — un test qui passerait en sortant sur le réseau ne prouverait rien.
-- **Les versions des composants ont deux sources** : les propriétés du `pom.xml`, qui
-  décident de ce qu'on embarque, et les constantes de `Toolbox`, qui décident de ce qu'on
-  cherche. `ToolboxTest.thePomVersionsMatchTheCode` les compare — divergentes, elles
-  donneraient un jar d'apparence complète qui retéléchargerait tout.
-- **Fins de ligne** : `.gitattributes` fige la copie de travail en LF. Sur un poste
-  Windows qui avait cloné avant, `git add --renormalize .` une fois. Rien dans le code ne
-  doit dépendre de la fin de ligne — c'est ce qui a cassé douze tests en août 2026.
+  Two things stay in French, each for a reason: the **`dashboard.html` template**, because it
+  is the translation that walks its DOM and not the other way round (see "The view's
+  language"); and the **commit messages**, which address whoever takes over the repository and
+  not whoever runs the tool. Examples are in English **everywhere**, including inside French
+  prose: `com.example.app`, `--context "which classes never ran?"`.
+- **A French option name stays accepted for ever**, silently, now that its English equivalent
+  has arrived. Scripts already deployed never break. Only `faits.jsonl` will break, in format
+  2.0, and that is assumed: it is three days old.
+- **A commit explains why**, not what the diff already shows. The subject is a sentence, not a
+  label.
+- **A test guards a decision.** The tests here do not check lines but choices: that the Maven
+  repository is pointed at a dead address in `ToolboxTest` is not a detail — a test that
+  passed by going out on the network would prove nothing.
+- **The components' versions have two sources**: the `pom.xml`'s properties, which decide what
+  is embedded, and `Toolbox`'s constants, which decide what is looked for.
+  `ToolboxTest.thePomVersionsMatchTheCode` compares them — divergent, they would give a jar of
+  apparently complete appearance that re-downloaded everything.
+- **Line endings**: `.gitattributes` freezes the working copy to LF. On a Windows machine that
+  had cloned beforehand, `git add --renormalize .` once. Nothing in the code must depend on
+  the line ending — that is what broke twelve tests in August 2026.
 
-## Pièges de plateforme
+## Platform traps
 
-- **Pas de mesure de temps sous Windows** : async-profiler ne publie que des binaires
-  Linux et macOS. La couverture et les valeurs fonctionnent ; l'outil le dit au lancement
-  plutôt que d'échouer.
-- **La CI éprouve les deux systèmes** : `tests.yml` lance `mvn test` sur `ubuntu-latest`
-  ET `windows-latest`, en `fail-fast: false` — savoir qu'un défaut est propre à Windows ou
-  commun aux deux change ce qu'il faut aller regarder. La construction des trois éditions
-  reste sur un seul poste : elle éprouve les profils Maven, rien qui dépende du système.
-  Ajoutée le 26 août 2026, après deux défauts Windows qu'une CI Linux ne pouvait pas voir.
-- **Une run peut ne jamais être planifiée**, et alors rien ne la débloque : le 26 août 2026,
-  l'une est restée « queued » dix-sept heures sans créer un seul job, l'API refusant jusqu'à
-  son annulation. La proposition de fusion attendait derrière une vérification qui ne
-  viendrait jamais. Le `concurrency` de `tests.yml` en fait la sortie de secours : **pousser
-  un commit annule la run précédente et prend sa place**. C'est le seul geste qui marche —
-  ni la relance, ni l'annulation. Et les `timeout-minutes` bornent l'autre forme du même
-  problème : un travail parti pour six heures, le défaut de GitHub. Ne pas attendre une CI
-  muette plus d'une fois : constater, le dire, et pousser.
-- **Le tilde n'est un caractère d'interpréteur qu'en tête de mot** : les noms courts 8.3 de
-  Windows en portent un — `C:\Users\RUNNER~1`, `C:\PROGRA~1` — et le compter partout
-  envoyait la commande à `cmd /c`. Elle s'exécutait, mais `ClassSources` n'y lisait plus le
-  `-jar`, donc plus le bytecode : rapport vide, sans explication. Trouvé par le premier
-  passage de la CI Windows, le jour même où elle a été ajoutée.
-- **Chemins Windows dans une liste** : `SOURCE_DIRS` et `CLASSES_DIR` se séparent par `:`,
-  ce qui va de soi sur Unix et pas du tout sur Windows — `C:\projet\src` commence par un `:`
-  qui n'est pas un séparateur. `Config.decouper` rend au chemin le `:` qui suit une lettre
-  seule en tête de segment et précède un séparateur, et accepte `;` en plus. Sans cela, un
-  chemin absolu valide donnait deux entrées inexistantes et l'outil répondait « introuvable »
-  sur un chemin que l'utilisateur avait sous les yeux. Découvert le 26 août 2026, quand la
-  recherche de racines s'est mise à proposer des chemins absolus.
-- **Les tests ne comparent jamais un chemin à un littéral à séparateurs** : `endsWith(
-  "projet/src/main/java")` échoue sous Windows alors que le code a trouvé exactement ce qu'il
-  fallait. Construire le chemin attendu avec `resolve` et comparer les deux.
-- **Le rapport engendre beaucoup de petits fichiers, et c'est ce qui coûte sur un poste
-  bardé d'agents de sécurité.** Le compte croît avec le nombre de classes analysées, pas
-  avec le volume : JaCoCo écrit deux fichiers HTML par classe, l'outil lui en fait produire
-  **deux sites** par exécution — le complet et le ciblé — et y ajoute une copie du bytecode
-  de chaque classe exécutée dans `classes-executees/`. Sur une grosse application, une
-  campagne de plusieurs exécutions se compte en centaines de milliers de fichiers, de
-  quelques kilo-octets chacun.
+- **No time measurement under Windows**: async-profiler publishes only Linux and macOS
+  binaries. The coverage and the values work; the tool says so at launch rather than failing.
+- **The CI exercises both systems**: `tests.yml` runs `mvn test` on `ubuntu-latest` AND
+  `windows-latest`, with `fail-fast: false` — knowing whether a defect is specific to Windows
+  or common to both changes what one has to go and look at. Building the three editions stays
+  on a single machine: it exercises the Maven profiles, nothing that depends on the system.
+  Added on 26 August 2026, after two Windows defects a Linux CI could not see.
+- **A run may never be scheduled**, and then nothing unblocks it: on 26 August 2026, one
+  stayed "queued" for seventeen hours without creating a single job, the API refusing right up
+  to its cancellation. The pull request was waiting behind a check that would never come.
+  `tests.yml`'s `concurrency` makes that the escape hatch: **pushing a commit cancels the
+  previous run and takes its place**. It is the only gesture that works — neither a re-run nor
+  a cancellation does. And the `timeout-minutes` bound the other form of the same problem: a
+  job set to last six hours, GitHub's default. Do not wait on a silent CI more than once: see
+  it, say it, and push.
+- **The tilde is a shell character only at the start of a word**: Windows's 8.3 short names
+  carry one — `C:\Users\RUNNER~1`, `C:\PROGRA~1` — and counting it everywhere sent the command
+  to `cmd /c`. It ran, but `ClassSources` no longer read the `-jar` in it, hence no longer the
+  bytecode: an empty report, with no explanation. Found by the first pass of the Windows CI,
+  the very day it was added.
+- **Windows paths in a list**: `SOURCE_DIRS` and `CLASSES_DIR` are separated by `:`, which
+  goes without saying on Unix and not at all on Windows — `C:\project\src` begins with a `:`
+  that is not a separator. `Config.decouper` gives back to the path the `:` that follows a
+  lone letter at the start of a segment and precedes a separator, and accepts `;` as well.
+  Without that, a valid absolute path gave two non-existent entries and the tool answered "not
+  found" on a path the user had in front of them. Discovered on 26 August 2026, when the
+  search for roots started proposing absolute paths.
+- **The tests never compare a path to a literal with separators**:
+  `endsWith("project/src/main/java")` fails under Windows when the code found exactly what was
+  needed. Build the expected path with `resolve` and compare the two.
+- **The report generates a great many small files, and that is what costs on a machine laden
+  with security agents.** The count grows with the number of classes analysed, not with the
+  volume: JaCoCo writes two HTML files per class, the tool makes it produce **two sites** per
+  run — the complete one and the focused one — and adds to that a copy of the bytecode of
+  every executed class in `classes-executees/`. On a large application, a campaign of several
+  runs counts in hundreds of thousands of files, of a few kilobytes each.
 
-  Sur Linux, les ouvrir prend quelques secondes. Sur un poste où chaque ouverture de
-  fichier traverse une pile de filtres, cela prend des minutes — et **la machine n'y peut
-  rien** : la latence se paie en série, une ouverture après l'autre, donc ni la mémoire ni
-  les cœurs ne la rachètent. Ce n'est pas propre à Git Bash : un archiveur natif souffre
-  autant, ce qui écarte la traduction POSIX de MSYS2 comme cause. La JVM y échappe parce
-  qu'elle ouvre peu de fichiers et garde ses handles.
+  On Linux, opening them takes a few seconds. On a machine where every file open crosses a
+  stack of filters, it takes minutes — and **the machine can do nothing about it**: the
+  latency is paid serially, one open after another, so neither the memory nor the cores buy it
+  back. It is not specific to Git Bash: a native archiver suffers just as much, which rules
+  out MSYS2's POSIX translation as the cause. The JVM escapes it because it opens few files
+  and keeps its handles.
 
-  **`JACOCO_REPORTS` décide de ce qu'on en écrit**, et de rien d'autre : `full` les deux
-  sites (le défaut, inchangé), `detailed` le complet seul, `data` ni l'un ni l'autre. Le
-  réglage ne touche ni la mesure ni l'affichage — la couverture rendue vient de
-  `jacoco.xml`, écrit dans tous les cas, et `Coverage.parse` le lit directement. Sur
-  l'application-exemple, une exécution passe de 186 à 101 fichiers en `detailed`, à 9 en
-  `data`, avec la même couverture au chiffre près.
+  **`JACOCO_REPORTS` decides what is written of them**, and nothing else: `full` both sites
+  (the default, unchanged), `detailed` the complete one alone, `data` neither. The setting
+  touches neither the measurement nor the display — the coverage rendered comes from
+  `jacoco.xml`, written in every case, and `Coverage.parse` reads it directly. On the example
+  application, a run goes from 186 to 101 files in `detailed`, to 9 in `data`, with the same
+  coverage to the figure.
 
-  Trois décisions le tiennent, et ce sont elles qu'il faut connaître avant d'y toucher :
+  Three decisions hold it, and they are the ones to know before touching it:
 
-  - **Le défaut ne bouge pas.** Aucun rapport existant ne change de forme sans qu'on l'ait
-    demandé. C'est ce qui distingue ce réglage d'une correction.
-  - **Le filet est au niveau campagne, pas au niveau exécution.** `data` ne retire pas le
-    rendu JaCoCo : `jacoco-fusion/` reste, et `jacoco.xml` aussi. C'est ce qui rend la
-    valeur agressive défendable — on retire une commodité par exécution, jamais la
-    dernière lecture possible.
-  - **Une absence n'est jamais silencieuse.** Le groupe JaCoCo de la page est en
-    `toujours: true` : un rapport non produit reste nommé, grisé, et le clic donne la
-    commande. Sans cela, le réglage aurait fabriqué exactement le mode d'échec que ce
-    projet combat partout — un rapport plus pauvre qui ne dit pas qu'il l'est. Chaque
-    groupe porte **sa** commande : les formats ouverts se réécrivent des mesures déjà là,
-    les sites JaCoCo demandent un autre réglage.
+  - **The default does not move.** No existing report changes shape without being asked to.
+    That is what tells this setting apart from a fix.
+  - **The net is at campaign level, not at run level.** `data` does not remove the JaCoCo
+    rendering: `jacoco-fusion/` stays, and so does `jacoco.xml`. That is what makes the
+    aggressive value defensible — one removes a convenience per run, never the last possible
+    reading.
+  - **An absence is never silent.** The page's JaCoCo group is in `toujours: true`: a report
+    not produced stays named, greyed out, and the click gives the command. Without that, the
+    setting would have manufactured exactly the failure mode this project fights everywhere —
+    a poorer report that does not say it is poorer. Each group carries **its** command: the
+    open formats rewrite themselves from measurements already there, the JaCoCo sites demand
+    another setting.
 
-  Le staging des classes exécutées est en **un jar** et non une arborescence :
-  `jacococli` accepte les deux et en tire un rapport identique — vérifié, `diff -r` ne
-  trouve rien — et la copie passe par le système de fichiers zip, donc les fichiers
-  intermédiaires n'existent jamais. Les écrire pour les effacer aurait coûté ce qu'on
-  cherche à éviter.
+  Staging the executed classes is done as **one jar** and not as a tree: `jacococli` accepts
+  both and draws an identical report from them — verified, `diff -r` finds nothing — and the
+  copy goes through the zip filesystem, so the intermediate files never exist. Writing them in
+  order to delete them would have cost exactly what one is trying to avoid.
 
-  `runs/` reste par ailleurs le bon candidat à une exclusion antivirus : un répertoire
-  unique, qui ne contient que des artefacts engendrés, dont rien n'est exécuté et tout est
-  reproductible.
-- **Terminal Windows** : l'outil écrit en UTF-8. Un terminal en cp850 — le défaut de bien
-  des postes — rend les accents illisibles. Corriger côté terminal (mintty → Options →
-  Text → UTF-8), ou lancer avec `-Dstdout.encoding=cp850`. Ne pas « corriger » cela dans
-  le code : quand la sortie part dans un tuyau, la JVM ne peut pas savoir quel jeu de
-  caractères le terminal utilisera.
+  `runs/` remains, moreover, the right candidate for an antivirus exclusion: a single
+  directory, containing only generated artefacts, of which nothing is executed and everything
+  is reproducible.
+- **Windows terminal**: the tool writes in UTF-8. A terminal in cp850 — the default on many
+  machines — renders the accents unreadable. Fix it on the terminal's side (mintty → Options →
+  Text → UTF-8), or launch with `-Dstdout.encoding=cp850`. Do not "fix" this in the code: when
+  the output goes into a pipe, the JVM cannot know which character set the terminal will use.

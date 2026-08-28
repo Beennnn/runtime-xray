@@ -1,48 +1,48 @@
 # Glowroot
 
-> **Statut : 📄 sur documentation** — non exécuté ici (exige de déployer son agent + serveur embarqué).
+> **Status: 📄 on documentation** — not run here (demands deploying its agent + embedded server).
 
-## Ce que c'est
-Un APM (supervision applicative) open source : un agent JVM qui enregistre les
-transactions et leurs traces, avec **son propre serveur web embarqué**.
+## What it is
+An open-source APM (application monitoring): a JVM agent that records the transactions and
+their traces, with **its own embedded web server**.
 
-## Sa philosophie
-**Un APM sans plateforme.** Les APM du marché supposent un service distant ; Glowroot
-embarque son interface et son stockage dans l'agent. On lance l'application, on ouvre un
-navigateur sur l'application elle-même. **Ce choix le rend compatible hors ligne**, là où
-Datadog ou New Relic sont éliminés d'office.
+## Its philosophy
+**An APM without a platform.** The APMs on the market suppose a remote service; Glowroot
+embeds its interface and its storage in the agent. One launches the application, one opens a
+browser onto the application itself. **That choice makes it offline-compatible**, where
+Datadog or New Relic are eliminated outright.
 
-## Ce qu'il sait faire
-Traces par transaction avec arbre d'appel ✅ · temps de réponse, percentiles ✅ ·
-requêtes SQL ✅ · lignes exécutées ❌ · valeurs des paramètres ⚠️ limité et configurable.
+## What it can do
+Traces per transaction with a call tree ✅ · response times, percentiles ✅ · SQL queries ✅ ·
+executed lines ❌ · parameter values ⚠️ limited and configurable.
 
-## Son interface
-**Interface web complète et soignée** — la plus « présentable » des solutions gratuites
-recensées, pensée pour être regardée au quotidien.
+## Its interface
+**A complete and polished web interface** — the most "presentable" of the free solutions
+surveyed, designed to be looked at every day.
 
-## Comment on navigue dedans
-Navigateur ✅, sans installation côté lecteur (une URL suffit). Pas d'IDE, pas de plateforme.
+## How one navigates in it
+Browser ✅, with no installation on the reader's side (a URL suffices). No IDE, no platform.
 
-## Mise en œuvre
-Un `-javaagent`, puis un port à ouvrir. Plus lourd qu'un flag isolé : il faut faire tourner
-un service.
+## Setting up
+One `-javaagent`, then a port to open. Heavier than an isolated flag: a service has to be kept
+running.
 
-## Licence et coût
-**Apache 2.0**, **0 €**.
+## Licence and cost
+**Apache 2.0**, **€0**.
 
-## Ce qu'on peut en espérer
-Le bon choix **si le besoin glisse du diagnostic ponctuel vers un suivi dans le temps** —
-c'est précisément la question n° 4 des arbitrages. Pour une analyse ponctuelle, faire
-tourner un serveur pour lire un arbre d'appel est disproportionné face à un HTML autonome.
+## What one can hope for from it
+The right choice **if the need slides from a one-off diagnosis towards tracking over time** —
+that is precisely question no. 4 of the trade-offs. For a one-off analysis, keeping a server
+running to read a call tree is out of proportion next to a self-contained HTML.
 
-## Comparable à
+## Comparable to
 
-- **[OpenTelemetry](opentelemetry.md)** — Même famille — le traçage de transactions — mais Glowroot embarque son serveur et son interface, là où OTel exige de monter collecteur et backend. Bien plus simple à essayer.
-- **[APM SaaS](apm-saas.md)** — **L'équivalent auto-hébergeable** : la même promesse, sans l'envoi de données à un éditeur, donc compatible avec une exécution hors ligne.
-- **[async-profiler](async-profiler.md)** — Deux échelles différentes : Glowroot trace des transactions, async-profiler échantillonne des méthodes.
+- **[OpenTelemetry](opentelemetry.md)** — Same family — transaction tracing — but Glowroot embeds its server and its interface, where OTel demands building a collector and a backend. Far simpler to try.
+- **[SaaS APM](apm-saas.md)** — **The self-hostable equivalent**: the same promise, without sending data to a publisher, hence compatible with an offline run.
+- **[async-profiler](async-profiler.md)** — Two different scales: Glowroot traces transactions, async-profiler samples methods.
 
-## Facile / moins facile
+## Easy / less easy
 
-**Ce qui est facile.** Regarder : c'est la plus belle interface gratuite du panel, prête à l'emploi.
+**What is easy.** Looking: it is the finest free interface of the panel, ready to use.
 
-**Ce qui l'est moins.** **Faire tourner un service** pour lire un arbre d'appel ponctuel. Et obtenir la couverture de lignes : ce n'est pas son métier.
+**What is less so.** **Keeping a service running** to read a one-off call tree. And getting line coverage: that is not its trade.

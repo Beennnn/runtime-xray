@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
-# Rapport CIBLÉ : uniquement les classes RÉELLEMENT exécutées.
+# FOCUSED report: only the classes ACTUALLY executed.
 #
-# Pourquoi : sur un vrai projet, un rapport de couverture liste des milliers de classes
-# dont l'immense majorité n'a rien à voir avec l'exécution qu'on analyse. Ne garder que
-# les classes touchées, c'est passer d'un inventaire à un dossier d'analyse.
+# Why: on a real project, a coverage report lists thousands of classes, the vast majority of
+# which have nothing to do with the run being analysed. Keeping only the classes touched
+# turns an inventory into an analysis file.
 #
-# Aucun outil maison : on utilise le mécanisme natif de JaCoCo (`--classfiles` de sa CLI),
-# en ne lui présentant que les classes ayant au moins une instruction couverte. La liste
-# est lue dans le CSV que JaCoCo a lui-même produit.
+# No home-made tool: we use JaCoCo's native mechanism (its CLI's `--classfiles`), presenting
+# it only with the classes having at least one covered instruction. The list is read from the
+# CSV JaCoCo itself produced.
 set -euo pipefail
 
 JACOCO_VERSION="0.8.13"
@@ -18,14 +18,14 @@ OUT="$REPO_ROOT/reports-demo/generated/jacoco-focused"
 STAGE="$REPO_ROOT/target/focused-classes"
 
 cd "$REPO_ROOT"
-[ -f "$FULL/jacoco.exec" ] || { echo "Lance d'abord tools/jacoco/collect.sh"; exit 1; }
+[ -f "$FULL/jacoco.exec" ] || { echo "Run tools/jacoco/collect.sh first"; exit 1; }
 
 CLI="$REPO_ROOT/target/agents/org.jacoco.cli-${JACOCO_VERSION}-nodeps.jar"
 [ -f "$CLI" ] || mvn -q dependency:copy \
   -Dartifact="org.jacoco:org.jacoco.cli:${JACOCO_VERSION}:jar:nodeps" \
   -DoutputDirectory="$REPO_ROOT/target/agents"
 
-# Classes avec au moins une instruction couverte, d'après le CSV produit par JaCoCo.
+# Classes with at least one covered instruction, according to the CSV JaCoCo produced.
 rm -rf "$STAGE" "$OUT"; mkdir -p "$STAGE" "$OUT"
 kept=0; dropped=0
 while IFS=, read -r _group package class im ic _rest; do
@@ -38,7 +38,7 @@ while IFS=, read -r _group package class im ic _rest; do
     kept=$((kept+1))
   else
     dropped=$((dropped+1))
-    echo "  écartée (jamais exécutée) : ${package}.${class}"
+    echo "  dropped (never executed): ${package}.${class}"
   fi
 done < "$FULL/html/jacoco.csv"
 
@@ -46,7 +46,7 @@ java -jar "$CLI" report "$FULL/jacoco.exec" \
   --classfiles "$STAGE" \
   --sourcefiles sample-app/src/main/java \
   --html "$OUT/html" --csv "$OUT/jacoco.csv" \
-  --name "Runtime X-Ray — code réellement exécuté" --quiet
+  --name "Runtime X-Ray — code actually executed" --quiet
 
-echo "→ $kept classes retenues, $dropped écartées"
-echo "→ rapport ciblé : $OUT/html/index.html"
+echo "→ $kept classes kept, $dropped dropped"
+echo "→ focused report: $OUT/html/index.html"

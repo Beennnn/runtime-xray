@@ -1,19 +1,19 @@
-# Les tests, à chaque poussée et à chaque proposition de fusion.
+# The tests, on every push and every pull request.
 #
-# Le dépôt n'en avait aucun : ce qui passait sur le poste de développement passait, et
-# rien ne le vérifiait ailleurs. Les douze échecs qui ont motivé cette branche venaient
-# précisément d'une différence entre postes.
+# The repository had none: what passed on the development machine passed, and nothing
+# checked it elsewhere. The twelve failures that motivated this branch came precisely from
+# a difference between machines.
 #
-# Et ils en viennent encore. Le 26 août 2026, un `mvn clean install` sous Windows a fait
-# tomber un test que la CI voyait vert : une assertion comparait un chemin à un littéral
-# écrit en « / ». En cherchant, on a trouvé pire — un chemin absolu Windows était découpé
-# en deux sur le « : » de sa lettre de lecteur, depuis toujours, et l'outil répondait
-# « introuvable » sur un répertoire parfaitement valide. Une CI qui ne tourne que sous
-# Linux ne peut pas voir ces défauts-là ; elle les laisse se découvrir chez l'utilisateur,
-# c'est-à-dire au pire endroit et au pire moment.
+# And they still do. On 26 August 2026, a `mvn clean install` under Windows brought down a
+# test the CI saw green: an assertion compared a path to a literal written with "/". While
+# looking into it, we found worse — an absolute Windows path was being split in two on the
+# ":" of its drive letter, and had been forever, with the tool answering "not found" on a
+# perfectly valid directory. A CI that runs only under Linux cannot see defects like those;
+# it leaves them to be discovered by the user, that is to say in the worst place and at the
+# worst moment.
 #
-# D'où la matrice. Windows n'est pas une plateforme d'appoint pour cet outil : c'est celle
-# des postes qui l'utilisent.
+# Hence the matrix. Windows is not a stopgap platform for this tool: it is the platform of
+# the machines that use it.
 name: Tests
 
 on:
@@ -21,21 +21,21 @@ on:
     branches: ['main']
   pull_request:
 
-# Une poussée remplace la run précédente de la même branche, au lieu de s'ajouter à elle.
+# A push replaces the branch's previous run, instead of adding to it.
 #
-# Le 26 août 2026, une run a été créée puis n'a jamais été planifiée : « queued » pendant
-# dix-sept heures, aucun job, l'API refusant jusqu'à son annulation (« Cannot cancel a
-# workflow re-run that has not yet queued »). Elle est restée en vérification en attente
-# sur la proposition de fusion, qui n'a donc jamais pu aboutir, et rien — ni relance, ni
-# annulation — ne permettait d'en sortir. Une seule chose l'a débloquée : pousser un
-# commit de plus.
+# On 26 August 2026, a run was created and then never scheduled: "queued" for seventeen
+# hours, no job at all, the API refusing right up to its cancellation ("Cannot cancel a
+# workflow re-run that has not yet queued"). It stayed as a pending check on the pull
+# request, which could therefore never go through, and nothing — neither a re-run nor a
+# cancellation — allowed getting out of it. One single thing unblocked it: pushing one more
+# commit.
 #
-# Ce regroupement en fait la sortie de secours officielle : quoi qu'il arrive à une run,
-# la suivante l'annule et prend sa place. La proposition de fusion ne peut plus se
-# retrouver bloquée derrière un fantôme.
+# This grouping makes that the official escape hatch: whatever happens to a run, the next
+# one cancels it and takes its place. The pull request can no longer end up stuck behind a
+# ghost.
 #
-# Sur `main`, on n'annule pas : là, chaque run est la trace d'un état publié, et deux
-# poussées rapprochées doivent laisser deux verdicts.
+# On `main`, we do not cancel: there, every run is the trace of a published state, and two
+# pushes close together must leave two verdicts.
 concurrency:
   group: tests-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
@@ -43,16 +43,16 @@ concurrency:
 jobs:
   tests:
     strategy:
-      # Sans cela, le premier échec annule l'autre poste et on perd la moitié de
-      # l'information : savoir qu'un défaut est PROPRE à Windows, ou commun aux deux,
-      # change entièrement ce qu'il faut aller regarder.
+      # Without this, the first failure cancels the other machine and half the information
+      # is lost: knowing whether a defect is SPECIFIC to Windows, or common to both, changes
+      # entirely what one has to go and look at.
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest]
     runs-on: ${{ matrix.os }}
-    # Le défaut de GitHub est de six heures. Ces travaux durent moins d'une minute sous
-    # Linux et quelques minutes sous Windows : au-delà de vingt, ce n'est plus une lenteur,
-    # c'est un blocage, et il vaut mieux le voir rouge tout de suite que l'attendre.
+    # GitHub's default is six hours. These jobs last under a minute on Linux and a few
+    # minutes on Windows: beyond twenty, it is no longer slowness, it is a hang, and it is
+    # better to see it red straight away than to wait for it.
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
@@ -65,17 +65,16 @@ jobs:
 
       - run: mvn -B test
 
-  # Les trois éditions se construisent-elles encore ? Un profil cassé ne se verrait pas
-  # autrement : la construction par défaut ne les touche pas.
+  # Do the three editions still build? A broken profile would not show otherwise: the
+  # default build does not touch them.
   #
-  # Sur un seul poste, et c'est délibéré : ce que cette étape éprouve, ce sont les profils
-  # Maven et l'assemblage des jar — rien qui dépende du système. La refaire sous Windows
-  # doublerait un téléchargement de composants de 19 Mo pour vérifier deux fois la même
-  # chose.
+  # On a single machine, and deliberately so: what this step exercises is the Maven profiles
+  # and the assembly of the jars — nothing that depends on the system. Redoing it under
+  # Windows would double a 19 MB component download to check the same thing twice.
   editions:
     runs-on: ubuntu-latest
-    # Elle télécharge 19 Mo de composants pour l'édition complète : plus large que les
-    # tests, mais très loin des six heures du défaut.
+    # It downloads 19 MB of components for the complete edition: wider than the tests, but
+    # very far from the six hours of the default.
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
@@ -86,7 +85,7 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
-      - name: Les trois éditions se construisent
+      - name: The three editions build
         run: |
           mvn -B -DskipTests package
           mvn -B -Pjacoco  -DskipTests package
