@@ -4,19 +4,19 @@ import lab.sample.model.Leg;
 import lab.sample.model.Mode;
 
 /**
- * Ralentissement dû au relief, moyenné sur les sous-segments d'une étape.
+ * Slowdown caused by the terrain, averaged over a leg's sub-segments.
  *
- * <p>Deux raisons d'exister :
+ * <p>Two reasons to exist:
  * <ul>
- *   <li>c'est le <b>cœur de calcul</b> du programme — sans lui, l'application passe son
- *       temps dans les itérateurs du JDK et un profiler ne montre rien du métier ;</li>
- *   <li>il n'est appelé que pour les modes sensibles au terrain : le train suit une voie
- *       ferrée dont la pente est négligeable, il saute donc tout ce sous-arbre.</li>
+ *   <li>it is the program's <b>computational core</b> — without it, the application spends
+ *       its time in the JDK's iterators and a profiler shows nothing of the business;</li>
+ *   <li>it is called only for the modes sensitive to terrain: the train follows a track
+ *       whose gradient is negligible, so it skips this whole sub-tree.</li>
  * </ul>
  */
 public final class Terrain {
 
-    /** Nombre de sous-segments analysés par étape. */
+    /** Number of sub-segments analysed per leg. */
     private static final int STEPS = 24;
 
     private Terrain() {}
@@ -34,8 +34,8 @@ public final class Terrain {
         return sum / STEPS;
     }
 
-    /** Une montée coûte plus qu'une descente ne rapporte, et d'autant plus qu'on est
-     *  à la force du mollet. */
+    /** A climb costs more than a descent gives back, all the more so under one's own
+     *  muscle power. */
     private static double penaltyFor(double gradePercent, Mode mode) {
         double sensitivity = switch (mode) {
             case BIKE -> 0.09;
@@ -47,6 +47,6 @@ public final class Terrain {
         if (gradePercent > 0) {
             return 1.0 + gradePercent * sensitivity;
         }
-        return 1.0 + gradePercent * sensitivity * 0.3; // la descente ne compense qu'en partie
+        return 1.0 + gradePercent * sensitivity * 0.3; // going down only partly makes up for it
     }
 }

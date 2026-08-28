@@ -4,12 +4,12 @@ import lab.sample.model.Mode;
 import lab.sample.model.Weather;
 
 /**
- * Ralentissement dû à la météo.
+ * Slowdown caused by the weather.
  *
- * <p>Ne concerne que les modes exposés — vélo et marche. La branche {@code SNOW} n'est
- * jamais empruntée : c'est un trou de couverture <em>à l'intérieur</em> d'une méthode
- * par ailleurs exécutée des milliers de fois. Un rapport qui n'affiche qu'un
- * pourcentage par classe le masque ; un rapport qui colorie les lignes le montre.
+ * <p>Concerns only the exposed modes — bike and walking. The {@code SNOW} branch is never
+ * taken: it is a coverage hole <em>inside</em> a method otherwise executed thousands of
+ * times. A report showing only a percentage per class hides it; a report that colours the
+ * lines shows it.
  */
 public final class WeatherPenalty {
 

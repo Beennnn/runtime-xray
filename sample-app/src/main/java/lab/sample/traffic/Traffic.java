@@ -7,11 +7,11 @@ import lab.sample.model.TimeOfDay;
 import java.util.List;
 
 /**
- * Retard lié à la circulation.
+ * Delay caused by traffic.
  *
- * <p>Sous-arbre entièrement <b>conditionnel</b> : il n'existe que pour la voiture, et
- * seulement à l'heure de pointe. Sur un trajet en train à 22 h, aucune de ces lignes
- * ne s'exécute — et c'est exactement ce que le dépôt cherche à rendre visible.
+ * <p>An entirely <b>conditional</b> sub-tree: it exists only for the car, and only at rush
+ * hour. On a train trip at 10 pm, none of these lines runs — and that is exactly what this
+ * repository is trying to make visible.
  */
 public final class Traffic {
 

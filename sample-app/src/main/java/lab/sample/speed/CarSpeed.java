@@ -2,7 +2,7 @@ package lab.sample.speed;
 
 import lab.sample.model.Leg;
 
-/** En voiture : plus l'étape est longue, plus on roule vite (ville puis voie rapide). */
+/** By car: the longer the leg, the faster one drives (town, then dual carriageway). */
 public final class CarSpeed implements SpeedModel {
 
     @Override

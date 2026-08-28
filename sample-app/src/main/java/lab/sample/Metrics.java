@@ -1,17 +1,17 @@
 package lab.sample;
 
 /**
- * Mesures d'étape : temps écoulé et mémoire occupée.
+ * Stage measurements: elapsed time and memory in use.
  *
- * <p>Volontairement fondé sur le seul JDK ({@code System.nanoTime}, {@code Runtime}) :
- * ces chiffres servent de <b>référence indépendante</b>. Quand un outil d'analyse annonce
- * un temps ou une empreinte, on veut pouvoir le confronter à une mesure qui ne vient pas
- * de lui — et constater au passage combien l'outil lui-même ralentit l'exécution.
+ * <p>Deliberately founded on the JDK alone ({@code System.nanoTime}, {@code Runtime}): these
+ * figures serve as an <b>independent reference</b>. When an analysis tool announces a time or
+ * a footprint, one wants to be able to confront it with a measurement that does not come from
+ * it — and note in passing how much the tool itself slows the run down.
  *
- * <p>La mémoire est lue après un appel à {@code System.gc()} : sans lui, on mesure surtout
- * les déchets pas encore ramassés, ce qui ne veut rien dire. L'appel reste une
- * <em>suggestion</em> faite à la JVM, jamais une garantie — d'où l'ordre de grandeur
- * annoncé plutôt qu'une valeur exacte.
+ * <p>Memory is read after a call to {@code System.gc()}: without it, one mostly measures the
+ * garbage not yet collected, which means nothing. The call remains a <em>suggestion</em> made
+ * to the JVM, never a guarantee — hence the order of magnitude announced rather than an exact
+ * value.
  */
 public final class Metrics {
 
@@ -29,7 +29,7 @@ public final class Metrics {
         long usedMb = (runtime.totalMemory() - runtime.freeMemory()) / (1024 * 1024);
         long maxMb = runtime.maxMemory() / (1024 * 1024);
 
-        System.out.printf("  [%-28s] étape %8.0f ms | cumul %8.0f ms | mémoire ~%d Mo / %d Mo max%n",
+        System.out.printf("  [%-28s] stage %8.0f ms | total %8.0f ms | memory ~%d MB / %d MB max%n",
                 label, sinceLastMs, totalMs, usedMb, maxMb);
     }
 }

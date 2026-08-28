@@ -1,6 +1,6 @@
 package lab.sample.model;
 
-/** Météo du jour. {@code SNOW} n'est jamais tiré par les scénarios : second trou de
- *  couverture volontaire, à l'intérieur d'une classe par ailleurs bien couverte —
- *  un cas que les rapports agrégés par package ont tendance à diluer. */
+/** The day's weather. {@code SNOW} is never drawn by the scenarios: a second deliberate
+ *  coverage hole, inside a class that is otherwise well covered — a case that reports
+ *  aggregated by package tend to dilute. */
 public enum Weather { SUNNY, RAIN, SNOW }

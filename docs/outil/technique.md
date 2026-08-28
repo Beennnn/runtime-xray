@@ -55,9 +55,9 @@ L'application imprime elle-même son temps par étape et la mémoire occupée
 ([`Metrics`](../../sample-app/src/main/java/lab/sample/Metrics.java)) :
 
 ```
-  [JVM démarrée               ] étape        0 ms | cumul        0 ms | mémoire ~2 Mo / 8192 Mo max
-  [jeu de trajets fabriqué    ] étape        8 ms | cumul        8 ms | mémoire ~1 Mo / 8192 Mo max
-  [calcul terminé             ] étape     9927 ms | cumul     9935 ms | mémoire ~1 Mo / 8192 Mo max
+  [JVM started                 ] stage        0 ms | total        0 ms | memory ~2 MB / 8192 MB max
+  [trip set built              ] stage        8 ms | total        8 ms | memory ~1 MB / 8192 MB max
+  [computation finished        ] stage     9927 ms | total     9935 ms | memory ~1 MB / 8192 MB max
 ```
 
 C'est une **référence indépendante** : quand un outil annonce un temps, on peut le

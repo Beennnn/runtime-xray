@@ -1,8 +1,8 @@
 package lab.sample.weather;
 
-/** Ralentissement dû aux bagages. Double condition : il faut des bagages <b>et</b> un
- *  mode où ils gênent. Deux conditions imbriquées = une branche qu'on n'atteint que
- *  dans une minorité de scénarios. */
+/** Slowdown caused by luggage. A double condition: there must be luggage <b>and</b> a mode
+ *  where it gets in the way. Two nested conditions = a branch reached in only a minority of
+ *  scenarios. */
 public final class LuggagePenalty {
 
     private LuggagePenalty() {}

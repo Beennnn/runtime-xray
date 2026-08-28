@@ -2,7 +2,7 @@ package lab.sample.speed;
 
 import lab.sample.model.Leg;
 
-/** En train : vitesse quasi constante, indépendante de la longueur de l'étape. */
+/** By train: near-constant speed, independent of the leg's length. */
 public final class TrainSpeed implements SpeedModel {
 
     @Override
