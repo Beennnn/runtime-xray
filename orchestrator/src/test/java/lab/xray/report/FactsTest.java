@@ -19,9 +19,9 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Le fichier de faits n'a qu'un lecteur en tête : un programme. Trois promesses le rendent
- * utilisable, et il perd tout son intérêt dès qu'il en manque une — d'où un test par
- * promesse. Il s'ajoute au rapport sans rien lui retirer : c'est la quatrième.
+ * The facts file has only one reader in mind: a program. Three promises make it usable, and
+ * it loses all its interest as soon as one is missing — hence one test per promise. It is
+ * added to the report without taking anything from it: that is the fourth.
  */
 class FactsTest {
 
@@ -68,16 +68,16 @@ class FactsTest {
     }
 
     @Test
-    @DisplayName("Une ligne, un fait, complet : dix lignes prises au milieu se comprennent")
+    @DisplayName("One line, one fact, complete: ten lines taken from the middle make sense")
     void eachLineStandsAlone(@TempDir Path dir) throws Exception {
         Path f = write(dir, List.of(run("A", true), run("B", false)));
         List<Map<String, Object>> facts = read(f);
 
-        assertTrue(facts.size() > 5, "on attend au moins l'en-tête, les exécutions et les classes");
+        assertTrue(facts.size() > 5, "we expect at least the header, the runs and the classes");
         for (Map<String, Object> fact : facts) {
             assertTrue(fact.containsKey("fact"), "chaque ligne dit ce qu'elle est : " + fact);
         }
-        // Une mesure sans son unité oblige le lecteur à deviner, et il devinera.
+        // A measurement without its unit forces the reader to guess, and they will.
         for (Map<String, Object> fact : de(facts, "class")) {
             assertEquals("jacoco.instructions", fact.get("measure"));
         }
@@ -87,17 +87,17 @@ class FactsTest {
     }
 
     @Test
-    @DisplayName("Ce qui N'A PAS été mesuré est écrit, sinon un zéro se lit comme un fait")
+    @DisplayName("What was NOT measured is written, otherwise a zero reads as a fact")
     void whatWasNotMeasuredIsStated(@TempDir Path dir) throws Exception {
-        // L'exécution B n'a ni profil ni valeurs — le cas Windows, où async-profiler ne
-        // publie rien. Sans ces lignes, son « 0 relevé » se lit exactement comme « ce code
-        // n'a jamais tourné », et un lecteur tranchera dans le mauvais sens.
+        // Run B has neither a profile nor values — the Windows case, where async-profiler
+        // publishes nothing. Without these lines its "0 samples" reads exactly like "this
+        // code never ran", and a reader will decide the wrong way.
         List<Map<String, Object>> facts = read(write(dir, List.of(run("A", true), run("B", false))));
 
         List<Map<String, Object>> unavailabilities = de(facts, "unavailable");
-        assertEquals(2, unavailabilities.size(), "le temps et les valeurs manquent, tous deux à dire");
+        assertEquals(2, unavailabilities.size(), "time and values are both missing, and both must be said");
         for (Map<String, Object> a : unavailabilities) {
-            assertEquals("B", a.get("run"), "seule B est concernée : A a tout mesuré");
+            assertEquals("B", a.get("run"), "only B is concerned: A measured everything");
             assertTrue(String.valueOf(a.get("why")).length() > 20);
             assertTrue(a.containsKey("consequence"), "dire ce qu'on ne peut PAS en conclure");
             assertTrue(a.containsKey("remedy"));
@@ -105,7 +105,7 @@ class FactsTest {
     }
 
     @Test
-    @DisplayName("Une classe jamais atteinte porte son propre nom de fait, pour être filtrée")
+    @DisplayName("A class never reached carries its own fact name, so it can be filtered")
     void aClassNeverReachedIsItsOwnFact(@TempDir Path dir) throws Exception {
         List<Map<String, Object>> facts = read(write(dir, List.of(run("A", true), run("B", true))));
 
@@ -113,8 +113,8 @@ class FactsTest {
         assertEquals(1, never.size());
         assertEquals("app.Jamais", never.get(0).get("class"));
         assertEquals(List.of(), never.get(0).get("runsCovering"));
-        // Triées : deux campagnes des mêmes exécutions doivent donner les mêmes lignes,
-        // sinon comparer deux rapports devient impossible.
+        // Sorted: two campaigns over the same runs must give the same lines, otherwise
+        // comparing two reports becomes impossible.
         assertEquals(List.of("A", "B"), never.get(0).get("runsAnalysed"));
 
         List<Map<String, Object>> covered = de(facts, "class");
@@ -123,10 +123,10 @@ class FactsTest {
     }
 
     @Test
-    @DisplayName("Le fichier se décrit lui-même : son vocabulaire est dans sa première ligne")
+    @DisplayName("The file describes itself: its vocabulary is in its first line")
     void theFileExplainsItsOwnVocabulary(@TempDir Path dir) throws Exception {
-        // Une documentation posée à côté se perd — dans un zip, dans une pièce jointe, dans
-        // un dossier recopié. Celle-ci voyage avec la donnée.
+        // Documentation placed beside gets lost — in a zip, in an attachment, in a copied
+        // folder. This one travels with the data.
         List<Map<String, Object>> facts = read(write(dir, List.of(run("A", true))));
         Map<String, Object> head = facts.get(0);
         assertEquals("campaign", head.get("fact"));
@@ -137,11 +137,11 @@ class FactsTest {
             assertTrue(vocabulary.containsKey(String.valueOf(f.get("fact"))),
                     "un fait que le vocabulaire n'explique pas est muet : " + f.get("fact"));
         }
-        assertTrue(head.get("alsoSee") instanceof Map, "où trouver la page et le diagnostic");
+        assertTrue(head.get("alsoSee") instanceof Map, "where to find the page and the diagnostic");
     }
 
     @Test
-    @DisplayName("Ni code source ni valeurs capturées : ce fichier porte des faits, pas une copie")
+    @DisplayName("Neither source code nor captured values: this file carries facts, not a copy")
     void itCarriesFactsNotAReplica(@TempDir Path dir) throws Exception {
         Map<String, Object> withSecret = run("A", true);
         withSecret.put("values", Map.of("app.Moteur.calculer",
@@ -149,7 +149,7 @@ class FactsTest {
         String text = Files.readString(write(dir, List.of(withSecret)), StandardCharsets.UTF_8);
 
         assertFalse(text.contains("hunter2"),
-                "les valeurs capturées restent dans leur bloc : elles sont volumineuses, "
+                "the captured values stay in their block: they are bulky, "
                 + "et elles portent parfois ce qu'on ne veut pas voir voyager");
     }
 }

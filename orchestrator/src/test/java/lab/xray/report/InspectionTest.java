@@ -17,10 +17,10 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Ces relevés sont le seul endroit du rapport où figurent des <b>valeurs</b>. Une erreur de
- * lecture y est particulièrement coûteuse : elle ne se voit pas — on affiche simplement une
- * valeur fausse, avec l'autorité d'une mesure. Deux bugs réels sont couverts ici : la
- * troncature des valeurs imbriquées, et la valeur de retour prise pour un paramètre.
+ * These records are the only place in the report where <b>values</b> appear. A reading
+ * mistake is particularly expensive there: it does not show — a wrong value is simply
+ * displayed, with a measurement's authority. Two real bugs are covered here: nested values
+ * being truncated, and the return value taken for an argument.
  */
 class InspectionTest {
 
@@ -55,44 +55,44 @@ class InspectionTest {
     @SuppressWarnings("unchecked")
     private static Map<String, Object> firstCall(Inspection in, String frame) {
         List<Object> calls = (List<Object>) in.values.get(frame);
-        assertNotNull(calls, "aucune valeur pour " + frame + " — clés : " + in.values.keySet());
+        assertNotNull(calls, "no value for " + frame + " — keys: " + in.values.keySet());
         return (Map<String, Object>) calls.get(0);
     }
 
     @Test
-    @DisplayName("Les valeurs sont rattachées à CHAQUE méthode, pas à la classe")
+    @DisplayName("The values are attached to EACH method, not to the class")
     void groupsValuesByMethod(@TempDir Path dir) throws IOException {
         Inspection in = Inspection.read(write(dir, "v.txt", SAMPLE), dir.resolve("absent.txt"), 8);
-        assertEquals(2, in.values.size(), "deux méthodes distinctes attendues");
+        assertEquals(2, in.values.size(), "two distinct methods expected");
         assertTrue(in.values.containsKey("lab/sample/RoutePlanner.legMinutes"));
         assertTrue(in.values.containsKey("lab/sample/RoutePlanner.travelTimeMinutes"));
     }
 
     @Test
-    @DisplayName("Une valeur imbriquée n'est pas tronquée à son premier crochet fermant")
+    @DisplayName("A nested value is not truncated at its first closing bracket")
     void keepsNestedBracketsIntact(@TempDir Path dir) throws IOException {
         Inspection in = Inspection.read(write(dir, "v.txt", SAMPLE), dir.resolve("absent.txt"), 8);
         @SuppressWarnings("unchecked")
         List<Object> params = (List<Object>) firstCall(in, "lab/sample/RoutePlanner.legMinutes").get("params");
         assertEquals("Leg[from=Auch, to=Foix, distanceKm=54.0]",
                 ((Map<?, ?>) params.get(0)).get("value"),
-                "le crochet fermant de la valeur doit être conservé");
+                "the value's closing bracket must be kept");
     }
 
     @Test
-    @DisplayName("La valeur de retour est bien la valeur de retour, pas le dernier paramètre")
+    @DisplayName("The return value really is the return value, not the last argument")
     void separatesReturnFromParameters(@TempDir Path dir) throws IOException {
         Inspection in = Inspection.read(write(dir, "v.txt", SAMPLE), dir.resolve("absent.txt"), 8);
         Map<String, Object> call = firstCall(in, "lab/sample/RoutePlanner.legMinutes");
         @SuppressWarnings("unchecked")
         List<Object> params = (List<Object>) call.get("params");
-        assertEquals(3, params.size(), "trois paramètres attendus");
+        assertEquals(3, params.size(), "three arguments expected");
         assertEquals("CAR", ((Map<?, ?>) params.get(2)).get("value"));
         assertEquals("29.720971636363636", ((Map<?, ?>) call.get("retour")).get("value"));
     }
 
     @Test
-    @DisplayName("Les codes couleur du terminal sont retirés")
+    @DisplayName("The terminal colour codes are removed")
     void stripsTerminalColours(@TempDir Path dir) throws IOException {
         String coloured = SAMPLE.replace("@Mode[CAR]", ESC + "[1;31m@Mode[CAR]" + ESC + "[0m");
         Inspection in = Inspection.read(write(dir, "v.txt", coloured), dir.resolve("a.txt"), 8);
@@ -102,7 +102,7 @@ class InspectionTest {
     }
 
     @Test
-    @DisplayName("Les méthodes synthétiques sont écartées : elles n'ont pas été écrites par un humain")
+    @DisplayName("Synthetic methods are left out: no human wrote them")
     void skipsSyntheticMethods(@TempDir Path dir) throws IOException {
         String withSynthetic = """
                 method=lab.sample.RoutePlanner.$jacocoInit location=AtExit
@@ -115,12 +115,12 @@ class InspectionTest {
                 """ + SAMPLE;
         Inspection in = Inspection.read(write(dir, "v.txt", withSynthetic), dir.resolve("a.txt"), 8);
         assertFalse(in.values.containsKey("lab/sample/RoutePlanner.$jacocoInit"),
-                "la sonde de couverture ne doit pas apparaître comme une méthode observée");
+                "the coverage probe must not appear as an observed method");
         assertEquals(2, in.values.size());
     }
 
     @Test
-    @DisplayName("Le nombre d'appels conservés par méthode est borné")
+    @DisplayName("The number of calls kept per method is bounded")
     void limitsCallsPerMethod(@TempDir Path dir) throws IOException {
         StringBuilder many = new StringBuilder();
         for (int i = 0; i < 30; i++) {
@@ -133,7 +133,7 @@ class InspectionTest {
     }
 
     @Test
-    @DisplayName("La trace associe chaque appel à sa ligne de code et à sa durée")
+    @DisplayName("The trace ties each call to its line of code and to its duration")
     void readsTraceLinesAndDurations(@TempDir Path dir) throws IOException {
         String trace = """
                 `---ts=2026-08-20 20:10:59.049;thread_name=main;id=1
@@ -152,15 +152,16 @@ class InspectionTest {
         assertEquals(0.055583, (Double) call.get("minMs"), 1e-9);
         assertEquals(0.055583, (Double) call.get("maxMs"), 1e-9);
         assertEquals("lab/sample/RoutePlanner.legMinutes", call.get("frame"),
-                "la frame doit suivre la convention paquet/Classe.methode pour être cliquable");
+                "the frame must follow the package/Class.method convention to be clickable");
     }
 
     @Test
-    @DisplayName("Plusieurs invocations d'une même ligne sont agrégées, pas empilées")
+    @DisplayName("Several invocations of one line are aggregated, not piled up")
     void aggregatesRepeatedObservations(@TempDir Path dir) throws IOException {
-        // Tracer plusieurs invocations est ce qui permet d'annoter plus de lignes — mais la
-        // même ligne revient alors autant de fois. Empiler les doublons rendrait l'annotation
-        // illisible ; on agrège, en gardant l'étendue des durées observées.
+        // Tracing several invocations is what makes it possible to annotate more lines —
+        // but the same line then comes back as many times. Piling up the duplicates would
+        // make the annotation unreadable; we aggregate, keeping the range of durations
+        // observed.
         String trace = """
                     +---[1,0% 0.010ms ] a.b.C:calculer() #12
                     +---[1,0% 0.030ms ] a.b.C:calculer() #12
@@ -169,18 +170,18 @@ class InspectionTest {
         Inspection in = Inspection.read(dir.resolve("absent.txt"), write(dir, "t.txt", trace), 8);
         @SuppressWarnings("unchecked")
         List<Object> line = (List<Object>) in.trace.get("12");
-        assertEquals(1, line.size(), "une seule entrée pour un même appelé");
+        assertEquals(1, line.size(), "one single entry for the same callee");
         Map<?, ?> call = (Map<?, ?>) line.get(0);
-        assertEquals(3, call.get("n"), "les trois observations sont comptées");
+        assertEquals(3, call.get("n"), "the three observations are counted");
         assertEquals(0.010, (Double) call.get("minMs"), 1e-9);
         assertEquals(0.030, (Double) call.get("maxMs"), 1e-9);
     }
 
     @Test
-    @DisplayName("Chaque passage d'une boucle est conservé, dans son ordre")
+    @DisplayName("Each pass of a loop is kept, in order")
     void keepsEachIterationInOrder(@TempDir Path dir) throws IOException {
-        // L'agrégat dirait « 3 fois, de 0,010 à 0,300 ms » et cacherait que c'est la
-        // PREMIÈRE itération qui a tout coûté — souvent l'information qu'on cherchait.
+        // The aggregate would say "3 times, from 0.010 to 0.300 ms" and would hide that it
+        // is the FIRST iteration that cost everything — often the very information sought.
         String trace = """
                     +---[1,0% 0.300ms ] a.b.C:calculer() #12
                     +---[1,0% 0.012ms ] a.b.C:calculer() #12
@@ -192,12 +193,12 @@ class InspectionTest {
         @SuppressWarnings("unchecked")
         List<Object> iterations = (List<Object>) call.get("passages");
         assertEquals(List.of(0.300, 0.012, 0.010), iterations,
-                "l'ordre des itérations doit être celui de l'exécution");
-        assertEquals(3, call.get("n"), "l'agrégat reste disponible à côté");
+                "the order of the iterations must be the order they ran in");
+        assertEquals(3, call.get("n"), "the aggregate stays available alongside");
     }
 
     @Test
-    @DisplayName("Une boucle très longue est bornée plutôt que de faire enfler la page")
+    @DisplayName("A very long loop is bounded rather than made to swell the page")
     void boundsVeryLongLoops(@TempDir Path dir) throws IOException {
         StringBuilder trace = new StringBuilder();
         for (int i = 0; i < 500; i++) {
@@ -208,11 +209,11 @@ class InspectionTest {
         Map<String, Object> call = (Map<String, Object>) ((List<Object>) in.trace.get("12")).get(0);
         assertEquals(500, call.get("n"), "le compte total reste exact");
         assertTrue(((List<?>) call.get("passages")).size() <= 60,
-                "mais la liste détaillée est bornée");
+                "but the detailed list is bounded");
     }
 
     @Test
-    @DisplayName("Deux appelés différents sur la même ligne restent distincts")
+    @DisplayName("Two different callees on the same line stay distinct")
     void keepsDistinctCalleesOnOneLine(@TempDir Path dir) throws IOException {
         String trace = """
                     +---[1,0% 0.01ms ] a.b.C:un() #12
@@ -223,7 +224,7 @@ class InspectionTest {
     }
 
     @Test
-    @DisplayName("Des fichiers absents donnent des relevés vides, pas une erreur")
+    @DisplayName("Missing files give empty records, not an error")
     void missingFilesGiveEmptyResults(@TempDir Path dir) throws IOException {
         Inspection in = Inspection.read(dir.resolve("a.txt"), dir.resolve("b.txt"), 8);
         assertTrue(in.values.isEmpty());

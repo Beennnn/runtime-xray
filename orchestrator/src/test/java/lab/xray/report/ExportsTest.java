@@ -20,9 +20,9 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Un export n'a de valeur que si l'outil d'en face l'ouvre. Ces contrôles portent donc sur
- * ce que ces formats exigent — l'ordre des frames, la cohérence des renvois, les totaux —
- * et non sur le nombre d'octets écrits.
+ * An export is only worth anything if the tool at the other end opens it. These checks are
+ * therefore about what those formats demand — the order of the frames, the consistency of
+ * the references, the totals — and not about the number of bytes written.
  */
 class ExportsTest {
 
@@ -57,23 +57,23 @@ class ExportsTest {
     }
 
     @Test
-    @DisplayName("perf script : un bloc par relevé, l'appelé avant son appelant")
+    @DisplayName("perf script: one block per sample, the callee before its caller")
     void perfIsLeafFirst(@TempDir Path dir) throws Exception {
         Path run = run(dir);
         Exports.write(run, Set.of(Exports.Format.PERF), 1, 8);
         List<String> lines = Files.readAllLines(run.resolve("exports/profil.perf.txt"));
 
         long headers = lines.stream().filter(l -> l.contains("cpu-clock:")).count();
-        assertEquals(4, headers, "un relevé pesant 3 donne trois échantillons");
+        assertEquals(4, headers, "a sample weighing 3 gives three samples");
 
         int first = lines.indexOf(lines.stream().filter(l -> l.contains("cpu-clock:")).findFirst().orElseThrow());
-        assertTrue(lines.get(first + 1).contains("app/Moteur.calculer"), "l'appelé d'abord");
+        assertTrue(lines.get(first + 1).contains("app/Moteur.calculer"), "the callee first");
         assertTrue(lines.get(first + 2).contains("app/Main.main"), "puis son appelant");
-        assertTrue(lines.get(first + 1).startsWith("\t"), "les frames sont indentées");
+        assertTrue(lines.get(first + 1).startsWith("\t"), "the frames are indented");
     }
 
     @Test
-    @DisplayName("cpuprofile : les renvois pointent tous sur un nœud qui existe")
+    @DisplayName("cpuprofile: the references all point at a node that exists")
     @SuppressWarnings("unchecked")
     void cpuprofileIsConsistent(@TempDir Path dir) throws Exception {
         Path run = run(dir);
@@ -94,37 +94,36 @@ class ExportsTest {
         }
         List<Object> samples = (List<Object>) profile.get("samples");
         assertEquals(4, samples.size());
-        samples.forEach(s -> assertTrue(ids.contains((Double) s), "échantillon sans nœud"));
+        samples.forEach(s -> assertTrue(ids.contains((Double) s), "sample without a node"));
         assertEquals(samples.size(), ((List<Object>) profile.get("timeDeltas")).size(),
-                "un intervalle par échantillon, sinon la durée totale est fausse");
+                "one interval per sample, otherwise the total duration is wrong");
     }
 
     @Test
-    @DisplayName("LCOV : les totaux découlent des lignes déclarées juste au-dessus")
+    @DisplayName("LCOV: the totals follow from the lines declared just above")
     void lcovTotalsAddUp(@TempDir Path dir) throws Exception {
         Path run = run(dir);
         Exports.write(run, Set.of(Exports.Format.LCOV), 1, 8);
         String lcov = Files.readString(run.resolve("exports/couverture.lcov"), StandardCharsets.UTF_8);
 
-        assertTrue(lcov.contains("SF:app/Moteur.java"), "le fichier source est nommé");
-        assertTrue(lcov.contains("DA:3,1"), "la ligne 3 a tourné");
-        assertTrue(lcov.contains("DA:7,0"), "la ligne 7 n'a jamais tourné");
+        assertTrue(lcov.contains("SF:app/Moteur.java"), "the source file is named");
+        assertTrue(lcov.contains("DA:3,1"), "line 3 ran");
+        assertTrue(lcov.contains("DA:7,0"), "line 7 never ran");
         assertTrue(lcov.contains("LF:2"), "deux lignes connues");
         assertTrue(lcov.contains("LH:1"), "une seule atteinte");
         assertTrue(lcov.contains("FNDA:1,calculer"));
         assertTrue(lcov.contains("FNDA:0,mort"));
         assertTrue(lcov.contains("BRDA:3,0,0,1"), "une branche prise sur les deux");
-        assertTrue(lcov.contains("BRDA:3,0,1,0"), "l'autre ne l'a pas été");
+        assertTrue(lcov.contains("BRDA:3,0,1,0"), "the other one was not");
         assertTrue(lcov.endsWith("end_of_record\n"));
     }
 
     @Test
-    @DisplayName("Un profil trop gros est allégé proportionnellement, pas tronqué")
+    @DisplayName("A profile that is too big is thinned proportionally, not truncated")
     void hugeProfileIsThinnedNotCut(@TempDir Path dir) throws Exception {
-        // Deux branches très inégales, et un poids total très au-dessus du plafond : ce qui
-        // compte est que la SECONDE survive, et dans sa proportion. Tronquer la ferait
-        // disparaître entièrement — le profil dirait alors que le programme n'y est jamais
-        // passé.
+        // Two very unequal branches, and a total weight far above the cap: what matters is
+        // that the SECOND survives, and in its proportion. Truncating would make it vanish
+        // entirely — the profile would then say the program never went there.
         Path run = dir.resolve("runs/gros");
         Files.createDirectories(run.resolve("async-profiler"));
         Files.writeString(run.resolve("async-profiler/profil.collapsed"),
@@ -138,32 +137,32 @@ class ExportsTest {
         long cold = lines.stream().filter(l -> l.contains("app/Froid.rare")).count();
         long total = chaud + cold;
 
-        // Le plafond porte sur les octets : c'est le fichier qu'on empêche de devenir
-        // inexploitable, pas un nombre de relevés qui ne dit rien de sa taille.
+        // The cap is on bytes: it is the file we stop from becoming unusable, not a number
+        // of samples that says nothing about its size.
         long bytes = Files.size(run.resolve("exports/profil.perf.txt"));
         assertTrue(bytes < 40L * 1024 * 1024,
-                "le fichier dépasse franchement le plafond : " + bytes / (1024 * 1024) + " Mo");
+                "the file clearly exceeds the cap: " + bytes / (1024 * 1024) + " Mo");
         assertTrue(bytes > 16L * 1024 * 1024,
-                "allégé bien plus que nécessaire : " + bytes / (1024 * 1024) + " Mo");
+                "thinned far more than necessary: " + bytes / (1024 * 1024) + " Mo");
 
-        assertTrue(cold > 0, "la branche légère a disparu — c'est ce que faisait la troncature");
+        assertTrue(cold > 0, "the light branch has vanished — that is what truncation used to do");
         double share = (double) cold / total;
         assertTrue(share > 0.08 && share < 0.12,
-                "la proportion mesurée (10 %) doit être gardée, or elle vaut " + share);
+                "the measured proportion (10%) must be kept, yet it is " + share);
     }
 
     @Test
-    @DisplayName("Un profil qui tient n'est pas touché")
+    @DisplayName("A profile that fits is left untouched")
     void smallProfileIsKeptWhole(@TempDir Path dir) throws Exception {
         Path run = run(dir);
         Exports.write(run, Set.of(Exports.Format.PERF), 1, 8);
         long headers = Files.readAllLines(run.resolve("exports/profil.perf.txt")).stream()
                 .filter(l -> l.contains("cpu-clock:")).count();
-        assertEquals(4, headers, "3 + 1 relevés, tous présents");
+        assertEquals(4, headers, "3 + 1 samples, all present");
     }
 
     @Test
-    @DisplayName("Le cpuprofile porte tous les relevés, même quand perf est allégé")
+    @DisplayName("The cpuprofile carries every sample, even when perf is thinned")
     @SuppressWarnings("unchecked")
     void cpuprofileKeepsEverything(@TempDir Path dir) throws Exception {
         Path run = dir.resolve("runs/gros");
@@ -175,7 +174,7 @@ class ExportsTest {
         Map<String, Object> profile = (Map<String, Object>) Json.read(
                 Files.readString(run.resolve("exports/profil.cpuprofile"), StandardCharsets.UTF_8));
         assertEquals(2_000_000, ((List<Object>) profile.get("samples")).size(),
-                "compact par construction : il n'a aucune raison d'être allégé");
+                "compact by construction: it has no reason to be thinned");
     }
 
     @Test
