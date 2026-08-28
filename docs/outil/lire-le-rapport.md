@@ -1,301 +1,295 @@
-# Lire le rapport
+# Reading the report
 
-> Ce document décrit la page produite par l'outil : ce qu'elle montre, ce qu'elle tait, et
-> ce qu'on peut lui demander. Pour la produire, voir [le mode d'emploi](mode-emploi.md).
+> This document describes the page the tool produces: what it shows, what it keeps quiet,
+> and what one can ask of it. To produce it, see [the manual](mode-emploi.md).
 >
-> [Un exemple en ligne](https://beennnn.github.io/runtime-xray/multi/)
+> [An example online](https://beennnn.github.io/runtime-xray/multi/)
 
-![La vue : l'arbre d'appel à gauche, le code annoté au centre, les appels comparés en bas](../assets/shots/vue-arbre-appel.png)
+![The view: the call tree on the left, the annotated code in the middle, the compared calls at the bottom](../assets/shots/vue-arbre-appel.png)
 
-La page est autonome : un fichier HTML sans dépendance, qui s'ouvre depuis un disque, une
-pièce jointe ou une forge. Elle n'appelle rien sur le réseau.
+The page is self-contained: an HTML file with no dependency, which opens from a disk, an
+attachment or a forge. It calls nothing on the network.
 
-Elle **s'ouvre en anglais** — un rapport se joint à un ticket et se lit par quelqu'un qui
-n'a pas lancé la mesure. Le sélecteur `EN | FR` de l'en-tête bascule tout ce qu'elle
-affiche, d'un clic et sans rien recharger ; le choix est gardé pour les ouvertures
-suivantes, et un navigateur qui annonce le français l'obtient d'emblée. Le code source
-montré à côté de la couverture n'est, lui, jamais traduit : c'est celui de l'application
-observée. Les copies d'écran de ce document sont en français.
+It **opens in English** — a report gets attached to a ticket and read by someone who did not
+launch the measurement. The `EN | FR` selector in the header switches everything it shows,
+in one click and without reloading anything; the choice is kept for the next openings, and a
+browser that announces French gets it straight away. The source code shown beside the
+coverage is never translated: it is the observed application's. The screenshots in this
+document still show the French view.
 
-> **Au survol, tout s'explique.** Chiffres, pastilles, colonnes, boutons, barres de la
-> flamme, cases à cocher : chaque élément porte une infobulle qui dit ce qu'il montre, ou
-> ce qu'il fait si on clique. Ce document donne le raisonnement ; la page donne le détail
-> sans qu'on ait à la quitter.
+> **Everything explains itself on hover.** Figures, pills, columns, buttons, flame bars,
+> checkboxes: every element carries a tooltip saying what it shows, or what it does when
+> clicked. This document gives the reasoning; the page gives the detail without having to
+> leave it.
 
-## Les deux entrées, à gauche
+## The two ways in, on the left
 
-Deux onglets mènent au même code, par deux chemins différents.
+Two tabs lead to the same code, by two different paths.
 
-| Onglet | Ce qu'il montre | Quand il sert |
+| Tab | What it shows | When it helps |
 |---|---|---|
-| Code | Les paquets, sous-paquets et classes, par ordre alphabétique, filtrés sur ce qui a tourné | On cherche une classe qu'on connaît déjà |
-| Exécutions | Les exécutions comme racines d'un arbre d'appel, du plus coûteux au moins coûteux | On cherche par où l'exécution est passée |
+| Code | The packages, sub-packages and classes, in alphabetical order, filtered on what ran | One is looking for a class one already knows |
+| Runs | The runs as roots of a call tree, from the costliest to the least | One is looking for where the run went |
 
-Dans la vue Code, le bouton `exécuté` bascule entre « seulement ce qui a tourné » et
-« tout le code », le code jamais atteint apparaissant alors en rouge. C'est ce second mode
-qui fait ressortir un paquet entier que personne n'appelle — le cas que la lecture du code
-ne révèle pas.
+In the Code view, the `executed` button switches between "only what ran" and "all the code",
+code never reached then appearing in red. That second mode is what makes a whole package
+nobody calls stand out — the case reading the code does not reveal.
 
-Dans la vue Exécutions, les cases à cocher en haut choisissent les exécutions
-affichées ; `%` / `ms` bascule entre part du temps et durée estimée ; `pkg` masque les noms
-de paquet pour dégager les noms de méthode.
+In the Runs view, the checkboxes at the top choose which runs are shown; `%` / `ms` switches
+between share of time and estimated duration; `pkg` hides the package names to clear the
+method names.
 
-Les flèches naviguent : haut et bas déplacent le curseur, droite ouvre puis descend,
-gauche ferme puis remonte, `Entrée` sélectionne. Le curseur est volontairement distinct de
-la sélection — un liseré, pas un aplat — pour qu'on puisse parcourir l'arbre sans changer
-ce qu'affiche le panneau de droite.
+The arrows navigate: up and down move the cursor, right opens then descends, left closes then
+climbs, `Enter` selects. The cursor is deliberately distinct from the selection — an outline,
+not a fill — so that one can walk the tree without changing what the right-hand panel shows.
 
-### Passer d'un onglet à l'autre garde la méthode
+### Moving from one tab to the other keeps the method
 
-Les deux onglets montrent le même code : quitter l'un pour l'autre **emporte la méthode
-ouverte**. Depuis Exécutions, elle est retrouvée et dépliée dans l'arborescence du code ;
-depuis Code, elle est retrouvée dans l'arbre d'appel — dans l'exécution regardée, ou à
-défaut **dans la première où elle a tourné**, et la page bascule alors sur celle-là.
+The two tabs show the same code: leaving one for the other **carries the open method along**.
+From Runs, it is found and unfolded in the code tree; from Code, it is found in the call tree
+— in the run being looked at, or failing that **in the first one where it ran**, and the page
+then switches to that one.
 
-Si elle n'apparaît nulle part dans la vue d'arrivée — un paquet masqué, une méthode qui
-n'a tourné dans aucune exécution — la vue s'ouvre normalement et le dit en un mot. Elle ne
-sélectionne jamais autre chose à la place.
+If it appears nowhere in the destination view — a hidden package, a method that ran in no run
+— the view opens normally and says so in a word. It never selects something else instead.
 
-### Revenir sur ses pas
+### Retracing one's steps
 
-Les deux flèches en haut à gauche rejouent les vues visitées, dans un sens et dans
-l'autre — `Alt` + `←` et `Alt` + `→`. Une vue, c'est l'onglet, l'exécution, la méthode et
-l'appel regardés : y revenir les repose tous les quatre.
+The two arrows at the top left replay the views visited, one way and the other — `Alt` + `←`
+and `Alt` + `→`. A view is the tab, the run, the method and the call being looked at; going
+back to it puts all four back.
 
-Le **fil d'Ariane** navigue lui aussi : cliquer un segment de paquet l'ouvre dans la liste
-du code. *(Il masquait ce paquet dans les versions antérieures — le geste le plus naturel
-de la page faisait la chose la plus destructrice. « Ne plus voir » vit là où il a toujours
-vécu : au bout de la ligne, dans la liste de gauche.)*
+The **breadcrumb** navigates too: clicking a package segment opens it in the code list. *(It
+used to hide that package in earlier versions — the page's most natural gesture did the most
+destructive thing. "Stop seeing this" lives where it always lived: at the end of the line, in
+the left-hand list.)*
 
-## Ce qui n'est PAS affiché, et pourquoi
+## What is NOT displayed, and why
 
-C'est la partie qu'il faut connaître pour ne pas se méprendre sur un pourcentage.
+This is the part one must know so as not to misread a percentage.
 
-Quatre familles de frames sont repliées sur leur appelant dans l'arbre d'appel :
+Four families of frames are folded onto their caller in the call tree:
 
-| Repliée | Raison |
+| Folded away | Reason |
 |---|---|
-| Le JDK et la bibliothèque standard | Personne n'ouvre `java.util.ArrayList` pour comprendre son application |
-| Les rouages de la machine virtuelle | Compilateurs internes, appels natifs, trampolines : du code qu'aucun lecteur ne peut ouvrir ni corriger |
-| Les outils d'observation eux-mêmes | L'agent de couverture et l'inspecteur de valeurs mesurent, ils ne font pas partie du sujet |
-| Les paquets masqués par configuration ou par clic | Voir plus bas |
+| The JDK and the standard library | Nobody opens `java.util.ArrayList` to understand their application |
+| The virtual machine's inner workings | Internal compilers, native calls, trampolines: code no reader can open or fix |
+| The observation tools themselves | The coverage agent and the value inspector measure, they are not part of the subject |
+| Packages hidden by configuration or by click | See below |
 
-Le critère commun est simple : **a-t-on son code source ?** L'arbre sert à ouvrir des
-méthodes et à les lire ; une frame qu'on ne peut pas ouvrir n'y a pas sa place.
+The common criterion is simple: **does one have its source code?** The tree is there to open
+methods and read them; a frame one cannot open has no place in it.
 
-⚠️ **Replier n'est pas supprimer.** Le temps d'une frame repliée est attribué à la méthode
-applicative qui l'a appelée. Rien n'est perdu, et c'est même l'information utile : savoir
-que `Terrain.slowdownFactor` coûte 8 % est exploitable ; savoir que `Math.pow` coûte 3 % ne
-l'est pas, parce qu'on ne réécrira pas `Math.pow`.
+⚠️ **Folding away is not removing.** A folded frame's time is attributed to the application
+method that called it. Nothing is lost, and it is even the useful information: knowing that
+`Terrain.slowdownFactor` costs 8 % is actionable; knowing that `Math.pow` costs 3 % is not,
+because one will not rewrite `Math.pow`.
 
-Corollaire à garder en tête : le pourcentage d'une méthode inclut ce qu'elle a fait
-faire au JDK. C'est voulu.
+A corollary to keep in mind: a method's percentage includes what it made the JDK do. That is
+intended.
 
-Les classes repliées ne disparaissent pas de l'analyse pour autant : l'onglet Code les
-liste avec leur couverture. Là c'est un inventaire, pas une lecture.
+The folded classes do not disappear from the analysis for all that: the Code tab lists them
+with their coverage. There it is an inventory, not a reading.
 
-## Le code annoté, au centre
+## The annotated code, in the middle
 
-Les lignes portent leur état de couverture : vert exécutée, jaune partiellement
-(une branche sur deux), rouge jamais atteinte.
+The lines carry their coverage state: green executed, yellow partially (one branch out of
+two), red never reached.
 
-Le bouton *Resserré sur la méthode*, actif par défaut, n'affiche que la méthode
-sélectionnée, sans ses lignes mortes. C'est ce qui garantit qu'on regarde une méthode à la
-fois plutôt que d'être noyé dans un fichier de mille lignes. Le désactiver montre le fichier
-entier.
+The *Focused on the method* button, on by default, shows only the selected method, without
+its dead lines. That is what guarantees one is looking at one method at a time rather than
+being drowned in a thousand-line file. Turning it off shows the whole file.
 
-À droite de chaque ligne, ce que la trace a vu partir de cette ligne :
+To the right of each line, what the trace saw leave that line:
 
 ```
-appelle Trip.legs() ×10 0.002–0.003ms · Trip.mode() ×10 0.002–0.016ms
+calls Trip.legs() ×10 0.002–0.003ms · Trip.mode() ×10 0.002–0.016ms
 ```
 
-- le nom de l'appelé, cliquable : il ouvre la méthode appelée ;
-- `×10` : le nombre de passages observés sur cette ligne ;
-- l'étendue des durées, minimum et maximum.
+- the callee's name, clickable: it opens the method called;
+- `×10`: the number of passes observed on that line;
+- the spread of the durations, minimum and maximum.
 
-### `×N` : un nœud par passage de boucle
+### `×N`: one node per loop iteration
 
-Le `×N` est cliquable. Il déplie une ligne par passage, dans l'ordre de l'exécution.
+The `×N` is clickable. It unfolds one line per pass, in execution order.
 
-C'est important sur une ligne dans une boucle. L'agrégat « 10 fois, entre 0,002 et
-0,016 ms » dit qu'il y a de la dispersion sans dire d'où elle vient. Le détail la montre :
-c'est presque toujours le premier tour qui coûte — cache froid, chargement paresseux,
-compilation à la volée — et les suivants sont plats. Cette différence change le diagnostic.
+This matters on a line inside a loop. The aggregate "10 times, between 0.002 and 0.016 ms"
+says there is spread without saying where it comes from. The detail shows it: it is nearly
+always the first iteration that costs — cold cache, lazy loading, just-in-time compilation —
+and the following ones are flat. That difference changes the diagnosis.
 
-Le nombre de passages détaillés est borné : au-delà, la liste cesse d'informer et commence à
-peser.
+The number of detailed passes is bounded: beyond it, the list stops informing and starts
+weighing.
 
-## Les valeurs, en bas
+## The values, at the bottom
 
-Les valeurs ne sont capturées que sur une seule méthode, la méthode racine désignée au
-lancement (`--root`). Observer toutes les méthodes produirait un volume ingérable et
-fausserait davantage la mesure. Une méthode sans valeurs n'est donc pas une méthode qui n'a
-pas tourné — la page le dit explicitement quand on en ouvre une.
+Values are captured on one method only, the root method named at launch (`--root`). Observing
+every method would produce an unmanageable volume and would distort the measurement further.
+A method without values is therefore not a method that did not run — the page says so
+explicitly when one is opened.
 
-Le panneau du bas met les appels en regard : une colonne par champ, une ligne par appel,
-et les colonnes qui varient sont surlignées.
+The bottom panel puts the calls side by side: one column per field, one line per call, and
+the columns that vary are highlighted.
 
-| | id | mode | weather | withLuggage | ⟵ retour |
+| | id | mode | weather | withLuggage | ⟵ return |
 |---|---|---|---|---|---|
-| appel 1 | TRIP-175 | WALK | RAIN | true | 1523.97 |
-| appel 2 | TRIP-176 | CAR | SUNNY | false | 52.01 |
+| call 1 | TRIP-175 | WALK | RAIN | true | 1523.97 |
+| call 2 | TRIP-176 | CAR | SUNNY | false | 52.01 |
 
-C'est la seule question qui compte vraiment devant des valeurs capturées : *qu'est-ce qui
-change d'un appel à l'autre, et est-ce ça qui a fait diverger l'exécution ?*
+That is the only question that really matters in front of captured values: *what changes from
+one call to the next, and is that what made the execution diverge?*
 
-Dans l'arbre, chaque appel se déplie aussi en sous-nœuds `clé = valeur`. Le bouton
-`par champ` / `par paramètre` choisit la granularité : une ligne par champ de la valeur
-(`id = TRIP-175`, `mode = WALK`…), ou une ligne par paramètre avec la valeur brute.
+In the tree, each call also unfolds into `key = value` sub-nodes. The `by field` / `by
+argument` button chooses the granularity: one line per field of the value (`id = TRIP-175`,
+`mode = WALK`…), or one line per argument with the raw value.
 
-## Filtrer ce qu'on ne veut pas voir
+## Filtering out what one does not want to see
 
-Le JDK est toujours replié. Mais la même chose vaut pour des bibliothèques qui n'en font pas
-partie et que l'on considère comme de l'infrastructure : un journal, un client HTTP, un
-cadriciel d'injection. Où passe cette frontière n'est pas une question technique — elle
-dépend de ce que l'équipe possède et de ce qu'elle subit.
+The JDK is always folded away. But the same holds for libraries that are not part of it and
+that one treats as infrastructure: a logger, an HTTP client, an injection framework. Where
+that boundary lies is not a technical question — it depends on what the team owns and what it
+merely puts up with.
 
-Deux façons de le dire, et elles se complètent.
+Two ways of saying it, and they complement each other.
 
-### En lisant le rapport
+### While reading the report
 
-Dans l'onglet Code, chaque classe et chaque paquet portent un bouton *filtrer* au survol.
-Le chemin affiché au-dessus du source rend chaque niveau de paquet cliquable de la même
-manière — c'est le geste le plus direct : on est en train de lire du code qui ne nous
-concerne pas, et son chemin est déjà écrit au-dessus.
+In the Code tab, every class and every package carries a *filter* button on hover. The path
+shown above the source makes each package level clickable the same way — that is the most
+direct gesture: one is reading code that does not concern one, and its path is already
+written above.
 
-La liste s'accumule dans un bandeau, en haut à gauche, et elle y reste : le navigateur la
-retient d'un chargement à l'autre, il n'y a rien à enregistrer.
+The list accumulates in a band, at the top left, and it stays there: the browser remembers it
+from one load to the next, there is nothing to save.
 
-### Avant la mesure, par la configuration
+### Before the measurement, through the configuration
 
 ```bash
 --hide "org.slf4j, ch.qos.logback"
 ```
 
-Le bouton *« Ne plus le mesurer non plus »* du bandeau copie la ligne `HIDDEN_PACKAGES="…"`
-correspondante. C'est un second geste, facultatif : il ne sert pas à sauvegarder — la
-liste est déjà retenue — mais à ce que les exécutions suivantes ne mesurent même plus ce
-code : collecte plus courte, rapport plus léger.
+The band's *"Stop measuring it too"* button copies the matching `HIDDEN_PACKAGES="…"` line.
+It is a second, optional gesture: it is not there to save — the list is already remembered —
+but so that the following runs no longer even measure that code: shorter collection, lighter
+report.
 
-Une page statique ne peut pas écrire dans votre fichier de configuration. C'est aussi ce qui
-lui permet d'être publiée telle quelle.
+A static page cannot write into your configuration file. That is also what lets it be
+published as it is.
 
-### Élaguer l'arbre d'une exécution
+### Pruning a run's tree
 
-Filtrer range du **code** ; élaguer cadre une **exécution**. Dans l'onglet Exécutions, le
-bouton *élaguer* au bout d'une ligne propose deux gestes :
+Filtering tidies **code**; pruning frames a **run**. In the Runs tab, the *prune* button at
+the end of a line offers two gestures:
 
-- **couper cette branche** — ce nœud et tout ce qui en part disparaissent de l'arbre, *sur
-  ce chemin seulement* : la même méthode appelée depuis ailleurs reste visible ;
-- **repartir d'ici** — les niveaux au-dessus sont masqués, l'arbre commence à ce nœud.
+- **cut this branch** — this node and everything leaving it disappear from the tree, *on this
+  path only*: the same method called from elsewhere stays visible;
+- **start again from here** — the levels above are hidden, the tree begins at this node.
 
-C'est ce qui permet de transmettre **une** branche plutôt qu'une exécution entière : le
-démarrage, les rouages et les scénarios voisins n'ont pas à être expliqués à chaque fois.
+That is what allows passing on **one** branch rather than a whole run: the start-up, the
+plumbing and the neighbouring scenarios do not have to be explained every time.
 
-Les pourcentages, eux, restent rapportés au total mesuré, et un bandeau violet rappelle en
-permanence ce qui a été coupé, avec de quoi tout rétablir. **Élaguer ne corrige pas la
-mesure** — les fichiers d'origine et les exports ne bougent pas. C'est aussi pour cela que
-le graphe de temps de la vue d'ensemble suit le même élagage : deux endroits de la page ne
-doivent pas raconter deux histoires.
+The percentages, for their part, stay relative to the measured total, and a violet band is a
+permanent reminder of what was cut, with what is needed to restore it all. **Pruning does not
+correct the measurement** — the original files and the exports do not move. That is also why
+the overview's time graph follows the same pruning: two places in the page must not tell two
+stories.
 
-L'élagage se garde comme le reste des annotations : dans le navigateur d'abord, puis dans
-un fichier à côté des exécutions — que la page écrit elle-même quand elle est servie par
-l'outil, ou qu'on dépose soi-même après l'avoir exporté. C'est ce qui le rend définitif
-pour tous ceux qui ouvriront le rapport : [Annoter les exécutions](annotations.md).
+Pruning is kept like the rest of the annotations: in the browser first, then in a file beside
+the runs — which the page writes itself when it is served by the tool, or which one drops
+oneself after exporting it. That is what makes it final for everyone who opens the report:
+[Annotating the runs](annotations.md).
 
-## Deux arbres, deux questions — on se sert des deux
+## Two trees, two questions — both get used
 
-Le mot « arbre d'appel » recouvre deux objets différents dans cette page. Ils ne répondent
-pas à la même question, et la confusion coûte cher.
+The phrase "call tree" covers two different objects in this page. They do not answer the same
+question, and the confusion is expensive.
 
-| | L'arbre agrégé | Le chemin d'un appel |
+| | The aggregated tree | One call's path |
 |---|---|---|
-| Où | Onglet Exécutions, à gauche | Annotations « appelle … » dans le code, à droite |
-| Produit par | async-profiler | Arthas |
-| Répond à | « Où passe le temps, tous appels confondus ? » | « Qu'a fait *cet* appel-là, dans l'ordre ? » |
-| Comment | Par sondage : la JVM est photographiée mille fois par seconde, et les photos sont additionnées. Rien n'est ralenti, mais un appel bref peut échapper à toutes les photos | Par instrumentation : chaque entrée et sortie est notée. Rien n'échappe, mais seules quelques invocations sont suivies, et elles sont ralenties |
-| Ne peut pas | Distinguer deux appels de la même méthode : c'est une somme | Dire ce que fait l'application *en général* : c'est un exemple |
+| Where | Runs tab, on the left | "calls …" annotations in the code, on the right |
+| Produced by | async-profiler | Arthas |
+| Answers | "Where does the time go, all calls taken together?" | "What did *that* call do, in order?" |
+| How | By polling: the JVM is photographed a thousand times a second, and the photographs are added up. Nothing is slowed down, but a brief call may escape every photograph | By instrumentation: every entry and exit is noted. Nothing escapes, but only a few invocations are followed, and they are slowed down |
+| Cannot | Tell two calls of the same method apart: it is a sum | Say what the application does *in general*: it is one example |
 
-D'où la répartition : on cherche où regarder dans l'arbre agrégé, puis on ouvre la
-méthode et on lit ce qui s'y est passé dans le chemin d'un appel.
+Hence the division of labour: one looks for where to look in the aggregated tree, then opens
+the method and reads what happened there in one call's path.
 
-## Plusieurs exécutions dans la même page
+## Several runs in the same page
 
-Chaque lancement ajoute une exécution. Toutes apparaissent comme racines de l'arbre, et les
-cases à cocher choisissent celles qu'on affiche. Sur une méthode ouverte, la page indique
-les autres exécutions où elle a aussi tourné, et le nombre de contextes d'appel distincts —
-un clic bascule.
+Each launch adds a run. All appear as roots of the tree, and the checkboxes choose which ones
+are shown. On an open method, the page indicates the other runs where it also ran, and the
+number of distinct call contexts — one click switches.
 
-Le bandeau **« Appelée depuis »**, sous le fil d'Ariane, montre **qui appelle** — et rien
-d'autre. La méthode ouverte est déjà nommée juste au-dessus, et elle terminait chacun des
-chemins à l'identique : elle en a été retirée, comme le « 100 % » d'un contexte unique, qui
-était vrai sans rien apprendre. Avec plusieurs contextes, la part de chacun reste affichée,
-puisque c'est elle qui les départage.
+The **"Called from"** band, under the breadcrumb, shows **who calls** — and nothing else. The
+open method is already named just above, and it ended each of the paths identically: it has
+been taken out of them, as has the "100 %" of a single context, which was true without
+teaching anything. With several contexts, each one's share stays shown, since that is what
+tells them apart.
 
-Trois identités par exécution, et chacune a sa raison : un **identifiant** attribué au
-lancement, qui ne change jamais ; le **nom donné par `--name`**, qui dit ce qu'on croyait
-mesurer ; le **nom posé après coup**, qui dit ce qu'on a compris. Sans `--name`, c'est
-l'identifiant abrégé qui s'affiche — jamais un libellé inventé.
+Three identities per run, and each has its reason: an **identifier** assigned at launch, which
+never changes; the **name given by `--name`**, which says what one thought one was measuring;
+the **name put on afterwards**, which says what one understood. Without `--name`, the
+shortened identifier is what shows — never an invented label.
 
-### La fiche d'une exécution
+### A run's card
 
-C'est le bandeau marqué **fiche**, sous le fil d'Ariane en vue d'ensemble : ce que *vous*
-ajoutez à une exécution pour la reconnaître plus tard — nom, description, étiquettes. Il
-tient sur une ligne : identifiant abrégé, nom modifiable sur place, description, étiquettes.
-Le nom du lancement et l'identifiant complet sont dans les infobulles — ils ne se modifient
-pas, ils n'ont donc pas à occuper la ligne.
+This is the band marked **card**, under the breadcrumb in the overview: what *you* add to a
+run to recognise it later — name, description, labels. It fits on one line: shortened
+identifier, name editable in place, description, labels. The launch name and the full
+identifier are in the tooltips — they cannot be edited, so they need not take up the line.
 
-**Aucune mesure n'en est modifiée.** La fiche se pose à côté et se retire sans rien perdre :
-c'est la seule chose de cette page qui vienne d'un humain, et elle est tenue séparée pour
-qu'on ne puisse jamais la confondre avec ce qui a été mesuré.
+**No measurement is changed by it.** The card is placed beside and taken away without losing
+anything: it is the only thing on this page that comes from a human, and it is kept separate
+so that it can never be confused with what was measured.
 
-À droite du bandeau, un état dit où elle est gardée : *gardé dans ce navigateur*, ou *à
-jour* / *non enregistré* quand la page est servie par l'outil. Les actions — enregistrer,
-exporter, importer, voir le JSON — sont dans la barre du haut, sous **fiche**. Le détail des
-trois modes : [Annoter les exécutions](annotations.md).
+To the right of the band, a status says where it is kept: *kept in this browser*, or *up to
+date* / *unsaved* when the page is served by the tool. The actions — save, export, import,
+view the JSON — are in the top bar, under **card**. The detail of the three modes:
+[Annotating the runs](annotations.md).
 
-## Les sorties brutes, et le menu **Exports**
+## The raw outputs, and the **Exports** menu
 
-Tout ce que l'exécution a écrit est atteignable à deux endroits, qui montrent la même liste :
-le menu **Exports**, en haut à gauche, et une section en bas de la vue d'ensemble. Groupé par
-origine : les rapports HTML de JaCoCo, le profil natif d'async-profiler et son inverse, les
-piles repliées, les valeurs et la trace d'Arthas, le journal de l'exécution, le contexte.
+Everything the run wrote is reachable in two places, which show the same list: the **Exports**
+menu, at the top left, and a section at the bottom of the overview. Grouped by origin:
+JaCoCo's HTML reports, async-profiler's native profile and its inverse, the folded stacks,
+Arthas' values and trace, the run's log, the context.
 
-Une rubrique **« Formats ouverts »** porte les mêmes mesures réécrites en `perf script`, en
-`cpuprofile`, en LCOV et en JSON. Ces quatre-là restent **nommés même absents**, en grisé :
-une capacité qui ne vivrait que dans une option de ligne de commande n'existe pas pour qui
-lit la page. Un clic dit alors comment les produire, sans relancer la moindre mesure. Voir
-[Reprendre le résultat dans un autre outil](exports.md).
+An **"Open formats"** heading carries the same measurements rewritten as `perf script`, as
+`cpuprofile`, as LCOV and as JSON. Those four stay **named even when absent**, greyed out: a
+capability that lived only in a command-line option does not exist for whoever reads the page.
+A click then says how to produce them, without running a single measurement again. See
+[Taking the result into another tool](exports.md).
 
-Ce n'est pas de la complétude pour la forme. Cette page est une synthèse : elle replie
-des frames, agrège des appels, masque des paquets. Chacun de ces choix peut se révéler faux
-sur un cas qu'on n'avait pas prévu, et la page elle-même peut cesser de s'ouvrir. Les
-sorties d'origine restent donc atteignables en un clic — c'est ce qui sépare un rapport
-vérifiable d'un rapport à croire sur parole.
+This is not completeness for form's sake. This page is a summary: it folds frames away,
+aggregates calls, hides packages. Each of those choices may turn out wrong on a case nobody
+foresaw, and the page itself may stop opening. The original outputs therefore stay reachable
+in one click — that is what separates a verifiable report from a report to be taken on trust.
 
-## `rapport.md` — la même chose, lisible dans une forge
+## `rapport.md` — the same thing, readable in a forge
 
-À côté de `index.html`, l'outil écrit un `rapport.md`. Ce n'est pas un second rapport :
-c'est le même, réduit à ce qui se lit sans interaction — couverture par paquet, code jamais
-exécuté nommé, méthodes les plus coûteuses, appels comparés.
+Beside `index.html`, the tool writes a `rapport.md`. It is not a second report: it is the
+same one, reduced to what reads without interaction — coverage per package, code never
+executed named, the costliest methods, the compared calls.
 
-Il existe pour une raison précise : une forge affiche un fichier `.html` comme du code source, pas comme une page. Le Markdown, lui, est rendu nativement par GitHub comme par
-GitLab, dépôt privé compris, sans Pages, sans service tiers et sans réglage. C'est le seul
-format qui se lit là où le code est relu.
+It exists for a precise reason: a forge shows a `.html` file as source code, not as a page.
+Markdown, on the other hand, is rendered natively by GitHub as by GitLab, private repositories
+included, with no Pages, no third-party service and no setting. It is the only format that
+reads where the code is reviewed.
 
-Son taux de couverture porte une précision qui compte : il est calculé sur tout le bytecode donné à analyser. Si l'analyse porte sur une dépendance entière, la plus grande
-partie n'a par construction aucune raison de tourner, et ce taux dit alors surtout la taille
-de cette dépendance.
+Its coverage rate carries a qualification that matters: it is computed over all the bytecode
+handed over for analysis. If the analysis covers a whole dependency, most of it has by
+construction no reason to run, and that rate then says mostly how big that dependency is.
 
-## Ce que la page ne dit pas
+## What the page does not say
 
-- Elle ne compte pas les appels, sauf sur les lignes tracées. L'arbre agrégé est un
-  sondage : il donne des parts de temps, pas des nombres d'invocations.
-- Le coût de la méthode racine est surestimé, parce que l'inspection des valeurs
-  travaille dans la même exécution. La page l'affiche et le chiffre. `--no-values` sur une
-  seconde passe donne des temps non perturbés.
-- Elle ne mesure ni la mémoire ni les allocations. D'autres outils le font ; ce n'était
-  pas l'objet de [l'étude](../resultat/resultats.md).
-- Elle décrit une exécution, pas un programme. Ce qui n'a pas tourné ce jour-là apparaît
-  comme jamais exécuté — ce qui est exact, et ne veut pas dire inutile.
+- It does not count calls, except on the traced lines. The aggregated tree is a poll: it gives
+  shares of time, not numbers of invocations.
+- The root method's cost is overestimated, because value inspection works inside the same run.
+  The page shows this and gives the figure. `--no-values` on a second pass gives undisturbed
+  times.
+- It measures neither memory nor allocations. Other tools do; that was not the subject of
+  [the study](../resultat/resultats.md).
+- It describes one run, not a program. What did not run that day appears as never executed —
+  which is exact, and does not mean useless.
