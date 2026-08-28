@@ -491,6 +491,49 @@ class DashboardTest {
                 "the arrows stay with the tree navigation");
     }
 
+    @Test
+    @DisplayName("Without a JaCoCo site, the coverage is still rendered — it comes from the XML")
+    void coverageSurvivesWithoutTheJacocoSite(@TempDir Path dir) throws Exception {
+        // This is the shape JACOCO_REPORTS=data produces: the XML, no HTML site. What the
+        // page shows must not move, because it never read the HTML in the first place.
+        Path out = dir.resolve("out");
+        Files.createDirectories(out);
+        fixtureRun(out.resolve("runs"), "no-site", "UUID-DATA", false);
+
+        Map<String, Object> data = dataOf(Dashboard.build(out, List.of(sources(dir)), 8));
+        @SuppressWarnings("unchecked")
+        Map<String, Object> run = (Map<String, Object>) ((List<Object>) data.get("runs")).get(0);
+        @SuppressWarnings("unchecked")
+        Map<String, Object> reports = (Map<String, Object>) run.get("rapports");
+
+        assertEquals(Boolean.FALSE, reports.get("couverture"), "no site was written");
+        assertEquals(Boolean.TRUE, reports.get("jacocoXml"), "but the data is there");
+        assertTrue(Files.readString(out.resolve(String.valueOf(run.get("chemin")))
+                        .resolve("vue/couverture.js"), StandardCharsets.UTF_8)
+                        .contains("app/Engine"),
+                "the coverage block is built from the XML, so it does not depend on the site");
+    }
+
+    @Test
+    @DisplayName("A JaCoCo report that was not produced stays named, with the command for it")
+    void anAbsentJacocoReportIsStillNamed(@TempDir Path dir) throws Exception {
+        // The whole point of making the rendering optional: an entry that vanishes reads
+        // exactly like an entry nobody could fill. The page keeps naming it instead.
+        Path out = dir.resolve("out");
+        Files.createDirectories(out);
+        fixtureRun(out.resolve("runs"), "no-site", "UUID-N", false);
+        String page = Files.readString(Dashboard.build(out, List.of(sources(dir)), 8),
+                StandardCharsets.UTF_8);
+
+        assertTrue(page.contains("{mark: \"jacoco\", nom: \"JaCoCo\", toujours: true"),
+                "the JaCoCo group must survive the absence of its files, like open formats do");
+        assertTrue(page.contains("--jacoco-reports full"),
+                "and say the command that produces them, on the machine where one is stuck");
+        assertTrue(page.contains("data-cmd=") && page.contains("a.dataset.cmd"),
+                "each group explains how to get back what IT carries: one single command for "
+                + "both would have sent one of the two into a wall");
+    }
+
     // ------------------------------------------ what one knows when it did not work
 
     @Test

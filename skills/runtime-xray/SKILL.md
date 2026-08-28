@@ -82,6 +82,28 @@ Sur un gros code, ne pas tout prendre du premier coup.
 **`--cover` est le premier levier.** Sans lui, *toute classe chargée* est instrumentée,
 dépendances comprises.
 
+### Quand c'est le nombre de fichiers qui coûte
+
+Les leviers ci-dessus baissent le coût de la **mesure**. Un autre coût existe, et il ne s'y
+réduit pas : JaCoCo écrit **deux fichiers par classe**, et l'outil lui demande **deux sites
+par exécution**. Le compte de fichiers d'une campagne croît donc avec la taille du code, pas
+avec la mesure — et sur un poste où chaque ouverture traverse un antivirus, un EDR, un DLP,
+c'est souvent lui le vrai frein.
+
+```sh
+--jacoco-reports detailed   # le site complet seul, sans le ciblé
+--jacoco-reports data       # jacoco.xml et .csv seuls, aucun site par exécution
+```
+
+Ce réglage ne change **ni la mesure, ni ce que la page affiche** : la couverture vient de
+`jacoco.xml`, écrit dans tous les cas. `detailed` ne perd aucune donnée — le rapport ciblé
+n'en porte aucune que le complet n'ait déjà. `data` perd le rendu JaCoCo par exécution,
+mais garde celui de la campagne entière. Un rapport absent reste nommé dans la page, avec
+la commande qui le produit.
+
+Le répertoire `runs/` est par ailleurs le bon candidat à une exclusion antivirus : rien n'y
+est exécuté, tout y est engendré et reproductible.
+
 ## Observer un processus qu'on ne lance pas soi-même
 
 Service systemd, conteneur, serveur d'application, script d'intégration : l'outil ne lance

@@ -7,6 +7,7 @@ import lab.xray.report.Exports;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -109,6 +110,7 @@ public final class Main {
                 case "--export" -> config.exportFormats = args[++i];
                 case "--level", "--niveau" -> config.level = args[++i];
                 case "--cover" -> config.coverIncludes = args[++i];
+                case "--jacoco-reports" -> config.jacocoReports = args[++i];
                 case "--interval" -> config.sampleIntervalMs = Integer.parseInt(args[++i]);
                 // The port attaches to the option, as for --serve: "--suivi" alone takes
                 // the default port, and "--suivi 9100" the one given to it.
@@ -202,6 +204,14 @@ public final class Main {
         }
 
         require(!config.javaCommand.isBlank() || reportOnly, "--java is required");
+        // An unknown value stops here rather than falling back on the default. This one
+        // comes from a script or a configuration file, never from a sentence typed by
+        // someone searching: a script that has it wrong has a defect, and keeping quiet
+        // about it would write a report silently different from the one it expects.
+        config.jacocoReports = config.jacocoReports.trim().toLowerCase(Locale.ROOT);
+        require(Config.JACOCO_REPORTS.contains(config.jacocoReports),
+                "unknown value for --jacoco-reports: " + config.jacocoReports
+                + " (known: " + String.join(", ", Config.JACOCO_REPORTS) + ")");
         require(Config.LEVELS.contains(Config.level(config.level)),
                 "--level expects coverage, tree or full (got: " + config.level + ")");
         // The classes serve to MEASURE. Reassembling a view from existing measurements
@@ -459,15 +469,21 @@ public final class Main {
             return;
         }
         Path cli = tools.jacocoCli();
+        // The XML and the CSV keep their path inside jacoco/html/ even when no site is
+        // written there: it is the path the page, the exports and every already assembled
+        // report read. A produced file never moves.
         Path html = runDir.resolve("jacoco/html");
         Files.createDirectories(html);
 
         List<String> cmd = new ArrayList<>(List.of(
                 RunSession.javaExecutable(), "-jar", cli.toString(), "report", exec.toString(),
-                "--html", html.toString(),
                 "--xml", html.resolve("jacoco.xml").toString(),
                 "--csv", html.resolve("jacoco.csv").toString(),
                 "--name", "Runtime X-Ray", "--quiet"));
+        if (config.jacocoHtmlWanted()) {
+            cmd.add("--html");
+            cmd.add(html.toString());
+        }
         // One --classfiles entry per directory or jar: the option is repeatable, and that
         // is the tool's intended mechanism for analysing several bytecode sources.
         for (Path entry : config.classesPaths()) {
@@ -480,11 +496,19 @@ public final class Main {
         }
         exec(cmd);
 
+        if (!config.focusedReportWanted()) {
+            System.out.println("   JACOCO_REPORTS=" + config.jacocoReports
+                    + " — coverage read from jacoco.xml, "
+                    + (config.jacocoHtmlWanted() ? "focused report not written"
+                                                 : "no HTML site written for this run"));
+            return;
+        }
+
         // Focused report: only the classes with at least one covered instruction are
         // presented to the CLI. That is the tool's native mechanism, not a home-made
         // filter.
         Coverage coverage = Coverage.parse(html.resolve("jacoco.xml"), config.hidden());
-        Path staging = runDir.resolve("classes-executees");
+        Path staging = runDir.resolve("classes-executees.jar");
         int kept = stageExecutedClasses(coverage, config.classesPaths(), staging);
         if (kept == 0) {
             return;
@@ -504,25 +528,48 @@ public final class Main {
         System.out.println("   " + kept + " executed classes kept for the focused report");
     }
 
+    /**
+     * Gathers the executed classes into <b>one jar</b>, to be handed to the focused report.
+     *
+     * <p>A directory would have held one file per executed class, and those files are a
+     * pure intermediate — nothing reads them once the report is built. On a machine where
+     * every file open crosses a stack of security filters, writing several thousand of
+     * them, then walking them again, then zipping them up with the report, is paid three
+     * times for nothing. {@code jacococli} accepts a jar exactly as it accepts a directory,
+     * and produces a byte-identical report from it.
+     *
+     * <p>The copy goes straight into the archive through the zip file system, so the
+     * intermediate files never exist at all — writing them only to delete them would have
+     * cost the very thing this avoids.
+     */
     @SuppressWarnings("unchecked")
     private static int stageExecutedClasses(Coverage coverage, List<Path> classesPaths, Path staging)
             throws IOException {
-        if (Files.exists(staging)) {
-            deleteRecursively(staging);
+        Files.deleteIfExists(staging);
+        // A directory left by an earlier version, which used to stage one file per class.
+        Path legacy = staging.resolveSibling("classes-executees");
+        if (Files.isDirectory(legacy)) {
+            deleteRecursively(legacy);
         }
+        Files.createDirectories(staging.getParent());
         int kept = 0;
-        for (Map.Entry<String, Object> entry : coverage.packages.entrySet()) {
-            for (Object o : (List<Object>) entry.getValue()) {
-                Map<String, Object> cls = (Map<String, Object>) o;
-                if (((Number) cls.get("covered")).intValue() == 0) {
-                    continue;
-                }
-                String name = cls.get("name") + ".class";
-                Path target = staging.resolve(name);
-                if (copyClassBytes(classesPaths, name, target)) {
-                    kept++;
+        try (java.nio.file.FileSystem jar = java.nio.file.FileSystems.newFileSystem(
+                URI.create("jar:" + staging.toUri()), Map.of("create", "true"))) {
+            for (Map.Entry<String, Object> entry : coverage.packages.entrySet()) {
+                for (Object o : (List<Object>) entry.getValue()) {
+                    Map<String, Object> cls = (Map<String, Object>) o;
+                    if (((Number) cls.get("covered")).intValue() == 0) {
+                        continue;
+                    }
+                    String name = cls.get("name") + ".class";
+                    if (copyClassBytes(classesPaths, name, jar.getPath("/" + name))) {
+                        kept++;
+                    }
                 }
             }
+        }
+        if (kept == 0) {
+            Files.deleteIfExists(staging);
         }
         return kept;
     }
@@ -913,6 +960,11 @@ public final class Main {
                                        full. French names still work. The first knob to turn down on a large codebase.
                   --cover "<globs>"    Classes JaCoCo instruments, e.g. "com.example.*".
                                        Without it every class the JVM loads is instrumented.
+                  --jacoco-reports <v> How much of JaCoCo's own rendering to write per run:
+                                       full (both sites, the default), detailed (the complete
+                                       site alone), data (jacoco.xml and .csv only). The page
+                                       reads the XML, so it shows the same coverage either
+                                       way; this only decides how many FILES land on disk.
                   --interval <ms>      Stack sampling interval (default: 1).
                   --attach-after <s>   Delay before inspecting values (default: 8).
                   --max-seconds <s>    Guard rail on the run duration (default: 600).

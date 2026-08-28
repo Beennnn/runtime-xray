@@ -1741,14 +1741,24 @@ const ICONE_EXPORT =
 function fichiersDuRun(){
   const b = R.chemin || "", a = R.rapports || {}, F = D.fusion || {};
   return [
-    {mark: "jacoco", nom: "JaCoCo", items: [
+    {mark: "jacoco", nom: "JaCoCo", toujours: true,
+     cmd: "Les sites HTML de JaCoCo tiennent deux fichiers par classe, et l'outil en produit"
+        + " deux par exécution : sur une grosse application, c'est le gros du compte de"
+        + " fichiers d'une campagne. JACOCO_REPORTS décide de ce qu'on en écrit — full les"
+        + " deux, detailed le complet seul, data aucun.\n\nPour les ravoir :\n\n"
+        + "    java -jar runtime-xray.jar --config <votre .conf> --jacoco-reports full\n\n"
+        + "La couverture affichée dans cette page, elle, ne dépend pas de ce réglage : elle"
+        + " est lue dans jacoco.xml, qui est écrit dans tous les cas.",
+     items: [
       [a.couverture, b + "jacoco/html/index.html", "Couverture détaillée",
+       "le site JaCoCo complet",
        "Le rapport complet, fichier par fichier, avec le code annoté ligne à ligne."],
       [a.ciblee, b + "jacoco-focused/html/index.html", "Couverture ciblée",
+       "le rapport ciblé",
        "Le même, restreint aux classes qui ont réellement tourné."],
-      [a.jacocoXml, b + "jacoco/html/jacoco.xml", "Données XML",
+      [a.jacocoXml, b + "jacoco/html/jacoco.xml", "Données XML", "jacoco.xml",
        "La source que cette page lit. Exploitable par un autre outil, ou à la main."],
-      [a.jacocoCsv, b + "jacoco/html/jacoco.csv", "Données CSV",
+      [a.jacocoCsv, b + "jacoco/html/jacoco.csv", "Données CSV", "jacoco.csv",
        "Le même contenu, une ligne par classe — pour un tableur."]]},
     // La fusion ne dépend pas de l'exécution regardée : c'est le rapport de toutes. Elle
     // apparaît donc à part, et seulement quand JaCoCo l'a réellement produite.
@@ -1812,7 +1822,8 @@ function refreshLinks(){
     return ok
       ? '<a role="menuitem" href="' + href + '" target="_blank" rel="noopener">' +
         '<span class="t">' + esc(titre) + '</span><span class="d">' + esc(quoi) + '</span></a>'
-      : '<a role="menuitem" class="off" href="#" data-export="' + esc(court || titre) + '">' +
+      : '<a role="menuitem" class="off" href="#" data-export="' + esc(court || titre) + '"' +
+        (g.cmd ? ' data-cmd="' + esc(g.cmd) + '"' : "") + '>' +
         '<span class="t">' + esc(titre) + '</span>' +
         '<span class="d">' + esc(quoi) + ' — pas encore produit pour ce rapport.</span></a>';
   };
@@ -1881,10 +1892,16 @@ function poserMenuExports(){
     if (!a) { if (e.target.closest("a")) fermer(false); return; }
     e.preventDefault();
     fermer(false);
-    montrer("« " + a.dataset.export + " » n'a pas été produit pour ce rapport.\n\n"
-      + "Pour l'obtenir, sans relancer la moindre mesure :\n\n"
-      + "    java -jar runtime-xray.jar --report-only --out <ce dossier> --export tout\n\n"
-      + "Les fichiers sont écrits dans <exécution>/exports/, et ce menu les liera.",
+    // Chaque groupe dit comment ravoir CE qu'il porte : les formats ouverts se
+    // réécrivent des mesures déjà là, les sites JaCoCo demandent un autre réglage. Une
+    // seule commande pour les deux en aurait envoyé un des deux dans le mur.
+    montrer(a.dataset.cmd
+      ? "« " + a.dataset.export + " » n'a pas été produit pour ce rapport.\n\n"
+        + a.dataset.cmd
+      : "« " + a.dataset.export + " » n'a pas été produit pour ce rapport.\n\n"
+        + "Pour l'obtenir, sans relancer la moindre mesure :\n\n"
+        + "    java -jar runtime-xray.jar --report-only --out <ce dossier> --export tout\n\n"
+        + "Les fichiers sont écrits dans <exécution>/exports/, et ce menu les liera.",
       "« " + a.dataset.export + " » n'a pas été produit");
   });
 }
@@ -5232,6 +5249,12 @@ setOption("clean",    {icon: OPT.cible});
     "Le détail — configuration du lancement, exécutions, rapprochement classe par classe — est dans": "The detail — launch configuration, runs, class-by-class matching — is in",
     "Le format que lisent les éditeurs et les services de suivi de couverture.": "The format editors and coverage-tracking services read.",
     "Le format que lisent les éditeurs et les services de suivi de couverture. — pas encore produit pour ce rapport.": "The format editors and coverage services read. — not produced for this report yet.",
+    "Le rapport complet, fichier par fichier, avec le code annoté ligne à ligne. — pas encore produit pour ce rapport.": "The complete report, file by file, with the code annotated line by line. — not produced for this report yet.",
+    "Le même, restreint aux classes qui ont réellement tourné. — pas encore produit pour ce rapport.": "The same, restricted to the classes that actually ran. — not produced for this report yet.",
+    "La source que cette page lit. Exploitable par un autre outil, ou à la main. — pas encore produit pour ce rapport.": "The source this page reads. Usable by another tool, or by hand. — not produced for this report yet.",
+    "Le même contenu, une ligne par classe — pour un tableur. — pas encore produit pour ce rapport.": "The same content, one line per class — for a spreadsheet. — not produced for this report yet.",
+    "le site JaCoCo complet": "the complete JaCoCo site",
+    "le rapport ciblé": "the focused report",
     "Le lancer sur votre propre application : paramètres, configuration, publication du résultat.": "Running it on your own application: options, configuration, publishing the result.",
     "Le menu Exports": "The Exports menu",
     "Le même contenu, une ligne par classe — pour un tableur.": "The same content, one line per class — for a spreadsheet.",

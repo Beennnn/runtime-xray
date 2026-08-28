@@ -132,6 +132,52 @@ public final class Config {
      */
     public String componentsDir = "";
 
+    /**
+     * How much of JaCoCo's own rendering is written to disk, per run.
+     *
+     * <p>This governs neither the measurement nor the display: the coverage the page shows
+     * is read from {@code jacoco.xml}, which is written whatever the value. What it governs
+     * is the number of <b>files</b> produced, and that is its whole point — JaCoCo's HTML
+     * site holds two files per class, the tool asks for two such sites per run, and the
+     * count therefore grows with the analysed code rather than with the measurement.
+     *
+     * <p>On a machine where every file open crosses a stack of security filters, that count
+     * is what a campaign pays for, several times over: at write time, at every later walk,
+     * and when the report is zipped up to be passed on.
+     *
+     * <ul>
+     *   <li>{@code full} — both sites, the default: nothing changes for anyone;</li>
+     *   <li>{@code detailed} — the complete site alone. The focused report holds no datum
+     *       the complete one lacks: it is the same coverage, restricted to the classes that
+     *       ran. Dropping it costs a framing, never a measurement;</li>
+     *   <li>{@code data} — {@code jacoco.xml}, {@code jacoco.csv} and the {@code .exec},
+     *       and no site per run. The campaign's merged report stays, so JaCoCo's own
+     *       rendering remains reachable for whoever cannot open the page.</li>
+     * </ul>
+     *
+     * <p>An absent report is never silent: the page keeps naming it, greyed out, with the
+     * command that produces it.
+     */
+    public String jacocoReports = FULL;
+
+    public static final String FULL = "full";
+    public static final String DETAILED = "detailed";
+    public static final String DATA = "data";
+
+    /** The three values, in decreasing order of what is written. */
+    public static final java.util.List<String> JACOCO_REPORTS =
+            java.util.List.of(FULL, DETAILED, DATA);
+
+    /** Whether an HTML site is written for each run at all. */
+    public boolean jacocoHtmlWanted() {
+        return !DATA.equals(jacocoReports);
+    }
+
+    /** Whether the focused report — and the class staging it needs — is produced. */
+    public boolean focusedReportWanted() {
+        return FULL.equals(jacocoReports);
+    }
+
     public static Config load(Path file) throws IOException {
         Config c = new Config();
         for (String raw : Files.readAllLines(file, StandardCharsets.UTF_8)) {
@@ -174,6 +220,7 @@ public final class Config {
             case "EXPORT" -> exportFormats = value;
             case "LEVEL", "NIVEAU" -> level = value;
             case "COVER_INCLUDES" -> coverIncludes = value;
+            case "JACOCO_REPORTS" -> jacocoReports = value;
             case "SAMPLE_INTERVAL_MS" -> sampleIntervalMs = parse(value, sampleIntervalMs);
             case "FOLLOW_PORT", "SUIVI_PORT" -> followPort = parse(value, followPort);
             case "TRACE_COUNT" -> traceCount = parse(value, traceCount);
@@ -297,6 +344,7 @@ public final class Config {
         m.put("niveau", level);
         m.put("classesInstrumentees", coverIncludes.isBlank() ? null : coverIncludes);
         m.put("intervalleMs", sampleIntervalMs);
+        m.put("rapportsJacoco", jacocoReports);
         return m;
     }
 
@@ -410,6 +458,22 @@ public final class Config {
             #   tree      + stack sampling
             #   full      + value capture (the default)
             #NIVEAU="tree"
+
+            # How much of JaCoCo's own rendering to write, per run. This governs neither
+            # the measurement nor what the page shows — the coverage displayed is read from
+            # jacoco.xml, always written. It governs the number of FILES.
+            #
+            # JaCoCo's HTML site holds two files per class, and the tool asks for two such
+            # sites per run: the count grows with the analysed code, not with the
+            # measurement. Where every file open crosses a stack of security filters, that
+            # is what a campaign pays for.
+            #
+            #   full      both sites (the default)
+            #   detailed  the complete site alone — the focused report holds no datum it lacks
+            #   data      jacoco.xml and .csv only; the campaign's merged report still stands
+            #
+            # An absent report stays named in the page, with the command that produces it.
+            #JACOCO_REPORTS="detailed"
 
             # Classes JaCoCo instruments, in its agent's format (patterns separated by ':').
             # Without this setting, EVERY class loaded is instrumented, dependencies
