@@ -53,7 +53,7 @@ public final class Contexte {
 
     /** Les faits qu'on ne retire jamais, quel que soit le budget. */
     private static final List<String> TOUJOURS =
-            List.of("campagne", "indisponibilite", "reserve");
+            List.of("campaign", "unavailable", "caveat");
 
     private Contexte() {}
 
@@ -114,6 +114,8 @@ public final class Contexte {
                     + " — build the report first (--report-only)");
         }
         String q = question == null ? "" : question;
+        List<Fait> faits = lire(fichier);
+        refuserLeFormat1(faits, dossier);
         List<String> familles;
         Origine origine;
         if (demandees != null && !demandees.isEmpty()) {
@@ -123,13 +125,46 @@ public final class Contexte {
             familles = famillesPour(q);
             origine = reconnue(q) ? Origine.MOTS_CLES : Origine.VUE_ENSEMBLE;
         }
-        return new Paquet(rendre(lire(fichier), q, familles, budget), familles, origine);
+        return new Paquet(rendre(faits, q, familles, budget), familles, origine);
     }
 
     /** Le paquet seul, pour qui n'a pas besoin de savoir comment il a été choisi. */
     public static String pour(Path dossier, String question, int budget) throws IOException {
         return pour(dossier, question, List.of(), budget).texte();
     }
+
+    /**
+     * Un rapport au format 1.0 renvoie à la commande qui le régénère, plutôt qu'à un
+     * migrateur.
+     *
+     * <p>Il n'y a pas d'outil de migration, et c'est un constat, pas un oubli :
+     * {@code faits.jsonl} est <b>dérivé</b> des mesures de {@code runs/}, comme la page, le
+     * diagnostic et les blocs. Un {@code --report-only} le réécrit entièrement dans le
+     * format courant, avec au passage tous les correctifs accumulés depuis. Un migrateur
+     * n'aurait fait que renommer des clés dans un fichier resté périmé par ailleurs, et il
+     * aurait fallu le maintenir, puis penser à le supprimer.
+     *
+     * <p>Reste le cas d'une archive amputée de {@code runs/} — quelqu'un a zippé la page et
+     * les faits, les mesures sont restées derrière. Là, rien ne peut être régénéré, et
+     * c'est pourquoi ce message distingue les deux situations au lieu d'en supposer une.
+     */
+    static void refuserLeFormat1(List<Fait> faits, Path dossier) throws IOException {
+        for (Fait f : faits) {
+            if (f.champs().containsKey("fait") && !f.champs().containsKey("fact")) {
+                boolean regenerable = Files.isDirectory(dossier.resolve("runs"));
+                throw new IOException("this report is in facts format 1.0, this tool reads "
+                        + FORMAT_MINIMUM + " and above"
+                        + (regenerable
+                           ? "\n   Rebuild it: runtime-xray --report-only --out " + dossier
+                           : "\n   Its runs/ directory is gone, so nothing can be rebuilt."
+                             + " Re-run the campaign, or read faits.jsonl by hand — its"
+                             + " first line still carries its own vocabulary."));
+            }
+        }
+    }
+
+    /** Le plus ancien format que ce lecteur comprend. */
+    public static final String FORMAT_MINIMUM = "2.0";
 
     /**
      * Une famille inconnue s'arrête net, avec la liste de celles qui existent.
@@ -140,11 +175,29 @@ public final class Contexte {
      * qui n'existe pas a un défaut : le lui taire produirait un paquet silencieusement
      * différent de ce qu'il croit lire.
      */
+    /**
+     * Les noms de familles d'avant le format 2.0, acceptés à vie.
+     *
+     * <p>Un script de recette écrit contre la 1.0 ne doit pas s'arrêter parce que le format
+     * a changé de langue. Ils ne sont pas documentés : ils marchent, c'est tout.
+     */
+    static final Map<String, String> FAMILLES_1_0 = Map.of(
+            "campagne", "campaign",
+            "execution", "run",
+            "indisponibilite", "unavailable",
+            "reserve", "caveat",
+            "couverture.execution", "coverage.run",
+            "classe", "class",
+            "classe.jamais_executee", "class.never_executed",
+            "methode.chaude", "method.hot",
+            "source.introuvable", "source.missing",
+            "piste.source", "source.hint");
+
     static List<String> valider(List<String> demandees) throws IOException {
         List<String> connues = famillesConnues();
         List<String> out = new ArrayList<>();
         for (String d : demandees) {
-            String nom = d.trim();
+            String nom = FAMILLES_1_0.getOrDefault(d.trim(), d.trim());
             if (nom.isEmpty()) continue;
             if (!connues.contains(nom)) {
                 throw new IOException("unknown fact family: \"" + nom + "\" — the families are "
@@ -170,7 +223,7 @@ public final class Contexte {
         }
 
         String nom() {
-            return String.valueOf(champs.get("fait"));
+            return String.valueOf(champs.get("fact"));
         }
     }
 
@@ -207,26 +260,26 @@ public final class Contexte {
     static final Map<String, String[]> MOTS_FR = new LinkedHashMap<>();
 
     static {
-        MOTS.put("classe.jamais_executee",
+        MOTS.put("class.never_executed",
                 new String[]{"never", "dead", "unused", "uncovered", "not covered"});
-        MOTS.put("couverture.execution", new String[]{"cover", "coverage", "percent"});
-        MOTS.put("methode.chaude",
+        MOTS.put("coverage.run", new String[]{"cover", "coverage", "percent"});
+        MOTS.put("method.hot",
                 new String[]{"time", "slow", "hot", "cost", "perf", "fast", "profil"});
-        MOTS.put("source.introuvable", new String[]{"source", "missing", "root"});
-        MOTS.put("execution",
+        MOTS.put("source.missing", new String[]{"source", "missing", "root"});
+        MOTS.put("run",
                 new String[]{"run", "campaign", "when", "machine", "command"});
 
-        MOTS_FR.put("classe.jamais_executee",
+        MOTS_FR.put("class.never_executed",
                 new String[]{"jamais", "mort", "inutilis", "non couvert", "pas couvert"});
-        MOTS_FR.put("couverture.execution",
+        MOTS_FR.put("coverage.run",
                 new String[]{"couvert", "couverture", "taux", "pourcent"});
-        MOTS_FR.put("methode.chaude",
+        MOTS_FR.put("method.hot",
                 new String[]{"temps", "lent", "cout", "chaud", "rapide"});
         // « code » n'y figure pas : « dead code » et « code coverage » sont des tournures
         // trop courantes pour qu'un mot aussi général désigne la famille des sources.
-        MOTS_FR.put("source.introuvable",
+        MOTS_FR.put("source.missing",
                 new String[]{"introuvable", "manqu", "racine"});
-        MOTS_FR.put("execution",
+        MOTS_FR.put("run",
                 new String[]{"execution", "campagne", "quand", "commande"});
     }
 
@@ -238,8 +291,8 @@ public final class Contexte {
                 familles.add(e.getKey());
                 // La couverture d'une exécution et celle d'une classe répondent à la même
                 // question, posée à deux échelles : on ne les sépare pas.
-                if (e.getKey().equals("couverture.execution")) familles.add("classe");
-                if (e.getKey().equals("source.introuvable")) familles.add("piste.source");
+                if (e.getKey().equals("coverage.run")) familles.add("class");
+                if (e.getKey().equals("source.missing")) familles.add("source.hint");
             }
         }
         return familles;
@@ -259,8 +312,8 @@ public final class Contexte {
     }
 
     /** La vue d'ensemble : ce qu'on donne quand la question n'a rien déclenché. */
-    static final List<String> VUE_ENSEMBLE = List.of("execution", "couverture.execution",
-            "classe.jamais_executee", "methode.chaude", "piste.source");
+    static final List<String> VUE_ENSEMBLE = List.of("run", "coverage.run",
+            "class.never_executed", "method.hot", "source.hint");
 
     /**
      * Les familles pour une question, la vue d'ensemble à défaut.
@@ -313,23 +366,23 @@ public final class Contexte {
     static String rendre(List<Fait> faits, String question, List<String> familles, int budget) {
         StringBuilder sb = new StringBuilder();
 
-        Fait tete = premier(faits, "campagne");
+        Fait tete = premier(faits, "campaign");
         sb.append(enTete(tete, question));
 
         // D'abord ce qui n'a PAS été mesuré. C'est l'ordre qui compte : un lecteur qui lit
         // les chiffres avant les réserves les a déjà interprétés quand il arrive aux réserves.
-        List<Fait> absences = tous(faits, "indisponibilite");
-        List<Fait> reserves = tous(faits, "reserve");
+        List<Fait> absences = tous(faits, "unavailable");
+        List<Fait> reserves = tous(faits, "caveat");
         if (!absences.isEmpty() || !reserves.isEmpty()) {
             sb.append("\n## Ce qui N'A PAS été mesuré — à lire avant tout chiffre\n\n");
             for (Fait f : absences) {
-                sb.append("- **").append(f.get("quoi")).append("** (exécution ")
-                  .append(f.get("execution")).append(") : ").append(f.get("pourquoi"))
+                sb.append("- **").append(f.get("what")).append("** (exécution ")
+                  .append(f.get("run")).append(") : ").append(f.get("why"))
                   .append("\n  Conséquence : ").append(f.get("consequence")).append("\n");
             }
             for (Fait f : reserves) {
-                sb.append("- Réserve sur ").append(f.get("quoi")).append(" : ")
-                  .append(f.get("reserve")).append("\n");
+                sb.append("- Réserve sur ").append(f.get("what")).append(" : ")
+                  .append(f.get("caveat")).append("\n");
             }
         } else {
             sb.append("\n## Ce qui N'A PAS été mesuré\n\nRien : les trois observateurs ont "
@@ -399,13 +452,13 @@ public final class Contexte {
 
         if (campagne != null) {
             sb.append("\n## La campagne\n\n");
-            for (String cle : List.of("outil", "version", "date", "executions")) {
+            for (String cle : List.of("tool", "version", "date", "runs")) {
                 if (campagne.get(cle) != null) {
                     sb.append("- ").append(cle).append(" : ")
                       .append(nombre(campagne.get(cle))).append("\n");
                 }
             }
-            if (campagne.get("vocabulaire") instanceof Map<?, ?> vocabulaire) {
+            if (campagne.get("vocabulary") instanceof Map<?, ?> vocabulaire) {
                 sb.append("\n## Le vocabulaire des faits\n\n");
                 for (Map.Entry<?, ?> e : vocabulaire.entrySet()) {
                     sb.append("- `").append(e.getKey()).append("` : ").append(e.getValue())

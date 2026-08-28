@@ -40,7 +40,7 @@ familles au lieu de les faire déduire :
 
 ```sh
 java -jar runtime-xray.jar --out <le-dossier> --contexte "…" \
-     --familles classe.jamais_executee,methode.chaude
+     --families class.never_executed,method.hot
 ```
 
 Si le jar n'est pas à portée, lire `faits.jsonl` directement : **sa première ligne contient
@@ -48,23 +48,23 @@ son propre dictionnaire**, il n'y a pas de documentation à aller chercher.
 
 ```sh
 head -1 <report-dir>/faits.jsonl | python3 -m json.tool
-grep '"fait":"classe.jamais_executee"' <report-dir>/faits.jsonl
+grep '"fact":"class.never_executed"' <report-dir>/faits.jsonl
 ```
 
 ## Le vocabulaire
 
-| Valeur de `fait` | Ce que la ligne dit |
+| Valeur de `fact` | Ce que la ligne dit |
 |---|---|
-| `campagne` | l'en-tête : outil, version, date, et le dictionnaire lui-même |
-| `execution` | une exécution observée : identité, commande, machine |
-| `indisponibilite` | une mesure qui **n'a pas été prise**, et pourquoi |
-| `reserve` | une mesure prise, mais dont l'outil limite lui-même la portée |
-| `couverture.execution` | instructions couvertes sur le total, pour une exécution |
-| `classe` | une classe, sa meilleure couverture, et les exécutions qui l'ont couverte |
-| `classe.jamais_executee` | une classe analysée qu'**aucune** exécution n'a atteinte |
-| `methode.chaude` | une méthode parmi les plus coûteuses, en relevés de pile |
-| `source.introuvable` | couverture connue, code source non — racine non configurée |
-| `piste.source` | une racine à ajouter, avec ce qu'elle résoudrait |
+| `campaign` | l'en-tête : outil, version, date, et le dictionnaire lui-même |
+| `run` | une exécution observée : identité, commande, machine |
+| `unavailable` | une mesure qui **n'a pas été prise**, et pourquoi |
+| `caveat` | une mesure prise, mais dont l'outil limite lui-même la portée |
+| `coverage.run` | instructions couvertes sur le total, pour une exécution |
+| `class` | une classe, sa meilleure couverture, et les exécutions qui l'ont couverte |
+| `class.never_executed` | une classe analysée qu'**aucune** exécution n'a atteinte |
+| `method.hot` | une méthode parmi les plus coûteuses, en relevés de pile |
+| `source.missing` | couverture connue, code source non — racine non configurée |
+| `source.hint` | une racine à ajouter, avec ce qu'elle résoudrait |
 
 Toute mesure porte son unité (`"mesure"`). Une mesure sans unité n'existe pas dans ce
 fichier ; si on croit en voir une, c'est qu'on lit autre chose.
@@ -91,7 +91,7 @@ ni de la qualité des tests. Ne jamais le présenter comme une note.
 - **Ne jamais présenter un sous-ensemble comme un total.** Si l'extrait annonce des faits
   écartés, le dire : ni total, ni classement.
 - **Une classe jamais exécutée n'est pas du code mort.** C'est du code qu'*aucune des
-  exécutions observées* n'a atteint. Nommer les exécutions en question (`executionsAnalysee`)
+  exécutions observées* n'a atteint. Nommer les exécutions en question (`runsAnalysed`)
   fait la différence entre un constat et une accusation.
 
 ## Quand le rapport ne montre pas ce qu'on attendait
@@ -118,7 +118,7 @@ pas la même chose, et élargir la mauvaise ne change rien :
 
 - **Ne pas deviner une racine de sources** d'après une convention de projet. Sur la machine
   où l'application tourne loin de son code, la convention ne désigne rien — ou pire, désigne
-  les sources d'un autre projet. `piste.source` propose des racines *vérifiées*, chacune avec
+  les sources d'un autre projet. `source.hint` propose des racines *vérifiées*, chacune avec
   le nombre de classes qu'elle résoudrait : les utiliser, elles.
 - **Ne pas relancer une campagne pour répondre à une question de lecture.** Le cumul de
   couverture sur un sous-ensemble d'exécutions se calcule hors ligne, sur des données déjà

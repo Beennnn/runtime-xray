@@ -168,27 +168,27 @@ async function rafraichir(){
   if (!lignes.length) return;
 
   // Seulement la dernière exécution : le fichier les accumule, comme le rapport.
-  const derniere = lignes[lignes.length-1].execution;
-  const suite = lignes.filter(l => l.execution === derniere);
-  const av = suite.filter(l => l.evenement === "avancement");
-  const fin = suite.find(l => l.evenement === "fin");
-  const debut = suite.find(l => l.evenement === "demarrage");
+  const derniere = lignes[lignes.length-1].run;
+  const suite = lignes.filter(l => l.run === derniere);
+  const av = suite.filter(l => l.event === "progress");
+  const fin = suite.find(l => l.event === "end");
+  const debut = suite.find(l => l.event === "start");
   const cur = av[av.length-1];
 
   $("#nom").textContent = derniere ? "exécution « " + derniere + " »" : "";
   // Qui ouvre cette page doit savoir CE QU'ELLE regarde : sans la commande, une exécution
   // qui avance ne dit pas laquelle avance.
   $("#cmd").textContent = debut
-      ? "▶ " + (debut.commande || "(commande non renseignée)") + "     → " + (debut.sortie || "")
+      ? "▶ " + (debut.command || "(commande non renseignée)") + "     → " + (debut.output || "")
       : "";
   const etat = $("#etat");
   etat.className = "etat " + (fin ? "finie" : "vit");
-  $("#etatTexte").textContent = fin ? fin.statut : "en cours";
+  $("#etatTexte").textContent = fin ? fin.status : "en cours";
 
-  $("#ecoule").textContent  = duree(fin ? fin.secondes : (cur ? cur.secondes : 0));
-  $("#coeurs").textContent  = cur ? cur.coeurs.toFixed(2).replace(".", ",") : "—";
-  $("#coeursNote").textContent = cur && cur.cpuSecondes ? "· " + cur.cpuSecondes + " s cpu" : "";
-  $("#sortie").textContent  = cur ? octets(cur.sortieOctets) : "—";
+  $("#ecoule").textContent  = duree(fin ? fin.seconds : (cur ? cur.seconds : 0));
+  $("#coeurs").textContent  = cur ? cur.cores.toFixed(2).replace(".", ",") : "—";
+  $("#coeursNote").textContent = cur && cur.cpuSeconds ? "· " + cur.cpuSeconds + " s cpu" : "";
+  $("#sortie").textContent  = cur ? octets(cur.outputBytes) : "—";
   $("#releves").textContent = av.length;
 
   // Ne redessiner la bande que quand elle a changé : sinon un clignotement à chaque
@@ -197,9 +197,9 @@ async function rafraichir(){
   if (signature !== dernierEvenement) {
     dernierEvenement = signature;
     $("#bande").innerHTML = av.slice(-180).map(l =>
-      `<span class="case l${l.palier}" title="${l.secondes} s · ${l.coeurs} cœur(s)"></span>`
+      `<span class="case l${l.level}" title="${l.seconds} s · ${l.cores} cœur(s)"></span>`
     ).join("");
-    courbe(av.map(l => l.coeurs));
+    courbe(av.map(l => l.cores));
   }
 
   try {

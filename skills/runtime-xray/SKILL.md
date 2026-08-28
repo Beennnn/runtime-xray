@@ -115,7 +115,7 @@ tail -f runtime-xray-out/progression.jsonl
 
 Une ligne JSON par seconde, écrite de toute façon : secondes écoulées, cœurs occupés,
 palier d'activité, taille de la sortie produite. La dernière ligne porte
-`"evenement":"fin"` — c'est ce qui dit qu'on peut arrêter de regarder. Le chemin ne dépend
+`"event":"end"` — c'est ce qui dit qu'on peut arrêter de regarder. Le chemin ne dépend
 pas du nom de l'exécution.
 
 **2. La bande dans le terminal** — elle s'affiche seule devant un vrai terminal, et se tait

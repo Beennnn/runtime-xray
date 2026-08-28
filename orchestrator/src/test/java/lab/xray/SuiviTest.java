@@ -51,8 +51,8 @@ class SuiviTest {
             suivi.fin("terminée", 2);
         }
         List<Map<String, Object>> lignes = lire(dir);
-        assertEquals(List.of("demarrage", "avancement", "avancement", "fin"),
-                lignes.stream().map(l -> l.get("evenement")).toList());
+        assertEquals(List.of("start", "progress", "progress", "end"),
+                lignes.stream().map(l -> l.get("event")).toList());
     }
 
     @Test
@@ -66,17 +66,17 @@ class SuiviTest {
         for (Map<String, Object> l : lignes) {
             // Sans le nom de l'exécution sur chaque ligne, un fil qui accumule plusieurs
             // exécutions — ce qu'il fait — devient impossible à relire.
-            assertEquals("recette 1", l.get("execution"));
+            assertEquals("recette 1", l.get("run"));
             assertTrue(l.containsKey("date"), "une ligne sans horodatage ne se recoupe pas");
         }
-        assertEquals("java -jar app.jar", lignes.get(0).get("commande"),
+        assertEquals("java -jar app.jar", lignes.get(0).get("command"),
                 "sans la commande, une exécution qui avance ne dit pas laquelle avance");
         Map<String, Object> avancement = lignes.get(1);
-        assertEquals(7L, ((Number) avancement.get("secondes")).longValue());
-        assertEquals(1.7, ((Number) avancement.get("coeurs")).doubleValue(), 0.001);
-        assertEquals(4, ((Number) avancement.get("palier")).intValue(),
+        assertEquals(7L, ((Number) avancement.get("seconds")).longValue());
+        assertEquals(1.7, ((Number) avancement.get("cores")).doubleValue(), 0.001);
+        assertEquals(4, ((Number) avancement.get("level")).intValue(),
                 "1,7 cœur, c'est le palier le plus dense — le même seuil que la bande");
-        assertEquals("fin", lignes.get(lignes.size() - 1).get("evenement"),
+        assertEquals("end", lignes.get(lignes.size() - 1).get("event"),
                 "un lecteur qui suit le fichier doit savoir quand s'arrêter");
     }
 
@@ -91,8 +91,8 @@ class SuiviTest {
             }
         }
         List<Integer> paliers = lire(dir).stream()
-                .filter(l -> "avancement".equals(l.get("evenement")))
-                .map(l -> ((Number) l.get("palier")).intValue()).toList();
+                .filter(l -> "progress".equals(l.get("event")))
+                .map(l -> ((Number) l.get("level")).intValue()).toList();
         assertEquals(List.of(0, 1, 2, 3, 4), paliers);
     }
 
