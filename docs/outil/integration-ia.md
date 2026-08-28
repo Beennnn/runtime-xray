@@ -197,13 +197,13 @@ pas de lui-même.
 
 ### Niveau 1 — une commande
 
-`bin/demander.sh` prend une question, produit le contexte par l'outil, le poste, et écrit la
+`bin/ask.sh` prend une question, produit le contexte par l'outil, le poste, et écrit la
 réponse. Aucune dépendance : `curl` et `jq`.
 
 ```bash
-./bin/demander.sh --out runtime-xray-out "which classes never ran?"
-./bin/demander.sh --api anthropic --modele … "where does the time go?"
-./bin/demander.sh --contexte-seul --out runtime-xray-out "…"   # rien n'est envoyé
+./bin/ask.sh --out runtime-xray-out "which classes never ran?"
+./bin/ask.sh --api anthropic --model … "where does the time go?"
+./bin/ask.sh --context-only --out runtime-xray-out "…"   # rien n'est envoyé
 ```
 
 Le script est **délibérément mince**, et c'est tout son intérêt : le travail utile — choisir
@@ -237,7 +237,7 @@ acceptent cette forme, quel que soit le modèle derrière. Une passerelle intern
 donc ainsi, sans que rien du montage ne suppose quoi que ce soit sur l'éditeur du modèle :
 
 ```bash
-./bin/demander.sh --url https://passerelle.interne/v1/chat/completions --modele … "…"
+./bin/ask.sh --url https://passerelle.interne/v1/chat/completions --model … "…"
 ```
 
 Le jour où une quatrième forme s'impose, il y a une trentaine de lignes à écrire dans un
@@ -258,7 +258,7 @@ Deux précautions, et elles sont du même ordre que pour n'importe quel appel so
 - **Ce qui sort de la machine** est un texte de faits — noms de classes et de méthodes,
   chiffres de couverture et d'échantillons. Pas de code source, pas de valeurs capturées. Sur
   un code dont les noms de classes sont eux-mêmes sensibles, la question à trancher reste
-  entière, et `--contexte-seul` permet de la regarder avant d'envoyer quoi que ce soit.
+  entière, et `--context-only` permet de la regarder avant d'envoyer quoi que ce soit.
 - **Un appel sortant est un appel sortant.** Sur le parc visé par cet outil — des machines
   sans réseau — le niveau 0 est le seul qui fonctionne, et il fonctionne très bien.
 
