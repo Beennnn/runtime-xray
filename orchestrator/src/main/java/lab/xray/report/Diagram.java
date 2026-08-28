@@ -12,21 +12,22 @@ import java.util.Map;
 import java.util.TreeMap;
 
 /**
- * La campagne entière sur une page, en SVG.
+ * The whole campaign on one page, in SVG.
  *
- * <p>La vue interactive répond aux questions qu'on lui pose ; elle ne se transmet pas. Or ce
- * qu'on montre en réunion, ce qu'on colle dans une diapositive, ce qu'on joint à un compte
- * rendu, c'est une image — et jusqu'ici il fallait la fabriquer à la main à partir de
- * captures d'écran, donc la refaire à chaque campagne, donc ne pas la faire.
+ * <p>The interactive view answers the questions put to it; it does not travel. Yet what is
+ * shown in a meeting, pasted into a slide, attached to a write-up, is an image — and until
+ * now it had to be built by hand out of screenshots, so redone for every campaign, so not
+ * done at all.
  *
- * <p>Ce fichier est engendré à chaque assemblage, à côté de la page. Il ne contient que des
- * chiffres <b>mesurés</b> : aucun n'est arrondi à l'avantage de qui le présente, et les
- * classes jamais exécutées y figurent au même titre que la couverture. Un schéma de synthèse
- * qui ne montrerait que ce qui va bien coûterait sa crédibilité au premier vérificateur.
+ * <p>This file is generated at every assembly, beside the page. It contains only
+ * <b>measured</b> figures: none is rounded to the advantage of whoever presents it, and the
+ * never-executed classes appear there on the same footing as the coverage. A summary
+ * diagram showing only what goes well would lose its credibility to the first person who
+ * checks.
  *
- * <p><b>Les couleurs sont écrites en clair</b>, et non héritées d'un thème : le fichier est
- * fait pour être glissé dans une présentation, et PowerPoint n'interprète pas
- * {@code currentColor}. Pour la même raison, il n'y a ni script, ni police externe.
+ * <p><b>The colours are written out literally</b>, not inherited from a theme: the file is
+ * made to be dropped into a presentation, and PowerPoint does not interpret
+ * {@code currentColor}. For the same reason there is no script and no external font.
  */
 public final class Diagram {
 
@@ -35,16 +36,16 @@ public final class Diagram {
     private static final String BLUE = "#0969da", BAR_BACKGROUND = "#e4e9ef";
     private static final String FONT = "Segoe UI, system-ui, sans-serif";
 
-    /** Au-delà, la page devient un mur : on montre les plus parlants et on dit le reste. */
+    /** Beyond that the page becomes a wall: we show the most telling and say the rest. */
     private static final int MAX_PACKAGES = 9, MAX_METHODS = 6, MAX_DEAD = 16;
 
     private Diagram() {}
 
     /**
-     * Écrit {@code synthese.svg} à côté de la page.
+     * Writes {@code synthese.svg} beside the page.
      *
-     * @param runs les exécutions telles que la vue les reçoit
-     * @return le fichier écrit, ou {@code null} s'il n'y avait rien à dessiner
+     * @param runs the runs as the view receives them
+     * @return the file written, or {@code null} when there was nothing to draw
      */
     public static Path write(Path commonDir, List<Object> runs) throws IOException {
         if (runs == null || runs.isEmpty()) return null;
@@ -59,16 +60,16 @@ public final class Diagram {
     }
 
     /**
-     * D'où vient le chiffre de couverture qu'on met en gros, et ce qu'il vaut.
+     * Where the coverage figure shown in large type comes from, and what it is worth.
      *
-     * <p>Réunir des exécutions n'est pas additionner leurs pourcentages. Le seul cumul exact
-     * est celui que JaCoCo calcule en fusionnant les mesures ; c'est lui qu'on affiche dès
-     * qu'il existe, avec la mention de sa source.
+     * <p>Bringing runs together is not adding up their percentages. The only exact
+     * cumulative figure is the one JaCoCo computes by merging the measurements; that is the
+     * one shown as soon as it exists, with its source stated.
      *
-     * <p>À défaut, on retient par classe la <b>meilleure couverture atteinte</b> — une
-     * approximation par le haut, honnête tant qu'on le dit. Un schéma qu'on projette ne peut
-     * pas se permettre un chiffre dont personne ne sait d'où il sort : il serait démenti par
-     * le premier qui ouvre le rapport JaCoCo.
+     * <p>Failing that, we keep per class the <b>best coverage reached</b> — an
+     * approximation from above, honest as long as it is said. A diagram put on a screen
+     * cannot afford a figure nobody knows the origin of: it would be contradicted by the
+     * first person to open the JaCoCo report.
      */
     private record Figure(double pct, long covered, long total, String source) {}
 
@@ -91,7 +92,7 @@ public final class Diagram {
                             covered + missing, "JaCoCo merge of " );
                 }
             } catch (Exception e) {
-                // La fusion est un supplément : son illisibilité ne doit pas priver de schéma.
+                // The merge is a bonus: its being unreadable must not cost the diagram.
             }
         }
         long total = cov + put;
@@ -115,7 +116,7 @@ public final class Diagram {
         List<String> never = neverExecutedClasses(runs);
         long classes = classCount(runs), dead = never.size();
 
-        // ── en-tête ────────────────────────────────────────────────────────────────
+        // ── header ─────────────────────────────────────────────────────────────────
         text(s, 40, 48, 22, 700, INK, "What the campaign measured");
         text(s, 40, 72, 13, 400, MUTED, shorten(String.valueOf(ctx.getOrDefault("commande", "")), 95));
         text(s, 40, 92, 12.5, 400, MUTED,
@@ -137,10 +138,10 @@ public final class Diagram {
         tile(s, 970, 118, "TIME OBSERVED", totalDuration(runs),
                 "wall-clock time of the scenarios", MUTED);
 
-        // ── par paquet ─────────────────────────────────────────────────────────────
+        // ── per package ────────────────────────────────────────────────────────────
         title(s, 40, 268, "WHERE THE CODE IS COVERED, PACKAGE BY PACKAGE", 600);
         List<Map.Entry<String, long[]>> ordered = new ArrayList<>(pkgs.entrySet());
-        // Le moins couvert d'abord : c'est là qu'on décide quelque chose.
+        // The least covered first: that is where something gets decided.
         ordered.sort(Comparator.comparingDouble(e -> share(e.getValue())));
         int y = 296;
         for (int i = 0; i < Math.min(MAX_PACKAGES, ordered.size()); i++) {
@@ -154,7 +155,7 @@ public final class Diagram {
                     "and " + (ordered.size() - MAX_PACKAGES) + " more packages — the page shows them all");
         }
 
-        // ── où le temps est parti ──────────────────────────────────────────────────
+        // ── where the time went ────────────────────────────────────────────────────
         title(s, 700, 268, "WHERE THE TIME WENT", 540);
         List<Map.Entry<String, Long>> chaud = hottestMethods(runs);
         if (chaud.isEmpty()) {
@@ -163,8 +164,8 @@ public final class Diagram {
             long max = chaud.get(0).getValue();
             int yc = 296;
             for (Map.Entry<String, Long> e : chaud) {
-                // Un nom de méthode qualifié est long : on lui donne la place, et on coupe
-                // par la GAUCHE — c'est la fin du nom qui identifie, pas le paquet.
+                // A qualified method name is long: we give it the room, and cut on the
+                // LEFT — it is the end of the name that identifies, not the package.
                 bar(s, 700, yc, 540, shorten(e.getKey().replace('/', '.'), 40),
                       max == 0 ? 0 : 100.0 * e.getValue() / max, "", 300);
                 yc += 30;
@@ -173,13 +174,13 @@ public final class Diagram {
                     "Share of the measured time, calls included — relative to the costliest.");
         }
 
-        // ── jamais exécuté ─────────────────────────────────────────────────────────
-        // Par exécution : ce que chaque scénario apporte. C'est la question qu'on pose devant
-        // une campagne — « le deuxième scénario a-t-il servi à quelque chose ? ».
+        // ── never executed ─────────────────────────────────────────────────────────
+        // Per run: what each scenario brings. That is the question asked in front of a
+        // campaign — "was the second scenario of any use?".
         title(s, 700, 500, "WHAT EACH RUN COVERED", 540);
-        // Toutes sur le MÊME dénominateur que le cumul, sans quoi une exécution afficherait
-        // un pourcentage supérieur au total — chacune sur son propre périmètre, ce qui se
-        // lit comme une contradiction alors que ce n'est qu'un changement de base.
+        // All on the SAME denominator as the cumulative figure, without which a run would
+        // show a percentage above the total — each on its own perimeter, which reads as a
+        // contradiction when it is only a change of base.
         long base = coverage.total();
         int ye = 528;
         for (Object r : runs) {
@@ -245,7 +246,7 @@ public final class Diagram {
         text(s, x + 20, y + 96, 12, 400, MUTED, detail);
     }
 
-    /** Une barre, son libellé et son pourcentage — la forme qui se lit de loin. */
+    /** A bar, its label and its percentage — the shape that reads from a distance. */
     private static void bar(StringBuilder s, int x, int y, int width, String label,
                               double pct, String right, int placeLabel) {
         int barX = x + placeLabel, barL = width - placeLabel - 62;
@@ -264,7 +265,7 @@ public final class Diagram {
 
     // ------------------------------------------------------------------ mesures
 
-    /** Par paquet : instructions couvertes, manquées, et nombre de classes. */
+    /** Per package: instructions covered, missed, and the number of classes. */
     static Map<String, long[]> coveragePerPackage(List<Object> runs) {
         Map<String, long[]> out = new TreeMap<>();
         Map<String, Map<String, long[]>> byClass = new TreeMap<>();
@@ -274,8 +275,8 @@ public final class Diagram {
                 if (!(p.getValue() instanceof Iterable<?> classes)) continue;
                 for (Object c : classes) {
                     if (!(c instanceof Map<?, ?> cls)) continue;
-                    // La meilleure couverture atteinte par une exécution fait foi : c'est
-                    // l'union qui décrit la campagne, pas la dernière exécution lancée.
+                    // The best coverage reached by any run is authoritative: it is the
+                    // union that describes the campaign, not the last run launched.
                     long[] v = byClass.computeIfAbsent(String.valueOf(p.getKey()),
                             k -> new TreeMap<>()).computeIfAbsent(String.valueOf(cls.get("name")),
                             k -> new long[2]);
@@ -322,7 +323,7 @@ public final class Diagram {
         return names.size();
     }
 
-    /** Les méthodes sous lesquelles le plus de temps a été passé, toutes exécutions réunies. */
+    /** The methods beneath which most time was spent, all runs taken together. */
     static List<Map.Entry<String, Long>> hottestMethods(List<Object> runs) {
         Map<String, Long> weight = new LinkedHashMap<>();
         for (Object r : runs) {
@@ -367,7 +368,7 @@ public final class Diagram {
 
     // ------------------------------------------------------------------ menues
 
-    /** Ce qu'une exécution a couvert, à elle seule. */
+    /** What one run covered, on its own. */
     static long[] coverageOf(Map<?, ?> run) {
         long[] out = new long[2];
         if (!(run.get("packages") instanceof Map<?, ?> pkgs)) return out;
@@ -417,7 +418,7 @@ public final class Diagram {
         return sb.toString();
     }
 
-    /** Un nom de classe peut porter n'importe quoi : le SVG ne doit pas s'en trouver cassé. */
+    /** A class name can carry anything: the SVG must not end up broken by it. */
     private static String escape(String s) {
         return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
     }

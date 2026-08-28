@@ -13,42 +13,42 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Le secret partagé qui garde le rapport servi, quand on en met un.
+ * The shared secret that guards the served report, when one is set.
  *
- * <p>Trois usages coexistent dans cet outil, et ils n'ont pas le même besoin. Sur son
- * poste — {@code --serve} seul — le serveur n'écoute que la boucle locale : demander un
- * mot de passe à quelqu'un pour accéder à ses propres mesures n'ajouterait rien. Déployé
- * pour une équipe — {@code --serve-host 0.0.0.0} — la question change : quiconque atteint
- * le port lit les rapports et annote.
+ * <p>Three uses coexist in this tool, and they do not have the same need. On one's own
+ * machine — {@code --serve} alone — the server only listens on the loopback: asking
+ * somebody for a password to reach their own measurements would add nothing. Deployed for
+ * a team — {@code --serve-host 0.0.0.0} — the question changes: whoever reaches the port
+ * reads the reports and annotates them.
  *
- * <p>D'où ce garde <b>facultatif</b> : sans secret il laisse tout passer, et les deux
- * premiers modes ne changent pas d'un pouce. Avec {@code --serve-token}, il exige la même
- * phrase de tout le monde. C'est un secret partagé, pas des comptes : l'outil ne sait pas
- * qui annote, il ne l'a jamais su, et le prétendre serait mentir sur ce qui est écrit dans
- * les fichiers d'annotation.
+ * <p>Hence this <b>optional</b> guard: without a secret it lets everything through, and
+ * the first two modes do not change by an inch. With {@code --serve-token}, it demands the
+ * same phrase from everyone. It is a shared secret, not accounts: the tool does not know
+ * who annotates, it never did, and pretending otherwise would be lying about what is
+ * written in the annotation files.
  *
- * <p>Ce qu'il vaut, dit franchement :
+ * <p>What it is worth, said plainly:
  * <ul>
- *   <li>il arrête un passant sur le réseau interne, pas un attaquant décidé ;</li>
- *   <li><b>en HTTP simple, le secret circule en clair</b> — pour qu'il protège vraiment,
- *       il faut du TLS devant, terminé par un reverse proxy ;</li>
- *   <li>un secret donné sur la ligne de commande se lit dans {@code ps} par les autres
- *       comptes de la machine : {@code XRAY_SERVE_TOKEN} existe pour cela.</li>
+ *   <li>it stops a passer-by on the internal network, not a determined attacker;</li>
+ *   <li><b>over plain HTTP the secret travels in the clear</b> — for it to protect
+ *       anything, TLS must sit in front, terminated by a reverse proxy;</li>
+ *   <li>a secret given on the command line is readable in {@code ps} by the machine's
+ *       other accounts: {@code XRAY_SERVE_TOKEN} exists for that.</li>
  * </ul>
- * Autrement dit il complète un filtrage réseau, il ne le remplace pas.
+ * In other words it complements network filtering, it does not replace it.
  */
 final class Access {
 
-    /** Nom du cookie de session. Court, et sans rapport avec le contenu du secret. */
+    /** Name of the session cookie. Short, and unrelated to the secret's content. */
     private static final String COOKIE = "xray_session";
 
-    /** Une session ouverte vaut une journée de travail, pas davantage. */
+    /** An open session is worth one working day, no more. */
     private static final long DURATION_MS = 12 * 60 * 60 * 1000L;
 
-    /** Au-delà, les plus anciennes sont oubliées : la mémoire n'est pas un journal. */
+    /** Beyond that the oldest are forgotten: memory is not a log. */
     private static final int MAX_SESSIONS = 512;
 
-    /** Ce qu'il faut rater pour être mis de côté, et pour combien de temps. */
+    /** How much one must get wrong to be set aside, and for how long. */
     private static final int TOLERATED_FAILURES = 5;
     private static final long THROTTLE_MS = 30_000L;
 
@@ -62,21 +62,21 @@ final class Access {
         this.secret = secret;
     }
 
-    /** Un garde qui laisse tout passer : le cas normal, sur son poste. */
+    /** A guard that lets everything through: the normal case, on one's own machine. */
     static Access open() {
         return new Access(null);
     }
 
-    /** Un garde qui exige {@code secret}. */
+    /** A guard that demands {@code secret}. */
     static Access withSecret(String secret) {
         if (secret == null || secret.isBlank()) {
             throw new IllegalArgumentException("an empty secret guards nothing");
         }
         String clean = secret.trim();
-        // Un accent dans le secret se perd en route : l'en-tête « Authorization » ne
-        // transporte que de l'ASCII, et une variable d'environnement traverse un shell dont
-        // on ne connaît pas l'encodage. Le refuser ici avec sa raison vaut mieux qu'un 401
-        // inexplicable une fois le serveur déployé.
+        // An accent in the secret is lost on the way: the "Authorization" header only
+        // carries ASCII, and an environment variable crosses a shell whose encoding is
+        // unknown. Refusing it here, with the reason, is better than an unexplainable 401
+        // once the server is deployed.
         for (int i = 0; i < clean.length(); i++) {
             char c = clean.charAt(i);
             if (c < 0x20 || c > 0x7E) {
@@ -88,7 +88,7 @@ final class Access {
         return new Access(clean);
     }
 
-    /** Un secret tiré au sort, pour qui n'a pas envie d'en inventer un. */
+    /** A secret drawn at random, for those who would rather not invent one. */
     static String randomSecret() {
         byte[] bytes = new byte[18];
         RANDOM.nextBytes(bytes);
@@ -100,11 +100,11 @@ final class Access {
     }
 
     /**
-     * Cette requête a-t-elle le droit d'aller plus loin ?
+     * Is this request allowed to go any further?
      *
-     * <p>Deux façons de le prouver : le cookie posé après la page d'entrée, pour un
-     * navigateur ; l'en-tête {@code Authorization: Bearer} pour tout le reste — un
-     * {@code curl} de vérification, un script d'intégration.
+     * <p>Two ways to prove it: the cookie set after the entry page, for a browser; the
+     * {@code Authorization: Bearer} header for everything else — a {@code curl} check, an
+     * integration script.
      */
     boolean allows(HttpExchange ex) {
         if (!guards()) return true;
@@ -126,11 +126,11 @@ final class Access {
     }
 
     /**
-     * Vérifie le secret proposé et ouvre une session ; rend {@code null} en cas d'échec.
+     * Checks the secret offered and opens a session; returns {@code null} on failure.
      *
-     * <p>Un secret partagé se devine par essais successifs : après quelques ratés venant du
-     * même endroit, on cesse de répondre pendant un moment. Ce n'est pas une défense contre
-     * un attaquant patient — c'en est une contre un script qui essaie mille mots.
+     * <p>A shared secret is guessed by trying: after a few misses from the same place, we
+     * stop answering for a while. This is not a defence against a patient attacker — it is
+     * one against a script trying a thousand words.
      */
     String openSession(String propose, String origin) {
         if (throttled(origin)) return null;
@@ -153,10 +153,10 @@ final class Access {
                 && System.currentTimeMillis() - e.last < THROTTLE_MS;
     }
 
-    /** L'en-tête à poser pour que le navigateur garde la session ouverte. */
+    /** The header to set so that the browser keeps the session open. */
     String cookieHeader(String session) {
-        // Pas de « Secure » : il rendrait le cookie inopérant en HTTP simple, et c'est
-        // ainsi que ce serveur est lancé. Le TLS, s'il y en a, est terminé devant.
+        // No "Secure": it would make the cookie inoperative over plain HTTP, and that is
+        // how this server is launched. TLS, if any, is terminated in front.
         return COOKIE + "=" + session + "; Path=/; HttpOnly; SameSite=Strict; Max-Age="
                 + (DURATION_MS / 1000);
     }
@@ -171,7 +171,7 @@ final class Access {
         });
     }
 
-    /** Comparaison à durée constante : la durée d'un refus ne doit rien dire du secret. */
+    /** Constant-time comparison: how long a refusal takes must say nothing about the secret. */
     private boolean sameSecret(String propose) {
         return MessageDigest.isEqual(propose.getBytes(StandardCharsets.UTF_8),
                 secret.getBytes(StandardCharsets.UTF_8));
@@ -195,25 +195,25 @@ final class Access {
         return null;
     }
 
-    /** L'adresse d'où vient la requête, telle qu'on la compte pour les ratés. */
+    /** The address the request comes from, as counted for the misses. */
     static String origin(HttpExchange ex) {
         return ex.getRemoteAddress() == null ? "?"
                 : String.valueOf(ex.getRemoteAddress().getAddress());
     }
 
     /**
-     * La page d'entrée : un champ, un bouton, et la raison d'être là.
+     * The entry page: one field, one button, and the reason for being there.
      *
-     * <p>Écrite ici plutôt que dans un fichier à part parce qu'elle doit rester lisible
-     * même quand rien d'autre n'est encore servi — c'est la première chose que voit
-     * quelqu'un à qui on a donné une adresse.
+     * <p>Written here rather than in a separate file because it must stay readable even
+     * when nothing else is served yet — it is the first thing someone given an address
+     * sees.
      */
     static String entryPage(String requested, String message) {
         String target = requested == null || requested.isBlank() ? "/" : requested;
         String alert = message == null ? ""
                 : "<p class=ko role=alert>" + escape(message) + "</p>";
-        // Remplacement littéral, et non « formatted » : la feuille de style contient des
-        // « % » (width:100%), que le formateur prendrait pour des conversions.
+        // Literal replacement, not "formatted": the stylesheet contains "%" signs
+        // (width:100%), which the formatter would take for conversions.
         return """
                 <!doctype html><html lang=en><meta charset=utf-8>
                 <meta name=viewport content="width=device-width,initial-scale=1">
@@ -250,13 +250,13 @@ final class Access {
                 """.replace("{{alerte}}", alert).replace("{{cible}}", escape(target));
     }
 
-    /** Le chemin vers la page d'entrée, avec la page demandée en mémoire. */
+    /** The path to the entry page, remembering the page that was asked for. */
     static String toEntryPage(String request) {
         return "/__xray/entrer?vers="
                 + URLEncoder.encode(request == null ? "/" : request, StandardCharsets.UTF_8);
     }
 
-    /** Le formulaire renvoie du {@code application/x-www-form-urlencoded} : rien de plus. */
+    /** The form sends back {@code application/x-www-form-urlencoded}: nothing more. */
     static Map<String, String> fields(String body) {
         Map<String, String> out = new java.util.LinkedHashMap<>();
         for (String chunk : body.split("&")) {
@@ -276,7 +276,7 @@ final class Access {
                 .replace("\"", "&quot;");
     }
 
-    /** Ce qu'on affiche au démarrage : jamais le secret, seulement son existence. */
+    /** What is shown at start-up: never the secret, only that there is one. */
     void announce(boolean local) {
         if (guards()) {
             System.out.println();
@@ -300,7 +300,7 @@ final class Access {
         long last;
     }
 
-    /** Le secret retenu : celui de la ligne de commande, sinon celui de l'environnement. */
+    /** The secret kept: the one from the command line, otherwise the one from the environment. */
     static String secretRequested(String onTheLine, Map<String, String> environment) {
         if (onTheLine != null) return onTheLine;
         String env = environment.get("XRAY_SERVE_TOKEN");

@@ -12,19 +12,19 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Lecture des relevés de l'inspecteur de valeurs.
+ * Reading the value inspector's records.
  *
- * <p>Deux sorties distinctes :
+ * <p>Two distinct outputs:
  * <ul>
- *   <li><b>les valeurs</b> reçues par chaque méthode, appel par appel ;</li>
- *   <li><b>la trace</b> d'un appel : quel appel part de quelle ligne, et en combien de temps.</li>
+ *   <li><b>the values</b> received by each method, call by call;</li>
+ *   <li><b>the trace</b> of one call: which call leaves which line, and in how long.</li>
  * </ul>
  */
 public final class Inspection {
 
-    /** Codes de couleur du terminal : la sortie est faite pour un écran, pas pour un fichier.
-     *  Le caractère d'échappement s'écrit \\u001B et jamais en clair : un octet de
-     *  contrôle invisible dans un source est une source de bugs muets. */
+    /** Terminal colour codes: the output is made for a screen, not for a file. The escape
+     *  character is written \\u001B and never literally: an invisible control byte in a
+     *  source file is a source of silent bugs. */
     private static final Pattern ANSI = Pattern.compile("\\u001B\\[[0-9;]*m");
     private static final Pattern METHOD = Pattern.compile("^method=([\\w.$]+)\\s");
     private static final Pattern TS = Pattern.compile("^ts=([\\d\\- :.]+);\\s*\\[cost=([^\\]]*)\\]");
@@ -34,16 +34,16 @@ public final class Inspection {
     private static final Pattern DURATION = Pattern.compile("([\\d.]+)ms");
 
     /**
-     * Méthodes ajoutées par les outils ou par le compilateur, jamais écrites par personne.
-     * Les capturer produit des lignes illisibles — un tableau de booléens pour la sonde de
-     * couverture, par exemple — et pollue la liste des méthodes observées.
+     * Methods added by the tools or by the compiler, never written by anyone. Capturing
+     * them produces unreadable lines — an array of booleans for the coverage probe, for
+     * instance — and pollutes the list of observed methods.
      */
     private static final Pattern SYNTHETIC =
             Pattern.compile("\\$jacocoInit|\\$jacocoData|^<clinit>$|^access\\$|lambda\\$");
 
-    /** Valeurs par méthode : {@code paquet/Classe.methode -> [ {cost, params, retour} ]}. */
+    /** Values per method: {@code package/Class.method -> [ {cost, params, retour} ]}. */
     public final Map<String, Object> values = new LinkedHashMap<>();
-    /** Appels par ligne : {@code "43" -> [ {callee, cost, frame} ]}. */
+    /** Calls per line: {@code "43" -> [ {callee, cost, frame} ]}. */
     public final Map<String, Object> trace = new LinkedHashMap<>();
 
     public static Inspection read(Path valuesFile, Path traceFile, int limitPerMethod)
@@ -55,22 +55,22 @@ public final class Inspection {
     }
 
     /**
-     * La sortie a cette forme, et c'est l'<b>indentation</b> qui porte le sens :
+     * The output has this shape, and it is the <b>indentation</b> that carries the meaning:
      * <pre>
-     * method=paquet.Classe.methode location=AtExit
+     * method=package.Class.method location=AtExit
      * ts=...; [cost=1.24ms] result=@ArrayList[
-     *     @Object[][                    &lt;- le tableau des paramètres
-     *         @Leg[Leg[from=Auch...]],  &lt;- un paramètre par ligne, indenté de 8
+     *     @Object[][                    &lt;- the array of arguments
+     *         @Leg[Leg[from=Auch...]],  &lt;- one argument per line, indented by 8
      *         @Mode[CAR],
      *     ],
-     *     @Double[29.72],               &lt;- indenté de 4 : la valeur de RETOUR
+     *     @Double[29.72],               &lt;- indented by 4: the RETURN value
      * ]
      * </pre>
      *
-     * <p>Deux pièges, qui ont produit un affichage faux avant correction : les crochets sont
-     * <b>imbriqués</b> — une expression régulière naïve tronque la valeur — et la ligne de
-     * retour est <b>hors</b> du bloc des paramètres, donc ignorée par une capture qui
-     * s'arrête à la première ligne non conforme. D'où l'analyse fondée sur l'indentation.
+     * <p>Two traps, which produced a wrong display before they were fixed: the brackets are
+     * <b>nested</b> — a naive regular expression truncates the value — and the return line
+     * is <b>outside</b> the block of arguments, so it is ignored by a capture that stops at
+     * the first non-conforming line. Hence the analysis based on indentation.
      */
     private void readValues(Path file, int limitPerMethod) throws IOException {
         List<String> lines = clean(file);
@@ -147,8 +147,8 @@ public final class Inspection {
         if (value.endsWith(",")) {
             value = value.substring(0, value.length() - 1).stripTrailing();
         }
-        // Retirer UN seul crochet fermant, celui de @Type[...]. En retirer davantage
-        // tronquerait les valeurs imbriquées comme Leg[from=..., to=...].
+        // Remove ONE closing bracket, the one of @Type[...]. Removing more would
+        // truncate nested values such as Leg[from=..., to=...].
         if (value.endsWith("]")) {
             value = value.substring(0, value.length() - 1);
         }
@@ -163,19 +163,18 @@ public final class Inspection {
     }
 
     /**
-     * Plusieurs invocations sont tracées, et elles empruntent des branches différentes :
-     * c'est justement ce qui permet d'annoter davantage de lignes. En revanche, la même
-     * ligne revient alors plusieurs fois — on <b>agrège</b> par appelé plutôt que d'empiler
-     * des doublons, en conservant le nombre d'observations et l'étendue des durées.
+     * Several invocations are traced, and they take different branches: that is precisely
+     * what makes it possible to annotate more lines. On the other hand, the same line then
+     * comes back several times — so we <b>aggregate</b> per callee rather than piling up
+     * duplicates, keeping the number of observations and the range of durations.
      *
-     * <p>L'agrégat ne suffit pourtant pas quand la ligne est <b>dans une boucle</b> : dire
-     * « appelé 8 fois entre 0,01 et 0,03 ms » cache que la première itération a coûté dix
-     * fois les suivantes, ce qui est souvent toute l'information (chargement paresseux,
-     * cache froid, compilation à la volée). Chaque passage est donc conservé <b>dans son
-     * ordre</b>, en plus de l'agrégat, pour que la vue puisse en faire une entrée par
-     * itération.
+     * <p>The aggregate is not enough, however, when the line is <b>inside a loop</b>:
+     * saying "called 8 times, between 0.01 and 0.03 ms" hides that the first iteration cost
+     * ten times the following ones, which is often the whole story (lazy loading, cold
+     * cache, just-in-time compilation). Each pass is therefore kept <b>in order</b>, on top
+     * of the aggregate, so that the view can make one entry per iteration out of it.
      */
-    /** Au-delà, la liste des itérations cesse d'informer et commence à peser. */
+    /** Beyond that, the list of iterations stops informing and starts weighing. */
     private static final int MAX_ITERATIONS = 60;
 
     private void readTrace(Path file) throws IOException {
@@ -212,9 +211,9 @@ public final class Inspection {
                 call.put("maxMs", Math.max(max, ms));
                 @SuppressWarnings("unchecked")
                 List<Object> iterations = (List<Object>) call.get("passages");
-                // Borné : une boucle de plusieurs milliers de tours produirait une page
-                // illisible et un fichier de données démesuré. Les premiers passages sont
-                // ceux qui portent l'information — c'est là que se voit le coût de départ.
+                // Bounded: a loop of several thousand turns would produce an unreadable
+                // page and an oversized data file. The first passes are the ones that
+                // carry the information — that is where the start-up cost shows.
                 if (iterations.size() < MAX_ITERATIONS) {
                     iterations.add(ms);
                 }

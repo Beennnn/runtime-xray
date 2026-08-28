@@ -14,17 +14,17 @@ import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Une exécution sous observation : on lance l'application, on s'y attache pendant qu'elle
- * travaille, on attend qu'elle finisse.
+ * One run under observation: the application is launched, attached to while it works, and
+ * waited for.
  *
- * <p>Les agents sont injectés par {@code JAVA_TOOL_OPTIONS}. C'est ce qui permet de ne
- * rien imposer sur la façon de lancer Java : la variable est lue par toute JVM à son
- * démarrage, que la commande soit un {@code java -jar}, un {@code mvn exec:java} ou un
- * script maison.
+ * <p>The agents are injected through {@code JAVA_TOOL_OPTIONS}. That is what makes it
+ * possible to impose nothing on the way Java is launched: the variable is read by every
+ * JVM at start-up, whether the command is a {@code java -jar}, an {@code mvn exec:java} or
+ * a home-made script.
  */
 public final class RunSession {
 
-    /** Le rythme de redessin : assez lent pour ne rien coûter, assez vif pour vivre. */
+    /** The redraw rate: slow enough to cost nothing, brisk enough to look alive. */
     private static final long INTERVAL_MS = 1000L;
 
     private static final DateTimeFormatter HUMAN =
@@ -45,10 +45,10 @@ public final class RunSession {
         this.runDir = runDir;
     }
 
-    /** Dernier temps processeur relevé pour chaque processus de l'application observée. */
+    /** Last processor time read for each process of the observed application. */
     private final java.util.Map<Long, Duration> cpuPerProcess = new java.util.HashMap<>();
 
-    /** Les arguments réels de la JVM observée, relevés pendant qu'elle tournait. */
+    /** The real arguments of the observed JVM, read while it was running. */
     public final List<String> jvmArguments = new ArrayList<>();
 
     public void execute() throws IOException, InterruptedException {
@@ -70,8 +70,8 @@ public final class RunSession {
         Process process = pb.start();
 
         try {
-            // Relevé pendant que la JVM vit : après, ses arguments ne sont plus lisibles.
-            // C'est ce qui permet de ne pas réclamer --classes — voir ClassSources.
+            // Read while the JVM is alive: afterwards its arguments are no longer
+            // readable. That is what makes --classes unnecessary — see ClassSources.
             observeJvmArguments(process);
             if (config.valuesWanted() && !config.rootMethod.isBlank()) {
                 inspectValues(process);
@@ -86,27 +86,28 @@ public final class RunSession {
             process.descendants().forEach(ProcessHandle::destroy);
             process.destroy();
         }
-        // Les agents écrivent leurs fichiers à l'arrêt de la JVM : on leur laisse le temps.
+        // The agents write their files when the JVM stops: we give them the time.
         Thread.sleep(1500);
         endedAt = HUMAN.format(LocalDateTime.now());
         durationSeconds = Duration.between(start, LocalDateTime.now()).toSeconds();
     }
 
     /**
-     * Attend la fin de l'application en montrant qu'elle vit.
+     * Waits for the application to finish, while showing that it is alive.
      *
-     * <p>L'attente reste la même — même garde-fou, même verdict ; seul le silence change.
+     * <p>The wait itself is unchanged — same safety limit, same verdict; only the silence
+     * changes.
      *
-     * <p>Le sondage régulier servait d'abord à redessiner la bande du terminal, et on
-     * retombait sans terminal sur l'attente bloquante. Il sert désormais aussi à écrire
-     * {@code progression.jsonl}, qui, lui, s'écrit <b>toujours</b> : c'est justement quand
-     * il n'y a pas de terminal — un tuyau, un journal d'intégration, des scripts imbriqués
-     * — que personne ne voit plus rien, et que le fichier est la seule réponse. Le sondage
-     * ne coûte que la lecture de compteurs que le système tient de toute façon.
+     * <p>The regular polling first served to redraw the terminal band, and without a
+     * terminal we fell back to a blocking wait. It now also serves to write
+     * {@code progression.jsonl}, which is written <b>always</b>: it is precisely when there
+     * is no terminal — a pipe, an integration log, nested scripts — that nobody sees
+     * anything any more, and that the file is the only answer. The polling costs no more
+     * than reading counters the system keeps anyway.
      *
-     * <p>Le temps limite se compte sur l'horloge et non sur le nombre de tours : un tour
-     * peut durer plus que son intervalle si la machine est chargée, et {@code MAX_SECONDS}
-     * est une promesse faite à l'opérateur.
+     * <p>The time limit is counted on the clock and not on the number of turns: a turn can
+     * last longer than its interval when the machine is loaded, and {@code MAX_SECONDS} is
+     * a promise made to the operator.
      */
     private boolean await(Process process) throws InterruptedException {
         Progress progress = Progress.of(System.out);
@@ -130,8 +131,8 @@ public final class RunSession {
                 }
                 Duration cpu = cpuTime(process);
                 long bytes = sizeOf(log);
-                // Un seul calcul de charge, celui de la bande : le fichier en porte le
-                // résultat plutôt que de le refaire.
+                // One single load calculation, the band's: the file carries its result
+                // rather than redoing it.
                 double cores = progress.tick(Duration.ofMillis(elapsed), cpu, bytes);
                 follow.tick(Duration.ofMillis(elapsed), cpu, bytes, cores);
             }
@@ -139,18 +140,18 @@ public final class RunSession {
     }
 
     /**
-     * Le temps processeur consommé par l'application observée, descendants compris.
+     * The processor time consumed by the observed application, descendants included.
      *
-     * <p>Il est déjà compté par le système pour chaque processus : le lire ne mesure rien
-     * de plus et n'approche pas la JVM observée. Les descendants comptent parce que la
-     * commande lancée est souvent un lanceur — {@code mvn}, un script, un wrapper — dont le
-     * travail réel se passe dans un fils.
+     * <p>It is already counted by the system for each process: reading it measures nothing
+     * more and does not go near the observed JVM. Descendants count because the command
+     * launched is often a launcher — {@code mvn}, a script, a wrapper — whose real work
+     * happens in a child.
      *
-     * <p>On garde le dernier relevé de chaque processus, y compris disparu. Sans cela le
-     * cumul <b>reculerait</b> à la mort de chaque fils, et une phase très active se
-     * lirait comme une phase morte : c'est exactement l'inverse de ce que la bande doit
-     * dire. Un numéro de processus réattribué serait sous-compté ; sur la durée d'une
-     * exécution observée, la confusion est théorique et la conséquence, un carré plus pâle.
+     * <p>We keep the last reading of each process, including the ones that are gone.
+     * Without that the total would <b>go backwards</b> as each child dies, and a very busy
+     * phase would read as a dead one: exactly the opposite of what the band must say. A
+     * reused process number would be undercounted; over the length of one observed run,
+     * the confusion is theoretical and the consequence is one paler square.
      */
     private Duration cpuTime(Process process) {
         reading(process.toHandle());
@@ -175,13 +176,13 @@ public final class RunSession {
     }
 
     /**
-     * Note d'où la JVM observée charge son code, tant qu'elle est en vie.
+     * Notes where the observed JVM loads its code from, while it is still alive.
      *
-     * <p>On interroge le système plutôt que la commande écrite : un script de démarrage, un
-     * wrapper Gradle ou un lanceur maison cachent la vraie ligne de commande, alors que le
-     * processus, lui, la porte. La lecture est bornée dans le temps — une application qui
-     * n'a pas démarré en quelques secondes ne démarrera pas mieux si l'on attend, et
-     * l'absence de relevé n'est pas une panne : elle renvoie simplement au réglage explicite.
+     * <p>We question the system rather than the written command: a start-up script, a
+     * Gradle wrapper or a home-made launcher hide the real command line, whereas the
+     * process carries it. The read is bounded in time — an application that has not started
+     * within a few seconds will not start any better for waiting — and a missing reading is
+     * not a breakdown: it simply falls back on the explicit setting.
      */
     private void observeJvmArguments(Process process) throws InterruptedException {
         for (int i = 0; i < 20 && jvmArguments.isEmpty(); i++) {
@@ -196,15 +197,15 @@ public final class RunSession {
         }
     }
 
-    /** Les options JVM à ajouter à une ligne de commande. Publiques : l'outil doit pouvoir
-     *  s'inviter dans un lancement qu'on ne contrôle pas (service, conteneur, serveur
-     *  d'application), sans passer par ce programme. */
+    /** The JVM options to add to a command line. Public: the tool must be able to invite
+     *  itself into a launch one does not control (a service, a container, an application
+     *  server), without going through this program. */
     public String agentOptions() throws IOException, InterruptedException {
         StringBuilder sb = new StringBuilder();
         sb.append("-javaagent:").append(tools.jacocoAgent().toAbsolutePath())
           .append("=destfile=").append(runDir.resolve("jacoco/jacoco.exec").toAbsolutePath());
-        // Restreindre l'instrumentation est le premier levier sur un gros code : sans cela,
-        // JaCoCo instrumente chaque classe chargée, dépendances comprises.
+        // Restricting the instrumentation is the first lever on a large codebase: without
+        // it, JaCoCo instruments every class loaded, dependencies included.
         if (!config.coverIncludes.isBlank()) {
             sb.append(",includes=").append(config.coverIncludes.trim());
         }
@@ -221,7 +222,7 @@ public final class RunSession {
             }
             sb.append(" -agentpath:").append(tools.asyncProfilerLibrary().toAbsolutePath())
               .append('=').append(async);
-            // Sans ces deux options, les relevés sont attribués au mauvais numéro de ligne.
+            // Without these two options, the samples are attributed to the wrong line number.
             sb.append(" -XX:+UnlockDiagnosticVMOptions -XX:+DebugNonSafepoints");
         } else {
             System.out.println("   ⚠️ timing measurements unavailable on this platform — "
@@ -231,19 +232,19 @@ public final class RunSession {
     }
 
     /**
-     * S'attache à la JVM pendant qu'elle travaille et relève les valeurs reçues par les
-     * méthodes de la classe racine.
+     * Attaches to the JVM while it works and records the values received by the methods of
+     * the root class.
      */
     private void inspectValues(Process process) throws IOException, InterruptedException {
         Thread.sleep(config.attachAfterSeconds * 1000L);
         Optional<ProcessHandle> jvm = findJvm(process);
         if (jvm.isEmpty()) {
-            // Deux causes très différentes derrière la même absence, et l'opérateur n'a pas
-            // à deviner laquelle : ou l'application a fini avant qu'on ne s'attache — de
-            // loin le cas le plus fréquent, et il se corrige en une option — ou la commande
-            // ne démarre pas de JVM qu'on puisse suivre. Dire « JVM introuvable » sans
-            // distinguer les deux envoyait chercher un problème d'installation là où il n'y
-            // avait qu'un programme trop court.
+            // Two very different causes behind the same absence, and the operator should
+            // not have to guess which: either the application finished before we attached —
+            // by far the most frequent case, and it is fixed with one option — or the
+            // command starts no JVM that can be followed. Saying "JVM not found" without
+            // telling the two apart sent people hunting for an installation problem where
+            // there was only a program that was too short.
             if (!process.isAlive()) {
                 System.out.println("   ⚠️ the application finished before attachment ("
                         + config.attachAfterSeconds + " s): values not captured.");
@@ -261,9 +262,9 @@ public final class RunSession {
         String rootClass = config.rootClass();
         System.out.println("▶ Inspecting values on " + config.rootMethod + " (pid " + pid + ")");
 
-        // Les fichiers de commandes n'acceptent AUCUN commentaire : une ligne commençant
-        // par # serait envoyée comme commande. Et un `stop` après un `trace` fermerait la
-        // session avant que les appels soient collectés.
+        // The command files accept NO comment at all: a line starting with # would be
+        // sent as a command. And a `stop` after a `trace` would close the session before
+        // the calls are collected.
         Path watch = runDir.resolve("arthas/watch.cmd");
         Files.writeString(watch, "watch " + rootClass + " * '{params, returnObj}' -n "
                 + config.watchCount + " -x 2\nstop\n", StandardCharsets.UTF_8);
@@ -286,7 +287,7 @@ public final class RunSession {
                 .redirectErrorStream(true)
                 .redirectOutput(output.toFile())
                 .start();
-        // Sans PID valide, le lanceur attend une saisie interactive indéfiniment : on borne.
+        // Without a valid PID the launcher waits for interactive input forever: we bound it.
         if (!p.waitFor(limitSeconds, TimeUnit.SECONDS)) {
             p.destroy();
             p.waitFor(5, TimeUnit.SECONDS);
@@ -294,8 +295,8 @@ public final class RunSession {
     }
 
     /**
-     * La JVM à observer. Une commande {@code java -jar} donne directement le bon processus ;
-     * un {@code mvn} ou un {@code gradlew} lance la JVM en descendant.
+     * The JVM to observe. A {@code java -jar} command gives the right process directly; an
+     * {@code mvn} or a {@code gradlew} starts the JVM further down.
      */
     private static Optional<ProcessHandle> findJvm(Process process) {
         if (isJava(process.toHandle())) return Optional.of(process.toHandle());
