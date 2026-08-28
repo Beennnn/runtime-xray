@@ -13,72 +13,72 @@ import java.util.Locale;
 import java.util.Map;
 
 /**
- * Ce qu'il faut savoir pour répondre à une question, et rien de plus.
+ * What one needs in order to answer a question, and nothing more.
  *
- * <h2>Pourquoi ce n'est pas un client d'API</h2>
+ * <h2>Why this is not an API client</h2>
  *
- * <p>Faire parler un rapport à un modèle de langage ressemble à un problème d'intégration :
- * quelle API, quel format de requête, quelle bibliothèque. Ça n'en est pas un. Le format des
- * requêtes change tous les six mois et diffère d'un fournisseur à l'autre ; ce qui ne change
- * pas, c'est qu'il faut lui donner <b>un texte borné, exact, et qui se comprend seul</b>.
+ * <p>Getting a report to speak to a language model looks like an integration problem: which
+ * API, which request format, which library. It is not one. The request format changes every
+ * six months and differs from one provider to the next; what does not change is that the
+ * model must be given <b>a bounded, exact text that stands on its own</b>.
  *
- * <p>C'est ce que produit cette classe, et elle s'arrête là. Aucun appel réseau, aucun nom de
- * fournisseur, aucune clé. Le résultat se colle dans une fenêtre de discussion, se donne à un
- * agent qui lit l'espace de travail, ou se poste par une commande de trois lignes — et le
- * jour où le protocole à la mode change, seule cette commande de trois lignes est à refaire.
+ * <p>That is what this class produces, and it stops there. No network call, no provider
+ * name, no key. The result is pasted into a chat window, handed to an agent that reads the
+ * workspace, or posted by a three-line command — and the day the fashionable protocol
+ * changes, only that three-line command has to be redone.
  *
- * <h2>Trois décisions</h2>
+ * <h2>Three decisions</h2>
  *
  * <ul>
- *   <li><b>Le vocabulaire voyage avec les faits.</b> Un modèle qui n'a jamais vu ce format
- *       doit pouvoir le lire ; on lui joint donc sa légende, pas un lien vers elle.</li>
- *   <li><b>Ce qui n'a pas été mesuré passe avant ce qui l'a été.</b> Les indisponibilités
- *       sont en tête et ne sont <b>jamais</b> élaguées, même quand le budget déborde : un
- *       zéro qu'on prend pour une mesure produit une réponse fausse et assurée, ce qui est
- *       pire que pas de réponse du tout.</li>
- *   <li><b>Rien n'est coupé en silence.</b> Quand le budget force à écarter des faits, le
- *       paquet dit combien et lesquels. Un extrait qu'on croit complet fait conclure sur un
- *       échantillon.</li>
+ *   <li><b>The vocabulary travels with the facts.</b> A model that has never seen this
+ *       format must be able to read it; so its legend is enclosed, not a link to it.</li>
+ *   <li><b>What was not measured comes before what was.</b> The unavailabilities are at the
+ *       top and are <b>never</b> pruned, even when the budget overflows: a zero taken for a
+ *       measurement produces a confident wrong answer, which is worse than no answer at
+ *       all.</li>
+ *   <li><b>Nothing is cut in silence.</b> When the budget forces facts to be dropped, the
+ *       pack says how many and which. An extract believed to be complete makes people
+ *       conclude from a sample.</li>
  * </ul>
  */
 public final class Context {
 
     /**
-     * Ce qu'on accepte de donner à lire, en caractères.
+     * What one accepts to hand over to be read, in characters.
      *
-     * <p>Assez pour une campagne ordinaire, assez peu pour tenir dans la fenêtre d'un modèle
-     * modeste — ceux qu'on héberge soi-même le sont souvent. Environ dix mille jetons.
+     * <p>Enough for an ordinary campaign, little enough to fit in the window of a modest
+     * model — the ones hosted in-house often are. About ten thousand tokens.
      */
     public static final int BUDGET = 40_000;
 
-    /** Les faits qu'on ne retire jamais, quel que soit le budget. */
+    /** The facts that are never removed, whatever the budget. */
     private static final List<String> ALWAYS =
             List.of("campaign", "unavailable", "caveat");
 
     private Context() {}
 
-    /** D'où viennent les familles retenues — ce que l'appelant doit pouvoir dire à l'opérateur. */
+    /** Where the families kept came from — what the caller must be able to tell the operator. */
     public enum Origin {
-        /** Nommées explicitement : aucune interprétation. */
+        /** Named explicitly: no interpretation at all. */
         REQUESTED,
-        /** Déduites des mots de la question. */
+        /** Deduced from the words of the question. */
         KEYWORDS,
-        /** Aucun mot reconnu : on a donné la vue d'ensemble. */
+        /** No word recognised: the overview was given. */
         OVERVIEW
     }
 
     /**
-     * Un paquet, et de quoi dire à l'opérateur ce qui a été compris de sa question.
+     * A pack, and enough to tell the operator what was understood of their question.
      *
-     * <p>Le texte seul ne suffisait pas. Une question posée en toutes lettres a l'air d'être
-     * comprise, alors qu'elle n'est que passée au tamis de quelques mots-clés : sans un
-     * retour explicite, personne ne sait que « which classes never ran? » se
-     * réduit au seul mot « jamais », ni qu'une question en anglais est tombée dans la vue
-     * d'ensemble faute d'avoir été reconnue.
+     * <p>The text alone was not enough. A question asked in full sentences looks as though
+     * it was understood, when it has only been passed through a sieve of a few keywords:
+     * without an explicit answer back, nobody knows that "which classes never ran?" comes
+     * down to the single word "never", nor that a question fell into the overview for want
+     * of being recognised.
      */
     public record Pack(String text, List<String> families, Origin origin) {
 
-        /** La ligne à écrire sur la sortie d'erreur, là où l'opérateur regarde. */
+        /** The line to write on standard error, where the operator is looking. */
         public String announcement() {
             String list = String.join(", ", families);
             return switch (origin) {
@@ -90,21 +90,21 @@ public final class Context {
         }
     }
 
-    /** Les familles qu'on peut nommer, dans l'ordre où le vocabulaire les présente. */
+    /** The families one can name, in the order the vocabulary presents them. */
     public static List<String> knownFamilies() {
         return List.copyOf(Facts.VOCABULARY.keySet());
     }
 
     /**
-     * Le paquet de contexte pour une question.
+     * The context pack for one question.
      *
-     * @param question  ce qu'on cherche à savoir. Elle sert à deux choses, et c'est ce qui
-     *                  la rend ambiguë : elle <b>choisit</b> les faits, grossièrement, par
-     *                  mots-clés ; et elle <b>voyage</b>, recopiée telle quelle en tête du
-     *                  paquet, parce que le vrai destinataire n'est pas ce programme.
-     * @param demandees les familles nommées explicitement. Non vide, elles priment sur la
-     *                  question : c'est le chemin des scripts, qui ont besoin d'un résultat
-     *                  reproductible et non d'une phrase interprétée.
+     * @param question  what one is trying to find out. It serves two purposes, and that is
+     *                  what makes it ambiguous: it <b>chooses</b> the facts, coarsely, by
+     *                  keywords; and it <b>travels</b>, copied as it is at the head of the
+     *                  pack, because the real addressee is not this program.
+     * @param requested the families named explicitly. When not empty they take priority
+     *                  over the question: this is the path scripts take, and they need a
+     *                  reproducible result, not an interpreted sentence.
      */
     public static Pack of(Path dir, String question, List<String> requested, int budget)
             throws IOException {
@@ -128,25 +128,26 @@ public final class Context {
         return new Pack(render(facts, q, families, budget), families, origin);
     }
 
-    /** Le paquet seul, pour qui n'a pas besoin de savoir comment il a été choisi. */
+    /** The pack alone, for those who do not need to know how it was chosen. */
     public static String of(Path dir, String question, int budget) throws IOException {
         return of(dir, question, List.of(), budget).text();
     }
 
     /**
-     * Un rapport au format 1.0 renvoie à la commande qui le régénère, plutôt qu'à un
-     * migrateur.
+     * A report in format 1.0 is pointed at the command that regenerates it, rather than at
+     * a migrator.
      *
-     * <p>Il n'y a pas d'outil de migration, et c'est un constat, pas un oubli :
-     * {@code faits.jsonl} est <b>dérivé</b> des mesures de {@code runs/}, comme la page, le
-     * diagnostic et les blocs. Un {@code --report-only} le réécrit entièrement dans le
-     * format courant, avec au passage tous les correctifs accumulés depuis. Un migrateur
-     * n'aurait fait que renommer des clés dans un fichier resté périmé par ailleurs, et il
-     * aurait fallu le maintenir, puis penser à le supprimer.
+     * <p>There is no migration tool, and that is an observation, not an oversight:
+     * {@code faits.jsonl} is <b>derived</b> from the measurements in {@code runs/}, like the
+     * page, the diagnostic and the blocks. A {@code --report-only} rewrites it entirely in
+     * the current format, picking up along the way every fix accumulated since. A migrator
+     * would only have renamed keys in a file that stayed out of date in every other
+     * respect, and it would have had to be maintained, then remembered and deleted.
      *
-     * <p>Reste le cas d'une archive amputée de {@code runs/} — quelqu'un a zippé la page et
-     * les faits, les mesures sont restées derrière. Là, rien ne peut être régénéré, et
-     * c'est pourquoi ce message distingue les deux situations au lieu d'en supposer une.
+     * <p>There remains the case of an archive with {@code runs/} cut off — somebody zipped
+     * the page and the facts, the measurements stayed behind. There, nothing can be
+     * regenerated, and that is why this message tells the two situations apart instead of
+     * assuming one.
      */
     static void refuseFormatOne(List<Fact> facts, Path dir) throws IOException {
         for (Fact f : facts) {
@@ -163,23 +164,23 @@ public final class Context {
         }
     }
 
-    /** Le plus ancien format que ce lecteur comprend. */
+    /** The oldest format this reader understands. */
     public static final String FORMAT_MINIMUM = "2.0";
 
     /**
-     * Une famille inconnue s'arrête net, avec la liste de celles qui existent.
+     * An unknown family stops dead, with the list of the ones that exist.
      *
-     * <p>C'est l'inverse du texte libre, et délibérément : là, une phrase qu'on ne
-     * reconnaît pas donne la vue d'ensemble plutôt que rien, parce qu'elle vient d'un
-     * humain qui cherche. Ici elle vient d'un script, et un script qui demande une famille
-     * qui n'existe pas a un défaut : le lui taire produirait un paquet silencieusement
-     * différent de ce qu'il croit lire.
+     * <p>This is the opposite of the free-text path, and deliberately so: there, a sentence
+     * that is not recognised gives the overview rather than nothing, because it comes from
+     * a human who is looking. Here it comes from a script, and a script asking for a family
+     * that does not exist has a defect: keeping quiet about it would produce a pack
+     * silently different from what it believes it is reading.
      */
     /**
-     * Les noms de familles d'avant le format 2.0, acceptés à vie.
+     * The family names from before format 2.0, accepted for life.
      *
-     * <p>Un script de recette écrit contre la 1.0 ne doit pas s'arrêter parce que le format
-     * a changé de langue. Ils ne sont pas documentés : ils marchent, c'est tout.
+     * <p>An acceptance script written against 1.0 must not stop because the format changed
+     * language. They are not documented: they work, that is all.
      */
     static final Map<String, String> FAMILIES_1_0 = Map.of(
             "campagne", "campaign",
@@ -210,12 +211,12 @@ public final class Context {
     }
 
     /**
-     * Un fait, et la ligne exacte qui le portait.
+     * One fact, and the exact line that carried it.
      *
-     * <p>On garde le texte d'origine pour le recopier tel quel : relire puis réécrire un
-     * JSON rendrait {@code 41} en {@code 41.0}, faute pour le format de distinguer un entier
-     * d'un flottant. Ce n'est pas faux, c'est le genre de détail qui fait douter du reste.
-     * Les champs analysés ne servent qu'à choisir.
+     * <p>The original text is kept so it can be copied as it is: reading a JSON back and
+     * rewriting it would turn {@code 41} into {@code 41.0}, the format having no way to
+     * tell an integer from a float. That is not wrong, it is the kind of detail that makes
+     * one doubt the rest. The parsed fields only serve to choose.
      */
     record Fact(String line, Map<String, Object> fields) {
         Object get(String key) {
@@ -239,23 +240,23 @@ public final class Context {
     }
 
     /**
-     * Les familles de faits qui répondent à cette question.
+     * The fact families that answer this question.
      *
-     * <p>Choix par mots-clés, et c'est délibérément grossier : la sélection ne doit jamais
-     * être la partie intelligente. Elle réduit le volume ; c'est au modèle de raisonner. Une
-     * sélection trop fine écarterait le fait qui contredit l'hypothèse — exactement celui
-     * qu'il fallait garder.
+     * <p>Chosen by keywords, and deliberately coarse: the selection must never be the
+     * clever part. It reduces the volume; the reasoning is the model's job. Too fine a
+     * selection would discard the fact that contradicts the hypothesis — exactly the one
+     * that had to be kept.
      */
     /**
-     * Les mots documentés, en anglais : ce que {@code --help} énumère, et ce sur quoi un
-     * lecteur peut compter. Un test garde qu'ils y sont tous écrits.
+     * The documented words, in English: what {@code --help} lists, and what a reader can
+     * rely on. A test guards that every one of them is written there.
      */
     static final Map<String, String[]> WORDS = new LinkedHashMap<>();
 
     /**
-     * Les mêmes familles en français. Reconnus, <b>délibérément non documentés</b> : l'outil
-     * parle anglais, et une seconde table dans l'aide la rendrait illisible pour ceux à qui
-     * elle s'adresse. L'aide se contente de dire qu'ils existent.
+     * The same families in French. Recognised, <b>deliberately undocumented</b>: the tool
+     * speaks English, and a second table in the help would make it unreadable for the very
+     * people it addresses. The help merely says that they exist.
      */
     static final Map<String, String[]> WORDS_FR = new LinkedHashMap<>();
 
@@ -275,8 +276,8 @@ public final class Context {
                 new String[]{"couvert", "couverture", "taux", "pourcent"});
         WORDS_FR.put("method.hot",
                 new String[]{"temps", "lent", "cout", "chaud", "rapide"});
-        // « code » n'y figure pas : « dead code » et « code coverage » sont des tournures
-        // trop courantes pour qu'un mot aussi général désigne la famille des sources.
+        // "code" is not there: "dead code" and "code coverage" are far too common turns
+        // of phrase for so general a word to name the sources family.
         WORDS_FR.put("source.missing",
                 new String[]{"introuvable", "manqu", "racine"});
         WORDS_FR.put("run",
@@ -289,8 +290,8 @@ public final class Context {
         for (Map.Entry<String, String[]> e : WORDS.entrySet()) {
             if (contains(q, e.getValue()) || contains(q, WORDS_FR.get(e.getKey()))) {
                 families.add(e.getKey());
-                // La couverture d'une exécution et celle d'une classe répondent à la même
-                // question, posée à deux échelles : on ne les sépare pas.
+                // A run's coverage and a class's answer the same question, asked at two
+                // scales: they are not separated.
                 if (e.getKey().equals("coverage.run")) families.add("class");
                 if (e.getKey().equals("source.missing")) families.add("source.hint");
             }
@@ -299,11 +300,11 @@ public final class Context {
     }
 
     /**
-     * La question, mise à plat : minuscules, accents retirés.
+     * The question, flattened: lower case, accents removed.
      *
-     * <p>Sans cela {@code coût} et {@code cout} seraient deux mots à écrire tous les deux,
-     * et {@code exécution} ne reconnaîtrait pas {@code execution}. On en écrit un seul,
-     * sans accent, et la question s'y ramène.
+     * <p>Without this, {@code coût} and {@code cout} would be two words both of which would
+     * have to be written down, and {@code exécution} would not recognise {@code execution}.
+     * Only one is written, without accents, and the question is brought down to it.
      */
     static String normalise(String question) {
         return java.text.Normalizer.normalize(question.toLowerCase(Locale.ROOT),
@@ -311,40 +312,40 @@ public final class Context {
                 .replaceAll("\\p{M}+", "");
     }
 
-    /** La vue d'ensemble : ce qu'on donne quand la question n'a rien déclenché. */
+    /** The overview: what is given when the question triggered nothing. */
     static final List<String> OVERVIEW = List.of("run", "coverage.run",
             "class.never_executed", "method.hot", "source.hint");
 
     /**
-     * Les familles pour une question, la vue d'ensemble à défaut.
+     * The families for a question, the overview failing that.
      *
-     * <p>Une question qu'on n'a pas su classer n'est pas une question sans réponse : on
-     * donne de quoi répondre plutôt qu'un paquet vide. Mais on le <b>dit</b> — voir
-     * {@link Origine#VUE_ENSEMBLE} — faute de quoi le repli passerait pour une lecture
-     * réussie de la question.
+     * <p>A question we could not classify is not a question without an answer: we give
+     * enough to answer with rather than an empty pack. But we <b>say so</b> — see
+     * {@link Origin#OVERVIEW} — without which the fallback would pass for a successful
+     * reading of the question.
      */
     static List<String> familiesFor(String question) {
         List<String> families = recognisedFamilies(question);
         return families.isEmpty() ? OVERVIEW : families;
     }
 
-    /** Vrai si au moins un mot de la question a été reconnu. */
+    /** True when at least one word of the question was recognised. */
     static boolean recognised(String question) {
         return !recognisedFamilies(question).isEmpty();
     }
 
     /**
-     * Vrai si l'un des mots ouvre un mot de la question.
+     * True when one of the words opens a word of the question.
      *
-     * <p>La correspondance est un <b>début de mot</b>, et non n'importe où dans la chaîne.
-     * Chercher n'importe où paraissait plus généreux et se retournait contre nous :
-     * {@code cout} déclenchait sur « é<b>cout</b>er », et l'ajout de mots anglais aurait
-     * empiré les choses — {@code hot} vit dans « screens<b>hot</b> », {@code rate} dans
-     * « gene<b>rate</b> ». Un début de mot garde en revanche les flexions, qui sont tout
-     * l'intérêt : {@code manqu} attrape « manque », « manquant », « manquantes ».
+     * <p>The match is on a <b>word start</b>, and not anywhere in the string. Searching
+     * anywhere looked more generous and turned against us: {@code cout} fired on
+     * "é<b>cout</b>er", and adding English words would have made things worse — {@code hot}
+     * lives inside "screens<b>hot</b>", {@code rate} inside "gene<b>rate</b>". A word start,
+     * on the other hand, keeps the inflections, which are the whole point: {@code manqu}
+     * catches "manque", "manquant", "manquantes".
      *
-     * <p>Un mot-clé qui contient une espace est cherché tel quel : « not covered » n'est
-     * pas un mot, c'est une tournure.
+     * <p>A keyword containing a space is searched for as it is: "not covered" is not a
+     * word, it is a turn of phrase.
      */
     private static boolean contains(String q, String... words) {
         for (String m : words) {
@@ -369,8 +370,9 @@ public final class Context {
         Fact head = first(facts, "campaign");
         sb.append(header(head, question));
 
-        // D'abord ce qui n'a PAS été mesuré. C'est l'ordre qui compte : un lecteur qui lit
-        // les chiffres avant les réserves les a déjà interprétés quand il arrive aux réserves.
+        // First what was NOT measured. The order is what matters: a reader who reads the
+        // figures before the caveats has already interpreted them by the time they reach
+        // the caveats.
         List<Fact> unavailabilities = tous(facts, "unavailable");
         List<Fact> caveats = tous(facts, "caveat");
         if (!unavailabilities.isEmpty() || !caveats.isEmpty()) {
@@ -409,10 +411,10 @@ public final class Context {
         }
         sb.append("```\n");
 
-        // Un bloc vide se lit exactement comme un bloc qu'on n'a pas su remplir — c'est le
-        // mode d'échec le plus coûteux de cet outil, et il vaut ici comme dans la page. Un
-        // modèle qui ne voit rien conclut soit « il n'y en a pas », soit « l'outil a raté » :
-        // deux réponses opposées, et rien pour trancher. On tranche donc à sa place.
+        // An empty block reads exactly like a block we failed to fill — that is this
+        // tool's costliest failure mode, and it holds here as it does in the page. A model
+        // that sees nothing concludes either "there are none" or "the tool failed": two
+        // opposite answers, and nothing to decide between them. So we decide for it.
         if (kept == 0 && droppedCount == 0) {
             sb.append("\n**No fact of these families in this campaign.** This is not an "
                     + "extraction failure: the other families do carry facts. Depending on the "
@@ -422,8 +424,8 @@ public final class Context {
               .append(String.join(", ", present(facts))).append(".\n");
         }
 
-        // Jamais de troncature muette : un extrait qu'on croit complet fait conclure sur un
-        // échantillon, et personne ne saura que la conclusion portait sur une partie.
+        // Never a silent truncation: an extract believed to be complete makes people
+        // conclude from a sample, and nobody will know the conclusion covered only part.
         if (droppedCount > 0) {
             sb.append("\n⚠️ **").append(droppedCount).append(" fact(s) left out** for lack of room (")
               .append(droppedPerFamily).append("). This selection is INCOMPLETE: do not draw a total "
@@ -468,7 +470,7 @@ public final class Context {
         return sb.toString();
     }
 
-    /** Les familles réellement présentes, pour distinguer « rien » de « rien trouvé ». */
+    /** The families actually present, to tell "none" from "none found". */
     private static List<String> present(List<Fact> facts) {
         java.util.Set<String> names = new java.util.LinkedHashSet<>();
         for (Fact f : facts) names.add(f.name());
@@ -476,11 +478,11 @@ public final class Context {
     }
 
     /**
-     * Un compte entier s'écrit sans décimale.
+     * A whole count is written without a decimal.
      *
-     * <p>Le JSON relu ne distingue pas 29 de 29,0 : tout nombre revient en {@code double}.
-     * « 29.0 exécutions » n'est pas faux, c'est pire — c'est le genre de détail qui fait
-     * douter du reste, chez un lecteur humain comme chez un modèle.
+     * <p>JSON read back does not tell 29 from 29.0: every number comes back as a
+     * {@code double}. "29.0 runs" is not wrong, it is worse — it is the kind of detail that
+     * makes one doubt the rest, in a human reader as much as in a model.
      */
     static String number(Object value) {
         if (value instanceof Number n && n.doubleValue() == Math.rint(n.doubleValue())
