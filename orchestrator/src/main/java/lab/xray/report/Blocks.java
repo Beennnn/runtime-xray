@@ -14,84 +14,84 @@ import java.util.Map;
 import java.util.TreeMap;
 
 /**
- * Les données du rapport, sorties de la page et rangées là où elles appartiennent.
+ * The report's data, taken out of the page and filed where it belongs.
  *
- * <p>Une page qui porte tout ne s'ouvre plus passé une certaine taille : 217 Mo constatés le
- * 26 août 2026, que Firefox a renoncé à afficher. Or on ne regarde jamais tout — on ouvre une
- * classe, puis une autre, et on coche deux exécutions sur dix. Ce qui doit être là au premier
- * affichage tient en quelques dizaines de kilo-octets ; le reste attend d'être demandé.
+ * <p>A page that carries everything stops opening past a certain size: 217 MB seen on
+ * 26 August 2026, which Firefox gave up on displaying. Yet one never looks at everything —
+ * one opens a class, then another, and ticks two runs out of ten. What has to be there at
+ * the first paint fits in a few tens of kilobytes; the rest waits to be asked for.
  *
- * <h2>Où va quoi</h2>
+ * <h2>What goes where</h2>
  *
  * <pre>
  * runtime-xray-out/
- *   index.html                      la vue
- *   diagnostic.json                 ce qui explique un rapport décevant
- *   runs/&lt;exécution&gt;/            LA CAPTURE, inchangée — jacoco/, arthas/, run-context.json
- *   runs/&lt;exécution&gt;/vue/       ce qui se déduit de CETTE exécution, et d'elle seule
+ *   index.html                      the view
+ *   diagnostic.json                 what explains a disappointing report
+ *   runs/&lt;run&gt;/                  THE CAPTURE, unchanged — jacoco/, arthas/, run-context.json
+ *   runs/&lt;run&gt;/vue/             what follows from THAT run, and from it alone
  *       couverture.js  arbre.js  valeurs.js  traces.js
- *   vue/                            ce qui CROISE les exécutions, donc n'appartient à aucune
- *       sources/&lt;paquet&gt;.js      le code, groupé par paquet
- *       cumul.js                    par ligne, quelles exécutions l'ont couverte
- *       poids.js                    par méthode, son temps dans chaque exécution
- *       manifeste.json              ce que ce répertoire contient, en clair
+ *   vue/                            what CROSSES runs, and so belongs to none of them
+ *       sources/&lt;package&gt;.js     the code, grouped by package
+ *       cumul.js                    per line, which runs covered it
+ *       poids.js                    per method, its time in each run
+ *       manifeste.json              what this directory holds, in plain sight
  * </pre>
  *
- * <p>La règle est simple et elle décide de tout : <b>ce qui se déduit d'une exécution vit
- * sous elle</b>, ce qui en croise plusieurs vit au-dessus. Copier un répertoire d'exécution
- * emporte donc tout ce qui la concerne ; retirer une exécution ne laisse pas d'orphelin
- * ailleurs, sauf les index croisés — qu'un réassemblage refait en quelques secondes.
+ * <p>The rule is simple and it decides everything: <b>what follows from one run lives under
+ * it</b>, what crosses several lives above. Copying a run's directory therefore takes with
+ * it everything that concerns it; removing a run leaves no orphan elsewhere, except the
+ * crossing indexes — which a reassembly rebuilds in seconds.
  *
- * <h2>Le format, et pourquoi celui-là</h2>
+ * <h2>The format, and why that one</h2>
  *
- * <p>Chaque bloc est un fichier {@code .js} dont <b>chaque ligne est un enregistrement</b> :
+ * <p>Each block is a {@code .js} file in which <b>every line is one record</b>:
  *
  * <pre>XR.bloc("src","com/example/app/Application.java",["package com.example.app;","…"]);</pre>
  *
- * <p>Trois propriétés, et il les faut toutes :
+ * <p>Three properties, and all three are needed:
  * <ul>
- *   <li><b>lisible en ASCII, à la ligne de commande</b> — une ligne par enregistrement, la
- *       clé en tête, donc {@code grep}, {@code wc -l} et {@code head} y travaillent
- *       directement. Retirer l'enrobage donne du JSON pur pour {@code jq} :
- *       {@code sed 's/^XR.bloc(//; s/);$//'} ;</li>
- *   <li><b>chargeable depuis {@code file://}</b> — c'est du JavaScript, donc un
- *       {@code <script src>} l'accepte. Un {@code fetch} sur un {@code .json} voisin, non :
- *       le navigateur le refuse au titre de l'origine, et le rapport ne s'ouvrirait plus en
- *       double-cliquant dessus ;</li>
- *   <li><b>libérable</b> — un bloc chargé peut être oublié : la page retire son script et
- *       efface son entrée, ce qu'un littéral embarqué dans la page ne permet jamais.</li>
+ *   <li><b>readable in ASCII, at the command line</b> — one line per record, the key first,
+ *       so {@code grep}, {@code wc -l} and {@code head} work on it directly. Stripping the
+ *       wrapper gives pure JSON for {@code jq}:
+ *       {@code sed 's/^XR.bloc(//; s/);$//'};</li>
+ *   <li><b>loadable from {@code file://}</b> — it is JavaScript, so a {@code <script src>}
+ *       accepts it. A {@code fetch} on a neighbouring {@code .json} does not: the browser
+ *       refuses it on origin grounds, and the report would no longer open by
+ *       double-clicking it;</li>
+ *   <li><b>releasable</b> — a loaded block can be forgotten: the page removes its script
+ *       and erases its entry, which a literal embedded in the page never allows.</li>
  * </ul>
  *
- * <p>Ces fichiers sont une <b>projection pour l'affichage</b> : engendrés, jetables,
- * reconstructibles d'un {@code --report-only}. Jamais une source de vérité de plus — celle-ci
- * reste la capture, sous {@code runs/}.
+ * <p>These files are a <b>projection for display</b>: generated, disposable, rebuildable
+ * with a {@code --report-only}. Never one more source of truth — that stays the capture,
+ * under {@code runs/}.
  */
 public final class Blocks {
 
-    /** Le répertoire des index qui croisent les exécutions, à côté de la page. */
+    /** The directory of the indexes that cross runs, beside the page. */
     public static final String GLOBAL = "vue";
 
-    /** Le sous-répertoire d'index, sous chaque exécution. */
+    /** The index sub-directory, under each run. */
     public static final String PER_RUN = "vue";
 
     /**
-     * Le format du rapport engendré — la page et ses blocs.
+     * The format of the generated report — the page and its blocks.
      *
-     * <p>Distinct du {@link Capture format de capture} : celui-ci porte sur ce que l'outil
-     * <b>produit</b>, celui-là sur ce qu'une exécution <b>a enregistré</b>. Le premier se
-     * jette et se reconstruit ; le second coûterait une campagne.
+     * <p>Distinct from the {@link Capture capture format}: this one covers what the tool
+     * <b>produces</b>, that one what a run <b>recorded</b>. The first is thrown away and
+     * rebuilt; the second would cost a campaign.
      *
-     * <p>La page l'exige et refuse ce qu'elle ne connaît pas. C'est délibéré : la vue n'a pas
-     * à porter les formes d'hier, puisque les reconstruire ne coûte rien. C'est le format de
-     * capture qui protège ce qui coûte, et lui seul.
+     * <p>The page demands it and refuses what it does not know. That is deliberate: the
+     * view does not have to carry yesterday's shapes, since rebuilding them costs nothing.
+     * It is the capture format that protects what is expensive, and it alone.
      */
     public static final String FORMAT = "2.0";
 
-    /** Ce qui ne s'affiche qu'après un geste, et n'a donc pas à être là avant. */
+    /** What only appears after a gesture, and so does not have to be there before. */
     private static final List<String> HEAVY =
             List.of("coverage", "calltree", "values", "trace");
 
-    /** Le nom de fichier de chaque donnée lourde, sous {@code <exécution>/vue/}. */
+    /** The file name of each heavy piece of data, under {@code <run>/vue/}. */
     private static final Map<String, String> FILES = Map.of(
             "coverage", "couverture.js",
             "calltree", "arbre.js",
@@ -101,11 +101,12 @@ public final class Blocks {
     private Blocks() {}
 
     /**
-     * Écrit les blocs, et rend le sommaire — ce qui doit être présent au premier affichage.
+     * Writes the blocks, and returns the summary — what has to be present at the first
+     * paint.
      *
-     * @param commonDir le répertoire de sortie
-     * @param runs      les exécutions telles que la vue les reçoit
-     * @param sources   les sources affichables, par clé {@code paquet/Fichier.java}
+     * @param commonDir the output directory
+     * @param runs      the runs as the view receives them
+     * @param sources   the showable sources, by {@code package/File.java} key
      */
     public static Map<String, Object> write(Path commonDir, List<Object> runs,
                                              Map<String, Object> sources) throws IOException {
@@ -131,20 +132,20 @@ public final class Blocks {
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("format", FORMAT);
         out.put("runs", summary);
-        // Les CLÉS des sources restent dans la page, jamais leur contenu : l'arbre doit
-        // pouvoir dire « celle-ci a son code » sans charger le code pour le savoir, sinon la
-        // première image redemanderait tout ce qu'on vient d'en sortir.
+        // The source KEYS stay in the page, never their content: the tree must be able to
+        // say "this one has its code" without loading the code to find out, otherwise the
+        // first paint would ask back for everything we just took out of it.
         out.put("sourcesDisponibles", blockByKey);
         out.put("global", GLOBAL + "/");
         return out;
     }
 
     /**
-     * Ce qu'une exécution garde dans la page, et ce qu'elle envoie sous son répertoire.
+     * What a run keeps in the page, and what it sends under its own directory.
      *
-     * <p>La frontière n'est pas arbitraire : reste ce que la <b>première image</b> montre —
-     * l'identité de l'exécution, ses rapports, et l'arbre des classes avec leurs compteurs.
-     * Part ce qui ne s'affiche qu'une fois une classe ouverte ou une exécution cochée.
+     * <p>The boundary is not arbitrary: what the <b>first paint</b> shows stays — the run's
+     * identity, its reports, and the tree of classes with their counters. What only appears
+     * once a class is opened or a run ticked goes.
      */
     static Map<String, Object> thin(Map<?, ?> run, String subDir) {
         Map<String, Object> light = new LinkedHashMap<>();
@@ -155,25 +156,25 @@ public final class Blocks {
         List<Object> blocks = new ArrayList<>();
         for (String key : HEAVY) {
             if (run.get(key) != null) blocks.add(subDir + FILES.get(key));
-            // Un champ qu'aucune exécution ne portera jamais n'est pas un champ en attente.
-            // Sans profil — sous Windows, où async-profiler ne publie rien — il n'y aura
-            // jamais d'arbre d'appel, et sans Arthas jamais de valeurs. La page distinguait
-            // « chargé » de « pas encore chargé » ; elle n'avait aucune raison de connaître
-            // un troisième état, et le découpage en blocs venait de l'inventer. On écrit
-            // donc la forme vide dans le sommaire : les lecteurs n'ont rien à savoir de
-            // plus, et « pas encore là » redevient le seul cas particulier.
+            // A field no run will ever carry is not a field that is pending. Without a
+            // profile — on Windows, where async-profiler publishes nothing — there will
+            // never be a call tree, and without Arthas never any values. The page told
+            // "loaded" from "not loaded yet"; it had no reason to know a third state, and
+            // splitting into blocks had just invented one. So the empty shape is written
+            // into the summary: readers have nothing more to know, and "not there yet"
+            // becomes the only special case again.
             else light.put(key, EMPTY.get(key));
         }
         light.put("blocs", blocks);
-        // Le nombre de relevés d'une exécution tient en un nombre, et l'onglet « Exécutions »
-        // l'affiche sur CHAQUE racine — donc pour des exécutions dont on n'a pas chargé
-        // l'arbre, et qu'on ne chargera pas : les montrer toutes coûterait ce que le
-        // chargement tardif vient d'économiser. Il vit donc dans le sommaire.
+        // A run's sample count fits in one number, and the "Runs" tab shows it before
+        // anything is opened — so for runs whose tree has not been loaded, and will not
+        // be: showing them all would cost exactly what the lazy loading has just saved.
+        // It therefore lives in the summary.
         light.put("mesures", samplesOf(run));
         return light;
     }
 
-    /** La forme vide de chaque champ lourd : ce qu'un lecteur doit trouver faute de mieux. */
+    /** The empty shape of each heavy field: what a reader must find failing anything better. */
     private static final Map<String, Object> EMPTY = Map.of(
             "coverage", Map.of(),
             "calltree", Map.of("name", "tout", "total", 0, "children", List.of()),
@@ -198,12 +199,12 @@ public final class Blocks {
     }
 
     /**
-     * Les sources, groupées par paquet.
+     * The sources, grouped by package.
      *
-     * <p>Un fichier par source ferait des milliers de fichiers — pénible à copier, lent sur
-     * un partage réseau. Un fichier par paquet garde des blocs de quelques dizaines de
-     * kilo-octets, qui est la granularité à laquelle on navigue : on ouvre rarement une
-     * classe sans regarder ses voisines.
+     * <p>One file per source would make thousands of files — tiresome to copy, slow on a
+     * network share. One file per package keeps blocks of a few tens of kilobytes, which is
+     * the granularity one navigates at: one rarely opens a class without looking at its
+     * neighbours.
      */
     private static Map<String, String> writeSources(Path dir, Map<String, Object> sources)
             throws IOException {
@@ -230,24 +231,24 @@ public final class Blocks {
     }
 
     /**
-     * L'index du cumul : pour chaque ligne, <b>quelles exécutions</b> l'ont couverte.
+     * The cumulative index: for each line, <b>which runs</b> covered it.
      *
-     * <p>Sans lui, réunir les exécutions cochées demande, pour chaque ligne affichée, de
-     * consulter la couverture de chacune — dix exécutions, dix recherches par ligne, refaites
-     * à chaque changement de case. C'est un parcours en {@code lignes × exécutions}, et il
-     * obligerait à charger toutes les exécutions pour en afficher une.
+     * <p>Without it, bringing the ticked runs together requires, for every line displayed,
+     * consulting each one's coverage — ten runs, ten lookups per line, redone at every
+     * change of a checkbox. It is a {@code lines × runs} traversal, and it would force
+     * loading every run in order to display one.
      *
-     * <p>On le calcule donc une fois, sous forme de <b>masques de bits</b> : le bit <i>i</i>
-     * dit que l'exécution <i>i</i> a couvert cette ligne. Réunir un sous-ensemble devient un
-     * ET binaire — une opération par ligne, quel que soit le nombre d'exécutions. Deux
-     * masques, parce que « couverte » et « partiellement couverte » ne se confondent pas.
+     * <p>So it is computed once, as <b>bit masks</b>: bit <i>i</i> says that run <i>i</i>
+     * covered this line. Bringing a subset together becomes a binary AND — one operation
+     * per line, whatever the number of runs. Two masks, because "covered" and "partly
+     * covered" are not to be confused.
      */
     private static void writeCumulative(Path file, List<Object> runs) throws IOException {
         Map<String, Map<Integer, int[]>> index = new TreeMap<>();
         int bit = 0;
         for (Object r : runs) {
             if (!(r instanceof Map<?, ?> run)) continue;
-            if (bit > 30) break;   // au-delà, le masque déborde : on s'arrête plutôt que mentir
+            if (bit > 30) break;   // beyond that the mask overflows: we stop rather than lie
             int flag = 1 << bit++;
             if (!(run.get("coverage") instanceof Map<?, ?> coverage)) continue;
             for (Map.Entry<?, ?> f : coverage.entrySet()) {
@@ -275,15 +276,14 @@ public final class Blocks {
     }
 
     /**
-     * L'index des poids : pour chaque méthode, son temps dans chaque exécution.
+     * The weights index: for each method, its time in each run.
      *
-     * <p>La vue d'ensemble classe les méthodes les plus coûteuses <b>toutes exécutions
-     * cochées confondues</b>. Le calculer à l'affichage demande de parcourir l'arbre d'appel
-     * de chacune — donc de les charger toutes, pour une liste de six lignes. C'est le
-     * parcours croisé qui coûte le plus cher, et le seul qui empêchait de ne charger que ce
-     * qu'on regarde.
+     * <p>The overview ranks the costliest methods <b>across all ticked runs</b>. Computing
+     * that on display requires walking each one's call tree — so loading them all, for a
+     * list of six lines. It is the crossing traversal that costs the most, and the only one
+     * that stood in the way of loading only what is being looked at.
      *
-     * <p>Une ligne par méthode, un nombre par exécution, dans l'ordre du sommaire.
+     * <p>One line per method, one number per run, in the summary's order.
      */
     private static void writeWeights(Path file, List<Object> runs) throws IOException {
         Map<String, long[]> weight = new TreeMap<>();
@@ -305,7 +305,7 @@ public final class Blocks {
         }
     }
 
-    /** Descend un arbre d'appel, en annonçant chaque nœud et son total. */
+    /** Walks down a call tree, announcing each node and its total. */
     private static void walk(Map<?, ?> node, java.util.function.BiConsumer<String, Long> seen) {
         if (!(node.get("children") instanceof Iterable<?> children)) return;
         for (Object e : children) {
@@ -318,17 +318,16 @@ public final class Blocks {
     }
 
     /**
-     * L'index de présence : pour chaque méthode, en combien d'endroits chaque exécution
-     * l'appelle.
+     * The presence index: for each method, in how many places each run calls it.
      *
-     * <p>C'est ce que la vue affiche sous « aussi appelée dans » : elle doit savoir, pour une
-     * méthode ouverte, quelles <b>autres</b> exécutions la traversent et combien de fois. Le
-     * compter à l'affichage demande de descendre l'arbre d'appel de chacune — donc de charger
-     * toutes les exécutions pour en regarder une seule.
+     * <p>It is what the view shows under "also called in": for an open method it must know
+     * which <b>other</b> runs go through it, and how many times. Counting that on display
+     * requires walking down each one's call tree — so loading every run in order to look at
+     * one.
      *
-     * <p>Le compte suffit à l'affichage ; le chemin lui-même n'est lu qu'au clic, et alors
-     * l'exécution visée est chargée pour de bon. On sépare ainsi ce qui se montre toujours de
-     * ce qui se demande rarement.
+     * <p>The count is enough for the display; the path itself is only read on a click, and
+     * then the run in question is loaded for real. That separates what is always shown from
+     * what is rarely asked for.
      */
     private static void writePresence(Path file, List<Object> runs) throws IOException {
         Map<String, int[]> presence = new TreeMap<>();
@@ -351,11 +350,11 @@ public final class Blocks {
     }
 
     /**
-     * Ce que le répertoire contient, en clair.
+     * What the directory holds, in plain sight.
      *
-     * <p>Un dossier de rapport se recopie d'un poste à l'autre, se dézippe six mois plus tard,
-     * se retrouve amputé d'un répertoire. Un manifeste lisible dit alors ce qu'il devrait y
-     * avoir — sans lui, il faut ouvrir la page pour découvrir ce qui manque.
+     * <p>A report folder gets copied from one machine to another, unzipped six months
+     * later, found missing a directory. A readable manifest then says what ought to be
+     * there — without it, one has to open the page to discover what is missing.
      */
     private static void writeManifest(Path file, List<Object> runs, int sources)
             throws IOException {
@@ -375,15 +374,15 @@ public final class Blocks {
         m.put("executions", entries);
         m.put("sourcesAffichables", sources);
         m.put("indexGlobaux", List.of("cumul.js", "poids.js", "presence.js", "sources/"));
-        // Un programme qui découvre ce dossier ne devinera pas qu'il existe une sortie faite
-        // pour lui. Le manifeste est l'endroit où on le lui dit — et « ../ » parce que les
-        // faits parlent de la campagne entière, pas de cette vue-ci.
+        // A program that discovers this folder will not guess there is an output made for
+        // it. The manifest is where we tell it — and "../" because the facts speak of the
+        // whole campaign, not of this view.
         m.put("faits", "../" + Facts.FILE);
         m.put("faitsFormat", Facts.FORMAT);
         Files.writeString(file, Json.write(m), StandardCharsets.UTF_8);
     }
 
-    /** Un enregistrement, une ligne — c'est cette règle qui rend le fichier greppable. */
+    /** One record, one line — that rule is what makes the file greppable. */
     private static void line(BufferedWriter w, String type, String key, Object value)
             throws IOException {
         w.write("XR.bloc(");
@@ -396,11 +395,11 @@ public final class Blocks {
     }
 
     /**
-     * Un nom de paquet transformé en nom de fichier sûr.
+     * A package name turned into a safe file name.
      *
-     * <p>Les paquets ne contiennent que des lettres, des chiffres et des points, mais une clé
-     * inattendue ne doit pas pouvoir écrire ailleurs que dans le répertoire prévu — d'où le
-     * filtre, et non une simple substitution.
+     * <p>Packages contain only letters, digits and dots, but an unexpected key must not be
+     * able to write anywhere other than the intended directory — hence the filter, and not
+     * a plain substitution.
      */
     static String fileName(String pkg) {
         StringBuilder sb = new StringBuilder();
