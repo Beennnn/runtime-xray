@@ -711,7 +711,7 @@ public final class Main {
      * Ce que seul le lancement sait, et que le diagnostic doit porter.
      *
      * <p>La vue se réassemble depuis le seul répertoire de sortie : elle ignore par
-     * construction avec quelle commande, quelles options et quels composants la mesure a
+     * construction avec quelle commande, quelles options et quels componentsDir la mesure a
      * été faite. Or c'est souvent là qu'est la cause. On le lui donne.
      *
      * <p><b>Le jeton du serveur partagé n'y figure pas</b> : ce fichier est fait pour être

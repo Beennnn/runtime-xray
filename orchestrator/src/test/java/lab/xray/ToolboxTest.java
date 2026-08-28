@@ -116,7 +116,7 @@ class ToolboxTest {
     @Test
     @DisplayName("L'édition complète porte ses composants : ils sont déposés dans le cache")
     void extractsAComponentEmbeddedInTheJar(@TempDir Path dir) throws Exception {
-        // Le classpath de test porte /lab/xray/composants/jfr-converter-4.1.jar, comme le
+        // Le classpath de test porte /lab/xray/componentsDir/jfr-converter-4.1.jar, comme le
         // ferait le jar construit avec -Pcomplet. Rien sur le disque, dépôt injoignable.
         Path cache = dir.resolve("cache");
 

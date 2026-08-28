@@ -55,7 +55,7 @@ public final class Diagnostic {
      * @param commonDir  le répertoire de sortie, où le fichier est déposé
      * @param runs       les exécutions telles que la vue les reçoit
      * @param index      l'index des sources, avec ce qu'il a vu en le construisant
-     * @param contexte   ce que seul l'appelant sait — configuration, composants, options —
+     * @param contexte   ce que seul l'appelant sait — configuration, componentsDir, options —
      *                   ou {@code null} quand la vue est réassemblée sans lui
      * @return le contenu écrit, pour que l'appelant puisse en tirer un résumé sans le relire
      */

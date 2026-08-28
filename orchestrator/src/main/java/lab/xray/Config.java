@@ -124,10 +124,10 @@ public final class Config {
      */
     public int traceCount = 10;
     public boolean captureValues = true;
-    /** Dépôt Maven d'où récupérer les composants. Un miroir interne suffit. */
+    /** Dépôt Maven d'où récupérer les componentsDir. Un miroir interne suffit. */
     public String mavenRepo = "https://repo1.maven.org/maven2";
     /**
-     * Répertoire où chercher les composants déjà présents sur la machine, avant tout
+     * Répertoire où chercher les componentsDir déjà présents sur la machine, avant tout
      * accès au réseau. Ce qu'il contient prime sur ce qui pourrait être téléchargé —
      * c'est le geste de celui qui les a apportés lui-même.
      */
