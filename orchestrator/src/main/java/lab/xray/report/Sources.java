@@ -212,32 +212,32 @@ public final class Sources {
     private static final int DEPTH = 12;
 
     /**
-     * Ce qu'on ne traverse jamais : ni les métadonnées d'un gestionnaire de versions, ni les
-     * dépendances récupérées, ni le bytecode. Aucun {@code .java} utile n'y vit, et ce sont
-     * les répertoires qui font exploser le parcours.
+     * What is never traversed: neither a version control system's metadata, nor fetched
+     * dependencies, nor bytecode. No useful {@code .java} lives there, and those are the
+     * directories that make the walk explode.
      */
     private static final java.util.Set<String> DROPPED = java.util.Set.of(
             ".git", ".svn", ".hg", ".idea", ".vscode", ".gradle", ".m2", ".mvn",
             "node_modules", "classes", "test-classes", "runtime-xray-out");
 
     /**
-     * Les racines qu'il faudrait ajouter — trouvées, et <b>prouvées</b>.
+     * The roots that ought to be added — found, and <b>proven</b>.
      *
-     * <p>Deviner un répertoire de sources d'après une convention serait commode là où on n'en
-     * a pas besoin, et faux là où on en aurait besoin : sur la machine où l'application tourne
-     * loin de son code, la convention ne désigne rien, ou pire, désigne d'autres sources — et
-     * du code faux affiché en face d'une couverture est plus coûteux qu'un panneau vide.
+     * <p>Guessing a source directory from a convention would be convenient where it is not
+     * needed, and wrong where it would be: on the machine where the application runs far
+     * from its code, the convention names nothing, or worse, names other sources — and
+     * wrong code shown beside a coverage figure costs more than an empty panel.
      *
-     * <p>On ne devine donc pas : on cherche, et on compte. Chaque {@code .java} rencontré
-     * dont le <b>nom</b> figure parmi les classes sans source est lu ; si le paquet qu'il
-     * déclare produit exactement une clé manquante, on en déduit sa racine — le chemin
-     * amputé de son paquet — et on l'inscrit à son crédit. Une proposition arrive alors avec
-     * son chiffre : « cette racine résoudrait 431 des 447 classes manquantes ». Ce n'est plus
-     * une devinette, c'est une constatation, et elle se vérifie d'un coup d'œil.
+     * <p>So we do not guess: we search, and we count. Every {@code .java} met whose
+     * <b>name</b> appears among the classes without source is read; if the package it
+     * declares produces exactly one missing key, its root is deduced — the path with its
+     * package cut off — and credited to it. A proposal then arrives with its figure: "this
+     * root would resolve 431 of the 447 missing classes". That is no longer a guess, it is
+     * an observation, and it checks at a glance.
      *
-     * @param manquantes les clés {@code paquet/Fichier.java} que la couverture réclame en vain
-     * @param bases      les endroits où chercher, du plus probable au moins probable
-     * @return au plus {@link #MAX_PISTES} racines, la plus explicative en tête
+     * @param missing the {@code package/File.java} keys the coverage asks for in vain
+     * @param bases   where to look, from the most likely to the least
+     * @return at most {@link #MAX_LEADS} roots, the most explanatory first
      */
     public static List<Object> searchRoots(java.util.Set<String> missing, List<Path> bases) {
         if (missing.isEmpty() || bases.isEmpty()) return List.of();
