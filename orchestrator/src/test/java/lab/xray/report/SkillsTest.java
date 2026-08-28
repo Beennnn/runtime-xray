@@ -62,7 +62,7 @@ class SkillsTest {
     @DisplayName("Every option quoted by a skill really exists in the tool")
     void everyOptionQuotedByASkillReallyExists() throws Exception {
         Set<String> real = optionsInCode();
-        for (String skill : new String[]{"runtime-xray", "runtime-xray-lire"}) {
+        for (String skill : new String[]{"runtime-xray", "runtime-xray-read"}) {
             for (String quoted : quotedOptions(read(skill))) {
                 assertTrue(real.contains(quoted), "skill " + skill
                         + " quotes " + quoted + ", which the tool refuses. On the observed machine,"
@@ -75,7 +75,7 @@ class SkillsTest {
     @Test
     @DisplayName("The fact vocabulary promised to the reader is the one the tool writes")
     void thePromisedVocabularyIsTheOneWritten() throws Exception {
-        String read = read("runtime-xray-lire");
+        String read = read("runtime-xray-read");
         for (String family : Facts.VOCABULARY.keySet()) {
             assertTrue(read.contains(family), "the reading skill says nothing about \""
                     + family + "\": the reader will meet a line they cannot read");
@@ -83,7 +83,7 @@ class SkillsTest {
         // The converse counts as much: a family announced and never written gets searched
         // for a long time in a file that does not contain it. We look only at the vocabulary
         // table — the document's other tables speak of files, not of families.
-        int start = read.indexOf("## Le vocabulaire");
+        int start = read.indexOf("## The vocabulary");
         assertTrue(start > 0, "the vocabulary table must exist under this heading");
         String table = read.substring(start, read.indexOf("\n## ", start + 4));
         Matcher m = Pattern.compile("\\| `([a-z][a-z._]+)` \\|").matcher(table);
@@ -100,7 +100,7 @@ class SkillsTest {
         // This is the tool's costliest confusion: one widens the filter that had nothing
         // to do with it, re-runs a whole campaign, and gets the same report. Both skills
         // must defuse it, each from its own side of the problem.
-        for (String skill : new String[]{"runtime-xray", "runtime-xray-lire"}) {
+        for (String skill : new String[]{"runtime-xray", "runtime-xray-read"}) {
             String text = read(skill);
             for (String option : new String[]{"--sources", "--root", "--filter", "--cover"}) {
                 assertTrue(text.contains(option),
@@ -114,7 +114,7 @@ class SkillsTest {
     void aZeroThatWasNotMeasuredIsAnnouncedAsSuch() throws Exception {
         // Without that sentence, a zero time under Windows reads as "never called", and the
         // conclusion falls the wrong way, confidently.
-        String read = read("runtime-xray-lire");
+        String read = read("runtime-xray-read");
         assertTrue(read.contains("indisponibilite"));
         assertTrue(read.contains("Windows"), "the concrete case is worth more than the rule alone");
         assertTrue(read("runtime-xray").contains("Windows"));
@@ -123,7 +123,7 @@ class SkillsTest {
     @Test
     @DisplayName("Each skill carries the header that makes it triggerable")
     void eachSkillCarriesTheHeaderThatMakesItTriggerable() throws Exception {
-        for (String skill : new String[]{"runtime-xray", "runtime-xray-lire"}) {
+        for (String skill : new String[]{"runtime-xray", "runtime-xray-read"}) {
             String text = read(skill);
             assertTrue(text.startsWith("---\n"), skill + ": no header");
             String header = text.substring(0, text.indexOf("\n---", 4));
