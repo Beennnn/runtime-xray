@@ -65,7 +65,7 @@ public final class RunSession {
 
         LocalDateTime start = LocalDateTime.now();
         startedAt = HUMAN.format(start);
-        System.out.println("▶ Exécution de l'application");
+        System.out.println("▶ Running the application");
         System.out.println("   " + config.javaCommand);
         Process process = pb.start();
 
@@ -76,7 +76,7 @@ public final class RunSession {
             if (config.valuesWanted() && !config.rootMethod.isBlank()) {
                 inspectValues(process);
             }
-            System.out.println("▶ Attente de la fin de l'exécution");
+            System.out.println("▶ Waiting for the run to finish");
             boolean finished = attendre(process);
             status = finished
                     ? "terminée normalement (code " + process.exitValue() + ")"
@@ -210,7 +210,7 @@ public final class RunSession {
         }
 
         if (!config.profileWanted()) {
-            System.out.println("   niveau « couverture » : pas d'échantillonnage des piles");
+            System.out.println("   level \"couverture\": no stack sampling");
         } else if (tools.asyncProfilerAvailable()) {
             StringBuilder async = new StringBuilder("start,event=itimer,interval=")
                     .append(Math.max(1, config.sampleIntervalMs))
@@ -224,7 +224,7 @@ public final class RunSession {
             // Sans ces deux options, les relevés sont attribués au mauvais numéro de ligne.
             sb.append(" -XX:+UnlockDiagnosticVMOptions -XX:+DebugNonSafepoints");
         } else {
-            System.out.println("   ⚠️ mesures de temps indisponibles sur cette plateforme — "
+            System.out.println("   ⚠️ timing measurements unavailable on this platform — "
                     + "couverture et valeurs restent disponibles");
         }
         return sb.toString();
@@ -245,21 +245,21 @@ public final class RunSession {
             // distinguer les deux envoyait chercher un problème d'installation là où il n'y
             // avait qu'un programme trop court.
             if (!process.isAlive()) {
-                System.out.println("   ⚠️ l'application s'est terminée avant l'attachement ("
+                System.out.println("   ⚠️ the application finished before attachment ("
                         + config.attachAfterSeconds + " s) : valeurs non capturées.");
-                System.out.println("      Augmenter la charge de travail, ou baisser "
-                        + "--attach-after. La couverture et les temps, eux, sont complets.");
+                System.out.println("      Increase the workload, or lower "
+                        + "--attach-after. Coverage and timings, themselves, are complete.");
             } else {
-                System.out.println("   ⚠️ aucune JVM à suivre parmi les processus lancés : "
+                System.out.println("   ⚠️ no JVM to follow among the launched processes: "
                         + "valeurs non capturées.");
-                System.out.println("      La commande n'en démarre peut-être pas une "
-                        + "directement — voir --print-options pour s'attacher à la vôtre.");
+                System.out.println("      The command may not start one "
+                        + "directly — see --print-options to attach to your own.");
             }
             return;
         }
         long pid = jvm.get().pid();
         String rootClass = config.rootClass();
-        System.out.println("▶ Inspection des valeurs sur " + config.rootMethod + " (pid " + pid + ")");
+        System.out.println("▶ Inspecting values on " + config.rootMethod + " (pid " + pid + ")");
 
         // Les fichiers de commandes n'acceptent AUCUN commentaire : une ligne commençant
         // par # serait envoyée comme commande. Et un `stop` après un `trace` fermerait la

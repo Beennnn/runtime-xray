@@ -68,6 +68,27 @@ public final class Config {
      * </ul>
      */
     public String level = "complet";
+
+    /** Les trois niveaux, sous leur nom interne. */
+    public static final java.util.List<String> NIVEAUX =
+            java.util.List.of("couverture", "arbre", "complet");
+
+    /**
+     * Le niveau ramené à son nom interne.
+     *
+     * <p>L'outil parle anglais : {@code coverage}, {@code tree}, {@code full}. Les noms
+     * français restent acceptés, à vie et sans être documentés — un script déployé avant
+     * la bascule ne doit jamais cesser de marcher pour une question de langue.
+     */
+    public static String niveau(String valeur) {
+        String v = valeur == null ? "" : valeur.trim().toLowerCase(java.util.Locale.ROOT);
+        return switch (v) {
+            case "coverage" -> "couverture";
+            case "tree" -> "arbre";
+            case "full" -> "complet";
+            default -> v;
+        };
+    }
     /**
      * Classes que JaCoCo instrumente, au format de son agent — {@code com.example.*}, plusieurs
      * motifs séparés par {@code :}. Vide : tout ce que la JVM charge, y compris les
@@ -147,7 +168,7 @@ public final class Config {
             case "OUT_DIR" -> outDir = value;
             case "RUN_NAME" -> runName = value;
             case "MAVEN_REPO" -> mavenRepo = value;
-            case "COMPOSANTS", "COMPONENTS_DIR" -> componentsDir = value;
+            case "COMPONENTS", "COMPOSANTS", "COMPONENTS_DIR" -> componentsDir = value;
             case "ATTACH_AFTER" -> attachAfterSeconds = parse(value, attachAfterSeconds);
             case "MAX_SECONDS" -> maxSeconds = parse(value, maxSeconds);
             case "WATCH_COUNT" -> watchCount = parse(value, watchCount);
@@ -155,7 +176,7 @@ public final class Config {
             case "LEVEL", "NIVEAU" -> level = value;
             case "COVER_INCLUDES" -> coverIncludes = value;
             case "SAMPLE_INTERVAL_MS" -> sampleIntervalMs = parse(value, sampleIntervalMs);
-            case "SUIVI_PORT" -> suiviPort = parse(value, suiviPort);
+            case "FOLLOW_PORT", "SUIVI_PORT" -> suiviPort = parse(value, suiviPort);
             case "TRACE_COUNT" -> traceCount = parse(value, traceCount);
             default -> { /* une clé inconnue n'est pas une erreur : le fichier peut servir à autre chose */ }
         }
@@ -246,13 +267,13 @@ public final class Config {
 
     /** Vrai si le niveau demandé va jusqu'à l'échantillonnage des piles. */
     public boolean profileWanted() {
-        return !"couverture".equalsIgnoreCase(level.trim());
+        return !"couverture".equals(niveau(level));
     }
 
     /** Vrai si le niveau demandé va jusqu'à la capture des valeurs. */
     public boolean valuesWanted() {
         String l = level.trim();
-        return captureValues && ("complet".equalsIgnoreCase(l) || l.isBlank());
+        return captureValues && ("complet".equals(niveau(l)) || l.isBlank());
     }
 
     public PackageFilter hidden() {

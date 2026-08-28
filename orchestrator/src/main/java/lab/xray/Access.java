@@ -80,8 +80,8 @@ final class Access {
         for (int i = 0; i < propre.length(); i++) {
             char c = propre.charAt(i);
             if (c < 0x20 || c > 0x7E) {
-                throw new IllegalArgumentException("le secret partagé doit tenir en ASCII "
-                        + "imprimable (« " + c + " » ne passera pas l'en-tête Authorization "
+                throw new IllegalArgumentException("the shared secret must be ASCII "
+                        + "printable (\"" + c + "\" will not survive the Authorization header "
                         + "ni certaines variables d'environnement)");
             }
         }
@@ -280,18 +280,18 @@ final class Access {
     void annoncer(boolean local) {
         if (garde()) {
             System.out.println();
-            System.out.println("   🔒 Accès gardé par un secret partagé.");
-            System.out.println("      Les visiteurs le saisissent une fois, la session dure 12 h.");
+            System.out.println("   🔒 Access guarded by a shared secret.");
+            System.out.println("      Visitors type it once, the session lasts 12 h.");
             if (!local) {
-                System.out.println("      En HTTP simple il circule en clair : mettre du TLS devant "
-                        + "si le réseau n'est pas de confiance.");
+                System.out.println("      Over plain HTTP it travels in the clear: put TLS in front "
+                        + "if the network is not trusted.");
             }
         } else if (!local) {
             System.out.println();
-            System.out.println("   ⚠️ Écoute au-delà de la boucle locale, SANS authentification :");
-            System.out.println("      quiconque atteint ce port peut lire les rapports et annoter.");
-            System.out.println("      À placer derrière ce qui filtre déjà les accès, ou à garder");
-            System.out.println("      par --serve-token.");
+            System.out.println("   ⚠️ Listening beyond loopback, WITHOUT authentication:");
+            System.out.println("      anyone reaching this port can read the reports and annotate.");
+            System.out.println("      Put it behind something that already filters access, or guard it");
+            System.out.println("      with --serve-token.");
         }
     }
 

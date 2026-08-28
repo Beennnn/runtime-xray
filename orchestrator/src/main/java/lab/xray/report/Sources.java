@@ -133,7 +133,7 @@ public final class Sources {
         } catch (IOException e) {
             // Un fichier illisible ne doit pas faire échouer tout le rapport :
             // on le signale et on continue.
-            System.err.println("   source ignorée : " + fichier + " (" + e.getMessage() + ")");
+            System.err.println("   source skipped: " + fichier + " (" + e.getMessage() + ")");
             return;
         }
         String nom = fichier.getFileName().toString();

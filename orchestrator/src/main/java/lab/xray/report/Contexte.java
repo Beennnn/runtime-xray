@@ -110,8 +110,8 @@ public final class Contexte {
             throws IOException {
         Path fichier = dossier.resolve(Faits.FICHIER);
         if (!Files.exists(fichier)) {
-            throw new IOException("pas de " + Faits.FICHIER + " sous " + dossier
-                    + " — assembler d'abord le rapport (--report-only)");
+            throw new IOException("no " + Faits.FICHIER + " under " + dossier
+                    + " — build the report first (--report-only)");
         }
         String q = question == null ? "" : question;
         List<String> familles;
@@ -147,12 +147,12 @@ public final class Contexte {
             String nom = d.trim();
             if (nom.isEmpty()) continue;
             if (!connues.contains(nom)) {
-                throw new IOException("famille inconnue : « " + nom + " » — les familles sont "
+                throw new IOException("unknown fact family: \"" + nom + "\" — the families are "
                         + String.join(", ", connues));
             }
             if (!out.contains(nom)) out.add(nom);
         }
-        if (out.isEmpty()) throw new IOException("--familles ne nomme aucune famille");
+        if (out.isEmpty()) throw new IOException("--familles names no family");
         return out;
     }
 

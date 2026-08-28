@@ -146,7 +146,7 @@ public final class Toolbox {
             ZipEntry e = zip.getEntry(entry);
             if (e == null) {
                 throw new IOException("async-profiler " + ASYNC_VERSION
-                        + " ne contient pas " + entry + " — plateforme non prise en charge");
+                        + " does not contain " + entry + " — platform not supported");
             }
             Files.createDirectories(cache);
             try (InputStream in = zip.getInputStream(e)) {
@@ -167,7 +167,7 @@ public final class Toolbox {
             for (Path candidat : List.of(dir.resolve("arthas-" + ARTHAS_VERSION),
                                          dir.resolve("arthas"), dir)) {
                 if (Files.isRegularFile(candidat.resolve("arthas-boot.jar"))) {
-                    System.out.println("   composant local : " + candidat);
+                    System.out.println("   local component: " + candidat);
                     return candidat;
                 }
             }
@@ -208,14 +208,14 @@ public final class Toolbox {
             Path exact = dir.resolve(file);
             vus.add(exact.toString());
             if (Files.isRegularFile(exact)) {
-                System.out.println("   composant local : " + exact);
+                System.out.println("   local component: " + exact);
                 return exact;
             }
             if (usuel != null) {
                 Path autre = dir.resolve(usuel);
                 vus.add(autre.toString());
                 if (Files.isRegularFile(autre)) {
-                    System.out.println("   composant local : " + autre + mention(autre, version));
+                    System.out.println("   local component: " + autre + mention(autre, version));
                     return autre;
                 }
             }
@@ -225,7 +225,7 @@ public final class Toolbox {
                 .resolve(file);
         vus.add(m2.toString());
         if (Files.isRegularFile(m2)) {
-            System.out.println("   composant local : " + m2);
+            System.out.println("   local component: " + m2);
             return m2;
         }
 
@@ -236,7 +236,7 @@ public final class Toolbox {
         String url = repo + "/" + group.replace('.', '/') + "/" + name + "/" + version + "/" + file;
         Files.createDirectories(cache);
         Path tmp = Files.createTempFile(cache, "dl-", ".part");
-        System.out.println("   téléchargement : " + file);
+        System.out.println("   downloading: " + file);
         HttpRequest req = HttpRequest.newBuilder(URI.create(url)).timeout(Duration.ofMinutes(5)).build();
         HttpResponse<Path> res;
         try {
@@ -266,13 +266,13 @@ public final class Toolbox {
     static String mention(Path fichier, String attendue) {
         String declaree = versionDeclaree(fichier);
         if (declaree == null) {
-            return "  (version non vérifiée, " + attendue + " attendue)";
+            return "  (version not verified, " + attendue + " expected)";
         }
         if (declaree.equals(attendue)) {
             return "";
         }
-        return "  (version " + declaree + " apportée, " + attendue + " attendue :"
-                + " les composants d'un même outil doivent s'accorder)";
+        return "  (version " + declaree + " found, " + attendue + " expected:"
+                + " components of the same tool must agree)";
     }
 
     /**
@@ -302,7 +302,7 @@ public final class Toolbox {
             if (in == null) return null;
             Files.createDirectories(cache);
             Path tmp = Files.createTempFile(cache, "ex-", ".part");
-            System.out.println("   composant embarqué : " + file);
+            System.out.println("   bundled component: " + file);
             Files.copy(in, tmp, StandardCopyOption.REPLACE_EXISTING);
             Path cible = cache.resolve(file);
             Files.move(tmp, cible, StandardCopyOption.REPLACE_EXISTING);
@@ -313,11 +313,11 @@ public final class Toolbox {
     /** Un échec ici arrête tout : le message dit où on a cherché, et comment s'en sortir. */
     private static String indisponible(String file, String url, List<String> vus) {
         return "composant introuvable : " + file
-                + "\n   cherché sur le réseau : " + url
-                + "\n   cherché sur le disque :\n      " + String.join("\n      ", vus)
-                + "\n   Sur un réseau fermé : déposer le fichier dans l'un de ces répertoires,"
-                + "\n   le désigner par --composants <répertoire>, ou indiquer le miroir"
-                + "\n   Maven interne par --repo <url> (ou MAVEN_REPO).";
+                + "\n   looked for on the network: " + url
+                + "\n   looked for on disk:\n      " + String.join("\n      ", vus)
+                + "\n   On a closed network: drop the file into one of these directories,"
+                + "\n   point at it with --composants <directory>, or name the internal"
+                + "\n   Maven mirror with --repo <url> (or MAVEN_REPO).";
     }
 
     /** Chemin de la bibliothèque native dans le jar, selon le système et l'architecture. */
@@ -329,9 +329,9 @@ public final class Toolbox {
             boolean arm = arch.contains("aarch64") || arch.contains("arm");
             return arm ? "linux-arm64/libasyncProfiler.so" : "linux-x64/libasyncProfiler.so";
         }
-        throw new IOException("Les mesures de temps ne sont pas disponibles sur " + os
-                + " : async-profiler ne publie que macOS et Linux."
-                + "\n   L'analyse reste possible sans elles (couverture et valeurs).");
+        throw new IOException("Timing measurements are not available on " + os
+                + ": async-profiler only publishes macOS and Linux."
+                + "\n   The analysis still works without them (coverage and values).");
     }
 
     private static String suffix(String entry) {
@@ -346,7 +346,7 @@ public final class Toolbox {
                 Path out = target.resolve(e.getName()).normalize();
                 // Un zip peut contenir des chemins qui remontent hors de la cible.
                 if (!out.startsWith(target)) {
-                    throw new IOException("entrée d'archive suspecte : " + e.getName());
+                    throw new IOException("suspicious archive entry: " + e.getName());
                 }
                 if (e.isDirectory()) {
                     Files.createDirectories(out);

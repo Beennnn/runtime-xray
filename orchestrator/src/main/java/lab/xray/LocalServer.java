@@ -125,7 +125,7 @@ public final class LocalServer {
                 // Un gestionnaire qui remonte une exception n'envoie RIEN : le navigateur
                 // voit une connexion coupée, et personne ne sait pourquoi il ne peut pas
                 // entrer. Mieux vaut une erreur nommée.
-                System.err.println("   page d'entrée en échec : " + e);
+                System.err.println("   entry page failed: " + e);
                 text(ex, 500, String.valueOf(e.getMessage()));
             }
         });
@@ -180,7 +180,7 @@ public final class LocalServer {
                 }
                 ecrire(root, uuid, corps, ex, rebuilder);
             } catch (Exception e) {
-                System.err.println("   écriture refusée : " + e.getMessage());
+                System.err.println("   write refused: " + e.getMessage());
                 text(ex, 500, String.valueOf(e.getMessage()));
             }
         });
@@ -232,7 +232,7 @@ public final class LocalServer {
                 String maintenant = revision(root);
                 if (!maintenant.equals(connu)) {
                     connu = maintenant;
-                    System.out.println("   exécutions modifiées sur le disque — la page est "
+                    System.out.println("   runs changed on disk — the page is "
                             + "réassemblée");
                     rebuilder.demander();
                 }
@@ -292,7 +292,7 @@ public final class LocalServer {
                     ? new LinkedHashMap<>((Map<String, Object>) m)
                     : new LinkedHashMap<>();
             Path file = Annotations.write(runDir, annotation);
-            System.out.println("   annotation enregistrée : " + file);
+            System.out.println("   annotation saved: " + file);
             json(ex, 200, Map.of("ok", true, "fichier", file.toString(),
                     "empreinte", fingerprint(annotation.isEmpty() ? null : annotation)));
         } finally {
@@ -356,7 +356,7 @@ public final class LocalServer {
                 try {
                     action.call();
                 } catch (Exception e) {
-                    System.err.println("   régénération de la page impossible : " + e.getMessage());
+                    System.err.println("   page could not be rebuilt: " + e.getMessage());
                 }
                 synchronized (this) {
                     if (!redemande) { enCours = false; return; }
@@ -412,7 +412,7 @@ public final class LocalServer {
         }
         String session = acces.ouvrirSession(champs.get("jeton"), origine);
         if (session == null) {
-            System.err.println("   accès refusé depuis " + origine);
+            System.err.println("   access refused from " + origine);
             html(ex, 401, Access.pageEntree(champs.get("vers"), "Ce secret n'est pas le bon."));
             return;
         }
@@ -439,15 +439,15 @@ public final class LocalServer {
     private static void annonce(Path root, String host, int port, Access acces) {
         boolean local = host.startsWith("127.") || host.equals("localhost");
         System.out.println();
-        System.out.println("▶ Rapport servi sur http://" + (local ? "localhost" : host)
+        System.out.println("▶ Report served at http://" + (local ? "localhost" : host)
                 + ":" + port + "/");
-        System.out.println("   Les annotations saisies dans la page s'écrivent dans le");
-        System.out.println("   répertoire de chaque exécution (" + Annotations.DANS_LE_RUN
-                + "), et la page est régénérée :");
-        System.out.println("   elles valent alors pour tout le monde, et suivent l'exécution "
-                + "si on la déplace.");
+        System.out.println("   Annotations typed in the page are written to the");
+        System.out.println("   directory of each run (" + Annotations.DANS_LE_RUN
+                + "), and the page is rebuilt:");
+        System.out.println("   so they hold for everyone, and travel with the run "
+                + "if it is moved.");
         acces.annoncer(local);
-        System.out.println("   Ctrl-C pour arrêter.");
+        System.out.println("   Ctrl-C to stop.");
     }
 
     /**

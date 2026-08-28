@@ -119,7 +119,7 @@ public final class Annotations {
                    .sorted()
                    .forEach(out::add);
         } catch (IOException e) {
-            System.err.println("   exécutions illisibles sous " + runs + " : " + e.getMessage());
+            System.err.println("   runs unreadable under " + runs + " : " + e.getMessage());
         }
         return out;
     }
@@ -140,7 +140,7 @@ public final class Annotations {
         try {
             return Json.read(Files.readString(file, StandardCharsets.UTF_8));
         } catch (Exception e) {
-            System.err.println("   " + file + " illisible — ignoré (" + e.getMessage() + ")");
+            System.err.println("   " + file + " unreadable — skipped (" + e.getMessage() + ")");
             return null;
         }
     }

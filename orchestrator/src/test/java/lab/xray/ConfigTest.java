@@ -223,4 +223,31 @@ class ConfigTest {
                 "des séparateurs sans contenu ne désignent rien");
         assertTrue(Config.chemins(null).isEmpty());
     }
+
+    @Test
+    @DisplayName("Les noms anglais sont canoniques, les français marchent encore")
+    void theEnglishNamesAreCanonicalAndTheFrenchOnesStillWork() {
+        // Un script déployé avant la bascule ne doit jamais cesser de marcher pour une
+        // question de langue. Les alias ne sont pas documentés : ils marchent, c'est tout.
+        assertEquals("couverture", Config.niveau("coverage"));
+        assertEquals("arbre", Config.niveau("tree"));
+        assertEquals("complet", Config.niveau("full"));
+        assertEquals("couverture", Config.niveau("couverture"));
+        assertEquals("arbre", Config.niveau("  Arbre "));
+        assertEquals("complet", Config.niveau("COMPLET"));
+
+        Config c = new Config();
+        c.level = "coverage";
+        assertFalse(c.profileWanted(), "« coverage » doit valoir « couverture »");
+        c.level = "full";
+        assertTrue(c.valuesWanted());
+
+        // Les variables d'environnement aussi.
+        Config e = new Config();
+        e.set("COMPONENTS", "/ici");
+        assertEquals("/ici", e.componentsDir);
+        Config fr = new Config();
+        fr.set("COMPOSANTS", "/la");
+        assertEquals("/la", fr.componentsDir);
+    }
 }

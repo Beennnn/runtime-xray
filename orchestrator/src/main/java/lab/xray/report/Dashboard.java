@@ -46,8 +46,8 @@ public final class Dashboard {
         Map<String, Object> overrides = Annotations.readCentral(commonDir);
         List<Path> bases = findRuns(commonDir, 0, 3);
         if (bases.isEmpty()) {
-            throw new IOException("aucune exécution trouvée sous " + commonDir
-                    + " (une exécution est un répertoire contenant run-context.json)");
+            throw new IOException("no run found under " + commonDir
+                    + " (a run is a directory containing run-context.json)");
         }
         // La plus récente en premier : c'est celle qu'on vient de produire.
         bases.sort(Comparator.comparingLong((Path p) -> p.toFile().lastModified()).reversed());
@@ -290,7 +290,7 @@ public final class Dashboard {
         try {
             return (Map<String, Object>) Json.read(Files.readString(file, StandardCharsets.UTF_8));
         } catch (Exception e) {
-            System.err.println("   contexte illisible : " + file + " (" + e.getMessage() + ")");
+            System.err.println("   run context unreadable: " + file + " (" + e.getMessage() + ")");
             return new LinkedHashMap<>();
         }
     }
