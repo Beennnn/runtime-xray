@@ -1,95 +1,92 @@
-# Reprendre le résultat dans un autre outil
+# Taking the result into another tool
 
-> La page produite par `runtime-xray` est **une** façon de lire une exécution, pas la seule.
-> Les mêmes mesures se réécrivent dans des formats publics que d'autres outils ouvrent :
-> Firefox Profiler, speedscope, un éditeur, un script.
+> The page `runtime-xray` produces is **one** way of reading a run, not the only one. The
+> same measurements are rewritten into public formats that other tools open: Firefox
+> Profiler, speedscope, an editor, a script.
 
-## Le besoin, énoncé une fois
+## The need, stated once
 
-Une mesure d'exécution est une **donnée**, pas un rendu. Qui la prend doit pouvoir la
-regarder avec l'outil qu'il connaît déjà, la comparer à celle d'hier, l'archiver plus
-longtemps que la version du programme qui l'a produite, et la transmettre à quelqu'un qui
-n'utilise pas le nôtre.
+A run's measurement is **data**, not a rendering. Whoever takes it must be able to look at it
+with the tool they already know, compare it with yesterday's, archive it longer than the
+version of the program that produced it, and pass it to someone who does not use ours.
 
-C'est exactement le reproche que [le comparatif](../etude/comparatif.md) adresse aux outils
-fermés : la mesure y est prisonnière du rendu. Un outil libre qui referait la même chose,
-avec sa propre page pour seule sortie, n'aurait rien réglé.
+That is exactly the reproach [the comparison](../etude/comparatif.md) makes to closed tools:
+the measurement there is a prisoner of the rendering. A free tool that did the same thing,
+with its own page as its only output, would have solved nothing.
 
-D'où la règle tenue ici :
+Hence the rule held here:
 
-> **Tout ce qui est mesuré doit pouvoir sortir dans un format ouvert, documenté, et lisible
-> par au moins un outil que nous n'écrivons pas.**
+> **Everything measured must be able to come out in an open, documented format, readable by
+> at least one tool we do not write.**
 
-Deux conséquences pratiques :
+Two practical consequences:
 
-- **On exporte la mesure, pas la synthèse.** Les replis de la page — le JDK rangé sous son
-  appelant, les paquets masqués, les agrégations — ne s'appliquent pas aux fichiers
-  exportés. Ce qu'un tiers ouvre est ce que l'outil d'observation a écrit, dans une autre
-  grammaire.
-- **Aucun format inventé quand il en existe un.** Un format maison ne se justifie que là où
-  rien d'établi ne couvre l'information — c'est le cas des valeurs de paramètres, et
-  seulement de celui-là.
+- **The measurement is exported, not the summary.** The page's foldings — the JDK tucked
+  under its caller, the hidden packages, the aggregations — do not apply to the exported
+  files. What a third party opens is what the observation tool wrote, in another grammar.
+- **No format invented where one exists.** An in-house format is justified only where nothing
+  established covers the information — that is the case for argument values, and that case
+  only.
 
-## Produire les exports
+## Producing the exports
 
 ```bash
-java -jar runtime-xray.jar --report-only --out runtime-xray-out --export tout
+java -jar runtime-xray.jar --report-only --out runtime-xray-out --export all
 ```
 
-`--export` accepte une liste (`--export cpuprofile,lcov`) ou `tout`. L'option marche
-pendant une mesure comme après coup, avec `--report-only` : les exports se recalculent
-depuis les fichiers déjà écrits, sans relancer l'application.
+`--export` accepts a list (`--export cpuprofile,lcov`) or `all`. The option works during a
+measurement as well as afterwards, with `--report-only`: the exports are recomputed from the
+files already written, without running the application again.
 
-Les fichiers sont déposés dans chaque exécution :
+The files are dropped inside each run:
 
 ```
-runs/20260821-004121-recette/
+runs/20260821-004121-acceptance/
 └── exports/
-    ├── profil.perf.txt      ← profil, format perf script
-    ├── profil.cpuprofile    ← profil, format Chrome DevTools
-    ├── couverture.lcov      ← couverture, format LCOV
-    └── valeurs.json         ← valeurs capturées
+    ├── profil.perf.txt      ← profile, perf script format
+    ├── profil.cpuprofile    ← profile, Chrome DevTools format
+    ├── couverture.lcov      ← coverage, LCOV format
+    └── valeurs.json         ← captured values
 ```
 
-La page les nomme à deux endroits, qui montrent la même liste : le menu **Exports** en haut
-à gauche, rubrique *« Formats ouverts »*, et la liste des sorties brutes en bas de la vue
-d'ensemble. Chaque entrée porte la phrase qui dit ce qu'elle contient et ce qui l'ouvre —
-`perf`, `lcov`, `cpuprofile` alignés sans explication ne disaient rien à qui ne les
-connaissait pas déjà.
+The page names them in two places, which show the same list: the **Exports** menu at the top
+left, under *"Open formats"*, and the list of raw outputs at the bottom of the overview. Each
+entry carries the sentence saying what it holds and what opens it — `perf`, `lcov`,
+`cpuprofile` lined up without explanation said nothing to whoever did not already know them.
 
-Ces quatre-là restent **nommés même absents**, en grisé, et un clic donne alors la commande
-qui les produit : une capacité qui ne vivrait que dans une option de ligne de commande
-n'existe pas pour qui lit la page.
+Those four stay **named even when absent**, greyed out, and a click then gives the command
+that produces them: a capability that lived only in a command-line option does not exist for
+whoever reads the page.
 
-## Les formats retenus
+## The formats chosen
 
-| Fichier | Format | Ce qu'il porte | Ce qui l'ouvre |
+| File | Format | What it holds | What opens it |
 |---|---|---|---|
-| `profil.perf.txt` | Sortie texte de `perf script` (Linux) | Les piles échantillonnées, un bloc par relevé | Firefox Profiler, `perf report`, les convertisseurs de la famille FlameGraph |
-| `profil.cpuprofile` | CPU profile de Chrome DevTools | Les mêmes piles, partagées dans un arbre | speedscope, les outils de développement des navigateurs |
-| `couverture.lcov` | LCOV | Lignes, branches et méthodes couvertes | `genhtml`, Coverage Gutters (VS Code), la plupart des services de suivi |
-| `valeurs.json` | JSON décrit ci-dessous | Les appels observés, leurs paramètres et leurs retours | un script — voir la structure plus bas |
+| `profil.perf.txt` | Text output of `perf script` (Linux) | The sampled stacks, one block per sample | Firefox Profiler, `perf report`, the FlameGraph family's converters |
+| `profil.cpuprofile` | Chrome DevTools CPU profile | The same stacks, shared in a tree | speedscope, the browsers' developer tools |
+| `couverture.lcov` | LCOV | Lines, branches and methods covered | `genhtml`, Coverage Gutters (VS Code), most tracking services |
+| `valeurs.json` | JSON described below | The observed calls, their arguments and their returns | a script — see the structure below |
 
-### Ce qu'on en fait
+### What one does with them
 
-**Firefox Profiler** — ouvrir [profiler.firefox.com](https://profiler.firefox.com), bouton
-*Load a profile from file*, choisir `profil.perf.txt`. C'est le format d'import documenté
-pour les profils Linux.
+**Firefox Profiler** — open [profiler.firefox.com](https://profiler.firefox.com), the *Load a
+profile from file* button, choose `profil.perf.txt`. It is the documented import format for
+Linux profiles.
 
-**speedscope** — ouvrir [speedscope.app](https://www.speedscope.app) et y déposer
-`profil.cpuprofile`. Le fichier `async-profiler/profil.collapsed`, écrit par la mesure
-elle-même, s'y ouvre tout aussi bien : c'est le format des piles repliées.
+**speedscope** — open [speedscope.app](https://www.speedscope.app) and drop
+`profil.cpuprofile` on it. The `async-profiler/profil.collapsed` file, written by the
+measurement itself, opens there just as well: it is the folded-stacks format.
 
-**Couverture dans l'éditeur** — sous VS Code, l'extension *Coverage Gutters* lit
-`couverture.lcov` et colorie les lignes dans l'éditeur. En ligne de commande :
+**Coverage in the editor** — under VS Code, the *Coverage Gutters* extension reads
+`couverture.lcov` and colours the lines in the editor. On the command line:
 
 ```bash
-genhtml couverture.lcov -o couverture-html   # le rapport HTML de lcov
-lcov --summary couverture.lcov               # juste les totaux
+genhtml couverture.lcov -o coverage-html    # lcov's HTML report
+lcov --summary couverture.lcov              # just the totals
 ```
 
-**Comparer deux exécutions par script** — `valeurs.json` porte, par méthode observée, la
-liste des appels avec leurs paramètres et leur retour :
+**Comparing two runs by script** — `valeurs.json` carries, per observed method, the list of
+calls with their arguments and their return:
 
 ```json
 {
@@ -110,63 +107,63 @@ liste des appels avec leurs paramètres et leur retour :
 }
 ```
 
-Une entrée par appel observé : l'horodatage, le coût mesuré par l'outil de capture, les
-paramètres reçus dans l'ordre de la signature, et le retour. `trace` porte, pour les mêmes
-méthodes, les arbres d'appel relevés invocation par invocation.
+One entry per observed call: the timestamp, the cost measured by the capture tool, the
+arguments received in signature order, and the return. `trace` carries, for the same methods,
+the call trees recorded invocation by invocation.
 
-## Les formats ouverts connus, et pourquoi ceux-là
+## The known open formats, and why these ones
 
-Le recensement ci-dessous suit la méthode du reste de l'étude : ce qui a été retenu, ce qui
-ne l'a pas été, et le motif.
+The survey below follows the method of the rest of the study: what was chosen, what was not,
+and the reason.
 
-| Format | Ce qu'il couvre | Décision |
+| Format | What it covers | Decision |
 |---|---|---|
-| **`perf script`** (texte) | Piles échantillonnées | **Retenu.** Format d'import de Firefox Profiler, lisible à l'œil nu, sans dépendance |
-| **Chrome `.cpuprofile`** | Piles échantillonnées | **Retenu.** Compact — un profil d'une minute tient en quelques centaines de Ko là où le texte en fait des dizaines de Mo |
-| **Piles repliées** (`.collapsed`) | Piles échantillonnées | **Déjà produit** par async-profiler, laissé tel quel. C'est l'entrée de speedscope et de FlameGraph |
-| **LCOV** | Couverture | **Retenu.** Le format de couverture le plus largement accepté |
-| **JaCoCo XML / CSV** | Couverture | **Déjà produit** par JaCoCo, laissé tel quel |
-| **Format Gecko** (JSON Firefox) | Profil complet, avec fils et marqueurs | **Écarté.** Format natif de Firefox Profiler, plus riche que ce qu'on mesure — l'import `perf` couvre le besoin sans l'écrire |
-| **`pprof`** (protobuf, Google) | Profils de toute nature | **Écarté.** Demanderait une dépendance protobuf, contre la règle du jar sans dépendance |
-| **Chrome Trace Event** (JSON) | Traces d'événements datés | **Écarté.** Il décrit des intervalles début/fin ; nos mesures sont des échantillons. L'y couler supposerait des durées qu'on n'a pas mesurées |
-| **JFR** (`.jfr`) | Événements JVM | **Écarté ici.** Format d'enregistrement de la JVM, pas d'échange de résultat — et [sa fiche](../etude/fiches/jfr-jmc.md) explique pourquoi il ne répond pas aux trois questions |
-| **OTLP / OpenTelemetry** | Traces réparties | **Écarté.** Conçu pour un système en production, pas pour une exécution locale — voir [sa fiche](../etude/fiches/opentelemetry.md) |
-| **Cobertura XML** | Couverture | **Écarté.** LCOV couvre les mêmes usages et bien plus d'outils. À reconsidérer si une forge l'impose |
-| **Couverture générique SonarQube** | Couverture | **Écarté.** Propre à un produit ; SonarQube lit déjà le XML JaCoCo |
+| **`perf script`** (text) | Sampled stacks | **Chosen.** Firefox Profiler's import format, readable with the naked eye, no dependency |
+| **Chrome `.cpuprofile`** | Sampled stacks | **Chosen.** Compact — a one-minute profile fits in a few hundred KB where the text runs to tens of MB |
+| **Folded stacks** (`.collapsed`) | Sampled stacks | **Already produced** by async-profiler, left as it is. It is speedscope's and FlameGraph's input |
+| **LCOV** | Coverage | **Chosen.** The most widely accepted coverage format |
+| **JaCoCo XML / CSV** | Coverage | **Already produced** by JaCoCo, left as it is |
+| **Gecko format** (Firefox JSON) | A complete profile, with threads and markers | **Rejected.** Firefox Profiler's native format, richer than what we measure — the `perf` import covers the need without writing it |
+| **`pprof`** (protobuf, Google) | Profiles of every kind | **Rejected.** Would need a protobuf dependency, against the no-dependency jar rule |
+| **Chrome Trace Event** (JSON) | Traces of timestamped events | **Rejected.** It describes start/end intervals; our measurements are samples. Pouring them in would suppose durations we did not measure |
+| **JFR** (`.jfr`) | JVM events | **Rejected here.** A JVM recording format, not a result-exchange one — and [its sheet](../etude/fiches/jfr-jmc.md) explains why it does not answer the three questions |
+| **OTLP / OpenTelemetry** | Distributed traces | **Rejected.** Designed for a system in production, not for a local run — see [its sheet](../etude/fiches/opentelemetry.md) |
+| **Cobertura XML** | Coverage | **Rejected.** LCOV covers the same uses and many more tools. To reconsider if a forge demands it |
+| **SonarQube generic coverage** | Coverage | **Rejected.** Specific to one product; SonarQube already reads JaCoCo's XML |
 
-## Réserves
+## Caveats
 
-Les points ci-dessous sont des limites connues, pas des défauts à découvrir.
+The points below are known limits, not defects to be discovered.
 
-- **Le format `perf` est volumineux, et il est allégé au-delà de 32 Mo.** Il réécrit la
-  pile entière à chaque relevé : sa taille dépend donc d'abord de la **profondeur** des
-  piles, pas du nombre d'échantillons — 82 000 relevés de quarante frames pèsent plus que
-  800 000 relevés de deux. Au-delà du plafond, les relevés sont **éclaircis
-  proportionnellement**, et le facteur est annoncé sur la sortie standard.
+- **The `perf` format is bulky, and it is thinned out beyond 32 MB.** It rewrites the whole
+  stack at every sample: its size therefore depends first on the **depth** of the stacks, not
+  on the number of samples — 82,000 samples forty frames deep weigh more than 800,000 samples
+  two deep. Beyond the cap, the samples are **thinned proportionally**, and the factor is
+  announced on standard output.
 
-  C'est exactement ce que fait un profileur échantillonné quand on espace ses relevés : la
-  forme du profil est gardée, mais **ce qui pèse très peu peut disparaître**. Le
-  `.cpuprofile`, lui, n'est jamais allégé : il partage les piles dans un arbre et tient en
-  quelques centaines de kilo-octets. Pour une lecture fine d'un gros profil, c'est celui-là
-  qu'il faut prendre.
+  That is exactly what a sampling profiler does when its samples are spaced out: the shape of
+  the profile is kept, but **what weighs very little may vanish**. The `.cpuprofile`, for its
+  part, is never thinned: it shares the stacks in a tree and fits in a few hundred kilobytes.
+  For a fine reading of a large profile, that is the one to take.
 
-  L'export ne **tronque** plus, ce qu'il faisait avant : s'arrêter en route coupait la fin
-  de l'exécution, et le profil mentait alors sur la forme du programme — un défaut plus
-  grave qu'un fichier gros.
-- **Les adresses mémoire sont nulles** dans l'export `perf`. Elles n'ont aucun sens pour du
-  code compilé à la volée, et aucun lecteur ne s'en sert dès lors que le symbole est là.
-- **LCOV compte 0 ou 1 passage par ligne.** JaCoCo dit *si* une ligne a été exécutée, jamais
-  *combien de fois* : le compteur ne peut pas dire autre chose sans inventer des passages.
-- **`valeurs.json` n'est pas un format d'échange établi.** Il n'en existe pas pour cette
-  information ; sa structure est décrite ici et suit celle que lit la page.
-- **L'ouverture dans les outils tiers n'a pas été rejouée dans l'environnement où ces
-  exports ont été écrits** — l'accès réseau y est fermé. Les formats suivent leur
-  spécification publique et sont vérifiés à l'écriture (ordre des frames, cohérence des
-  renvois, totaux LCOV) par les tests de `ExportsTest`. Statut, au sens du
-  [comparatif](../etude/comparatif.md) : **conforme à la documentation, import non rejoué**.
+  The export no longer **truncates**, which it used to do: stopping part way cut off the end
+  of the run, and the profile then lied about the shape of the program — a worse defect than
+  a large file.
+- **The memory addresses are zero** in the `perf` export. They mean nothing for
+  just-in-time-compiled code, and no reader uses them once the symbol is there.
+- **LCOV counts 0 or 1 pass per line.** JaCoCo says *whether* a line was executed, never *how
+  many times*: the counter cannot say anything else without inventing passes.
+- **`valeurs.json` is not an established exchange format.** None exists for this information;
+  its structure is described here and follows the one the page reads.
+- **Opening them in third-party tools has not been replayed in the environment where these
+  exports were written** — network access is closed there. The formats follow their public
+  specification and are checked at write time (frame order, coherence of the references, LCOV
+  totals) by `ExportsTest`. Status, in the sense of the
+  [comparison](../etude/comparatif.md): **conforms to the documentation, import not
+  replayed**.
 
-## À lire ensuite
+## What to read next
 
-- [Réduire l'empreinte sur un gros code](empreinte.md) — mesurer moins, mais mesurer quand même
-- [Mode d'emploi](mode-emploi.md) — tous les paramètres
-- [Formats et découplage](../resultat/formats.md) — pourquoi la collecte et l'affichage sont séparés
+- [Reducing the footprint on a large codebase](empreinte.md) — measure less, but measure all the same
+- [Manual](mode-emploi.md) — every setting
+- [Formats and decoupling](../resultat/formats.md) — why collection and display are separate
