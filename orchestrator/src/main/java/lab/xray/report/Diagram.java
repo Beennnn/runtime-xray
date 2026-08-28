@@ -104,9 +104,9 @@ public final class Diagram {
         StringBuilder s = new StringBuilder();
         s.append("""
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" width="1280" \
-                height="720" role="img" aria-label="Synthèse de la campagne : couverture \
-                cumulée, couverture par paquet, temps passé par méthode et classes jamais \
-                exécutées.">
+                height="720" role="img" aria-label="Summary of the campaign: cumulative \
+                coverage, coverage per package, time spent per method and never-executed \
+                classes.">
                 <rect width="1280" height="720" fill="#ffffff"/>
                 <g font-family="%s">
                 """.formatted(FONT));
@@ -124,7 +124,7 @@ public final class Diagram {
                         String.valueOf(ctx.getOrDefault("debut", "")),
                         runs.size() + (runs.size() > 1 ? " runs" : " run")));
 
-        // ── quatre chiffres ────────────────────────────────────────────────────────
+        // ── four figures ───────────────────────────────────────────────────────────
         tile(s, 40, 118, "CUMULATIVE COVERAGE", rounded(coverage.pct()) + "%",
                 coverage.source() != null
                         ? coverage.covered() + " of " + coverage.total() + " — JaCoCo merge"

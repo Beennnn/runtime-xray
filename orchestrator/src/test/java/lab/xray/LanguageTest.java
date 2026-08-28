@@ -49,7 +49,16 @@ class LanguageTest {
             + "|cette|aux|par|leur|elle|aucun|aucune|été|nous|vous|ils)([^\\w]|$)",
             Pattern.CASE_INSENSITIVE);
 
-    private static final Pattern LITERAL = Pattern.compile("\"((?:[^\"\\\\\\n]|\\\\.)*)\"");
+    /**
+     * Les littéraux, <b>blocs de texte compris</b>.
+     *
+     * <p>Les oublier a laissé passer le gabarit de configuration : cent trente lignes de
+     * français écrites dans un {@code \"\"\"…\"\"\"}, et déposées telles quelles sur le disque
+     * de qui lance l'outil sans fichier de configuration. Un test qui ne regarde que les
+     * chaînes ordinaires rassure sur ce qu'il ne vérifie pas.
+     */
+    private static final Pattern LITERAL = Pattern.compile(
+            "\"\"\"(.*?)\"\"\"|\"((?:[^\"\\\\\\n]|\\\\.)*)\"", Pattern.DOTALL);
 
     @Test
     @DisplayName("Aucune phrase française ne subsiste dans ce que l'outil écrit")
@@ -63,7 +72,7 @@ class LanguageTest {
                 String source = Files.readString(f, StandardCharsets.UTF_8);
                 Matcher m = LITERAL.matcher(source);
                 while (m.find()) {
-                    String text = m.group(1);
+                    String text = m.group(1) != null ? m.group(1) : m.group(2);
                     // Quatre mots au moins : en deçà, c'est un identifiant, une clé JSON ou
                     // un fragment de format — et beaucoup sont français pour de bonnes
                     // raisons, à commencer par les noms d'options qui ne casseront jamais.

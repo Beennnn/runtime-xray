@@ -50,7 +50,7 @@ class ConfigTest {
         assertTrue(text.contains("#JAVA_CMD=\"./gradlew"), "un exemple Gradle est attendu");
         // Facultatif, donc présenté par ses cas d'usage réels plutôt que par un défaut.
         assertTrue(text.contains("#CLASSES_DIR="), "les cas où le préciser sont attendus");
-        assertTrue(text.contains("facultatif"), "CLASSES_DIR doit être annoncé facultatif");
+        assertTrue(text.contains("optional"), "CLASSES_DIR doit être annoncé facultatif");
         assertTrue(text.contains("#RUN_NAME="), "un exemple de nom d'exécution est attendu");
         assertTrue(text.contains("MAVEN_REPO"), "le miroir interne doit être documenté");
         Files.deleteIfExists(file);
