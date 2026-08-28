@@ -23,15 +23,18 @@ sont dans `vue/`.
 ## Le chemin le plus court
 
 ```sh
-java -jar runtime-xray.jar --out <le-dossier> --contexte "la question posée"
+java -jar runtime-xray.jar --out <report-dir> --contexte "which classes never ran?"
 ```
 
 Ça écrit sur la sortie standard un extrait **borné et prêt à lire** : les faits qui
 répondent, leur vocabulaire, et en tête ce qui n'a *pas* été mesuré. Rien n'est envoyé nulle
 part.
 
-La question **choisit** les faits joints — par simples mots-clés, pas par compréhension —
-et **voyage** dans le paquet. Ce qui a été retenu est annoncé sur la **sortie d'erreur** ;
+La question **choisit** les faits joints — par simples mots-clés **anglais**, pas par
+compréhension : `never` `dead` `unused` pour les classes mortes, `time` `slow` `hot` pour le
+temps, `cover` `coverage` pour la couverture, `source` `missing` `root` pour les sources,
+`run` `when` pour les exécutions. Un mot-clé **ouvre un mot** : « screenshot » ne déclenche
+pas `hot`. Les mots français marchent aussi. La question **voyage** ensuite dans le paquet. Ce qui a été retenu est annoncé sur la **sortie d'erreur** ;
 `--help` donne la table des mots reconnus. Pour un résultat reproductible, nommer les
 familles au lieu de les faire déduire :
 
@@ -44,8 +47,8 @@ Si le jar n'est pas à portée, lire `faits.jsonl` directement : **sa première 
 son propre dictionnaire**, il n'y a pas de documentation à aller chercher.
 
 ```sh
-head -1 <le-dossier>/faits.jsonl | python3 -m json.tool
-grep '"fait":"classe.jamais_executee"' <le-dossier>/faits.jsonl
+head -1 <report-dir>/faits.jsonl | python3 -m json.tool
+grep '"fait":"classe.jamais_executee"' <report-dir>/faits.jsonl
 ```
 
 ## Le vocabulaire

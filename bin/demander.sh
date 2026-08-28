@@ -15,8 +15,8 @@
 #
 # Aucune dépendance : curl et jq.
 #
-#   ./bin/demander.sh --out runtime-xray-out "quelles classes n'ont jamais tourné ?"
-#   ./bin/demander.sh --api anthropic --modele … "où passe le temps ?"
+#   ./bin/demander.sh --out runtime-xray-out "which classes never ran?"
+#   ./bin/demander.sh --api anthropic --modele … "where does the time go?"
 #   ./bin/demander.sh --contexte-seul --out runtime-xray-out "…"   # rien n'est envoyé
 #
 # La clé se lit dans XRAY_CLE, ou dans OPENAI_API_KEY / ANTHROPIC_API_KEY / GEMINI_API_KEY.

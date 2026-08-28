@@ -353,7 +353,7 @@ démarrage ; ni le code analysé ni le build ne sont modifiés.
 ```bash
 java -jar runtime-xray.jar \
   --java "java -jar target/mon-appli.jar" \
-  --root "com.exemple.Calculateur::calculer" \
+  --root "com.example.Calculateur::calculer" \
   --sources src/main/java
 ```
 
@@ -447,13 +447,13 @@ sait déjà quelle méthode regarder.
 
 ```bash
 # 1. le moins cher : la couverture seule, restreinte au code du projet
-java -jar runtime-xray.jar --niveau couverture --cover "com.exemple.*"   --java "java -jar app.jar" --sources src/main/java
+java -jar runtime-xray.jar --niveau couverture --cover "com.example.*"   --java "java -jar app.jar" --sources src/main/java
 
 # 2. + l'arbre d'appel, échantillonné dix fois moins souvent
-java -jar runtime-xray.jar --niveau arbre --interval 10 --cover "com.exemple.*"   --java "java -jar app.jar" --sources src/main/java
+java -jar runtime-xray.jar --niveau arbre --interval 10 --cover "com.example.*"   --java "java -jar app.jar" --sources src/main/java
 
 # 3. + les valeurs d'une méthode : le défaut
-java -jar runtime-xray.jar --root "com.exemple.Moteur::calculer"   --java "java -jar app.jar" --sources src/main/java
+java -jar runtime-xray.jar --root "com.example.Engine::compute"   --java "java -jar app.jar" --sources src/main/java
 ```
 
 Le levier le plus efficace n'est pas le niveau mais `--cover` : sans lui, JaCoCo instrumente

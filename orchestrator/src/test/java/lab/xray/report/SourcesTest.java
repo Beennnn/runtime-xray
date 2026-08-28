@@ -37,12 +37,12 @@ class SourcesTest {
     @Test
     @DisplayName("La clé vient du paquet déclaré, pas du niveau de la racine passée")
     void keysFollowTheDeclaredPackage(@TempDir Path dir) throws Exception {
-        source(dir, "projet/src/main/java/org/exemple/module/Application.java", "org.exemple.module");
+        source(dir, "projet/src/main/java/com/example/app/Application.java", "com.example.app");
 
         // Trois racines, du bon niveau au plus improbable : la clé ne bouge pas.
         for (String racine : List.of("projet/src/main/java", "projet/src", "projet")) {
             Sources.Index index = Sources.load(List.of(dir.resolve(racine)));
-            assertTrue(index.parCle().containsKey("org/exemple/module/Application.java"),
+            assertTrue(index.parCle().containsKey("com/example/app/Application.java"),
                     "racine « " + racine + " » : la clé doit rester celle de JaCoCo, "
                     + "or on a " + index.parCle().keySet());
         }
@@ -51,10 +51,10 @@ class SourcesTest {
     @Test
     @DisplayName("Une racine SOUS le paquet retombe quand même sur la bonne clé")
     void keysSurviveARootBelowThePackage(@TempDir Path dir) throws Exception {
-        source(dir, "src/org/exemple/module/Application.java", "org.exemple.module");
+        source(dir, "src/com/example/app/Application.java", "com.example.app");
 
-        Sources.Index index = Sources.load(List.of(dir.resolve("src/org/exemple")));
-        assertTrue(index.parCle().containsKey("org/exemple/module/Application.java"),
+        Sources.Index index = Sources.load(List.of(dir.resolve("src/com/example")));
+        assertTrue(index.parCle().containsKey("com/example/app/Application.java"),
                 "le chemin relatif aurait donné « mod/Application.java », qui ne correspond à rien");
     }
 
@@ -102,7 +102,7 @@ class SourcesTest {
 
         Sources.Index index = Sources.load(List.of(dir.resolve("src")));
 
-        // Le cas réel : la couverture cherche org/exemple/module/Application.java, l'index n'a
+        // Le cas réel : la couverture cherche com/example/app/Application.java, l'index n'a
         // qu'un homonyme. C'est cette liste qui permet à la page de le dire.
         @SuppressWarnings("unchecked")
         List<Object> endroits = (List<Object>) index.parNom().get("Application.java");
@@ -136,13 +136,13 @@ class SourcesTest {
     @DisplayName("La racine proposée est celle qui explique le plus de classes manquantes")
     @SuppressWarnings("unchecked")
     void proposesTheRootThatExplainsTheMostClasses(@TempDir Path dir) throws Exception {
-        source(dir, "projet/src/main/java/org/exemple/module/Application.java", "org.exemple.module");
-        source(dir, "projet/src/main/java/org/exemple/donnees/Depot.java", "org.exemple.donnees");
-        source(dir, "autre/src/org/exemple/module/Application.java", "org.exemple.module");
+        source(dir, "projet/src/main/java/com/example/app/Application.java", "com.example.app");
+        source(dir, "projet/src/main/java/com/example/data/Repository.java", "com.example.data");
+        source(dir, "autre/src/com/example/app/Application.java", "com.example.app");
 
         List<Object> pistes = Sources.chercherRacines(
-                new java.util.LinkedHashSet<>(List.of("org/exemple/module/Application.java",
-                                                      "org/exemple/donnees/Depot.java")),
+                new java.util.LinkedHashSet<>(List.of("com/example/app/Application.java",
+                                                      "com/example/data/Repository.java")),
                 List.of(dir));
 
         assertFalse(pistes.isEmpty(), "les deux racines candidates doivent être trouvées");
@@ -167,7 +167,7 @@ class SourcesTest {
         source(dir, "un-autre-projet/src/util/Application.java", "un.autre.projet");
 
         List<Object> pistes = Sources.chercherRacines(
-                new java.util.LinkedHashSet<>(List.of("org/exemple/module/Application.java")),
+                new java.util.LinkedHashSet<>(List.of("com/example/app/Application.java")),
                 List.of(dir));
 
         assertTrue(pistes.isEmpty(),
@@ -180,7 +180,7 @@ class SourcesTest {
         Files.createDirectories(dir.resolve("vide"));
 
         assertTrue(Sources.chercherRacines(
-                new java.util.LinkedHashSet<>(List.of("org/exemple/module/Application.java")),
+                new java.util.LinkedHashSet<>(List.of("com/example/app/Application.java")),
                 List.of(dir)).isEmpty());
         assertTrue(Sources.chercherRacines(java.util.Set.of(), List.of(dir)).isEmpty(),
                 "sans classe manquante, il n'y a rien à chercher");
@@ -202,10 +202,10 @@ class SourcesTest {
     @DisplayName("La racine proposée est celle qu'il aurait fallu écrire, paquet retiré")
     @SuppressWarnings("unchecked")
     void proposesTheRootWithThePackagePathRemoved(@TempDir Path dir) throws Exception {
-        source(dir, "depot/module/src/main/java/org/exemple/module/Application.java", "org.exemple.module");
+        source(dir, "depot/module/src/main/java/com/example/app/Application.java", "com.example.app");
 
         List<Object> pistes = Sources.chercherRacines(
-                new java.util.LinkedHashSet<>(List.of("org/exemple/module/Application.java")),
+                new java.util.LinkedHashSet<>(List.of("com/example/app/Application.java")),
                 List.of(dir));
 
         Map<String, Object> piste = (Map<String, Object>) pistes.get(0);
@@ -213,19 +213,19 @@ class SourcesTest {
                         .toString(),
                 piste.get("racine"),
                 "on rend le répertoire de sources, pas celui du fichier");
-        assertEquals(List.of("org/exemple/module/Application.java"), piste.get("exemples"),
+        assertEquals(List.of("com/example/app/Application.java"), piste.get("exemples"),
                 "la preuve accompagne le chiffre");
     }
 
     @Test
     @DisplayName("Le bytecode et les métadonnées ne sont pas traversés")
     void doesNotWalkThroughBuildOutputOrVersionControl(@TempDir Path dir) throws Exception {
-        source(dir, ".git/sauvegarde/org/exemple/module/Application.java", "org.exemple.module");
-        source(dir, "classes/org/exemple/module/Application.java", "org.exemple.module");
-        source(dir, "node_modules/paquet/org/exemple/module/Application.java", "org.exemple.module");
+        source(dir, ".git/sauvegarde/com/example/app/Application.java", "com.example.app");
+        source(dir, "classes/com/example/app/Application.java", "com.example.app");
+        source(dir, "node_modules/paquet/com/example/app/Application.java", "com.example.app");
 
         assertTrue(Sources.chercherRacines(
-                new java.util.LinkedHashSet<>(List.of("org/exemple/module/Application.java")),
+                new java.util.LinkedHashSet<>(List.of("com/example/app/Application.java")),
                 List.of(dir)).isEmpty(),
                 "ces répertoires ne contiennent jamais les sources d'un projet, et ce sont "
                 + "eux qui font exploser le parcours");

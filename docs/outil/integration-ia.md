@@ -28,8 +28,8 @@ Un rapport `runtime-xray` s'accompagne d'un `faits.jsonl` : **un objet JSON par 
 chaque ligne se comprend seule.
 
 ```jsonl
-{"fait":"classe.jamais_executee","classe":"org.exemple.module.Ancien","executionsAnalysee":["recette-1","recette-2"]}
-{"fait":"methode.chaude","methode":"org.exemple.module.Depot.charger","echantillons":4821,"pct":31.2,"mesure":"async-profiler.echantillons","execution":"recette-1"}
+{"fait":"classe.jamais_executee","classe":"com.example.app.Ancien","executionsAnalysee":["recette-1","recette-2"]}
+{"fait":"methode.chaude","methode":"com.example.app.Repository.charger","echantillons":4821,"pct":31.2,"mesure":"async-profiler.echantillons","execution":"recette-1"}
 ```
 
 Il n'y a rien à installer pour le lire : `grep`, `jq`, une boucle de trois lignes, ou un
@@ -65,7 +65,7 @@ donne un paquet qui n'a plus rien à dire.
 `--contexte` fait ce travail :
 
 ```bash
-java -jar runtime-xray.jar --out runtime-xray-out --contexte "quelles classes n'ont jamais tourné ?"
+java -jar runtime-xray.jar --out runtime-xray-out --contexte "which classes never ran?"
 ```
 
 Sur la sortie standard, un texte Markdown prêt à coller, qui porte dans cet ordre :
@@ -109,6 +109,20 @@ n'existe pas, alors deux choses le compensent :
 - **`--help` donne la table des mots reconnus.** Un texte libre non documenté n'est pas
   découvrable ; celui-ci l'est, et un test garde la table contre le pourrissement.
 
+| Si la question contient… | Familles jointes |
+|---|---|
+| `never` `dead` `unused` `uncovered` `not covered` | `classe.jamais_executee` |
+| `cover` `coverage` `percent` | `couverture.execution` + `classe` |
+| `time` `slow` `hot` `cost` `perf` `fast` `profil` | `methode.chaude` |
+| `source` `missing` `root` | `source.introuvable` + `piste.source` |
+| `run` `campaign` `when` `machine` `command` | `execution` |
+
+**Un mot-clé ouvre un mot**, il n'est pas cherché n'importe où dans la phrase : « screenshot »
+ne déclenche donc pas `hot`, ni « generate » `rate`. Les flexions restent attrapées — `missing`
+et `manqu` couvrent « manquant », « manquantes ». **Les mots français sont reconnus aussi**,
+sans être documentés : l'outil parle anglais, et une seconde table rendrait la première
+illisible pour ceux à qui elle s'adresse.
+
 ```
 $ runtime-xray --out rapport --contexte "welche Klassen liefen nie" > paquet.md
    aucun mot-clé reconnu dans la question — vue d'ensemble : execution, couverture…
@@ -143,7 +157,7 @@ fichier de faits, un sur le paquet de contexte.
 Rien à installer, rien à configurer, aucune clé.
 
 ```bash
-java -jar runtime-xray.jar --out runtime-xray-out --contexte "où passe le temps ?" | pbcopy
+java -jar runtime-xray.jar --out runtime-xray-out --contexte "where does the time go?" | pbcopy
 ```
 
 Et si l'on travaille déjà avec un assistant qui lit l'espace de travail — dans un éditeur,
@@ -168,7 +182,7 @@ Pour eux, il n'y a **rien à intégrer** : ils lisent déjà l'espace de travail
 poser le rapport dedans et de nommer le fichier.
 
 ```
-Lis runtime-xray-out/faits.jsonl et dis-moi quelles classes n'ont jamais tourné.
+Read runtime-xray-out/faits.jsonl and tell me which classes never ran.
 ```
 
 Le fichier porte son propre vocabulaire en première ligne, et la [compétence de
@@ -187,8 +201,8 @@ pas de lui-même.
 réponse. Aucune dépendance : `curl` et `jq`.
 
 ```bash
-./bin/demander.sh --out runtime-xray-out "quelles classes n'ont jamais tourné ?"
-./bin/demander.sh --api anthropic --modele … "où passe le temps ?"
+./bin/demander.sh --out runtime-xray-out "which classes never ran?"
+./bin/demander.sh --api anthropic --modele … "where does the time go?"
 ./bin/demander.sh --contexte-seul --out runtime-xray-out "…"   # rien n'est envoyé
 ```
 
@@ -235,7 +249,7 @@ Le contexte étant un texte sur la sortie standard, il se pose où l'on veut : d
 dans un commentaire de proposition de fusion, dans un message d'équipe.
 
 ```bash
-java -jar runtime-xray.jar --out "$OUT" --contexte "quelles classes n'ont jamais tourné ?" \
+java -jar runtime-xray.jar --out "$OUT" --contexte "which classes never ran?" \
   > contexte.md
 ```
 

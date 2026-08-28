@@ -94,18 +94,18 @@ class ConfigTest {
     @DisplayName("Le filtre de profil se déduit du paquet de la méthode racine")
     void filterIsDerivedFromRootMethod() {
         Config c = new Config();
-        c.rootMethod = "com.exemple.moteur.Calculateur::calculer";
-        assertEquals("com/exemple/moteur/*", c.effectiveFilter());
-        assertEquals("com.exemple.moteur.Calculateur", c.rootClass());
+        c.rootMethod = "com.example.moteur.Calculateur::calculer";
+        assertEquals("com/example/moteur/*", c.effectiveFilter());
+        assertEquals("com.example.moteur.Calculateur", c.rootClass());
     }
 
     @Test
     @DisplayName("Un filtre explicite l'emporte sur la déduction")
     void explicitFilterWins() {
         Config c = new Config();
-        c.rootMethod = "com.exemple.moteur.Calculateur::calculer";
-        c.classFilter = "com/exemple/*";
-        assertEquals("com/exemple/*", c.effectiveFilter());
+        c.rootMethod = "com.example.moteur.Calculateur::calculer";
+        c.classFilter = "com/example/*";
+        assertEquals("com/example/*", c.effectiveFilter());
     }
 
     @Test
@@ -142,11 +142,11 @@ class ConfigTest {
     void levelIsRecorded() {
         Config c = new Config();
         c.level = "arbre";
-        c.coverIncludes = "com.exemple.*";
+        c.coverIncludes = "com.example.*";
         c.sampleIntervalMs = 10;
         var described = c.describe();
         assertEquals("arbre", described.get("niveau"));
-        assertEquals("com.exemple.*", described.get("classesInstrumentees"));
+        assertEquals("com.example.*", described.get("classesInstrumentees"));
         assertEquals(10, described.get("intervalleMs"));
         assertEquals(Boolean.FALSE, described.get("valeursInspectees"));
     }

@@ -39,7 +39,7 @@ class ContexteTest {
                 "reserve", "une partie des relevés a été rattachée à l'appelant")));
         for (int i = 0; i < classesMortes; i++) {
             lignes.add(Json.write(Map.of("fait", "classe.jamais_executee",
-                    "classe", "org.exemple.module.Classe" + i,
+                    "classe", "com.example.app.Classe" + i,
                     "executionsAnalysee", List.of("A", "B"))));
         }
         Path f = dir.resolve(Faits.FICHIER);
@@ -51,7 +51,7 @@ class ContexteTest {
     @DisplayName("Ce qui n'a pas été mesuré vient AVANT les chiffres, jamais après")
     void whatWasNotMeasuredComesFirst(@TempDir Path dir) throws Exception {
         fichierDeFaits(dir, 3);
-        String paquet = Contexte.pour(dir, "quelles classes n'ont jamais tourné ?",
+        String paquet = Contexte.pour(dir, "which classes never ran?",
                 Contexte.BUDGET);
 
         int absences = paquet.indexOf("N'A PAS été mesuré");
@@ -123,7 +123,7 @@ class ContexteTest {
         // lecteur ne peut pas trancher entre « il n'y en a pas » et « l'outil a échoué » :
         // deux conclusions opposées à partir du même vide.
         fichierDeFaits(dir, 0);
-        String paquet = Contexte.pour(dir, "quelles classes n'ont jamais tourné ?",
+        String paquet = Contexte.pour(dir, "which classes never ran?",
                 Contexte.BUDGET);
 
         assertTrue(paquet.contains("Aucun fait de ces familles"));
@@ -141,10 +141,10 @@ class ContexteTest {
         // humain comme chez un modèle.
         Path f = fichierDeFaits(dir, 0);
         Files.writeString(f, Files.readString(f, StandardCharsets.UTF_8)
-                + "{\"fait\":\"methode.chaude\",\"methode\":\"org.exemple.module.Depot.charger\","
+                + "{\"fait\":\"methode.chaude\",\"methode\":\"com.example.app.Repository.charger\","
                 + "\"releves\":41,\"pct\":100.0}\n", StandardCharsets.UTF_8);
 
-        String paquet = Contexte.pour(dir, "où passe le temps ?", Contexte.BUDGET);
+        String paquet = Contexte.pour(dir, "where does the time go?", Contexte.BUDGET);
         assertTrue(paquet.contains("executions : 2"));
         assertFalse(paquet.contains("executions : 2.0"));
         assertTrue(paquet.contains("\"releves\":41"), "la ligne d'origine est recopiée telle quelle");
@@ -160,7 +160,7 @@ class ContexteTest {
         // suivant : ce qui SORT de la machine vers un modèle, parfois hébergé ailleurs.
         Path f = fichierDeFaits(dir, 1);
         Files.writeString(f, Files.readString(f, StandardCharsets.UTF_8)
-                + Json.write(Map.of("fait", "classe", "classe", "org.exemple.module.A",
+                + Json.write(Map.of("fait", "classe", "classe", "com.example.app.A",
                         "pct", 12)) + "\n", StandardCharsets.UTF_8);
 
         String paquet = Contexte.pour(dir, "couverture", Contexte.BUDGET);
@@ -176,7 +176,7 @@ class ContexteTest {
         // Une question dont les mots-clés désignent le temps, mais un script qui demande
         // les classes mortes : c'est la demande explicite qui doit gagner, sans quoi le
         // script produirait autre chose que ce qu'il croit lire.
-        Contexte.Paquet p = Contexte.pour(dir, "où passe le temps ?",
+        Contexte.Paquet p = Contexte.pour(dir, "where does the time go?",
                 List.of("classe.jamais_executee"), Contexte.BUDGET);
 
         assertEquals(Contexte.Origine.DEMANDEES, p.origine());
@@ -185,7 +185,7 @@ class ContexteTest {
         assertFalse(p.texte().contains("methode.chaude\""),
                 "la question ne doit plus rien choisir quand on a nommé les familles");
         // Elle continue en revanche de voyager : c'est son autre rôle.
-        assertTrue(p.texte().contains("où passe le temps ?"));
+        assertTrue(p.texte().contains("where does the time go?"));
     }
 
     @Test
@@ -209,7 +209,7 @@ class ContexteTest {
         // Le cœur du problème : une question en toutes lettres A L'AIR d'être comprise.
         // Sans ce retour, personne ne sait que « quelles classes n'ont jamais tourné ? »
         // se réduit au seul mot « jamais ».
-        Contexte.Paquet reconnue = Contexte.pour(dir, "quelles classes n'ont jamais tourné ?",
+        Contexte.Paquet reconnue = Contexte.pour(dir, "which classes never ran?",
                 List.of(), Contexte.BUDGET);
         assertEquals(Contexte.Origine.MOTS_CLES, reconnue.origine());
         assertTrue(reconnue.annonce().contains("d'après la question"));
@@ -223,29 +223,56 @@ class ContexteTest {
     }
 
     @Test
-    @DisplayName("Tout mot-clé du code est écrit dans l'aide : sinon il est introuvable")
-    void everyKeywordInTheCodeIsWrittenInTheHelp() throws Exception {
+    @DisplayName("Tout mot-clé anglais est écrit dans l'aide : sinon il est introuvable")
+    void everyEnglishKeywordIsWrittenInTheHelp() throws Exception {
         // Le reproche fait à cette option est qu'elle n'est pas découvrable : « --help » ne
         // peut pas énumérer ce qui marche. Il le peut, à condition que la table ne pourrisse
         // pas — et une table de documentation ne casse aucun build.
-        Path racine = Path.of("").toAbsolutePath().getParent();
-        String contexte = Files.readString(racine.resolve("orchestrator/src/main/java/lab/xray"
-                + "/report/Contexte.java").normalize(), StandardCharsets.UTF_8);
-        String main = Files.readString(racine.resolve("orchestrator/src/main/java/lab/xray"
-                + "/Main.java").normalize(), StandardCharsets.UTF_8);
-
-        int debut = contexte.indexOf("static List<String> famillesReconnues");
-        int fin = contexte.indexOf("\n    }", debut);
-        assertTrue(debut > 0 && fin > debut);
-        Matcher m = Pattern.compile("\"([^\"]+)\"").matcher(contexte.substring(debut, fin));
-        int comptes = 0;
-        while (m.find()) {
-            String mot = m.group(1);
-            if (mot.contains(".")) continue;             // un nom de famille, pas un mot-clé
-            comptes++;
-            assertTrue(main.contains(mot), "le mot-clé « " + mot + " » déclenche une famille "
-                    + "mais n'est écrit nulle part dans l'aide : personne ne peut le deviner");
+        String aide = aide();
+        for (Map.Entry<String, String[]> e : Contexte.MOTS.entrySet()) {
+            for (String mot : e.getValue()) {
+                assertTrue(aide.contains(mot), "le mot-clé « " + mot + " » déclenche « "
+                        + e.getKey() + " » mais n'est écrit nulle part dans l'aide : "
+                        + "personne ne peut le deviner");
+            }
         }
-        assertTrue(comptes > 25, "l'extraction a raté : " + comptes + " mots trouvés");
+    }
+
+    @Test
+    @DisplayName("Les mots français marchent sans être documentés, et l'aide le dit")
+    void theFrenchWordsWorkWithoutBeingDocumented() throws Exception {
+        // L'outil parle anglais : une seconde table dans l'aide la rendrait illisible pour
+        // ceux à qui elle s'adresse. Mais taire complètement leur existence ferait croire à
+        // un francophone que sa question n'a pas été lue.
+        assertEquals(Contexte.MOTS.keySet(), Contexte.MOTS_FR.keySet(),
+                "chaque famille documentée doit avoir ses mots français, et l'inverse");
+        assertEquals(List.of("classe.jamais_executee"),
+                Contexte.famillesReconnues("quelles classes n'ont jamais tourné ?"));
+        assertEquals(List.of("methode.chaude"), Contexte.famillesReconnues("quel est le coût ?"),
+                "les accents ne doivent pas empêcher la reconnaissance");
+        assertTrue(aide().contains("French words are recognised too"),
+                "leur existence doit être dite, même sans la table");
+    }
+
+    @Test
+    @DisplayName("Un mot-clé ouvre un mot : « screenshot » ne déclenche pas « hot »")
+    void aKeywordOpensAWordItIsNotFoundAnywhere() {
+        // Chercher n'importe où dans la chaîne paraissait plus généreux et se retournait
+        // contre nous. Le passage à l'anglais aggravait le défaut : « hot » vit dans
+        // « screenshot », « rate » dans « generate », « cout » dans « écouter ».
+        assertTrue(Contexte.famillesReconnues("show me a screenshot").isEmpty());
+        assertTrue(Contexte.famillesReconnues("generate a report").isEmpty());
+        assertTrue(Contexte.famillesReconnues("je veux écouter les journaux").isEmpty());
+        // Les flexions, elles, restent attrapées : c'est tout l'intérêt d'un début de mot.
+        assertEquals(List.of("source.introuvable", "piste.source"),
+                Contexte.famillesReconnues("il manque des sources"));
+        assertEquals(List.of("classe.jamais_executee"),
+                Contexte.famillesReconnues("des classes inutilisées"));
+    }
+
+    private static String aide() throws Exception {
+        return Files.readString(Path.of("").toAbsolutePath().getParent()
+                .resolve("orchestrator/src/main/java/lab/xray/Main.java").normalize(),
+                StandardCharsets.UTF_8);
     }
 }

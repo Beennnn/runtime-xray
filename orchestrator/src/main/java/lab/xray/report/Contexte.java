@@ -72,7 +72,7 @@ public final class Contexte {
      *
      * <p>Le texte seul ne suffisait pas. Une question posée en toutes lettres a l'air d'être
      * comprise, alors qu'elle n'est que passée au tamis de quelques mots-clés : sans un
-     * retour explicite, personne ne sait que « quelles classes n'ont jamais tourné ? » se
+     * retour explicite, personne ne sait que « which classes never ran? » se
      * réduit au seul mot « jamais », ni qu'une question en anglais est tombée dans la vue
      * d'ensemble faute d'avoir été reconnue.
      */
@@ -193,29 +193,69 @@ public final class Contexte {
      * sélection trop fine écarterait le fait qui contredit l'hypothèse — exactement celui
      * qu'il fallait garder.
      */
+    /**
+     * Les mots documentés, en anglais : ce que {@code --help} énumère, et ce sur quoi un
+     * lecteur peut compter. Un test garde qu'ils y sont tous écrits.
+     */
+    static final Map<String, String[]> MOTS = new LinkedHashMap<>();
+
+    /**
+     * Les mêmes familles en français. Reconnus, <b>délibérément non documentés</b> : l'outil
+     * parle anglais, et une seconde table dans l'aide la rendrait illisible pour ceux à qui
+     * elle s'adresse. L'aide se contente de dire qu'ils existent.
+     */
+    static final Map<String, String[]> MOTS_FR = new LinkedHashMap<>();
+
+    static {
+        MOTS.put("classe.jamais_executee",
+                new String[]{"never", "dead", "unused", "uncovered", "not covered"});
+        MOTS.put("couverture.execution", new String[]{"cover", "coverage", "percent"});
+        MOTS.put("methode.chaude",
+                new String[]{"time", "slow", "hot", "cost", "perf", "fast", "profil"});
+        MOTS.put("source.introuvable", new String[]{"source", "missing", "root"});
+        MOTS.put("execution",
+                new String[]{"run", "campaign", "when", "machine", "command"});
+
+        MOTS_FR.put("classe.jamais_executee",
+                new String[]{"jamais", "mort", "inutilis", "non couvert", "pas couvert"});
+        MOTS_FR.put("couverture.execution",
+                new String[]{"couvert", "couverture", "taux", "pourcent"});
+        MOTS_FR.put("methode.chaude",
+                new String[]{"temps", "lent", "cout", "chaud", "rapide"});
+        // « code » n'y figure pas : « dead code » et « code coverage » sont des tournures
+        // trop courantes pour qu'un mot aussi général désigne la famille des sources.
+        MOTS_FR.put("source.introuvable",
+                new String[]{"introuvable", "manqu", "racine"});
+        MOTS_FR.put("execution",
+                new String[]{"execution", "campagne", "quand", "commande"});
+    }
+
     static List<String> famillesReconnues(String question) {
-        String q = question.toLowerCase(Locale.ROOT);
+        String q = normaliser(question);
         List<String> familles = new ArrayList<>();
-        if (contient(q, "jamais", "mort", "morte", "inutilis", "non couvert", "pas couvert",
-                "dead", "unused")) {
-            familles.add("classe.jamais_executee");
-        }
-        if (contient(q, "couvert", "couverture", "coverage", "taux", "pourcent")) {
-            familles.add("couverture.execution");
-            familles.add("classe");
-        }
-        if (contient(q, "temps", "lent", "lente", "coût", "cout", "chaud", "perf", "rapide",
-                "profil")) {
-            familles.add("methode.chaude");
-        }
-        if (contient(q, "source", "introuvable", "manque", "manquant", "racine", "code")) {
-            familles.add("source.introuvable");
-            familles.add("piste.source");
-        }
-        if (contient(q, "exécution", "execution", "campagne", "quand", "machine", "commande")) {
-            familles.add("execution");
+        for (Map.Entry<String, String[]> e : MOTS.entrySet()) {
+            if (contient(q, e.getValue()) || contient(q, MOTS_FR.get(e.getKey()))) {
+                familles.add(e.getKey());
+                // La couverture d'une exécution et celle d'une classe répondent à la même
+                // question, posée à deux échelles : on ne les sépare pas.
+                if (e.getKey().equals("couverture.execution")) familles.add("classe");
+                if (e.getKey().equals("source.introuvable")) familles.add("piste.source");
+            }
         }
         return familles;
+    }
+
+    /**
+     * La question, mise à plat : minuscules, accents retirés.
+     *
+     * <p>Sans cela {@code coût} et {@code cout} seraient deux mots à écrire tous les deux,
+     * et {@code exécution} ne reconnaîtrait pas {@code execution}. On en écrit un seul,
+     * sans accent, et la question s'y ramène.
+     */
+    static String normaliser(String question) {
+        return java.text.Normalizer.normalize(question.toLowerCase(Locale.ROOT),
+                        java.text.Normalizer.Form.NFD)
+                .replaceAll("\\p{M}+", "");
     }
 
     /** La vue d'ensemble : ce qu'on donne quand la question n'a rien déclenché. */
@@ -240,8 +280,29 @@ public final class Contexte {
         return !famillesReconnues(question).isEmpty();
     }
 
+    /**
+     * Vrai si l'un des mots ouvre un mot de la question.
+     *
+     * <p>La correspondance est un <b>début de mot</b>, et non n'importe où dans la chaîne.
+     * Chercher n'importe où paraissait plus généreux et se retournait contre nous :
+     * {@code cout} déclenchait sur « é<b>cout</b>er », et l'ajout de mots anglais aurait
+     * empiré les choses — {@code hot} vit dans « screens<b>hot</b> », {@code rate} dans
+     * « gene<b>rate</b> ». Un début de mot garde en revanche les flexions, qui sont tout
+     * l'intérêt : {@code manqu} attrape « manque », « manquant », « manquantes ».
+     *
+     * <p>Un mot-clé qui contient une espace est cherché tel quel : « not covered » n'est
+     * pas un mot, c'est une tournure.
+     */
     private static boolean contient(String q, String... mots) {
-        for (String m : mots) if (q.contains(m)) return true;
+        for (String m : mots) {
+            if (m.indexOf(' ') >= 0) {
+                if (q.contains(m)) return true;
+            } else {
+                for (String mot : q.split("[^\\p{L}\\p{N}]+")) {
+                    if (mot.startsWith(m)) return true;
+                }
+            }
+        }
         return false;
     }
 
