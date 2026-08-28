@@ -11,17 +11,17 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Une campagne de recette coûte une matinée. Ce numéro existe pour qu'une mise à jour de
- * l'outil ne la fasse pas rejouer : c'est la décision que ces tests gardent, et elle se perd
- * au premier « tant pis, on remesurera ».
+ * An acceptance campaign costs a morning. This number exists so that updating the tool does
+ * not make it be replayed: that is the decision these tests guard, and it is lost at the
+ * first "never mind, we will measure again".
  */
 class CaptureTest {
 
     @Test
-    @DisplayName("Une capture qui n'annonce rien reste lisible")
+    @DisplayName("A capture that announces nothing stays readable")
     void aCaptureWithoutAVersionIsStillReadable() {
-        // Le silence d'hier ne doit pas coûter une campagne : les exécutions faites avant que
-        // ce contrat n'existe relèvent de la forme d'origine, et se relisent.
+        // Yesterday's silence must not cost a campaign: runs made before this contract
+        // existed fall under the original shape, and read back.
         assertEquals(Capture.ORIGIN, Capture.versionOf(null));
         assertEquals(Capture.ORIGIN, Capture.versionOf(new HashMap<>()));
         assertEquals(Capture.ORIGIN, Capture.versionOf(Map.of(Capture.FIELD, "  ")));
@@ -29,32 +29,32 @@ class CaptureTest {
     }
 
     @Test
-    @DisplayName("Une capture plus récente que l'outil se lit quand même, et se signale")
+    @DisplayName("A capture newer than the tool is still read, and says so")
     void aCaptureNewerThanTheToolIsStillRead() {
-        // Refuser de lire ferait perdre une campagne pour des champs qu'on ignore.
+        // Refusing to read would lose a campaign over fields we ignore.
         assertTrue(Capture.newerThanTheTool("9.0"));
         assertTrue(Capture.readable("9.0"));
         assertFalse(Capture.newerThanTheTool(Capture.CURRENT));
     }
 
     @Test
-    @DisplayName("Les versions se comparent par nombres, pas par texte")
+    @DisplayName("Versions compare as numbers, not as text")
     void versionsCompareNumerically() {
-        // « 1.10 » est postérieur à « 1.9 » ; comparé comme du texte, il serait antérieur, et
-        // l'outil réclamerait une nouvelle mesure sans raison.
+        // "1.10" comes after "1.9"; compared as text it would come before, and the tool
+        // would demand a new measurement for no reason.
         assertTrue(Capture.compare("1.10", "1.9") > 0);
         assertTrue(Capture.compare("2.0", "1.99") > 0);
         assertEquals(0, Capture.compare("1.1", "1.1"));
-        assertEquals(0, Capture.compare("1", "1.0"), "un segment absent vaut zéro");
+        assertEquals(0, Capture.compare("1", "1.0"), "a missing segment counts as zero");
     }
 
     @Test
-    @DisplayName("La version minimale ne dépasse jamais la version courante")
+    @DisplayName("The minimum version never exceeds the current one")
     void theMinimumNeverExceedsWhatWeWrite() {
-        // Sinon l'outil refuserait les captures qu'il vient lui-même de produire.
+        // Otherwise the tool would refuse the captures it has just produced itself.
         assertTrue(Capture.compare(Capture.MINIMUM, Capture.CURRENT) <= 0);
         assertTrue(Capture.readable(Capture.CURRENT));
         assertTrue(Capture.readable(Capture.ORIGIN),
-                "monter la minimale oblige tout le monde à remesurer : ce test le rend visible");
+                "raising the minimum forces everyone to measure again: this test makes that visible");
     }
 }

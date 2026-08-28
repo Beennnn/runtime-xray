@@ -18,9 +18,9 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * L'arbre est ce que l'utilisateur parcourt en premier. Deux erreurs y seraient graves :
- * perdre du temps mesuré en repliant des frames, ou laisser remonter du bruit qui noie le
- * code applicatif.
+ * The tree is what the user browses first. Two mistakes would be serious there: losing
+ * measured time while folding frames, or letting noise rise that drowns the application
+ * code.
  */
 class CallTreeTest {
 
@@ -40,7 +40,7 @@ class CallTreeTest {
     }
 
     @Test
-    @DisplayName("Une pile simple produit une branche, et les comptes s'additionnent")
+    @DisplayName("A simple stack produces a branch, and the counts add up")
     void buildsBranchesAndSums(@TempDir Path dir) throws IOException {
         CallTree t = CallTree.parse(write(dir, """
                 app/Main.main;app/Service.traiter 10
@@ -56,15 +56,15 @@ class CallTreeTest {
     }
 
     @Test
-    @DisplayName("Une pile que le profileur n'a pas remontée ne devient pas un second point d'entrée")
+    @DisplayName("A stack the profiler could not walk back does not become a second entry point")
     void brokenStackNeverBecomesARoot(@TempDir Path dir) throws IOException {
         CallTree t = CallTree.parse(write(dir, """
                 app/Main.main;app/Service.traiter 99
                 [unknown_Java];app/Speeds.forMode 1
                 """));
-        // Le relevé reste dans le total : le temps a bien été passé quelque part.
+        // The sample stays in the total: the time was indeed spent somewhere.
         assertEquals(100L, t.root.get("total"));
-        // Mais il ne s'affiche pas à côté de main, où il se lirait comme une seconde racine.
+        // But it does not show beside main, where it would read as a second root.
         assertNull(child(t.root, "app/Speeds.forMode"));
         assertEquals(1, ((List<Object>) t.root.get("children")).size());
         assertNotNull(t.stacksNote);
@@ -72,7 +72,7 @@ class CallTreeTest {
     }
 
     @Test
-    @DisplayName("Une racine entre crochets qui nomme un fil reste une vraie racine")
+    @DisplayName("A bracketed root that names a thread stays a real root")
     void threadRootIsKept(@TempDir Path dir) throws IOException {
         CallTree t = CallTree.parse(write(dir, """
                 [main tid=123];app/Main.main 7
@@ -82,7 +82,7 @@ class CallTreeTest {
     }
 
     @Test
-    @DisplayName("Les branches sont triées du plus coûteux au moins coûteux")
+    @DisplayName("The branches are sorted from the costliest to the least")
     void sortsChildrenByWeight(@TempDir Path dir) throws IOException {
         CallTree t = CallTree.parse(write(dir, """
                 app/Main.main;app/Petit.faire 1
@@ -97,21 +97,21 @@ class CallTreeTest {
     }
 
     @Test
-    @DisplayName("Les frames du JDK disparaissent, mais leur temps est attribué à l'appelant")
+    @DisplayName("The JDK frames disappear, but their time is attributed to the caller")
     void foldsPlatformFramesWithoutLosingTime(@TempDir Path dir) throws IOException {
         CallTree t = CallTree.parse(write(dir, """
                 app/Main.main;app/Service.traiter;java/util/ArrayList.iterator 7
                 app/Main.main;app/Service.traiter;jdk/internal/misc/Unsafe.park 3
                 """));
-        assertEquals(10L, t.root.get("total"), "aucun temps ne doit être perdu");
+        assertEquals(10L, t.root.get("total"), "no time must be lost");
         Map<String, Object> service = child(child(t.root, "app/Main.main"), "app/Service.traiter");
         assertEquals(10L, service.get("total"));
         assertTrue(((List<?>) service.get("children")).isEmpty(),
-                "aucune frame du JDK ne doit apparaître sous la méthode applicative");
+                "no JDK frame must appear under the application method");
     }
 
     @Test
-    @DisplayName("Les frames de la machine virtuelle et les trampolines sont repliés aussi")
+    @DisplayName("The virtual machine's frames and the trampolines are folded too")
     void foldsVirtualMachineFrames(@TempDir Path dir) throws IOException {
         CallTree t = CallTree.parse(write(dir, """
                 app/Main.main;CompileBroker::compile_method 4
@@ -124,41 +124,41 @@ class CallTreeTest {
     }
 
     @Test
-    @DisplayName("Les frames de l'inspecteur sont repliées ET signalées par une réserve")
+    @DisplayName("The inspector's frames are folded AND reported by a caveat")
     void foldsInstrumentationAndWarns(@TempDir Path dir) throws IOException {
         CallTree t = CallTree.parse(write(dir, """
                 app/Main.main;app/Service.traiter 20
                 app/Main.main;app/Service.traiter;java/arthas/SpyAPI.atEnter 80
                 """));
         assertEquals(100L, t.root.get("total"));
-        assertNotNull(t.note, "une réserve doit être formulée quand l'inspecteur pèse sur le profil");
-        assertTrue(t.note.contains("80%"), "la part concernée doit être chiffrée : " + t.note);
+        assertNotNull(t.note, "a caveat must be stated when the inspector weighs on the profile");
+        assertTrue(t.note.contains("80%"), "the share concerned must be given as a figure: " + t.note);
         Map<String, Object> service = child(child(t.root, "app/Main.main"), "app/Service.traiter");
         assertEquals(100L, service.get("total"));
     }
 
     @Test
-    @DisplayName("Sans inspecteur, aucune réserve n'est inventée")
+    @DisplayName("Without an inspector, no caveat is invented")
     void noNoteWhenNoInstrumentation(@TempDir Path dir) throws IOException {
         CallTree t = CallTree.parse(write(dir, "app/Main.main;app/Service.traiter 5\n"));
         assertNull(t.note);
     }
 
     @Test
-    @DisplayName("Un paquet masqué est replié comme le JDK : son temps revient à l'appelant")
+    @DisplayName("A hidden package is folded like the JDK: its time goes back to the caller")
     void foldsHiddenPackages(@TempDir Path dir) throws IOException {
         CallTree t = CallTree.parse(write(dir, """
                 app/Main.main;app/Service.traiter;org/slf4j/Logger.debug 30
                 app/Main.main;app/Service.traiter 10
                 """), PackageFilter.of("org.slf4j"));
-        assertEquals(40L, t.root.get("total"), "masquer ne doit pas perdre de temps mesuré");
+        assertEquals(40L, t.root.get("total"), "hiding must not lose measured time");
         Map<String, Object> service = child(child(t.root, "app/Main.main"), "app/Service.traiter");
-        assertEquals(40L, service.get("total"), "le temps du paquet masqué revient à l'appelant");
+        assertEquals(40L, service.get("total"), "the hidden package's time goes back to the caller");
         assertTrue(((List<?>) service.get("children")).isEmpty());
     }
 
     @Test
-    @DisplayName("Les symboles natifs de la VM sont repliés : personne ne peut les ouvrir")
+    @DisplayName("The VM's native symbols are folded: nobody can open them")
     void foldsNativeSymbols(@TempDir Path dir) throws IOException {
         CallTree t = CallTree.parse(write(dir, """
                 app/Main.main;Java_java_lang_ClassLoader_defineClass1 3
@@ -170,11 +170,11 @@ class CallTreeTest {
         Map<String, Object> main = child(t.root, "app/Main.main");
         assertEquals(20L, main.get("total"), "aucun temps perdu");
         assertTrue(((List<?>) main.get("children")).isEmpty(),
-                "aucun symbole natif ne doit apparaître : " + main.get("children"));
+                "no native symbol must appear: " + main.get("children"));
     }
 
     @Test
-    @DisplayName("L'agent de couverture est un instrument, pas du code applicatif")
+    @DisplayName("The coverage agent is an instrument, not application code")
     void foldsCoverageAgent(@TempDir Path dir) throws IOException {
         CallTree t = CallTree.parse(write(dir,
                 "app/Main.main;org/jacoco/agent/rt/internal_0e205/Offline.getProbes 8\n"));
@@ -184,24 +184,24 @@ class CallTreeTest {
     }
 
     @Test
-    @DisplayName("Une classe du paquet par défaut reste visible malgré tout")
+    @DisplayName("A class in the default package stays visible all the same")
     void keepsDefaultPackageClasses(@TempDir Path dir) throws IOException {
-        // Le repli des symboles natifs s'appuie sur l'absence de '/' ET de '.'. Une classe
-        // sans paquet garde son point — elle ne doit pas être emportée.
+        // Folding the native symbols rests on the absence of both '/' AND '.'. A class
+        // without a package keeps its dot — it must not be taken with them.
         CallTree t = CallTree.parse(write(dir, "Main.main;Calcul.faire 4\n"));
         assertNotNull(child(child(t.root, "Main.main"), "Calcul.faire"));
     }
 
     @Test
-    @DisplayName("Sans consigne de masquage, la bibliothèque reste visible")
+    @DisplayName("Without a hiding instruction, the library stays visible")
     void keepsLibraryFramesWhenNotHidden(@TempDir Path dir) throws IOException {
         CallTree t = CallTree.parse(write(dir, "app/Main.main;org/slf4j/Logger.debug 5\n"));
         assertNotNull(child(child(t.root, "app/Main.main"), "org/slf4j/Logger.debug"),
-                "rien hors du JDK ne doit disparaître sans qu'on l'ait demandé");
+                "nothing outside the JDK must disappear without being asked for");
     }
 
     @Test
-    @DisplayName("Un fichier absent donne un arbre vide, pas une erreur")
+    @DisplayName("A missing file gives an empty tree, not an error")
     void missingFileGivesEmptyTree(@TempDir Path dir) throws IOException {
         CallTree t = CallTree.parse(dir.resolve("inexistant.collapsed"));
         assertEquals(0L, t.root.get("total"));
@@ -209,7 +209,7 @@ class CallTreeTest {
     }
 
     @Test
-    @DisplayName("Une ligne mal formée est ignorée sans faire tomber le reste")
+    @DisplayName("A malformed line is ignored without bringing the rest down")
     void skipsMalformedLines(@TempDir Path dir) throws IOException {
         CallTree t = CallTree.parse(write(dir, """
                 ceci n'est pas une pile
@@ -221,12 +221,12 @@ class CallTreeTest {
     }
 
     @Test
-    @DisplayName("Une pile entièrement composée de frames repliées ne crée pas de branche fantôme")
+    @DisplayName("A stack made entirely of folded frames creates no phantom branch")
     void fullyFoldedStackCreatesNoBranch(@TempDir Path dir) throws IOException {
         CallTree t = CallTree.parse(write(dir, "java/lang/Thread.run;java/util/Timer.mainLoop 9\n"));
-        assertEquals(9L, t.root.get("total"), "le temps reste compté au total");
+        assertEquals(9L, t.root.get("total"), "the time stays counted in the total");
         assertTrue(((List<?>) t.root.get("children")).isEmpty(),
-                "mais aucune branche du JDK ne doit apparaître");
+                "but no JDK branch must appear");
         assertFalse(String.valueOf(t.note).contains("null") && t.note != null);
     }
 }
