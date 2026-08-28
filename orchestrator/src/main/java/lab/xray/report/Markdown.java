@@ -11,21 +11,21 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Le même contenu, en Markdown.
+ * The same content, in Markdown.
  *
- * <p>La page HTML est le format de travail : elle se parcourt, elle se replie, elle se
- * cherche. Mais une forge affiche un fichier {@code .html} comme du <b>code source</b>, pas
- * comme une page — le lien est donc inutilisable là où le code est relu. Le Markdown, lui,
- * est rendu nativement par GitHub comme par GitLab, dépôt privé compris, sans Pages, sans
- * service tiers et sans réglage.
+ * <p>The HTML page is the working format: it is browsed, folded, searched. But a forge
+ * shows an {@code .html} file as <b>source code</b>, not as a page — so the link is
+ * unusable exactly where the code is reviewed. Markdown, on the other hand, is rendered
+ * natively by GitHub as well as GitLab, private repositories included, with no Pages, no
+ * third-party service and no setting.
  *
- * <p>Ce n'est pas un second rapport : c'est le même, réduit à ce qui se lit sans
- * interaction. Tout ce qui suppose de cliquer — l'arbre dépliable, la navigation entre
- * appels, le code annoté ligne à ligne — reste dans la page.
+ * <p>This is not a second report: it is the same one, reduced to what reads without
+ * interaction. Everything that assumes a click — the unfoldable tree, navigation between
+ * calls, the code annotated line by line — stays in the page.
  */
 public final class Markdown {
 
-    /** Au-delà, un tableau cesse d'informer et commence à faire défiler. */
+    /** Beyond that, a table stops informing and starts making one scroll. */
     private static final int TOP = 12;
 
     private Markdown() {}
@@ -52,7 +52,7 @@ public final class Markdown {
         return out;
     }
 
-    /** Un rapport retrouvé dans six mois doit dire de quoi il parle. */
+    /** A report found again in six months must say what it is about. */
     private static void context(StringBuilder md, Map<String, Object> ctx) {
         if (ctx == null || ctx.isEmpty()) return;
         md.append('\n');
@@ -88,9 +88,9 @@ public final class Markdown {
                 if (cc == 0) dead.add(String.valueOf(cls.get("name")).replace('/', '.'));
             }
             covered += c; missing += m;
-            // Un paquet entièrement à zéro ne mérite pas une ligne de tableau : il en
-            // faudrait dix-huit pour dire « rien », et elles noieraient les huit qui
-            // disent quelque chose. Le compte suffit, et il est donné juste après.
+            // A package entirely at zero does not deserve a table row: it would take
+            // eighteen of them to say "nothing", and they would drown the eight that
+            // do say something. The count is enough, and it is given just after.
             if (c > 0) {
                 lines.add(new String[]{ e.getKey().replace('/', '.'), pct(c, c + m) });
             } else if (c + m > 0) {
@@ -116,7 +116,7 @@ public final class Markdown {
         }
         if (!dead.isEmpty()) {
             md.append("\n**Never executed** (").append(dead.size()).append(") — ");
-            // Le code mort est ce que la lecture seule ne révèle pas : il est nommé, pas compté.
+            // Dead code is what reading alone does not reveal: it is named, not counted.
             md.append(String.join(", ", dead.stream().sorted().limit(TOP)
                     .map(s -> "`" + s + "`").toList()));
             if (dead.size() > TOP) md.append(", … (+").append(dead.size() - TOP).append(")");
@@ -130,8 +130,8 @@ public final class Markdown {
         long total = ((Number) tree.getOrDefault("total", 0L)).longValue();
         if (total == 0) return;
 
-        // Le poids d'une méthode est la somme de ses apparitions dans l'arbre, où qu'elle
-        // soit appelée : c'est « le temps passé dans cette méthode », pas « dans ce chemin ».
+        // A method's weight is the sum of its appearances in the tree, wherever it is
+        // called: this is "the time spent in this method", not "on this path".
         Map<String, Long> weight = new LinkedHashMap<>();
         accumulate(tree, weight);
 
@@ -185,11 +185,11 @@ public final class Markdown {
     }
 
     /**
-     * Une valeur dans une cellule de tableau Markdown.
+     * A value inside a Markdown table cell.
      *
-     * <p>Un {@code |} non échappé y couperait la colonne en deux, et un retour à la ligne
-     * la ligne entière — les valeurs capturées viennent d'une application quelconque, elles
-     * peuvent contenir n'importe quoi.
+     * <p>An unescaped {@code |} would cut the column in two there, and a newline the whole
+     * row — the captured values come from some application or other, they can contain
+     * anything at all.
      */
     private static String cell(String v) {
         String s = v.replace("|", "\\|").replace("\n", " ").trim();

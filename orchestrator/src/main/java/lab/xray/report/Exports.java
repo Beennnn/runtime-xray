@@ -96,8 +96,8 @@ public final class Exports {
                 return Set.of(values());
             }
             Set<Format> out = new java.util.LinkedHashSet<>();
-            for (String share : list.split("[,\\s]+")) {
-                if (!share.isBlank()) out.add(of(share));
+            for (String piece : list.split("[,\\s]+")) {
+                if (!piece.isBlank()) out.add(of(piece));
             }
             return out;
         }

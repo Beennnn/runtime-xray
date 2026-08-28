@@ -9,36 +9,36 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * Où se trouve le bytecode à analyser, quand on ne l'a pas dit.
+ * Where the bytecode to analyse is, when nobody said so.
  *
- * <p>Demander ce chemin est le seul réglage dont la réponse existe déjà ailleurs : la JVM
- * qui vient de tourner sait parfaitement d'où elle a chargé ses classes. La faire saisir une
- * seconde fois, sous un autre nom, c'est un formulaire dont on connaît la réponse — et une
- * occasion de se tromper, puisque l'erreur ne se voit qu'au rapport.
+ * <p>Asking for that path is the only setting whose answer already exists elsewhere: the
+ * JVM that has just run knows perfectly well where it loaded its classes from. Having it
+ * typed in a second time, under another name, is a form whose answer we already have — and
+ * an opportunity to get it wrong, since the mistake only shows in the report.
  *
- * <p>Trois sources sont consultées dans l'ordre, et <b>chacune est vérifiée avant d'être
- * retenue</b> : un chemin deviné mais faux serait pire que pas de devinette du tout.
+ * <p>Three sources are consulted in order, and <b>each one is checked before being
+ * kept</b>: a guessed but wrong path would be worse than no guess at all.
  *
  * <ol>
- *   <li>les <b>arguments réels de la JVM observée</b>, lus sur le système. C'est la source
- *       qui fait autorité, et elle vaut même quand la commande donnée était un script ou un
- *       lanceur : on lit la JVM, pas ce qu'on croyait lancer ;</li>
- *   <li>à défaut, la <b>commande configurée</b>, si elle porte un {@code -jar} ou un
- *       {@code -cp} ;</li>
- *   <li>à défaut, la <b>convention du projet</b> : {@code target/classes} pour Maven,
- *       {@code build/classes/java/main} pour Gradle, et leurs équivalents.</li>
+ *   <li>the <b>real arguments of the observed JVM</b>, read from the system. That is the
+ *       authoritative source, and it holds even when the command given was a script or a
+ *       launcher: we read the JVM, not what we thought we were launching;</li>
+ *   <li>failing that, the <b>configured command</b>, if it carries a {@code -jar} or a
+ *       {@code -cp};</li>
+ *   <li>failing that, the <b>project convention</b>: {@code target/classes} for Maven,
+ *       {@code build/classes/java/main} for Gradle, and their equivalents.</li>
  * </ol>
  *
- * <p><b>Les jar de dépendances sont volontairement écartés</b> des sources 1 et 2. Un
- * classpath réel en compte des dizaines ; les analyser tous ferait un rapport où le code du
- * projet représente un pour cent du total, et où la question « qu'est-ce qui a tourné ? »
- * n'a plus de réponse lisible. Le code que l'on possède est un répertoire de classes, ou le
- * jar que l'on a soi-même lancé. Pour en analyser un de plus, c'est à {@code --classes}
- * de le dire — et c'est le seul cas où il reste utile.
+ * <p><b>Dependency jars are deliberately left out</b> of sources 1 and 2. A real classpath
+ * holds dozens of them; analysing them all would give a report where the project's code is
+ * one percent of the total, and where the question "what ran?" no longer has a readable
+ * answer. The code you own is a directory of classes, or the jar you launched yourself. To
+ * analyse one more, it is up to {@code --classes} to say so — and that is the only case
+ * where it is still useful.
  */
 public final class ClassSources {
 
-    /** Les dispositions produites par les outils de construction courants. */
+    /** The layouts produced by the common build tools. */
     private static final List<String> CONVENTIONS = List.of(
             "target/classes",              // Maven
             "build/classes/java/main",     // Gradle
@@ -49,10 +49,10 @@ public final class ClassSources {
     private ClassSources() {}
 
     /**
-     * @param jvmArguments les arguments relevés sur la JVM observée, éventuellement vides
-     * @param javaCommand  la commande telle que configurée
-     * @param workingDir   le répertoire depuis lequel l'analyse est lancée
-     * @return les chemins retenus, dans l'ordre, ou une liste vide si rien n'est sûr
+     * @param jvmArguments the arguments read off the observed JVM, possibly empty
+     * @param javaCommand  the command as configured
+     * @param workingDir   the directory the analysis is launched from
+     * @return the paths kept, in order, or an empty list when nothing is certain
      */
     public static List<Path> discover(List<String> jvmArguments, String javaCommand,
                                       Path workingDir) {
@@ -72,10 +72,10 @@ public final class ClassSources {
     }
 
     /**
-     * Le bytecode applicatif désigné par une ligne de commande Java.
+     * The application bytecode named by a Java command line.
      *
-     * <p>{@code -jar} l'emporte : quand la JVM est lancée sur une archive, c'est elle qui
-     * contient le code, et le classpath éventuel ne sert qu'aux dépendances.
+     * <p>{@code -jar} wins: when the JVM is launched on an archive, that archive holds the
+     * code, and any classpath only serves the dependencies.
      */
     private static List<Path> fromArguments(List<String> args) {
         if (args == null) return List.of();
@@ -95,12 +95,12 @@ public final class ClassSources {
     }
 
     /**
-     * Les répertoires d'un classpath — et eux seuls.
+     * The directories of a classpath — and them alone.
      *
-     * <p>Un répertoire de classes est du code compilé sur place, donc du code du projet.
-     * Un jar dans un classpath est presque toujours une dépendance récupérée, dont
-     * l'analyse noierait le sujet. La règle est grossière mais elle est juste dans la
-     * quasi-totalité des cas, et elle se corrige d'un {@code --classes}.
+     * <p>A directory of classes is code compiled on the spot, so it is the project's code.
+     * A jar on a classpath is nearly always a fetched dependency, whose analysis would
+     * drown the subject. The rule is coarse but it is right in almost every case, and a
+     * {@code --classes} corrects it.
      */
     private static List<Path> directoriesOf(String classpath) {
         Set<Path> out = new LinkedHashSet<>();

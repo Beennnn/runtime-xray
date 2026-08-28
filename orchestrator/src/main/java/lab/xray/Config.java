@@ -221,8 +221,8 @@ public final class Config {
      */
     public static List<Path> paths(String value) {
         List<Path> paths = new ArrayList<>();
-        for (String share : split(value)) {
-            if (!share.isBlank()) paths.add(Path.of(share.trim()));
+        for (String piece : split(value)) {
+            if (!piece.isBlank()) paths.add(Path.of(piece.trim()));
         }
         return paths;
     }

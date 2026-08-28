@@ -156,7 +156,7 @@ public final class RunSession {
         reading(process.toHandle());
         process.descendants().forEach(this::reading);
         Duration total = Duration.ZERO;
-        for (Duration share : cpuPerProcess.values()) total = total.plus(share);
+        for (Duration each : cpuPerProcess.values()) total = total.plus(each);
         return total;
     }
 

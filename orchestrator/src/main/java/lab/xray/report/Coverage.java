@@ -14,18 +14,18 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Lecture du rapport de couverture (XML JaCoCo).
+ * Reading the coverage report (JaCoCo XML).
  *
- * <p>C'est cette source qui fait autorité sur « quel code a tourné » : elle compte tout,
- * là où les mesures de temps échantillonnent et ratent les méthodes brèves.
+ * <p>This is the authoritative source on "what code ran": it counts everything, where the
+ * time measurements sample and miss the short methods.
  */
 public final class Coverage {
 
-    /** Par fichier source, puis par numéro de ligne : l'état et le compte de branches. */
+    /** Per source file, then per line number: the state and the branch counts. */
     public final Map<String, Map<String, Object>> lines = new LinkedHashMap<>();
-    /** Par classe : son fichier source et ses méthodes (nom, ligne, instructions couvertes). */
+    /** Per class: its source file and its methods (name, line, instructions covered). */
     public final Map<String, Object> methods = new LinkedHashMap<>();
-    /** Par paquet : ses classes, avec instructions couvertes et manquées. */
+    /** Per package: its classes, with instructions covered and missed. */
     public final Map<String, Object> packages = new LinkedHashMap<>();
 
     public static Coverage parse(Path xml) throws Exception {
@@ -33,15 +33,15 @@ public final class Coverage {
     }
 
     /**
-     * @param hidden paquets à ne pas lister — voir {@link PackageFilter}. Le filtrage a lieu
-     *               ici, à la lecture, et non à l'affichage : une classe masquée ne doit
-     *               peser ni sur les totaux, ni sur les listes, ni sur le rapport ciblé.
+     * @param hidden packages not to list — see {@link PackageFilter}. The filtering happens
+     *               here, on reading, and not on display: a hidden class must weigh neither
+     *               on the totals, nor on the lists, nor on the focused report.
      */
     public static Coverage parse(Path xml, PackageFilter hidden) throws Exception {
         Coverage c = new Coverage();
         DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-        // Le rapport déclare une DTD externe : la charger ferait sortir sur le réseau, et
-        // n'apporte rien ici.
+        // The report declares an external DTD: loading it would go out on the network,
+        // and brings nothing here.
         factory.setAttribute(XMLConstants.ACCESS_EXTERNAL_DTD, "");
         factory.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false);
         DocumentBuilder builder = factory.newDocumentBuilder();

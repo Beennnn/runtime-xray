@@ -12,55 +12,55 @@ import java.util.Map;
 import java.util.regex.Pattern;
 
 /**
- * Arbre d'appel, reconstruit depuis les piles repliées produites par la mesure de temps.
+ * The call tree, rebuilt from the folded stacks produced by the time measurement.
  *
- * <p>Chaque ligne du fichier est une pile complète suivie d'un compte :
- * {@code Main.main;Service.traiter;Calcul.faire 42}.
+ * <p>Each line of the file is one complete stack followed by a count:
+ * {@code Main.main;Service.process;Compute.run 42}.
  */
 public final class CallTree {
 
     /**
-     * Frames de l'outil d'inspection des valeurs. Quand il travaille pendant la mesure, il
-     * intercepte chaque entrée et sortie de la méthode observée : ses frames captent alors
-     * l'essentiel des relevés et écrasent le profil.
+     * Frames of the value-inspection tool. When it works during the measurement it
+     * intercepts every entry into and exit from the observed method: its frames then catch
+     * most of the samples and swamp the profile.
      *
-     * <p>On les <b>replie sur leur appelant</b> plutôt que de les afficher : les relevés
-     * restent comptés, mais attribués à la méthode applicative qui les a déclenchés, ce qui
-     * restitue la forme de l'arbre.
+     * <p>They are <b>folded onto their caller</b> rather than shown: the samples stay
+     * counted, but attributed to the application method that triggered them, which restores
+     * the shape of the tree.
      */
     private static final Pattern INSTRUMENTATION = Pattern.compile(
             "arthas|SpyAPI|taobao|jacoco", Pattern.CASE_INSENSITIVE);
 
     /**
-     * Frames du JDK et de la machine virtuelle. On les replie aussi : personne n'ouvre
-     * {@code java.util.ArrayList.iterator} pour comprendre son application. Le temps
-     * qu'elles représentent n'est pas perdu — il est attribué à la méthode applicative qui
-     * les a appelées, ce qui est justement l'information utile.
+     * Frames of the JDK and of the virtual machine. They are folded too: nobody opens
+     * {@code java.util.ArrayList.iterator} to understand their application. The time they
+     * stand for is not lost — it is attributed to the application method that called them,
+     * which is precisely the useful information.
      */
     private static final Pattern PLATFORM = Pattern.compile(
-            "^(java|javax|jdk|sun|com/sun|kotlin|scala)/"        // bibliothèque standard
-            + "|^[A-Za-z_][A-Za-z0-9_]*::"                       // frames natives de la VM
+            "^(java|javax|jdk|sun|com/sun|kotlin|scala)/"        // standard library
+            + "|^[A-Za-z_][A-Za-z0-9_]*::"                       // native VM frames
             + "|^(stub:|itable|vtable|call_stub)"                // trampolines
             + "|^(C1|C2|Interpreter|Compile|CompileBroker)"
-            // Une méthode Java s'écrit toujours « paquet/Classe.methode » ou au minimum
-            // « Classe.methode » : elle contient donc un '/' ou un '.'. Tout ce qui n'en a
-            // aucun est un symbole natif de la machine virtuelle — Java_java_lang_…,
-            // MHN_resolve_Mem, eventHandlerClassFileLoadHook, [unknown_Java] — c'est-à-dire
-            // du code qu'aucun lecteur ne peut ouvrir ni corriger.
+            // A Java method is always written "package/Class.method", or at the very least
+            // "Class.method": it therefore contains a '/' or a '.'. Anything with neither is
+            // a native symbol of the virtual machine — Java_java_lang_…, MHN_resolve_Mem,
+            // eventHandlerClassFileLoadHook, [unknown_Java] — that is, code no reader can
+            // open or correct.
             + "|^[^/.]*$");
     /**
-     * Piles que le profileur n'a pas su remonter.
+     * Stacks the profiler could not walk back.
      *
-     * <p>Quand l'échantillon tombe dans un fragment de code où la remontée de pile échoue —
-     * un trampoline du compilateur, une transition natale — async-profiler écrit un marqueur
-     * entre crochets en guise de racine : {@code [unknown_Java];lab/sample/Speeds.forMode}.
-     * Le marqueur est du code qu'on ne peut pas ouvrir, il est donc replié comme le reste de
-     * la machine virtuelle — mais alors la frame suivante remonte à la racine et s'affiche à
-     * côté de {@code main}, comme si le programme avait deux points d'entrée. Ce n'en est pas
-     * un : c'est une pile tronquée. On la compte, on la signale, et on ne la greffe pas.
+     * <p>When the sample lands in a fragment of code where the stack walk fails — a
+     * compiler trampoline, a native transition — async-profiler writes a marker in square
+     * brackets as the root: {@code [unknown_Java];lab/sample/Speeds.forMode}. The marker is
+     * code that cannot be opened, so it is folded like the rest of the virtual machine —
+     * but then the next frame rises to the root and shows up beside {@code main}, as if the
+     * program had two entry points. It does not: this is a truncated stack. We count it, we
+     * report it, and we do not graft it.
      *
-     * <p>Le motif ne vise que les marqueurs d'échec. Une racine entre crochets peut aussi
-     * être un nom de fil ({@code [main tid=123]}) : celle-là est une vraie racine.
+     * <p>The pattern only targets failure markers. A root in square brackets can also be a
+     * thread name ({@code [main tid=123]}): that one is a real root.
      */
     private static final Pattern BROKEN_ROOT = Pattern.compile(
             "^\\[(unknown|not_walkable|broken|deopt|failed)", Pattern.CASE_INSENSITIVE);
@@ -68,7 +68,7 @@ public final class CallTree {
 
     public Map<String, Object> root;
     public String note;
-    /** Réserve sur les piles tronquées, ou {@code null} s'il n'y en a pas eu. */
+    /** Caveat about the truncated stacks, or {@code null} when there were none. */
     public String stacksNote;
 
     public static CallTree parse(Path collapsed) throws IOException {
@@ -76,7 +76,8 @@ public final class CallTree {
     }
 
     /**
-     * @param hidden paquets à replier au même titre que le JDK — voir {@link PackageFilter}
+     * @param hidden packages to fold on the same footing as the JDK — see
+     *               {@link PackageFilter}
      */
     public static CallTree parse(Path collapsed, PackageFilter hidden) throws IOException {
         CallTree t = new CallTree();
@@ -96,7 +97,7 @@ public final class CallTree {
                 }
                 String[] frames = line.substring(0, space).split(";");
                 if (frames.length > 0 && BROKEN_ROOT.matcher(frames[0]).find()) {
-                    // Comptée dans le total — le temps a bien été passé — mais pas greffée.
+                    // Counted in the total — the time was indeed spent — but not grafted.
                     root.total += count;
                     brokenStacks += count;
                     continue;
@@ -140,7 +141,7 @@ public final class CallTree {
         return t;
     }
 
-    /** Deux décimales au plus, et pas de « 0.00% » pour un relevé qui existe. */
+    /** Two decimals at most, and no "0.00%" for a sample that does exist. */
     private static String format(double share) {
         String s = String.format(java.util.Locale.ROOT, "%.2f", share);
         return s.equals("0.00") ? "< 0.01" : s;
