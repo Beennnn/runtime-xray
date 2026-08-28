@@ -1,66 +1,63 @@
 # VisualVM
 
-> **Statut : 📄 sur documentation** — non exécuté ici (application de bureau, attachement manuel).
+> **Status: 📄 on documentation** — not run here (desktop application, manual attachment).
 
-## Ce que c'est
+## What it is
 
-L'outil de supervision et de profilage historique de l'écosystème Java, longtemps livré
-avec le JDK, aujourd'hui distribué séparément. On le lance, il liste les JVM en cours, on
-clique sur l'une d'elles.
+The Java ecosystem's historic monitoring and profiling tool, long shipped with the JDK, today
+distributed separately. One launches it, it lists the running JVMs, one clicks on one of them.
 
-## Sa philosophie
+## Its philosophy
 
-**Le point d'entrée universel.** Ne rien exiger : pas d'agent à configurer, pas de flag au
-lancement, pas de licence. On ouvre, on voit ses JVM, on regarde. C'est le plus court
-chemin entre « une application tourne » et « je vois quelque chose » — d'où sa popularité
-persistante.
+**The universal entry point.** To demand nothing: no agent to configure, no flag at launch, no
+licence. One opens it, one sees one's JVMs, one looks. It is the shortest path between "an
+application is running" and "I see something" — hence its persistent popularity.
 
-Sa limite est le revers de cette simplicité : il montre l'essentiel et s'arrête là.
+Its limit is the reverse of that simplicity: it shows the essentials and stops there.
 
-## Ce qu'il sait faire
+## What it can do
 
-| Capacité | |
+| Capability | |
 |---|---|
-| Arbre d'appel | ✅ échantillonnage ou instrumentation |
-| Mémoire, threads, GC | ✅ |
-| Lignes exécutées | ❌ |
-| Valeurs des paramètres | ❌ |
+| Call tree | ✅ sampling or instrumentation |
+| Memory, threads, GC | ✅ |
+| Executed lines | ❌ |
+| Parameter values | ❌ |
 
-## Son interface
+## Its interface
 
-Application de bureau : onglets Monitor / Threads / Sampler / Profiler, arbre d'appel
-triable. Confortable pour un développeur, **pas un livrable** qu'on transmet.
+A desktop application: Monitor / Threads / Sampler / Profiler tabs, a sortable call tree.
+Comfortable for a developer, **not a deliverable** one hands on.
 
-## Comment on navigue dedans
+## How one navigates in it
 
-Uniquement dans son interface. Pas de page web, pas de sortie exploitable hors outil, pas
-d'intégration plateforme. Un plugin IDE existe *(à confirmer sur les versions récentes)*.
+Only in its own interface. No web page, no output usable outside the tool, no platform
+integration. An IDE plugin exists *(to be confirmed on recent versions)*.
 
-## Mise en œuvre
+## Setting up
 
-⭐ **Très simple, mais manuelle** : lancer l'application (d'où l'intérêt du calibrage à
-10 s et de `--hold-seconds`), lancer VisualVM, cliquer. Rien à scripter — donc rien à
-rejouer automatiquement non plus.
+⭐ **Very simple, but manual**: launch the application (hence the interest of the 10 s
+calibration and of `--hold-seconds`), launch VisualVM, click. Nothing to script — hence
+nothing to replay automatically either.
 
-## Licence et coût
+## Licence and cost
 
-Open source, **0 €** *(GPLv2 + Classpath Exception, à confirmer)*. Hors ligne.
+Open source, **€0** *(GPLv2 + Classpath Exception, to be confirmed)*. Offline.
 
-## Ce qu'on peut en espérer
+## What one can hope for from it
 
-Un **premier coup d'œil** en trente secondes, sans rien préparer. Pour ce projet, il est
-dominé par async-profiler sur l'arbre d'appel (qui produit en plus un fichier partageable)
-et ne répond ni à la couverture ni aux paramètres. Utile comme outil d'appoint, pas comme
-solution.
+A **first glance** in thirty seconds, with nothing to prepare. For this project, it is
+dominated by async-profiler on the call tree (which produces a shareable file on top) and
+answers neither the coverage nor the parameters. Useful as a stopgap tool, not as a solution.
 
-## Comparable à
+## Comparable to
 
-- **[async-profiler](async-profiler.md)** — Le remplace avantageusement dès qu'on veut **garder** ou **transmettre** un résultat.
-- **[JFR](jfr-jmc.md) · [JMC](jfr-jmc.md)** — Même famille, issue du JDK. JMC enregistre plus finement, VisualVM se prend en main plus vite.
-- **[JProfiler](jprofiler.md)** — Ce que VisualVM fait, en beaucoup plus complet — c'est le pas payant.
+- **[async-profiler](async-profiler.md)** — Replaces it advantageously as soon as one wants to **keep** or **hand on** a result.
+- **[JFR](jfr-jmc.md) · [JMC](jfr-jmc.md)** — Same family, out of the JDK. JMC records more finely, VisualVM is picked up faster.
+- **[JProfiler](jprofiler.md)** — What VisualVM does, far more completely — that is the paid step.
 
-## Facile / moins facile
+## Easy / less easy
 
-**Ce qui est facile.** Voir quelque chose en trente secondes, sans rien préparer. C'est son unique argument, et il est réel.
+**What is easy.** Seeing something in thirty seconds, with nothing to prepare. That is its only argument, and it is a real one.
 
-**Ce qui l'est moins.** **Rejouer ou partager** : tout est manuel et rien ne sort de l'outil. Aucun script, aucun fichier à transmettre.
+**What is less so.** **Replaying or sharing**: everything is manual and nothing comes out of the tool. No script, no file to hand on.

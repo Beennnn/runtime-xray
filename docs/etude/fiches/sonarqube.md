@@ -1,49 +1,49 @@
 # SonarQube
 
-> **Statut : 📄 sur documentation** — non exécuté ici.
+> **Status: 📄 on documentation** — not run here.
 
-## Ce que c'est
-Une plateforme d'analyse de qualité de code. Elle n'est **pas** un outil d'analyse
-dynamique : elle ne mesure rien à l'exécution. Elle figure ici pour une seule raison —
-c'est **le meilleur afficheur de la couverture produite par JaCoCo**.
+## What it is
+A code-quality analysis platform. It is **not** a dynamic analysis tool: it measures nothing at
+run time. It figures here for one reason only — it is **the best displayer of the coverage
+produced by JaCoCo**.
 
-## Sa philosophie
-**Rendre la qualité lisible par ceux qui ne lisent pas le code.** Tableaux de bord,
-tendances, seuils, historique : Sonar s'adresse autant à un responsable qu'à un développeur.
-C'est exactement le public visé par le critère n° 2.
+## Its philosophy
+**Making quality readable by those who do not read code.** Dashboards, trends, thresholds,
+history: Sonar addresses a manager as much as a developer. That is exactly the audience aimed
+at by criterion no. 2.
 
-## Ce qu'il sait faire
-Affiche la couverture ✅ (en consommant le XML JaCoCo) · historique et tendances ✅ ·
-analyse statique ✅ · arbre d'appel ❌ · valeurs des paramètres ❌.
+## What it can do
+Displays the coverage ✅ (by consuming the JaCoCo XML) · history and trends ✅ ·
+static analysis ✅ · call tree ❌ · parameter values ❌.
 
-## Son interface
-Interface web complète : navigation par projet, package, fichier, jusqu'au **code source
-annoté**. Plus soignée que le HTML brut de JaCoCo, et avec l'historique en plus.
+## Its interface
+A complete web interface: navigation by project, package, file, down to the **annotated source
+code**. More polished than JaCoCo's raw HTML, and with the history on top.
 
-## Comment on navigue dedans
-Web ✅ · décoration native des merge requests GitLab et pull requests GitHub ✅ ·
-SonarLint dans l'IDE ✅.
+## How one navigates in it
+Web ✅ · native decoration of GitLab merge requests and GitHub pull requests ✅ ·
+SonarLint in the IDE ✅.
 
-## Mise en œuvre
-⚠️ Un **serveur à installer et maintenir**. L'édition Community s'auto-héberge, donc
-**compatible hors ligne** — contrairement à SonarCloud, éliminé par la contrainte.
+## Setting up
+⚠️ A **server to install and maintain**. The Community edition self-hosts, hence
+**offline-compatible** — unlike SonarCloud, eliminated by the constraint.
 
-## Licence et coût
-**Community Edition** : gratuite, auto-hébergée. Éditions supérieures : commerciales.
+## Licence and cost
+**Community Edition**: free, self-hosted. Higher editions: commercial.
 
-## Ce qu'on peut en espérer
-Un **canal de diffusion** pour la couverture, pas une source de données supplémentaire.
-Pertinent seulement si l'on veut un historique et un portail permanent — sinon le rapport
-HTML de JaCoCo suffit et ne demande aucune infrastructure. C'est l'arbitrage n° 3.
+## What one can hope for from it
+A **distribution channel** for the coverage, not an extra source of data. Relevant only if one
+wants a history and a permanent portal — otherwise JaCoCo's HTML report suffices and demands
+no infrastructure. That is trade-off no. 3.
 
-## Comparable à
+## Comparable to
 
-- **[JaCoCo](jacoco.md)** — Fournisseur, pas concurrent : Sonar n'exécute rien, il affiche le XML de JaCoCo.
-- **[Codecov](../outils-ecartes.md) · Coveralls** — Les équivalents SaaS, éliminés par la contrainte d'exécution hors ligne — alors que SonarQube Community s'auto-héberge.
-- **[IntelliJ IDEA](intellij.md)** — L'autre façade de la même donnée, dans l'éditeur plutôt que dans un portail.
+- **[JaCoCo](jacoco.md)** — A supplier, not a competitor: Sonar runs nothing, it displays JaCoCo's XML.
+- **[Codecov](../outils-ecartes.md) · Coveralls** — The SaaS equivalents, eliminated by the offline-run constraint — whereas SonarQube Community self-hosts.
+- **[IntelliJ IDEA](intellij.md)** — The other face of the same data, in the editor rather than in a portal.
 
-## Facile / moins facile
+## Easy / less easy
 
-**Ce qui est facile.** Afficher une couverture déjà produite : il consomme le XML de JaCoCo sans rien demander de plus.
+**What is easy.** Displaying a coverage already produced: it consumes JaCoCo's XML asking for nothing more.
 
-**Ce qui l'est moins.** **Installer et maintenir un serveur** pour ce qu'un dossier HTML fait déjà, si l'on n'a pas besoin d'historique.
+**What is less so.** **Installing and maintaining a server** for what an HTML folder already does, if one has no need of a history.

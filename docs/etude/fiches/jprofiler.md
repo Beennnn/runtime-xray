@@ -1,72 +1,71 @@
 # JProfiler
 
-> **Statut : ⛔ bloqué par licence** — essai de 10 jours à activer manuellement. Non testé ici.
+> **Status: ⛔ blocked by licence** — 10-day trial to be activated manually. Not tested here.
 
-## Ce que c'est
-Un profileur Java commercial (ej-technologies), référence du marché avec YourKit.
+## What it is
+A commercial Java profiler (ej-technologies), a market reference along with YourKit.
 
-## Sa philosophie
-**Tout dans un seul outil, avec zéro configuration.** L'argument de vente est l'immédiateté :
-on attache, on voit. Là où le monde gratuit demande d'assembler trois outils, JProfiler vise
-la réponse unique — et le fait payer.
+## Its philosophy
+**Everything in a single tool, with zero configuration.** The selling point is immediacy: one
+attaches, one sees. Where the free world demands assembling three tools, JProfiler aims at the
+single answer — and charges for it.
 
-## Ce qu'il sait faire
-| Capacité | |
+## What it can do
+| Capability | |
 |---|---|
-| Arbre d'appel | ✅ très riche |
-| **Valeurs des paramètres** | ✅ — *method splitting by parameter values* : le call tree se **scinde par valeur d'argument**, une branche par valeur observée |
-| Mémoire, verrous, JDBC | ✅ |
-| Lignes exécutées | ❌ |
+| Call tree | ✅ very rich |
+| **Parameter values** | ✅ — *method splitting by parameter values*: the call tree **splits by argument value**, one branch per observed value |
+| Memory, locks, JDBC | ✅ |
+| Executed lines | ❌ |
 
-> Le *method splitting* mérite qu'on s'y arrête : c'est exactement la réponse à ce que
-> `sample-app` a été conçue pour montrer — un même appel qui part dans des sous-arbres
-> différents **selon la valeur du paramètre**. Là où les autres montrent un cumul,
-> JProfiler montre un arbre par valeur. *(Revendiqué par la documentation, non vérifié ici.)*
+> The *method splitting* deserves a pause: it is exactly the answer to what `sample-app` was
+> designed to show — one and the same call that goes off into different subtrees **according to
+> the parameter's value**. Where the others show an aggregate, JProfiler shows one tree per
+> value. *(Claimed by the documentation, not verified here.)*
 
-## Son interface
-Application de bureau riche, **plus un plugin IntelliJ natif** — l'un des rares outils qui
-répondent directement au critère n° 4.
+## Its interface
+A rich desktop application, **plus a native IntelliJ plugin** — one of the rare tools that
+answer criterion no. 4 directly.
 
-## Comment on navigue dedans
-Dans son interface ✅ · dans IntelliJ ✅ · export HTML/CSV des instantanés ⚠️ moins direct
-qu'un rapport pensé pour être partagé · pas d'intégration plateforme.
+## How one navigates in it
+In its own interface ✅ · in IntelliJ ✅ · HTML/CSV export of the snapshots ⚠️ less direct than a
+report designed to be shared · no platform integration.
 
-## Mise en œuvre
-Annoncée sans configuration (attachement distant inclus). **À vérifier en essai** — c'est
-l'objet de l'action n° 1 des [arbitrages](../../resultat/resultats.md).
+## Setting up
+Announced as configuration-free (remote attachment included). **To be verified in a trial** —
+that is the object of action no. 1 of [the trade-offs](../../resultat/resultats.md).
 
-## Licence et coût
-Commerciale, **licence perpétuelle**. Prix relevés le 2026-08-20 sur la boutique de
-l'éditeur :
+## Licence and cost
+Commercial, **perpetual licence**. Prices read on 2026-08-20 on the publisher's store:
 
-| | Sans support | Avec 1 an de support et mises à jour |
+| | Without support | With 1 year of support and updates |
 |---|---|---|
-| Licence simple | **549 $** | 768 $ |
-| Licence flottante (1 utilisateur simultané) | **2 199 $** | 3 078 $ |
+| Single licence | **$549** | $768 |
+| Floating licence (1 concurrent user) | **$2,199** | $3,078 |
 
-Licence **gratuite pour les projets open source**, sur demande à l'éditeur.
+Licence **free for open-source projects**, on request to the publisher.
 
-⚠️ **Hors ligne** : la clé se saisit localement, mais il faut **confirmer auprès de
-l'éditeur qu'aucune activation en ligne n'est exigée** avant de compter sur l'outil en
-environnement déconnecté. Question à poser en même temps que la demande d'essai.
+⚠️ **Offline**: the key is entered locally, but one must **confirm with the publisher that no
+online activation is demanded** before counting on the tool in a disconnected environment. A
+question to ask at the same time as the trial request.
 
-Essai de 10 jours par formulaire — procédure détaillée dans
-[les clés d'évaluation](../cles-evaluation.md#jprofiler-ej-technologies).
+10-day trial by form — the procedure is detailed in
+[the evaluation keys](../cles-evaluation.md#jprofiler-ej-technologies).
 
-## Ce qu'on peut en espérer
-**Le candidat sérieux pour combler le seul trou du socle gratuit.** La question n'est pas
-« JProfiler ou JaCoCo » — c'est « JProfiler **en plus de** JaCoCo, ou bien une piste
-gratuite (Arthas, JMC Agent) plus rugueuse ? ». C'est l'arbitrage n° 1.
+## What one can hope for from it
+**The serious candidate for filling the free base's one hole.** The question is not "JProfiler
+or JaCoCo" — it is "JProfiler **on top of** JaCoCo, or else a rougher free track (Arthas, JMC
+Agent)?". That is trade-off no. 1.
 
-## Comparable à
+## Comparable to
 
-- **[YourKit](yourkit.md)** — **Le concurrent direct**, à prix comparable. JProfiler mise sur des vues abouties et prêtes à l'emploi ; YourKit sur l'extensibilité par sondes. À tester ensemble, sur le même programme.
-- **[Arthas](arthas.md)** — L'alternative gratuite, et elle couvre déjà le besoin. Ce que JProfiler ajoute est précis : l'**agrégation par valeur de paramètre**.
-- **[async-profiler](async-profiler.md)** — Sur le seul arbre d'appel, l'écart est faible et le second est gratuit.
-- **[IntelliJ Ultimate](intellij.md)** — Son plugin fait d'IntelliJ la façade de JProfiler — ce qui atténue l'intérêt de payer *aussi* Ultimate pour son profiler intégré.
+- **[YourKit](yourkit.md)** — **The direct competitor**, at a comparable price. JProfiler bets on finished, ready-to-use views; YourKit on extensibility through probes. To be tested together, on the same program.
+- **[Arthas](arthas.md)** — The free alternative, and it already covers the need. What JProfiler adds is precise: **aggregation by parameter value**.
+- **[async-profiler](async-profiler.md)** — On the call tree alone, the gap is small and the second one is free.
+- **[IntelliJ Ultimate](intellij.md)** — Its plugin makes IntelliJ JProfiler's front end — which lessens the interest of paying *also* for Ultimate for its integrated profiler.
 
-## Facile / moins facile
+## Easy / less easy
 
-**Ce qui est facile.** Ce que l'éditeur vend : attacher et voir, sans configuration, avec le plugin IntelliJ natif. **À vérifier en essai** — c'est une promesse commerciale, pas une mesure.
+**What is easy.** What the publisher sells: attach and see, with no configuration, with the native IntelliJ plugin. **To be verified in a trial** — it is a commercial promise, not a measurement.
 
-**Ce qui l'est moins.** **Lever les deux inconnues avant de payer** : l'activation hors ligne, et ce que l'outil produit pour un lecteur non développeur. Les instantanés s'exportent, mais l'outil n'est pas conçu pour transmettre un rapport.
+**What is less so.** **Lifting the two unknowns before paying**: offline activation, and what the tool produces for a non-developer reader. The snapshots export, but the tool is not designed to hand on a report.

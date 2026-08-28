@@ -1,62 +1,59 @@
 # BTrace & Byteman
 
-> **Statut : 📄 sur documentation** — non exécutés ici.
+> **Status: 📄 on documentation** — not run here.
 
-Deux outils différents, même famille : **injecter du code d'observation dans une
-application en cours, sans la recompiler**.
+Two different tools, one family: **injecting observation code into a running application,
+without recompiling it**.
 
 ## BTrace
 
-### Ce que c'est
-Un traceur pilotable par des scripts Java annotés. On écrit un petit programme qui dit
-« quand telle méthode est appelée, imprime tel paramètre » ; BTrace le compile et l'injecte.
+### What it is
+A tracer driven by annotated Java scripts. One writes a small program that says "when this
+method is called, print that parameter"; BTrace compiles it and injects it.
 
-### Sa philosophie
-**Un langage bridé, exprès.** Les scripts BTrace ne peuvent ni allouer, ni boucler, ni
-appeler n'importe quoi : ces restrictions garantissent qu'une sonde ne peut pas casser
-l'application observée. C'est un choix de sûreté avant l'expressivité — pertinent quand on
-instrumente autre chose qu'un bac à sable.
+### Its philosophy
+**A deliberately restricted language.** BTrace scripts can neither allocate, nor loop, nor call
+just anything: those restrictions guarantee that a probe cannot break the observed application.
+It is a choice of safety before expressiveness — relevant when one instruments something other
+than a sandbox.
 
-### Ce qu'il sait faire
-Valeurs des paramètres ✅ · arbre d'appel ✅ · lignes exécutées ❌ · sortie texte ou JFR.
+### What it can do
+Parameter values ✅ · call tree ✅ · executed lines ❌ · text or JFR output.
 
 ## Byteman
 
-### Ce que c'est
-Un moteur de règles d'injection (projet JBoss/Red Hat). On écrit des règles
-*event–condition–action* : « à l'entrée de cette méthode, si telle condition, alors faire
-ceci ».
+### What it is
+An injection-rule engine (a JBoss/Red Hat project). One writes *event–condition–action* rules:
+"on entering this method, if this condition holds, then do this".
 
-### Sa philosophie
-**Modifier le comportement, pas seulement l'observer.** Byteman vient du test de
-robustesse : sa raison d'être première est d'injecter des pannes (lever une exception,
-ralentir un appel). L'observation en est un sous-produit — puissant, mais l'outil vise
-plus large que notre besoin.
+### Its philosophy
+**Changing the behaviour, not only observing it.** Byteman comes from robustness testing: its
+first reason for being is to inject failures (throwing an exception, slowing a call).
+Observation is a by-product of that — a powerful one, but the tool aims wider than our need.
 
-### Ce qu'il sait faire
-Valeurs des paramètres ✅ · injection de comportement ✅ · arbre d'appel ⚠️ indirect ·
-lignes exécutées ❌.
+### What it can do
+Parameter values ✅ · behaviour injection ✅ · call tree ⚠️ indirect · executed lines ❌.
 
-## Pour les deux
+## For both
 
-**Interface** : sortie texte, pas de rapport navigable. **Aucun canal vers un lecteur non
-technique** sans mise en forme supplémentaire.
+**Interface**: text output, no navigable report. **No channel towards a non-technical reader**
+without extra formatting.
 
-**Licence** : open source, **0 €** *(licences exactes à confirmer)*. Fonctionnent hors ligne.
+**Licence**: open source, **€0** *(exact licences to be confirmed)*. They work offline.
 
-**Ce qu'on peut en espérer** : la capture de paramètres, au prix d'un script ou d'une règle
-à écrire pour chaque question posée. Plus souples qu'Arthas, moins immédiats. À considérer
-**si** Arthas et JMC Agent échouent — ce sont les plus exigeants des trois en effort
-d'écriture, donc les plus pénalisés par le critère n° 1.
+**What one can hope for from them**: the capture of parameters, at the price of a script or a
+rule to be written for every question asked. More supple than Arthas, less immediate. To be
+considered **if** Arthas and the JMC Agent fail — they are the most demanding of the three in
+writing effort, hence the most penalised by criterion no. 1.
 
-## Comparable à
+## Comparable to
 
-- **[Arthas](arthas.md)** — Répond aux mêmes questions, sans écrire une ligne. C'est ce qui le fait passer devant sur le critère n° 1.
-- **[JMC Agent](jmc-agent.md)** — Même capacité, en déclaratif, avec une sortie standardisée (JFR) au lieu d'un flux texte.
-- **[JProfiler](jprofiler.md) · [YourKit](yourkit.md)** — Les versions commerciales de la même idée, avec une interface et l'agrégation en plus.
+- **[Arthas](arthas.md)** — Answers the same questions, with not a line to write. That is what puts it ahead on criterion no. 1.
+- **[JMC Agent](jmc-agent.md)** — The same capability, declaratively, with a standardised output (JFR) instead of a text stream.
+- **[JProfiler](jprofiler.md) · [YourKit](yourkit.md)** — The commercial versions of the same idea, with an interface and aggregation on top.
 
-## Facile / moins facile
+## Easy / less easy
 
-**Ce qui est facile.** Exprimer une question précise : ces outils peuvent capturer à peu près n'importe quoi.
+**What is easy.** Expressing a precise question: these tools can capture just about anything.
 
-**Ce qui l'est moins.** **Tout le reste.** Un script ou une règle à écrire par question posée, une sortie texte sans mise en forme, et pour Byteman un outil dont l'objet premier est d'injecter des pannes, pas d'observer.
+**What is less so.** **Everything else.** A script or a rule to write per question asked, a text output with no formatting, and for Byteman a tool whose first object is to inject failures, not to observe.

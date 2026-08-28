@@ -1,112 +1,111 @@
 # Kieker
 
-> **Statut : 📄 sur documentation** — non exécuté ici.
-> Version 2.0.3 (avril 2026). Licence Apache 2.0. **0 €.**
+> **Status: 📄 on documentation** — not run here.
+> Version 2.0.3 (April 2026). Apache 2.0 licence. **€0.**
 
-## Ce que c'est
+## What it is
 
-Un cadre de **surveillance et de reconstruction d'architecture**, issu de la recherche
-(université de Kiel). Il n'appartient pas à la même famille que les autres outils du panel :
-là où un profiler répond « où passe le temps ? » et un outil de couverture « par où
-est-on passé ? », Kieker répond **« à quoi ressemble ce logiciel, vu de son exécution ? »**.
+A framework for **monitoring and architecture reconstruction**, out of research (University of
+Kiel). It does not belong to the same family as the panel's other tools: where a profiler
+answers "where does the time go?" and a coverage tool "where did we go?", Kieker answers
+**"what does this software look like, seen from its execution?"**.
 
-C'est le seul outil recensé dont l'objectif déclaré coïncide avec le **but final du
-l'étude** : *analyser, restructurer et redéfinir le code à partir de ces données*.
+It is the only tool surveyed whose declared objective coincides with the **study's final
+goal**: *analysing, restructuring and redefining the code from that data*.
 
-## Sa philosophie
+## Its philosophy
 
-**La trace est un matériau, pas un rapport.** Les autres outils présentent ce qu'ils ont
-mesuré et s'arrêtent là. Kieker sépare explicitement deux moments :
+**The trace is a material, not a report.** The other tools present what they measured and stop
+there. Kieker explicitly separates two moments:
 
-1. **la collecte** — des sondes écrivent un flux d'enregistrements typés (entrée de
-   méthode, sortie, thread, horodatage) vers un fichier, une file de messages ou le réseau ;
-2. **l'analyse** — une chaîne de traitement relit ce flux et en *dérive* quelque chose :
-   un graphe de dépendances entre composants, un diagramme de séquence, un arbre d'appel
-   agrégé, une vue de déploiement.
+1. **the collection** — probes write a stream of typed records (method entry, exit, thread,
+   timestamp) to a file, a message queue or the network;
+2. **the analysis** — a processing chain reads that stream back and *derives* something from
+   it: a dependency graph between components, a sequence diagram, an aggregated call tree, a
+   deployment view.
 
-Cette séparation est sa force : la même collecte peut alimenter plusieurs analyses, et on
-peut rejouer une analyse des mois plus tard sur des traces archivées. C'est aussi sa
-lourdeur : rien n'est prêt à regarder tant qu'on n'a pas monté la seconde moitié.
+That separation is its strength: the same collection can feed several analyses, and an analysis
+can be replayed months later on archived traces. It is also its heaviness: nothing is ready to
+look at until the second half has been built.
 
-## Comment il s'instrumente
+## How it instruments
 
-Trois voies, toutes **sans modifier le code source** :
+Three ways, all **without modifying the source code**:
 
-- **AspectJ** (1.9.25.1 dans la 2.0.3) — tissage à la volée, le mode historique ;
-- **ByteBuddy** (1.18.8) — réécriture de bytecode, le mode moderne ;
-- une API de sondes à écrire soi-même quand il faut capturer des données métier précises.
+- **AspectJ** (1.9.25.1 in 2.0.3) — on-the-fly weaving, the historic mode;
+- **ByteBuddy** (1.18.8) — bytecode rewriting, the modern mode;
+- a probe API to write oneself when precise business data has to be captured.
 
-C'est par cette dernière voie qu'on obtient les **valeurs des paramètres** : elles ne sont
-pas capturées par défaut, il faut les déclarer.
+It is by that last way that one obtains the **parameter values**: they are not captured by
+default, they have to be declared.
 
-## Ce qu'il produit — et pourquoi c'est différent
+## What it produces — and why that is different
 
-| Sortie | Ce que les autres outils n'ont pas |
+| Output | What the other tools do not have |
 |---|---|
-| **Graphe de dépendances** entre classes, packages, composants | Une vue **structurelle**, pas temporelle : qui dépend de qui, tel que l'exécution l'a révélé — et non tel que les `import` le déclarent |
-| **Diagrammes de séquence** reconstruits | L'enchaînement réel des appels, sous la forme qu'un architecte lit |
-| **Vue de déploiement** | Quelle partie tourne où, sur un système distribué |
-| **Traces archivables et rejouables** | Les autres outils produisent un rapport figé ; Kieker produit une donnée qu'on ré-analyse |
+| **Dependency graph** between classes, packages, components | A **structural** view, not a temporal one: who depends on whom, as the run revealed it — and not as the `import`s declare it |
+| **Reconstructed sequence diagrams** | The real chaining of the calls, in the form an architect reads |
+| **Deployment view** | Which part runs where, on a distributed system |
+| **Archivable and replayable traces** | The other tools produce a frozen report; Kieker produces data one re-analyses |
 
-C'est là toute la différence avec le socle retenu : JaCoCo, async-profiler et Arthas
-répondent à des questions **ponctuelles** sur un morceau de code. Kieker vise une
-**représentation du système entier**, sur laquelle on décide un découpage.
+That is the whole difference with the base retained: JaCoCo, async-profiler and Arthas answer
+**one-off** questions about a piece of code. Kieker aims at a **representation of the entire
+system**, on which one decides a decomposition.
 
-## Ce qu'on peut en espérer pour le « but final »
+## What one can hope for from it for the "final goal"
 
-Si l'objectif est réellement de **restructurer** — extraire des modules, redécouper des
-responsabilités, casser des dépendances — alors le graphe de dépendances *observé* vaut
-beaucoup plus qu'une analyse statique : il distingue les dépendances **réellement
-exercées** de celles qui existent seulement dans les `import`. Ce n'est pas anecdotique :
-c'est précisément l'écart qui fait échouer les refontes décidées sur plan.
+If the objective is really to **restructure** — extracting modules, redividing
+responsibilities, breaking dependencies — then the *observed* dependency graph is worth far
+more than a static analysis: it tells the dependencies **really exercised** apart from those
+that exist only in the `import`s. That is not anecdotal: it is precisely the gap that makes
+overhauls decided on paper fail.
 
-Concrètement, sur un code à reprendre, il permettrait de répondre à : *quelles classes
-travaillent toujours ensemble ?*, *quel sous-ensemble pourrait sortir en module autonome
-sans casser le reste ?*, *quelles dépendances déclarées ne servent jamais ?*
+Concretely, on code being taken over, it would allow answering: *which classes always work
+together?*, *which subset could come out as a self-contained module without breaking the
+rest?*, *which declared dependencies are never used?*
 
-## Ce qu'il en coûte
+## What it costs
 
-⚠️ **C'est le plus lourd du panel, et de loin.**
+⚠️ **It is the heaviest of the panel, and by far.**
 
-- Il faut monter la **chaîne d'analyse** en plus de la collecte — les diagrammes ne
-  tombent pas d'un flag JVM.
-- Le vocabulaire est celui de la recherche (« records », « filters », « analysis
-  pipelines ») : il y a une marche à franchir avant le premier résultat.
-- Le volume de traces est du même ordre que celui constaté avec JFR : sur un chemin chaud,
-  ça se compte en centaines de mégaoctets. La sélection des points d'instrumentation n'est
-  pas optionnelle.
+- The **analysis chain** has to be built on top of the collection — the diagrams do not fall
+  out of a JVM flag.
+- The vocabulary is that of research ("records", "filters", "analysis pipelines"): there is a
+  step to climb before the first result.
+- The volume of traces is of the same order as the one seen with JFR: on a hot path, it counts
+  in hundreds of megabytes. Selecting the instrumentation points is not optional.
 
-⚠️ **Compatibilité Java** : la version 2.0.3 vise **Java 17 par défaut et annonce le
-support jusqu'à Java 23**. Java 21 est donc couvert — mais **Java 25 ne l'est pas encore**.
-Si le portage vers 25 est décidé, ce point est à revérifier avant de compter sur Kieker.
+⚠️ **Java compatibility**: version 2.0.3 targets **Java 17 by default and announces support up
+to Java 23**. Java 21 is therefore covered — but **Java 25 is not yet**. If the port to 25 is
+decided, this point is to be rechecked before counting on Kieker.
 
-## Comment on navigue dedans
+## How one navigates in it
 
-Pas de navigation dans le code : Kieker produit des **diagrammes**, qu'on regarde. Il ne
-remplace donc pas le rapport de couverture pour la question « montre-moi cette ligne » — il
-répond à une autre échelle.
+No navigating in the code: Kieker produces **diagrams**, which one looks at. It therefore does
+not replace the coverage report for the question "show me this line" — it answers at another
+scale.
 
-## Verdict pour ce projet
+## Verdict for this project
 
-**À considérer en second temps, comme un projet en soi.** Le socle retenu (JaCoCo +
-async-profiler + Arthas) répond au besoin décrit — savoir par où le code passe, voir
-l'arbre d'appel, lire les valeurs. Kieker répond à la question *suivante* : que faire de
-ce code une fois qu'on l'a compris.
+**To be considered in a second stage, as a project in itself.** The base retained (JaCoCo +
+async-profiler + Arthas) answers the need described — knowing where the code goes, seeing the
+call tree, reading the values. Kieker answers the *next* question: what to do with that code
+once it is understood.
 
-L'ouvrir maintenant reviendrait à monter une infrastructure d'analyse avant d'avoir la
-première mesure. L'ordre raisonnable est l'inverse.
+Opening it now would amount to building an analysis infrastructure before having the first
+measurement. The reasonable order is the reverse.
 
-## Comparable à
+## Comparable to
 
-- **[OpenTelemetry](opentelemetry.md)** — Tous deux produisent des traces destinées à être traitées ailleurs. Mais OTel vise la supervision d'un système en marche, Kieker vise la **compréhension de sa structure**.
-- **[Glowroot](glowroot.md)** — Glowroot montre des traces, Kieker en **dérive une architecture**. Ce n'est pas la même question.
-- **[Arthas](arthas.md)** — À l'opposé exact : Arthas répond à une question ponctuelle en trois secondes, Kieker construit une représentation de tout le système.
+- **[OpenTelemetry](opentelemetry.md)** — Both produce traces meant to be processed elsewhere. But OTel aims at monitoring a running system, Kieker aims at **understanding its structure**.
+- **[Glowroot](glowroot.md)** — Glowroot shows traces, Kieker **derives an architecture** from them. It is not the same question.
+- **[Arthas](arthas.md)** — At the exact opposite: Arthas answers a one-off question in three seconds, Kieker builds a representation of the whole system.
 
-## Facile / moins facile
+## Easy / less easy
 
-**Ce qui est facile.** Rien, honnêtement — et c'est le prix de ce qu'il vise. Aucun autre
-outil ne reconstruit une architecture à partir de l'exécution.
+**What is easy.** Nothing, honestly — and that is the price of what it aims at. No other tool
+reconstructs an architecture from the run.
 
-**Ce qui l'est moins.** Tout : instrumentation à configurer, chaîne d'analyse à monter,
-volume de traces à maîtriser, vocabulaire à apprendre. Et une compatibilité Java à
-revérifier si le portage vers 25 est retenu.
+**What is less so.** Everything: instrumentation to configure, an analysis chain to build, a
+volume of traces to master, a vocabulary to learn. And a Java compatibility to recheck if the
+port to 25 is retained.

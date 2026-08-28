@@ -1,43 +1,44 @@
-# APM SaaS — Datadog, New Relic, Dynatrace
+# SaaS APM — Datadog, New Relic, Dynatrace
 
-> **Statut : ⛔ éliminés par la contrainte hors ligne.** Cette fiche existe pour que le
-> rejet soit motivé, pas implicite.
+> **Status: ⛔ eliminated by the offline constraint.** This sheet exists so that the rejection
+> is motivated, not implicit.
 
-## Ce que c'est
-Des plateformes de supervision applicative hébergées : un agent instrumente l'application
-et envoie les données vers un service distant, où tout est stocké et présenté.
+## What it is
+Hosted application-monitoring platforms: an agent instruments the application and sends the
+data to a remote service, where everything is stored and presented.
 
-## Sa philosophie
-**L'observabilité comme service.** Rien à installer côté serveur, tout est fourni :
-stockage, corrélation, alertes, tableaux de bord, rétention. Le modèle repose entièrement
-sur la connexion sortante permanente vers l'éditeur.
+## Its philosophy
+**Observability as a service.** Nothing to install on the server side, everything is supplied:
+storage, correlation, alerts, dashboards, retention. The model rests entirely on the permanent
+outbound connection to the publisher.
 
-## Pourquoi c'est éliminé ici
-La contrainte **« environnement déconnecté d'Internet »** est incompatible avec le modèle
-lui-même : sans lien sortant, l'agent n'a nulle part où écrire. Ce n'est pas une question
-de configuration, c'est l'architecture du produit.
+## Why it is eliminated here
+The **"environment disconnected from the Internet"** constraint is incompatible with the model
+itself: with no outbound link, the agent has nowhere to write. It is not a question of
+configuration, it is the product's architecture.
 
-S'y ajoutent deux points, secondaires mais réels : le **coût à l'usage** est le plus élevé
-du panel, et le besoin décrit est un **diagnostic ponctuel** — pas une supervision continue.
+Two further points, secondary but real: the **usage-based cost** is the highest of the panel,
+and the need described is a **one-off diagnosis** — not continuous monitoring.
 
-## L'équivalent utilisable
-Si l'attrait est l'interface web soignée, la contrepartie auto-hébergeable existe :
-**[Glowroot](glowroot.md)** (agent avec serveur embarqué) ou
-**[OpenTelemetry](opentelemetry.md) + Jaeger/Tempo** (chaîne complète à monter).
+## The usable equivalent
+If the appeal is the polished web interface, the self-hostable counterpart exists:
+**[Glowroot](glowroot.md)** (agent with embedded server) or
+**[OpenTelemetry](opentelemetry.md) + Jaeger/Tempo** (a complete chain to build).
 
-## Licence et coût
-Commerciales, facturation à l'usage.
+## Licence and cost
+Commercial, usage-based billing.
 
-## Ce qu'on peut en espérer
-Rien dans ce contexte. La fiche est là pour que la question ne soit pas reposée dans six mois.
+## What one can hope for from it
+Nothing in this context. The sheet is here so that the question is not asked again in six
+months.
 
-## Comparable à
+## Comparable to
 
-- **[Glowroot](glowroot.md)** — **Le remplaçant recommandé** : même promesse, agent et interface auto-hébergés, donc utilisable sans réseau pendant l'exécution.
-- **[OpenTelemetry](opentelemetry.md)** — La voie ouverte vers le même résultat, au prix d'un collecteur et d'un backend à installer.
+- **[Glowroot](glowroot.md)** — **The recommended replacement**: the same promise, agent and interface self-hosted, hence usable with no network during the run.
+- **[OpenTelemetry](opentelemetry.md)** — The open road to the same result, at the price of a collector and a backend to install.
 
-## Facile / moins facile
+## Easy / less easy
 
-**Ce qui est facile.** Tout, si l'on est connecté : c'est le principe même du modèle.
+**What is easy.** Everything, if one is connected: that is the very principle of the model.
 
-**Ce qui l'est moins.** **Rien n'est possible hors ligne.** Ce n'est pas une difficulté à surmonter, c'est une incompatibilité d'architecture.
+**What is less so.** **Nothing is possible offline.** It is not a difficulty to overcome, it is an architectural incompatibility.

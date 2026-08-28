@@ -1,64 +1,63 @@
 # YourKit Java Profiler
 
-> **Statut : ⛔ bloqué par licence** — essai de 15 jours à activer manuellement. Non testé ici.
+> **Status: ⛔ blocked by licence** — 15-day trial to be activated manually. Not tested here.
 
-## Ce que c'est
-L'autre profileur Java commercial de référence, concurrent direct de JProfiler.
+## What it is
+The other reference commercial Java profiler, JProfiler's direct competitor.
 
-## Sa philosophie
-**Rendre l'outil extensible.** Sa particularité sont les *probes* : des sondes que
-l'utilisateur définit lui-même, via une API ouverte, pour capturer des données propres à
-son application. Là où JProfiler propose un ensemble de vues fini et très abouti, YourKit
-offre un mécanisme d'extension.
+## Its philosophy
+**Making the tool extensible.** Its particularity are the *probes*: sensors the user defines
+themselves, through an open API, to capture data specific to their application. Where JProfiler
+offers a finite and highly finished set of views, YourKit offers an extension mechanism.
 
-## Ce qu'il sait faire
-Arbre d'appel ✅ · **valeurs des paramètres** ✅ via les probes · mémoire, verrous ✅ ·
-lignes exécutées ❌ · export multi-formats ✅ (un point fort : ses instantanés se
-transmettent plus facilement que la moyenne).
+## What it can do
+Call tree ✅ · **parameter values** ✅ through the probes · memory, locks ✅ ·
+executed lines ❌ · multi-format export ✅ (a strong point: its snapshots are handed on more
+easily than the average).
 
-## Son interface
-Application de bureau + plugin IDE.
+## Its interface
+A desktop application + an IDE plugin.
 
-## Comment on navigue dedans
-Interface propre ✅ · IDE ✅ · exports variés ⚠️ · pas d'intégration plateforme.
+## How one navigates in it
+Its own interface ✅ · IDE ✅ · varied exports ⚠️ · no platform integration.
 
-## Mise en œuvre
-Agent + interface. Les probes demandent un développement — ce qui déplace le curseur du
-critère n° 1 selon qu'on se contente des sondes fournies ou qu'on en écrive.
+## Setting up
+Agent + interface. The probes demand development — which moves the cursor of criterion no. 1
+according to whether one makes do with the probes supplied or writes some.
 
-## Licence et coût
-Commerciale. Prix relevés le 2026-08-20 sur [la page tarifaire](https://www.yourkit.com/java/profiler/purchase/) :
+## Licence and cost
+Commercial. Prices read on 2026-08-20 on [the pricing page](https://www.yourkit.com/java/profiler/purchase/):
 
-| | Abonnement annuel | Perpétuel |
+| | Annual subscription | Perpetual |
 |---|---|---|
-| 1 poste (Basic) | 449 $ | **549 $** |
-| 1 poste (Advanced) | 579 $ | 713 $ |
-| 5 postes (Basic) | 1 259 $ | 1 539 $ |
-| Flottante 1 utilisateur (Basic) | 2 249 $ | 2 749 $ |
+| 1 seat (Basic) | $449 | **$549** |
+| 1 seat (Advanced) | $579 | $713 |
+| 5 seats (Basic) | $1,259 | $1,539 |
+| Floating 1 user (Basic) | $2,249 | $2,749 |
 
-**Gratuit pour les projets open source** (en contrepartie d'un lien vers YourKit).
-**Académique : 99 $/an** par poste, **999 $/an** pour un établissement entier — nettement
-moins cher que JProfiler sur ce créneau.
+**Free for open-source projects** (in exchange for a link to YourKit).
+**Academic: $99/year** per seat, **$999/year** for a whole institution — markedly cheaper than
+JProfiler in that niche.
 
-⚠️ **Hors ligne** : les licences **flottantes** utilisent par défaut un **serveur de
-licences dans le cloud**, incompatible avec la contrainte. Une option **auto-hébergée**
-existe — c'est elle qu'il faut demander. Les licences *seat* n'ont pas ce problème.
+⚠️ **Offline**: **floating** licences use, by default, a **licence server in the cloud**,
+incompatible with the constraint. A **self-hosted** option exists — that is the one to ask for.
+*Seat* licences do not have this problem.
 
-Essai de 15 jours, téléchargement direct — voir
-[les clés d'évaluation](../cles-evaluation.md#yourkit-java-profiler).
+15-day trial, direct download — see
+[the evaluation keys](../cles-evaluation.md#yourkit-java-profiler).
 
-## Ce qu'on peut en espérer
-Même rôle que JProfiler dans la décision. À tester dans le même mouvement, sur le même
-`sample-app`, pour comparer sur pièces plutôt que sur plaquette.
+## What one can hope for from it
+The same role as JProfiler in the decision. To be tested in the same movement, on the same
+`sample-app`, so as to compare on the evidence rather than on the brochure.
 
-## Comparable à
+## Comparable to
 
-- **[JProfiler](jprofiler.md)** — **Le concurrent direct.** Deux philosophies : sondes extensibles ici, vues abouties là. YourKit est nettement moins cher en académique (99 $/an) et gratuit pour l'open source.
-- **[Arthas](arthas.md)** — Gratuit, et suffisant pour capturer des valeurs. Les *probes* de YourKit ne prennent l'avantage que si l'on veut une donnée métier **agrégée** dans l'interface.
-- **[Kieker](kieker.md)** — Sa comparaison d'instantanés avant/après recoupe l'objectif de restructuration que Kieker adresse autrement.
+- **[JProfiler](jprofiler.md)** — **The direct competitor.** Two philosophies: extensible probes here, finished views there. YourKit is markedly cheaper academically ($99/year) and free for open source.
+- **[Arthas](arthas.md)** — Free, and sufficient for capturing values. YourKit's *probes* take the advantage only if one wants business data **aggregated** in the interface.
+- **[Kieker](kieker.md)** — Its before/after snapshot comparison overlaps the restructuring objective Kieker addresses differently.
 
-## Facile / moins facile
+## Easy / less easy
 
-**Ce qui est facile.** Démarrer : téléchargement direct, l'essai de 15 jours est intégré, pas de formulaire.
+**What is easy.** Getting started: direct download, the 15-day trial is built in, no form.
 
-**Ce qui l'est moins.** **Les probes** — les sondes personnalisées, qui sont l'argument de l'outil pour capturer des valeurs, demandent du développement. Et en licence flottante, obtenir le serveur auto-hébergé plutôt que le cloud par défaut.
+**What is less so.** **The probes** — the custom sensors, which are the tool's argument for capturing values, demand development. And on a floating licence, obtaining the self-hosted server rather than the cloud by default.

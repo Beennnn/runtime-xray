@@ -1,63 +1,62 @@
 # JFR (Java Flight Recorder) & JDK Mission Control
 
-> **Statut : ✅ testé ici** (JFR en ligne de commande) · **📄 sur documentation** (l'interface JMC)
-> — sorties dans [`reports-demo/generated/jfr/`](../../../reports-demo/generated/jfr)
+> **Status: ✅ tested here** (JFR on the command line) · **📄 on documentation** (the JMC interface)
+> — outputs in [`reports-demo/generated/jfr/`](../../../reports-demo/generated/jfr)
 
-## Ce que c'est
+## What it is
 
-**JFR** est un enregistreur d'événements intégré à la JVM elle-même. **JMC** est
-l'application de bureau qui ouvre et analyse ces enregistrements.
+**JFR** is an event recorder built into the JVM itself. **JMC** is the desktop application that
+opens and analyses those recordings.
 
-## Sa philosophie
+## Its philosophy
 
-**Être déjà là.** JFR n'est pas un outil qu'on ajoute : c'est un sous-système du JDK,
-conçu pour rester activable en production avec un surcoût minime. Il n'enregistre pas
-« un profil » mais un **flux d'événements** typés — GC, verrous, entrées-sorties, piles
-d'exécution — qu'on interroge après coup.
+**Being already there.** JFR is not a tool one adds: it is a JDK subsystem, designed to stay
+enableable in production with a minimal overhead. It records not "a profile" but a **stream of
+typed events** — GC, locks, I/O, execution stacks — which one queries afterwards.
 
-Cette généralité est sa force et sa limite : il voit tout, mais rien n'est présenté sous
-la forme « voici ton arbre d'appel » sans un outil de lecture.
+That generality is its strength and its limit: it sees everything, but nothing is presented in
+the form "here is your call tree" without a reading tool.
 
-## ⚠️ Le point décisif : Java 21 contre Java 25
+## ⚠️ The decisive point: Java 21 against Java 25
 
-Le JDK 25 apporte le **traçage de méthodes ciblé** (JEP 520). **Sous Java 21, la cible du
-projet, ces réglages n'existent pas :**
+JDK 25 brings **targeted method tracing** (JEP 520). **Under Java 21, the project's target,
+those settings do not exist:**
 
 ```
 [warning][jfr,start] The .jfc option/setting 'jdk.MethodTiming#filter' doesn't exist.
 ```
 
-Même programme, même durée :
+Same program, same duration:
 
-| Événement | Java 21 | Java 25 |
+| Event | Java 21 | Java 25 |
 |---|---|---|
 | `jdk.ExecutionSample` | 331 | 147 |
-| `jdk.MethodTrace` | — | **594 877** |
-| `jdk.MethodTiming` | — | **16 000 000 invocations comptées exactement** |
+| `jdk.MethodTrace` | — | **594,877** |
+| `jdk.MethodTiming` | — | **16,000,000 invocations counted exactly** |
 
-**Pourquoi 25 est plus précis** : Java 21 *échantillonne* (quelques centaines de photos de
-la pile, dont on infère statistiquement où passe le temps) ; Java 25 *instrumente* les
-méthodes nommées dans le filtre et compte **chaque** invocation. Changement de nature, pas
-de réglage. En contrepartie l'instrumentation perturbe le JIT et fait exploser le volume —
-détail et limites dans [les résultats](../../resultat/resultats.md#why-java-25-is-more-precise--the-mechanism).
+**Why 25 is more precise**: Java 21 *samples* (a few hundred photographs of the stack, from
+which one statistically infers where the time goes); Java 25 *instruments* the methods named in
+the filter and counts **every** invocation. A change of nature, not of setting. In exchange the
+instrumentation disturbs the JIT and makes the volume explode — detail and limits in [the
+results](../../resultat/resultats.md#why-java-25-is-more-precise--the-mechanism).
 
-Sous Java 21, JFR ne fournit que de l'échantillonnage — moins bien qu'async-profiler, pour
-plus de complexité. **Sous Java 25, il devient un outil de premier plan sans rien
-installer.** Voir [les gains d'un portage](../../resultat/resultats.md#gains-from-a-port-to-java-25-no-gain-visible-in-the-report).
+Under Java 21, JFR supplies only sampling — less well than async-profiler, for more complexity.
+**Under Java 25, it becomes a front-rank tool with nothing to install.** See [the gains from a
+port](../../resultat/resultats.md#gains-from-a-port-to-java-25-no-gain-visible-in-the-report).
 
-## Ce qu'il sait faire
+## What it can do
 
-| Capacité | Java 21 | Java 25 |
+| Capability | Java 21 | Java 25 |
 |---|---|---|
-| Arbre d'appel | ⚠️ échantillonné | ✅ exact, par invocation |
-| Compte d'appels | ❌ | ✅ exact |
-| Lignes exécutées | ❌ | ❌ |
-| Valeurs des paramètres | ❌ | ❌ — la signature est affichée, **pas les valeurs** |
-| GC, verrous, E/S, threads | ✅ | ✅ |
+| Call tree | ⚠️ sampled | ✅ exact, per invocation |
+| Call count | ❌ | ✅ exact |
+| Executed lines | ❌ | ❌ |
+| Parameter values | ❌ | ❌ — the signature is displayed, **not the values** |
+| GC, locks, I/O, threads | ✅ | ✅ |
 
-## Son interface
+## Its interface
 
-**En ligne de commande** — l'outil `jfr` livré avec le JDK :
+**On the command line** — the `jfr` tool shipped with the JDK:
 
 ```
 jdk.MethodTrace {
@@ -71,58 +70,57 @@ jdk.MethodTrace {
 }
 ```
 
-**Cet extrait est la démonstration la plus nette du manque recherché** : la pile complète est
-là, le nom du paramètre et son type aussi (`Leg`) — mais **jamais sa valeur**.
+**This extract is the clearest demonstration of the gap being looked for**: the complete stack
+is there, the parameter's name and its type too (`Leg`) — but **never its value**.
 
-**Dans JMC** — une application de bureau (Eclipse RCP) avec vues graphiques : flame view,
-arbre d'appel, corrélation avec le GC et les verrous. Riche, mais c'est un outil
-d'expert : pas un rapport qu'on envoie à un non-technicien.
+**In JMC** — a desktop application (Eclipse RCP) with graphical views: flame view, call tree,
+correlation with the GC and the locks. Rich, but it is an expert's tool: not a report one sends
+to a non-technician.
 
-## Comment on navigue dedans
+## How one navigates in it
 
-- **Hors IDE** : ❌ — le `.jfr` est un binaire, illisible sans outil. Pas de page web.
-- **Dans JMC** : ✅ interface complète, mais desktop et technique.
-- **Dans IntelliJ Ultimate** : ✅ ouvre les `.jfr` nativement.
-- **GitHub / GitLab** : ❌.
+- **Outside an IDE**: ❌ — the `.jfr` is a binary, unreadable without a tool. No web page.
+- **In JMC**: ✅ a complete interface, but desktop and technical.
+- **In IntelliJ Ultimate**: ✅ opens `.jfr` files natively.
+- **GitHub / GitLab**: ❌.
 
-## Mise en œuvre
+## Setting up
 
 ```bash
 ./tools/jfr/collect.sh
 ```
 
-**Rien à installer** : c'est un flag JVM. Le script détecte la version du JDK et adapte
-les options — il ne fait pas semblant d'avoir JEP 520 sous Java 21.
+**Nothing to install**: it is a JVM flag. The script detects the JDK's version and adapts the
+options — it does not pretend to have JEP 520 under Java 21.
 
-> ⚠️ Tracer une méthode du chemin chaud a produit **129 Mo pour 10 s** d'exécution, au-delà
-> de la limite de fichier de GitHub. Le traçage fin se cible, il ne se saupoudre pas.
+> ⚠️ Tracing one method of the hot path produced **129 MB for 10 s** of running, beyond
+> GitHub's file limit. Fine tracing is targeted, it is not sprinkled about.
 >
-> ⚠️ Le `.jfr` binaire déclenche le scanner de secrets de GitHub (faux positif). Il est
-> exclu du dépôt ; les extraits texte sont versionnés.
+> ⚠️ The binary `.jfr` triggers GitHub's secret scanner (a false positive). It is excluded from
+> the repository; the text extracts are versioned.
 
-## Licence et coût
+## Licence and cost
 
-**GPLv2 + Classpath Exception** (OpenJDK), **0 €**, inclus dans le JDK. JMC est distribué
-séparément sous **UPL 1.0** *(à confirmer)*. **Hors ligne par construction.**
+**GPLv2 + Classpath Exception** (OpenJDK), **€0**, included in the JDK. JMC is distributed
+separately under **UPL 1.0** *(to be confirmed)*. **Offline by construction.**
 
-## Ce qu'on peut en espérer
+## What one can hope for from it
 
-**Sous Java 21** : un socle de diagnostic généraliste (GC, verrous, threads) déjà présent,
-mais pas la meilleure réponse aux besoins de l'étude.
+**Under Java 21**: a general-purpose diagnostic base (GC, locks, threads) already present, but
+not the best answer to the study's needs.
 
-**Sous Java 25** : l'arbre d'appel exact devient gratuit et sans installation — un argument
-sérieux en faveur d'un portage. Les valeurs de paramètres, elles, restent hors de portée
-dans les deux cas.
+**Under Java 25**: the exact call tree becomes free and installation-free — a serious argument
+in favour of a port. The parameter values, for their part, stay out of reach in both cases.
 
-## Comparable à
+## Comparable to
 
-- **[async-profiler](async-profiler.md)** — **Le concurrent direct.** Sous Java 21, il fait mieux pour moins d'effort. Sous Java 25, le rapport s'inverse : JFR compte exactement là où l'autre échantillonne.
-- **[VisualVM](visualvm.md)** — Même famille, plus ancienne. VisualVM s'ouvre plus vite, JFR enregistre plus finement.
-- **[JMC Agent](jmc-agent.md)** — Son extension naturelle : il ajoute au flux JFR des événements portant les **valeurs des paramètres**, que JFR seul ne capture pas.
-- **[JProfiler](jprofiler.md) · [YourKit](yourkit.md)** — Ils font ce que JFR fait, plus les valeurs d'arguments, dans une interface unique — contre une licence.
+- **[async-profiler](async-profiler.md)** — **The direct competitor.** Under Java 21, it does better for less effort. Under Java 25, the ratio reverses: JFR counts exactly where the other samples.
+- **[VisualVM](visualvm.md)** — The same family, older. VisualVM opens faster, JFR records more finely.
+- **[JMC Agent](jmc-agent.md)** — Its natural extension: it adds to the JFR stream events carrying the **parameter values**, which JFR alone does not capture.
+- **[JProfiler](jprofiler.md) · [YourKit](yourkit.md)** — They do what JFR does, plus the argument values, in a single interface — against a licence.
 
-## Facile / moins facile
+## Easy / less easy
 
-**Ce qui est facile.** Lancer un enregistrement : rien à installer, c'est un flag. Impossible de faire plus simple.
+**What is easy.** Starting a recording: nothing to install, it is a flag. It is impossible to make it simpler.
 
-**Ce qui l'est moins.** **En tirer quelque chose** : le `.jfr` est binaire, il faut JMC. Cibler le traçage sans exploser le volume (129 Mo pour 10 s sur une méthode chaude). Et sous **Java 21**, obtenir mieux qu'un échantillonnage : ce n'est pas difficile, c'est impossible.
+**What is less so.** **Getting something out of it**: the `.jfr` is binary, JMC is needed. Targeting the tracing without the volume exploding (129 MB for 10 s on a hot method). And under **Java 21**, getting better than sampling: it is not difficult, it is impossible.

@@ -1,36 +1,34 @@
 # Arthas
 
-> **Statut : ✅ testé ici, hors ligne** — sorties dans
+> **Status: ✅ tested here, offline** — outputs in
 > [`reports-demo/generated/arthas/`](../../../reports-demo/generated/arthas)
 >
-> Son lanceur télécharge ses modules au premier démarrage — ce qui **n'est pas un
-> obstacle**, puisque le critère porte sur l'exécution et non sur l'installation. Le paquet
-> complet est publié sur Maven Central ; une fois posé, `--arthas-home` fait que plus rien
-> ne sort sur le réseau. Vérifié avec le trafic HTTP coupé.
+> Its launcher downloads its modules at first startup — which is **not an obstacle**, since the
+> criterion bears on the run and not on the installation. The complete package is published on
+> Maven Central; once laid down, `--arthas-home` means nothing goes out on the network any
+> more. Verified with the HTTP traffic cut.
 
-> ℹ️ **Précision sur le nom** : Arthas est un outil d'**Alibaba** (projet open source
-> `alibaba/arthas`). Le serveur que son lanceur contacte par défaut est
-> `arthas.aliyun.com` — le service cloud d'Alibaba. Aucun rapport avec un quelconque
-> service d'IA.
+> ℹ️ **A precision about the name**: Arthas is an **Alibaba** tool (the open-source project
+> `alibaba/arthas`). The server its launcher contacts by default is `arthas.aliyun.com` —
+> Alibaba's cloud service. No connection with any AI service whatsoever.
 
-## Le point hors ligne : vérifié, pas supposé
+## The offline point: verified, not supposed
 
-C'est la question qui décide de tout pour ce projet, alors elle a été **testée**.
+This is the question that decides everything for this project, so it was **tested**.
 
-**La dépendance réseau existe, mais elle est dans le lanceur, à l'installation.**
-`arthas-boot` télécharge les modules d'Arthas au premier démarrage. Le critère du projet
-portant sur l'**exécution** hors ligne, cette étape n'est pas rédhibitoire : elle se fait
-une fois, à l'avance. Reste à s'assurer qu'ensuite **plus rien ne sort** — c'est ce qui a
-été testé.
+**The network dependency exists, but it is in the launcher, at installation time.**
+`arthas-boot` downloads Arthas's modules at first startup. The project's criterion bearing on
+the **run** being offline, that step is not disqualifying: it happens once, in advance. What
+remains is making sure that afterwards **nothing goes out** — and that is what was tested.
 
-**Elle se contourne en deux gestes** : récupérer le paquet complet
-`com.taobao.arthas:arthas-packaging:<version>:zip:bin` (~17 Mo, publié sur **Maven
-Central** — donc servi par n'importe quel miroir Maven interne), le décompresser dans
-`~/.arthas/lib/<version>/arthas`, et lancer avec `--arthas-home`.
+**It is worked around in two gestures**: fetch the complete package
+`com.taobao.arthas:arthas-packaging:<version>:zip:bin` (~17 MB, published on **Maven Central**
+— hence served by any internal Maven mirror), unzip it into `~/.arthas/lib/<version>/arthas`,
+and launch with `--arthas-home`.
 
-**La preuve** : la capture ci-dessous a été rejouée avec **tout le trafic HTTP et HTTPS de
-la JVM routé vers un port mort** (`-Dhttp.proxyHost=127.0.0.1 -Dhttp.proxyPort=1`, idem en
-HTTPS). Résultat :
+**The proof**: the capture below was replayed with **all the JVM's HTTP and HTTPS traffic
+routed to a dead port** (`-Dhttp.proxyHost=127.0.0.1 -Dhttp.proxyPort=1`, likewise for HTTPS).
+Result:
 
 ```
 [INFO] arthas home: /Users/.../.arthas/lib/4.3.4/arthas
@@ -38,48 +36,46 @@ HTTPS). Résultat :
     @String[TRIP-188], @Mode[CAR], @Weather[RAIN], ...
 ```
 
-Aucune tentative de sortie, aucun échec : l'attachement et la capture fonctionnent
-**sans réseau du tout**. En environnement réellement coupé, le seul geste supplémentaire
-est de transporter le zip une fois.
+No attempt to go out, no failure: attaching and capturing work **with no network at all**. In a
+genuinely cut-off environment, the only extra gesture is carrying the zip across once.
 
-## Ce que c'est
+## What it is
 
-Une console de diagnostic qui **s'attache à une JVM déjà en cours** et permet de
-l'interroger en direct, par commandes : quelles méthodes sont appelées, avec quels
-arguments, quel résultat, quelle pile.
+A diagnostic console that **attaches to an already running JVM** and allows querying it live,
+by commands: which methods are called, with which arguments, what result, what stack.
 
-## Sa philosophie
+## Its philosophy
 
-**Poser des questions à une application vivante**, sans la redémarrer ni la modifier.
-Là où un profiler enregistre puis présente un rapport, Arthas est interactif : on tape
-`watch`, on voit passer des valeurs, on affine, on arrête. C'est un outil de *diagnostic*
-au sens médical, pas un outil de mesure globale.
+**Asking questions of a living application**, without restarting or modifying it. Where a
+profiler records and then presents a report, Arthas is interactive: one types `watch`, one sees
+values go by, one refines, one stops. It is a *diagnostic* tool in the medical sense, not a
+tool for global measurement.
 
-## Ce qu'il sait faire
+## What it can do
 
-| Capacité | |
+| Capability | |
 |---|---|
-| **Valeurs des paramètres** | ✅ — `watch` avec expressions OGNL sur `params`, `returnObj`, `throwExp` |
-| Arbre d'appel | ✅ — `trace` (chemin + temps par étage), `stack` (qui m'a appelé ?) |
-| Lignes exécutées | ❌ |
-| Décompilation à chaud, rechargement de classe | ✅ |
+| **Parameter values** | ✅ — `watch` with OGNL expressions on `params`, `returnObj`, `throwExp` |
+| Call tree | ✅ — `trace` (path + time per level), `stack` (who called me?) |
+| Executed lines | ❌ |
+| Hot decompilation, class reloading | ✅ |
 
-C'est **le seul outil gratuit recensé qui réponde directement au troisième besoin du
-l'étude** — voir les valeurs passées — sans écrire de script d'instrumentation.
+It is **the only free tool surveyed that answers the study's third need directly** — seeing the
+values passed — with no instrumentation script to write.
 
-## Son interface
+## Its interface
 
-Une **console** (terminal ou navigateur sur `http://<hôte>:8563`), pilotable par fichier de
-commandes — donc scriptable et rejouable.
+A **console** (terminal or browser at `http://<host>:8563`), drivable by a command file — hence
+scriptable and replayable.
 
-### `watch` — les valeurs des paramètres
+### `watch` — the parameter values
 
 ```
 watch lab.sample.RoutePlanner travelTimeMinutes \
   '{params[0].id(), params[0].mode(), params[0].weather(), params[0].timeOfDay(), returnObj}' -n 5 -x 2
 ```
 
-Sortie réelle, sous Java 21 :
+Real output, under Java 21:
 
 ```
 method=lab.sample.RoutePlanner.travelTimeMinutes location=AtExit
@@ -93,11 +89,11 @@ ts=2026-08-20 20:08:02.619; [cost=5.866458ms] result=@ArrayList[
 ]
 ```
 
-**Les valeurs, pas les types.** C'est très exactement ce que JFR ne donne pas : là où
-l'enregistreur affiche `travelTimeMinutes(Trip)`, Arthas dit *quel* trajet — un trajet en
-voiture, à l'heure de pointe, par beau temps — et *ce qu'il a répondu*.
+**The values, not the types.** That is very exactly what JFR does not give: where the recorder
+displays `travelTimeMinutes(Trip)`, Arthas says *which* trip — a trip by car, at rush hour, in
+fine weather — and *what it answered*.
 
-### `trace` — l'arbre d'appel d'UN appel, avec les numéros de ligne
+### `trace` — the call tree of ONE call, with the line numbers
 
 ```
 trace lab.sample.RoutePlanner travelTimeMinutes -n 2
@@ -113,74 +109,72 @@ trace lab.sample.RoutePlanner travelTimeMinutes -n 2
     `---[2,06% 0.008583ms ] lab.sample.comfort.Breaks:totalMinutes() #67
 ```
 
-Deux choses que ni JaCoCo ni async-profiler ne donnent :
+Two things neither JaCoCo nor async-profiler gives:
 
-1. **C'est l'arbre d'UN appel**, pas un cumul statistique. On voit le chemin réellement
-   emprunté par ce trajet-là.
-2. **Les numéros de ligne** (`#43`, `#53`, `#57`) — de quoi retourner directement dans le
-   source, ce qui répond au besoin de navigation.
+1. **It is the tree of ONE call**, not a statistical aggregate. One sees the path really taken
+   by that particular trip.
+2. **The line numbers** (`#43`, `#53`, `#57`) — enough to go straight back into the source,
+   which answers the navigation need.
 
-Et les branches conditionnelles apparaissent ou non selon le contexte : `Traffic:applies()`
-n'est là que pour un trajet en voiture, `WeatherPenalty:applies()` que pour le vélo ou la
-marche.
+And the conditional branches appear or not according to the context: `Traffic:applies()` is
+there only for a trip by car, `WeatherPenalty:applies()` only for cycling or walking.
 
-## Comment on navigue dedans
+## How one navigates in it
 
-- **Console web** ✅ — accessible sans installer quoi que ce soit côté lecteur.
-- **Pas de rapport à envoyer** : la sortie est un flux de texte. Pour un non-technicien,
-  il faut la reprendre et la mettre en forme.
-- Pas d'intégration IDE ni plateforme.
+- **Web console** ✅ — reachable with nothing to install on the reader's side.
+- **No report to send**: the output is a stream of text. For a non-technician, it has to be
+  taken up and formatted.
+- No IDE or platform integration.
 
-## Mise en œuvre
+## Setting up
 
 ```bash
-./tools/arthas/install-offline.sh   # une fois : récupère le paquet et le pose localement
-./tools/arthas/collect.sh           # attache, capture, écrit dans reports-demo/
+./tools/arthas/install-offline.sh   # once: fetches the package and lays it down locally
+./tools/arthas/collect.sh           # attaches, captures, writes into reports-demo/
 ```
 
-**L'installation hors ligne tient en deux gestes** : récupérer
-`com.taobao.arthas:arthas-packaging:<version>:zip:bin` (~17 Mo, sur Maven Central, donc
-disponible depuis un miroir Maven interne), le décompresser dans
-`~/.arthas/lib/<version>/arthas`, et lancer avec `--arthas-home`. Le lanceur ne contacte
-plus jamais `arthas.aliyun.com`.
+**The offline installation comes down to two gestures**: fetch
+`com.taobao.arthas:arthas-packaging:<version>:zip:bin` (~17 MB, on Maven Central, hence
+available from an internal Maven mirror), unzip it into `~/.arthas/lib/<version>/arthas`, and
+launch with `--arthas-home`. The launcher never contacts `arthas.aliyun.com` again.
 
-En environnement réellement coupé : on transporte le zip une fois, et c'est tout.
+In a genuinely cut-off environment: one carries the zip across once, and that is all.
 
-> ⚠️ Trois pièges rencontrés, tous corrigés dans les scripts :
-> - un fichier de commandes `.as` **n'accepte aucun commentaire** — une ligne `#` est
->   envoyée comme commande et renvoie `#: command not found` ;
-> - la commande `stop` placée après un `trace` **ferme la session avant la collecte** ;
-> - sans PID valide, `arthas-boot` attend une saisie **interactive indéfiniment** — d'où
->   le garde-fou temporel dans le collecteur.
+> ⚠️ Three traps met, all fixed in the scripts:
+> - an `.as` command file **accepts no comment at all** — a `#` line is sent as a command and
+>   comes back with `#: command not found`;
+> - a `stop` command placed after a `trace` **closes the session before the collection**;
+> - with no valid PID, `arthas-boot` waits for **interactive input indefinitely** — hence the
+>   time guard in the collector.
 
-## Licence et coût
+## Licence and cost
 
-**Apache 2.0**, open source, **0 €**. Projet Alibaba, largement utilisé.
+**Apache 2.0**, open source, **€0**. An Alibaba project, widely used.
 
-## Ce qu'on peut en espérer
+## What one can hope for from it
 
-**Il comble le trou laissé par JaCoCo et async-profiler, et c'est vérifié.** Avec lui,
-le socle gratuit couvre les trois besoins de l'étude :
+**It fills the hole left by JaCoCo and async-profiler, and that is verified.** With it, the
+free base covers the study's three needs:
 
-| Besoin | Outil | |
+| Need | Tool | |
 |---|---|---|
-| Lignes exécutées | JaCoCo | ✅ |
-| Arbre d'appel (cumulé, visuel) | async-profiler | ✅ |
-| Arbre d'appel (un appel, avec lignes) + **valeurs des paramètres** | **Arthas** | ✅ |
+| Executed lines | JaCoCo | ✅ |
+| Call tree (cumulative, visual) | async-profiler | ✅ |
+| Call tree (one call, with lines) + **parameter values** | **Arthas** | ✅ |
 
-Ce que ça change : **la question de la licence commerciale ne porte plus sur une capacité
-manquante, mais sur le confort**. JProfiler et YourKit réuniraient tout dans une interface
-unique ; le trio gratuit demande trois outils et une console.
+What that changes: **the commercial licence question no longer bears on a missing capability,
+but on comfort**. JProfiler and YourKit would bring everything together in a single interface;
+the free trio demands three tools and a console.
 
-## Comparable à
+## Comparable to
 
-- **[BTrace](btrace-byteman.md) · [Byteman](btrace-byteman.md)** — **Même famille** : injecter de l'observation dans une application vivante. La différence est ergonomique et décisive — Arthas répond à une commande, les deux autres demandent d'écrire un script ou une règle par question.
-- **[JMC Agent](jmc-agent.md)** — Même objectif, philosophie opposée : **déclaratif** (un XML de sondes, une donnée structurée en sortie) contre **interactif** (une commande, du texte en sortie). Le JMC Agent produit une donnée réutilisable, Arthas une réponse immédiate.
-- **[JProfiler](jprofiler.md) · [YourKit](yourkit.md)** — Ce qu'ils ajoutent est précis : **agréger** l'arbre d'appel par valeur d'argument sur des millions d'appels. Arthas montre quelques appels individuels — utile pour comprendre un cas, insuffisant pour raisonner sur un ensemble.
-- **[IntelliJ IDEA](intellij.md)** — Le point d'arrêt non suspensif qui journalise une expression fait la même chose, gratuitement, dans l'IDE — mais seulement pendant une session de débogage.
+- **[BTrace](btrace-byteman.md) · [Byteman](btrace-byteman.md)** — **The same family**: injecting observation into a living application. The difference is ergonomic and decisive — Arthas answers a command, the other two demand writing a script or a rule per question.
+- **[JMC Agent](jmc-agent.md)** — The same objective, the opposite philosophy: **declarative** (an XML of probes, structured data out) against **interactive** (a command, text out). The JMC Agent produces reusable data, Arthas an immediate answer.
+- **[JProfiler](jprofiler.md) · [YourKit](yourkit.md)** — What they add is precise: **aggregating** the call tree by argument value over millions of calls. Arthas shows a few individual calls — useful for understanding one case, insufficient for reasoning about a set.
+- **[IntelliJ IDEA](intellij.md)** — The non-suspending breakpoint that logs an expression does the same thing, free, in the IDE — but only during a debugging session.
 
-## Facile / moins facile
+## Easy / less easy
 
-**Ce qui est facile.** Poser une question à une application vivante : `watch`, et les valeurs défilent. `trace`, et l'arbre d'un appel s'affiche avec ses numéros de ligne. C'est le geste le plus direct de tout le panel pour le troisième besoin — et l'installation hors ligne s'est révélée triviale (un zip à décompresser).
+**What is easy.** Asking a question of a living application: `watch`, and the values scroll past. `trace`, and one call's tree appears with its line numbers. It is the most direct gesture of the whole panel for the third need — and the offline installation turned out to be trivial (a zip to unpack).
 
-**Ce qui l'est moins.** **Transmettre le résultat** : la sortie est un flux de texte de console, pas un rapport navigable — c'est sa vraie faiblesse face au critère n° 2. Il faut aussi **savoir quoi demander** : contrairement à un rapport de couverture qui montre tout, Arthas ne répond qu'aux questions qu'on lui pose, méthode par méthode. Et il exige une **JVM vivante**, donc une exécution qu'on peut tenir ouverte.
+**What is less so.** **Handing the result on**: the output is a stream of console text, not a navigable report — that is its real weakness against criterion no. 2. One also has to **know what to ask**: unlike a coverage report that shows everything, Arthas answers only the questions one puts to it, method by method. And it demands a **living JVM**, hence a run one can hold open.
