@@ -1,22 +1,22 @@
-# Publie les trois éditions du jar quand une étiquette de version est poussée.
+# Publishes the three editions of the jar when a version tag is pushed.
 #
-# C'est la réponse à « où met-on les binaires ». Pas dans le dépôt : git garde chaque
-# version pour toujours, et un jar complet de 19 Mo alourdirait tous les clones à venir,
-# sans moyen de revenir en arrière sans réécrire l'histoire. Les artefacts vivent donc
-# attachés à une étiquette, construits ici, à partir du code de cette étiquette exactement.
+# This is the answer to "where do the binaries go". Not in the repository: git keeps every
+# version forever, and a 19 MB complete jar would weigh down every clone to come, with no
+# way back without rewriting history. The artefacts therefore live attached to a tag, built
+# here, from the code of that tag exactly.
 #
 #   git tag v1.1.0 && git push origin v1.1.0
-name: Publier une version
+name: Publish a release
 
 on:
   push:
     tags: ['v*']
 
 permissions:
-  contents: write   # pour créer la release et y déposer les fichiers
+  contents: write   # to create the release and drop the files into it
 
 jobs:
-  publier:
+  publish:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -27,96 +27,95 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
-      # Une étiquette qui ne correspond pas au pom publierait un artefact mal nommé :
-      # mieux vaut échouer ici que le découvrir sur la page des releases.
-      - name: L'étiquette et le pom doivent coïncider
+      # A tag that does not match the pom would publish a badly named artefact: better to
+      # fail here than to discover it on the releases page.
+      - name: The tag and the pom must coincide
         run: |
           POM=$(mvn -B -q help:evaluate -Dexpression=project.version -DforceStdout)
           TAG=${GITHUB_REF_NAME#v}
-          echo "pom=$POM étiquette=$TAG"
-          [ "$POM" = "$TAG" ] || { echo "::error::pom $POM ≠ étiquette $TAG"; exit 1; }
+          echo "pom=$POM tag=$TAG"
+          [ "$POM" = "$TAG" ] || { echo "::error::pom $POM != tag $TAG"; exit 1; }
           echo "VERSION=$POM" >> "$GITHUB_ENV"
 
-      - name: Les tests
+      - name: The tests
         run: mvn -B test
 
-      - name: Les trois éditions
+      - name: The three editions
         run: |
           mvn -B -DskipTests package
           mvn -B -Pjacoco  -DskipTests package
           mvn -B -Pcomplet -DskipTests package
           mkdir -p publication
-          # Le nom porté par la v1.0.0, conservé : c'est celui des liens déjà écrits.
+          # The name carried by v1.0.0, kept: it is the one the already-written links use.
           cp orchestrator/target/runtime-xray.jar          "publication/runtime-xray-cli-$VERSION.jar"
           cp orchestrator/target/runtime-xray-jacoco.jar   "publication/runtime-xray-jacoco-$VERSION.jar"
           cp orchestrator/target/runtime-xray-complet.jar  "publication/runtime-xray-complet-$VERSION.jar"
 
-      # Jointes à la v1.0.0, donc attendues ici. Le nom de construction ne porte pas la
-      # version (finalName), on la remet : une pièce de release sans version ne se range pas.
-      - name: Les sources et la javadoc
+      # Attached to v1.0.0, hence expected here. The build name does not carry the version
+      # (finalName), so we put it back: a release asset with no version cannot be filed.
+      - name: The sources and the javadoc
         run: |
           mvn -B -pl orchestrator source:jar javadoc:jar -DskipTests
           cp orchestrator/target/runtime-xray-sources.jar "publication/runtime-xray-cli-$VERSION-sources.jar"
           cp orchestrator/target/runtime-xray-javadoc.jar "publication/runtime-xray-cli-$VERSION-javadoc.jar"
 
-      - name: Les empreintes
+      - name: The fingerprints
         run: |
           (cd publication && sha256sum * > SHA256SUMS.txt)
           ls -la publication
 
-      - name: La release
+      - name: The release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           cat > notes.md <<'NOTES'
-          Trois éditions du même outil. Toutes réclament un JDK 21, et rien d'autre.
+          Three editions of the same tool. All of them ask for a JDK 21, and nothing else.
 
-          | Édition | Poids | Ce qui fonctionne sans réseau |
+          | Edition | Weight | What works with no network |
           |---|---|---|
-          | `runtime-xray-cli` | ~175 Ko | rien à l'avance : les composants sont à trouver ailleurs |
-          | `runtime-xray-jacoco` | ~950 Ko | la **couverture** |
-          | `runtime-xray-complet` | ~19 Mo | la couverture, les **temps** et les **valeurs** |
+          | `runtime-xray-cli` | ~175 KB | nothing in advance: the components are to be found elsewhere |
+          | `runtime-xray-jacoco` | ~950 KB | the **coverage** |
+          | `runtime-xray-complet` | ~19 MB | the coverage, the **times** and the **values** |
 
-          Les deux dernières embarquent leurs composants d'analyse et les déposent dans
-          `~/.runtime-xray` au premier lancement : aucun accès réseau, jamais. L'écart
-          entre elles est Arthas, 17 Mo à lui seul pour la capture des valeurs. Ce qu'elles
-          redistribuent, et sous quelle licence, est détaillé dans `THIRD-PARTY.md`.
+          The last two embed their analysis components and lay them down in
+          `~/.runtime-xray` at first launch: no network access, ever. The difference
+          between them is Arthas, 17 MB on its own for capturing the values. What they
+          redistribute, and under which licence, is detailed in `THIRD-PARTY.md`.
 
-          L'édition ordinaire cherche ses composants sur la machine avant de sortir sur le
-          réseau : cache, `--composants`, voisinage du jar, dépôt Maven local — puis
-          seulement un dépôt Maven distant.
+          The ordinary edition looks for its components on the machine before going out on
+          the network: cache, `--components`, the jar's neighbourhood, the local Maven
+          repository — and only then a remote Maven repository.
 
-          Empreintes SHA-256 dans `SHA256SUMS.txt`.
+          SHA-256 fingerprints in `SHA256SUMS.txt`.
           NOTES
           gh release create "$GITHUB_REF_NAME" \
             --title "runtime-xray $VERSION" \
             --notes-file notes.md \
             publication/*
 
-      # Les liens de téléchargement de la documentation désignent la release PUBLIÉE.
-      # Ils se réécrivent donc ici, après coup, jamais avant : nommer d'avance une
-      # étiquette qui n'existe pas offre un 404 au premier lecteur de la page d'accueil.
+      # The documentation's download links designate the PUBLISHED release. They are
+      # therefore rewritten here, afterwards, never before: naming a tag in advance that
+      # does not exist offers a 404 to the home page's first reader.
       #
-      # Ce geste a été rejoué à la main trois fois en deux jours, à l'identique. C'est la
-      # même dérive que celle qui laissait la page d'accueil en retard sur sa source, et
-      # elle se traite pareil : ce qui se recopie mécaniquement ne doit pas dépendre de
-      # ce que quelqu'un pense à faire.
-      - name: Basculer les liens de la documentation sur main
+      # This gesture was replayed by hand three times in two days, identically. It is the
+      # same drift as the one that left the home page behind its source, and it is handled
+      # the same way: what is copied mechanically must not depend on somebody remembering
+      # to do it.
+      - name: Switch the documentation's links on main
         run: |
           git config user.name  'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git fetch origin main
           git checkout -B main origin/main
 
-          # Trois formes seulement, et volontairement étroites : l'URL de téléchargement,
-          # le nom du jar, et la ligne « Version » du tableau. Les autres numéros de
-          # version du README parlent d'autre chose — la licence MIT de la 1.0.0 déjà
-          # publiée, l'exemple d'étiquetage — et doivent rester intacts.
+          # Three shapes only, and deliberately narrow: the download URL, the jar's name,
+          # and the table's "Version" row. The README's other version numbers speak of
+          # something else — the MIT licence of the already-published 1.0.0, the tagging
+          # example — and must stay intact.
           #
-          # Le délimiteur est « # », pas « | » : la troisième expression contient des
-          # barres verticales (c'est une ligne de tableau Markdown), et les échapper dans
-          # une commande elle-même délimitée par « | » donne un motif que BSD sed lit de
-          # travers — essayé, il réécrivait le fichier entier.
+          # The delimiter is "#", not "|": the third expression contains vertical bars (it
+          # is a Markdown table row), and escaping them in a command itself delimited by
+          # "|" gives a pattern BSD sed reads wrong — tried, it rewrote the whole file.
           sed -i -E \
             -e "s#releases/download/v[0-9]+\.[0-9]+\.[0-9]+/#releases/download/v$VERSION/#g" \
             -e "s#runtime-xray-cli-[0-9]+\.[0-9]+\.[0-9]+\.jar#runtime-xray-cli-$VERSION.jar#g" \
@@ -124,12 +123,12 @@ jobs:
             README.md docs/outil/mode-emploi.md
 
           if git diff --quiet; then
-            echo "Les liens désignent déjà la $VERSION — rien à basculer."
+            echo "The links already designate $VERSION — nothing to switch."
             exit 0
           fi
 
           git diff --stat
-          git commit -am "Basculer les liens de la documentation sur la $VERSION
+          git commit -am "Switch the documentation's links to $VERSION
 
-          Recopie automatique, déclenchée par la publication de $GITHUB_REF_NAME."
+          Automatic copy, triggered by the publication of $GITHUB_REF_NAME."
           git push origin main
