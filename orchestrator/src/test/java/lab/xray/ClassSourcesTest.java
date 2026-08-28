@@ -25,7 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 class ClassSourcesTest {
 
-    /** Un faux .class : ces méthodes recopient des octets, elles ne les interprètent pas. */
+    /** A fake .class: these methods copy bytes, they do not interpret them. */
     private static final byte[] BYTES = "compiled class".getBytes(StandardCharsets.UTF_8);
 
     private static Path jarWith(Path dir, String name, String entry) throws IOException {
@@ -196,14 +196,14 @@ class ClassSourcesTest {
     }
 
     @Test
-    @DisplayName("Un jar annoncé mais absent n'est pas retenu")
+    @DisplayName("A jar announced but missing is not kept")
     void refusesPathsThatDoNotExist(@TempDir Path dir) {
         assertEquals(List.of(), ClassSources.discover(
-                List.of("-jar", dir.resolve("jamais-construit.jar").toString()), "", dir));
+                List.of("-jar", dir.resolve("never-built.jar").toString()), "", dir));
     }
 
     @Test
-    @DisplayName("Une seule entrée reste une seule entrée")
+    @DisplayName("A single entry stays a single entry")
     void configKeepsSingleEntry() {
         Config c = new Config();
         c.classesDir = "target/classes";

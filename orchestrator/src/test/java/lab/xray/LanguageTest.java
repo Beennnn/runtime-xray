@@ -21,50 +21,49 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  *
  * <h2>Pourquoi un test, et pas une relecture</h2>
  *
- * <p>La bascule vers l'anglais s'est faite par étapes, et chacune a laissé derrière elle un
- * dépôt où <b>les deux langues cohabitent légitimement</b> : le code, les commentaires et
- * les {@code @DisplayName} restent en français jusqu'à leur étape. Une phrase française
- * ajoutée dans un {@code println} ne détonne donc pas à la relecture — elle ressemble à
- * tout ce qui l'entoure. Elle ne se voit qu'à l'exécution, sur le poste de quelqu'un qui ne
- * lit pas le français.
+ * <p>The switch to English was made in steps, and each one left behind a repository where
+ * <b>both languages legitimately coexist</b>: the code, the comments and the
+ * {@code @DisplayName}s stay French until their step comes. A French sentence added inside
+ * a {@code println} therefore does not stand out on re-reading — it looks like everything
+ * around it. It shows only at run time, on the machine of someone who does not read French.
  *
- * <h2>Ce qui est cherché, et ce qui ne l'est pas</h2>
+ * <h2>What is looked for, and what is not</h2>
  *
- * <p>Une <b>phrase</b> : au moins quatre mots, et un mot outil français. C'est
- * volontairement étroit. Les identifiants restent hors d'atteinte — et c'est nécessaire,
- * parce que beaucoup sont français à dessein et le resteront : les clés JSON des mesures
- * ({@code methodeRacine}, {@code dureeSecondes}), les noms internes des niveaux
- * ({@code couverture}, {@code arbre}, {@code complet}) et les noms d'options français, qui
- * sont acceptés à vie pour ne casser aucun script déjà déployé.
+ * <p>A <b>sentence</b>: at least four words, and one French function word. This is
+ * deliberately narrow. Identifiers stay out of reach — and that is necessary, because many
+ * are French on purpose and will stay so: the measurements' JSON keys
+ * ({@code methodeRacine}, {@code dureeSecondes}), the levels' internal names
+ * ({@code couverture}, {@code arbre}, {@code complet}) and the French option names, which
+ * are accepted for life so as to break no already-deployed script.
  *
- * <p>Ce test ne prouve donc pas que tout est traduit ; il attrape la régression qu'on
- * commet vraiment — une phrase entière écrite dans la langue du dépôt plutôt que dans celle
- * de l'outil.
+ * <p>This test therefore does not prove that everything is translated; it catches the
+ * regression one really commits — a whole sentence written in the repository's language
+ * rather than in the tool's.
  */
 class LanguageTest {
 
-    /** Les mots outils qui trahissent une phrase française. Sans « on », qui est anglais. */
+    /** The function words that give a French sentence away. Without "on", which is English. */
     private static final Pattern FRENCH = Pattern.compile(
             "(^|[^\\w])(le|la|les|des|une|du|de|qui|que|pour|dans|est|sont|pas|sur|avec"
             + "|cette|aux|par|leur|elle|aucun|aucune|été|nous|vous|ils)([^\\w]|$)",
             Pattern.CASE_INSENSITIVE);
 
     /**
-     * Les littéraux, <b>blocs de texte compris</b>.
+     * The literals, <b>text blocks included</b>.
      *
-     * <p>Les oublier a laissé passer le gabarit de configuration : cent trente lignes de
-     * français écrites dans un {@code \"\"\"…\"\"\"}, et déposées telles quelles sur le disque
-     * de qui lance l'outil sans fichier de configuration. Un test qui ne regarde que les
-     * chaînes ordinaires rassure sur ce qu'il ne vérifie pas.
+     * <p>Forgetting them let the configuration template through: a hundred and thirty lines
+     * of French written inside a {@code \"\"\"…\"\"\"}, and dropped as they are onto the disk
+     * of whoever runs the tool without a configuration file. A test that looks only at
+     * ordinary strings reassures about what it does not check.
      */
     private static final Pattern LITERAL = Pattern.compile(
             "\"\"\"(.*?)\"\"\"|\"((?:[^\"\\\\\\n]|\\\\.)*)\"", Pattern.DOTALL);
 
     @Test
-    @DisplayName("Aucune phrase française ne subsiste dans ce que l'outil écrit")
+    @DisplayName("No French sentence is left in what the tool writes")
     void noFrenchSentenceIsLeftInWhatTheToolWrites() throws IOException {
         Path root = Path.of("src/main/java");
-        assertTrue(Files.isDirectory(root), "les sources doivent être là : " + root);
+        assertTrue(Files.isDirectory(root), "the sources must be there: " + root);
 
         List<String> found = new ArrayList<>();
         try (Stream<Path> files = Files.walk(root)) {
@@ -73,9 +72,9 @@ class LanguageTest {
                 Matcher m = LITERAL.matcher(source);
                 while (m.find()) {
                     String text = m.group(1) != null ? m.group(1) : m.group(2);
-                    // Quatre mots au moins : en deçà, c'est un identifiant, une clé JSON ou
-                    // un fragment de format — et beaucoup sont français pour de bonnes
-                    // raisons, à commencer par les noms d'options qui ne casseront jamais.
+                    // Four words at least: below that it is an identifier, a JSON key or a
+                    // format fragment — and many are French for good reasons, starting with
+                    // the option names that will never break.
                     if (text.chars().filter(c -> c == ' ').count() >= 3
                             && FRENCH.matcher(text).find()) {
                         found.add(root.relativize(f) + " : " + text);
@@ -84,8 +83,8 @@ class LanguageTest {
             }
         }
         assertEquals(List.of(), found,
-                "phrase(s) française(s) dans un littéral : l'outil parle anglais, et une "
-                + "phrase ajoutée dans la langue du dépôt ne se voit qu'à l'exécution, "
-                + "sur le poste de quelqu'un qui ne lit pas le français");
+                "French sentence(s) in a literal: the tool speaks English, and a sentence "
+                + "added in the repository's language shows only at run time, on the "
+                + "machine of someone who does not read French");
     }
 }

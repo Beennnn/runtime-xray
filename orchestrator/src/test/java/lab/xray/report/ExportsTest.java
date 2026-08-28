@@ -178,21 +178,23 @@ class ExportsTest {
     }
 
     @Test
-    @DisplayName("Sans mesure à réécrire, aucun fichier n'est créé")
+    @DisplayName("With no measurement to rewrite, no file is created")
     void nothingToExportWritesNothing(@TempDir Path dir) throws Exception {
-        Path run = dir.resolve("runs/vide");
+        Path run = dir.resolve("runs/empty");
         Files.createDirectories(run);
         assertTrue(Exports.write(run, Set.of(Exports.Format.values()), 1, 8).isEmpty());
         assertFalse(Files.exists(run.resolve("exports")),
-                "un répertoire vide laisserait croire à un export raté");
+                "an empty directory would look like a failed export");
     }
 
     @Test
-    @DisplayName("Le nom des formats est lu tel qu'on l'écrit, et « tout » les prend tous")
+    @DisplayName("Format names are read as one writes them, and \"all\" takes them all")
     void formatsAreParsed() {
         assertEquals(Set.of(Exports.Format.PERF, Exports.Format.LCOV),
                 Exports.Format.parse("perf, lcov"));
-        assertEquals(Set.of(Exports.Format.values()), Exports.Format.parse("tout"));
+        assertEquals(Set.of(Exports.Format.values()), Exports.Format.parse("all"));
+        assertEquals(Set.of(Exports.Format.values()), Exports.Format.parse("tout"),
+                "the French name is accepted for life: a deployed script never breaks");
         assertEquals(Set.of(Exports.Format.values()), Exports.Format.parse(""));
         assertThrows(IllegalArgumentException.class, () -> Exports.Format.parse("pprof"));
     }

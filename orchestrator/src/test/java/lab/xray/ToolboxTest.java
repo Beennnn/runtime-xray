@@ -130,39 +130,39 @@ class ToolboxTest {
     }
 
     @Test
-    @DisplayName("Un composant qui déclare la bonne version ne déclenche aucun avertissement")
+    @DisplayName("A component declaring the right version raises no warning")
     void staysSilentWhenTheBroughtComponentDeclaresTheRightVersion(@TempDir Path dir)
             throws Exception {
-        Path bon = jarWithVersion(dir.resolve("jacocoagent.jar"), "0.8.13");
+        Path right = jarWithVersion(dir.resolve("jacocoagent.jar"), "0.8.13");
 
-        assertEquals("", Toolbox.note(bon, "0.8.13"),
-                "avertir quand tout va bien apprend à ne plus lire les avertissements");
+        assertEquals("", Toolbox.note(right, "0.8.13"),
+                "warning when all is well teaches one to stop reading warnings");
     }
 
     @Test
-    @DisplayName("Une version différente est nommée, pas seulement soupçonnée")
+    @DisplayName("A differing version is named, not merely suspected")
     void namesTheVersionWhenItDiffers(@TempDir Path dir) throws Exception {
         Path previous = jarWithVersion(dir.resolve("jacocoagent.jar"), "0.8.11");
 
         String note = Toolbox.note(previous, "0.8.13");
 
         assertTrue(note.contains("0.8.11") && note.contains("0.8.13"),
-                "les deux versions doivent apparaître : " + note);
+                "both versions must appear: " + note);
     }
 
     @Test
-    @DisplayName("Un fichier qui ne déclare rien reste « non vérifié », sans échouer")
+    @DisplayName("A file that declares nothing stays \"not verified\", without failing")
     void keepsTheOldCautionWhenNothingIsDeclared(@TempDir Path dir) throws Exception {
-        // Les archives d'async-profiler et d'Arthas sont dans ce cas, un fichier tronqué aussi.
-        Path silent = jarWithVersion(dir.resolve("sans-version.jar"), null);
-        Path notAJar = file(dir, "texte.jar");
+        // The async-profiler and Arthas archives are in this case, so is a truncated file.
+        Path silent = jarWithVersion(dir.resolve("no-version.jar"), null);
+        Path notAJar = file(dir, "text.jar");
 
         assertTrue(Toolbox.note(silent, "4.1").contains("not verified"));
         assertTrue(Toolbox.note(notAJar, "4.1").contains("not verified"),
-                "ne pas savoir n'est pas un défaut : surtout, ne pas lever d'exception");
+                "not knowing is not a fault: above all, do not raise an exception");
     }
 
-    /** @param version {@code null} pour un jar dont le manifeste n'en déclare aucune. */
+    /** @param version {@code null} for a jar whose manifest declares none. */
     private Path jarWithVersion(Path target, String version) throws IOException {
         Manifest manifest = new Manifest();
         manifest.getMainAttributes().put(Attributes.Name.MANIFEST_VERSION, "1.0");
@@ -171,19 +171,19 @@ class ToolboxTest {
         }
         Files.createDirectories(target.getParent());
         try (JarOutputStream out = new JarOutputStream(Files.newOutputStream(target), manifest)) {
-            out.putNextEntry(new java.util.zip.ZipEntry("rien.txt"));
-            out.write("rien".getBytes(StandardCharsets.UTF_8));
+            out.putNextEntry(new java.util.zip.ZipEntry("nothing.txt"));
+            out.write("nothing".getBytes(StandardCharsets.UTF_8));
             out.closeEntry();
         }
         return target;
     }
 
     @Test
-    @DisplayName("Les versions du pom ne divergent pas des constantes du code")
+    @DisplayName("The pom versions do not diverge from the code's constants")
     void thePomVersionsMatchTheCode() throws Exception {
-        // Le profil « complet » embarque ce que dit le pom ; à l'exécution, Toolbox cherche
-        // ce que disent ses constantes. Deux sources qui divergeraient donneraient un jar
-        // d'apparence complète, qui retéléchargerait tout.
+        // The "complet" profile bundles what the pom says; at run time, Toolbox looks for
+        // what its constants say. Two sources that diverged would give a jar that looks
+        // complete and would re-download everything.
         String pom = Files.readString(Path.of("pom.xml"), StandardCharsets.UTF_8);
         String code = Files.readString(
                 Path.of("src/main/java/lab/xray/Toolbox.java"), StandardCharsets.UTF_8);
@@ -193,19 +193,19 @@ class ToolboxTest {
                                              {"async.version", "ASYNC_VERSION"}}) {
             String fromPom = between(pom, "<" + pair[0] + ">", "</" + pair[0] + ">");
             String fromCode = between(code, pair[1] + " = \"", "\"");
-            assertEquals(fromCode, fromPom, pair[0] + " et " + pair[1] + " doivent coïncider");
+            assertEquals(fromCode, fromPom, pair[0] + " and " + pair[1] + " must coincide");
         }
     }
 
     private static String between(String text, String start, String end) {
         int i = text.indexOf(start);
-        assertTrue(i >= 0, "marqueur introuvable : " + start);
+        assertTrue(i >= 0, "marker not found: " + start);
         i += start.length();
         return text.substring(i, text.indexOf(end, i));
     }
 
     @Test
-    @DisplayName("Introuvable, le message dit où l'on a cherché et comment s'en sortir")
+    @DisplayName("When nothing is found, the message says where it looked and how to get out")
     void tellsWhereItLookedWhenNothingIsFound(@TempDir Path dir) {
         Path cache = dir.resolve("cache");
         Path neighbourhood = dir.resolve("voisinage");
@@ -215,11 +215,11 @@ class ToolboxTest {
         IOException failure = assertThrows(IOException.class, t::jacocoAgent);
         String message = failure.getMessage();
         assertTrue(message.contains("org.jacoco.agent-0.8.13-runtime.jar"),
-                "le composant manquant doit être nommé : " + message);
+                "the missing component must be named: " + message);
         assertTrue(message.contains(cache.toString()) && message.contains(neighbourhood.toString()),
-                "les répertoires fouillés doivent être listés : " + message);
+                "the directories searched must be listed: " + message);
         assertTrue(message.contains("--composants") && message.contains("--repo"),
-                "les deux issues doivent être rappelées : " + message);
-        assertTrue(message.contains("bundled"), "l'édition complète doit être évoquée : " + message);
+                "both ways out must be recalled: " + message);
+        assertTrue(message.contains("bundled"), "the complete edition must be mentioned: " + message);
     }
 }
