@@ -269,14 +269,14 @@ Central : le jar de 170 Ko reste l'artefact normal.
 
 #### Le kit, si l'on veut voir ce qu'on transporte
 
-[`bin/kit-hors-ligne.sh`](bin/kit-hors-ligne.sh) assemble le paquet à transporter — le jar,
+[`bin/offline-kit.sh`](bin/offline-kit.sh) assemble le paquet à transporter — le jar,
 les trois composants, leurs empreintes et le mode d'emploi :
 
 ```bash
-bin/kit-hors-ligne.sh                                      # depuis Maven Central
-MAVEN_REPO=https://miroir.interne/maven2 bin/kit-hors-ligne.sh   # depuis un miroir
+bin/offline-kit.sh                                      # depuis Maven Central
+MAVEN_REPO=https://miroir.interne/maven2 bin/offline-kit.sh   # depuis un miroir
 
-# → target/runtime-xray-kit-hors-ligne.zip (~19 Mo, dont 17 pour Arthas)
+# → target/runtime-xray-offline-kit.zip (~19 Mo, dont 17 pour Arthas)
 ```
 
 Il ne fait que télécharger : ni application à observer, ni analyse à mener à bien. C'est ce
@@ -319,7 +319,7 @@ suffire à s'en sortir sans revenir aux sources.
 
 ### Vérifier que ça fonctionne — deux recettes
 
-[`bin/recette-central.sh`](bin/recette-central.sh) récupère l'artefact **publié** dans un
+[`bin/acceptance-published.sh`](bin/acceptance-published.sh) récupère l'artefact **publié** dans un
 répertoire vierge, vérifie sa signature avec une clé récupérée d'un serveur public — comme
 le ferait un tiers — puis **l'exécute sur une application réelle** et contrôle que la page,
 le rapport Markdown, la couverture et le profil sont produits. Elle éprouve en plus ce que
@@ -328,15 +328,15 @@ réussi, échoué, et **hors sujet** quand la version ne porte pas la fonctionna
 réseau ne permet pas de conclure. Compter une vérification impossible comme un échec ferait
 passer un artefact valide pour un artefact douteux.
 
-[`bin/recette-locale.sh`](bin/recette-locale.sh) fait le même travail sur le jar **qu'on
+[`bin/acceptance-local.sh`](bin/acceptance-local.sh) fait le même travail sur le jar **qu'on
 s'apprête à publier**, et va jusqu'au bout de la chaîne : analyse complète avec capture des
 valeurs, les quatre exports et leur forme, le niveau d'observation qui n'échantillonne pas,
 et le serveur d'annotations — écriture dans le répertoire de l'exécution, refus d'une
 écriture périmée, régénération de la page, refus d'un chemin qui sort du répertoire servi.
 
 ```bash
-mvn -q package && ./bin/recette-locale.sh   # 26 contrôles sur ce qu'on va publier
-./bin/recette-central.sh                    # sur ce qui est publié, version par version
+mvn -q package && ./bin/acceptance-local.sh   # 26 contrôles sur ce qu'on va publier
+./bin/acceptance-published.sh                    # sur ce qui est publié, version par version
 ```
 
 Un HTTP 200 dit qu'un fichier existe ; il ne dit pas qu'il fonctionne. C'est la différence

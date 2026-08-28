@@ -1,213 +1,210 @@
 ---
 name: runtime-xray
-description: Observer une application Java pendant qu'elle tourne — couverture réelle, où passe le temps, valeurs passées à une méthode — avec runtime-xray. À utiliser pour lancer une campagne, choisir la méthode racine et les filtres, observer un processus qu'on ne lance pas soi-même (service, conteneur, serveur d'application), ou quand une mesure précédente n'a pas montré ce qu'on attendait. Mots-clés : couverture, code mort, quel code tourne vraiment, profilage, JaCoCo, async-profiler, Arthas, recette, campagne de tests.
+description: Observe a Java application while it runs — real coverage, where the time goes, values passed to a method — with runtime-xray. Use to run a campaign, choose the root method and the filters, observe a process one does not launch oneself (service, container, application server), or when a previous measurement did not show what was expected. Keywords - coverage, dead code, what code really runs, profiling, JaCoCo, async-profiler, Arthas, acceptance, test campaign; also in French - couverture, code mort, profilage, recette, campagne de tests.
 ---
 
-# Conduire une campagne runtime-xray
+# Running a runtime-xray campaign
 
-`runtime-xray` lance une application Java, l'observe pendant qu'elle tourne, et assemble un
-rapport : le code réellement exécuté, où le temps est passé, et les valeurs passées à une
-méthode choisie. Aucune modification du code analysé, aucun changement dans le build.
+`runtime-xray` launches a Java application, observes it while it runs, and assembles a
+report: the code actually executed, where the time went, and the values passed to a chosen
+method. No change to the analysed code, no change to the build.
 
-C'est un jar **sans aucune dépendance** : ni Python, ni shell, ni Maven à installer.
+It is a jar with **no dependency at all**: no Python, no shell, no Maven to install.
 
-## Avant tout : trouver le jar
+## First of all: find the jar
 
-Ne pas supposer qu'il est téléchargeable. La machine visée n'a par hypothèse **pas de
-réseau** — c'est la raison d'être de l'outil. Chercher dans cet ordre :
+Do not assume it can be downloaded. The target machine has, by hypothesis, **no network** —
+that is the tool's whole reason for being. Look in this order:
 
 ```sh
 ls runtime-xray*.jar ./*/runtime-xray*.jar 2>/dev/null
 ls ~/.runtime-xray/ 2>/dev/null
 ```
 
-S'il n'y en a pas, demander où il est plutôt que d'essayer de le télécharger.
+If there is none, ask where it is rather than trying to download it.
 
-## La commande minimale
-
-```sh
-java -jar runtime-xray.jar --java "java -jar mon-appli.jar" --out runtime-xray-out
-```
-
-Ça suffit à obtenir un rapport. Tout le reste ne sert qu'à répondre à une question plus
-précise, ou à payer moins cher.
-
-`--java` est exécuté **tel quel** : l'outil ne relance pas l'application à sa façon, il
-lance la vôtre. Une commande complexe — options JVM, propriétés système, arguments — se
-recopie sans y toucher.
-
-## La seule décision qui demande réflexion : `--root`
+## The minimal command
 
 ```sh
---root "com.example.Traitement::executer"
+java -jar runtime-xray.jar --java "java -jar my-app.jar" --out runtime-xray-out
 ```
 
-C'est **le point d'entrée métier** : la méthode dont on veut savoir avec quoi elle a été
-appelée et ce qu'elle a déclenché. Un traitement, un calcul, une commande. **Pas un `main`,
-pas un accesseur.**
+That is enough to get a report. Everything else only serves to answer a more precise
+question, or to pay less.
 
-On n'en désigne qu'une, et c'est délibéré : capturer les valeurs de toutes les méthodes
-donnerait des centaines de mégaoctets sur un chemin fréquenté.
+`--java` is executed **as it is**: the tool does not relaunch the application its own way,
+it launches yours. A complex command — JVM options, system properties, arguments — is copied
+across untouched.
 
-Sans `--root`, tout marche encore — on perd seulement les valeurs et l'arbre d'appel détaillé.
+## The one decision that takes thought: `--root`
 
-## Les quatre restrictions ne restreignent PAS la même chose
+```sh
+--root "com.example.Processing::execute"
+```
 
-**C'est la confusion la plus fréquente**, et elle coûte une campagne entière : on élargit un
-filtre qui n'y était pour rien, on relance, on obtient le même rapport.
+This is **the business entry point**: the method one wants to know the arguments of, and
+what it set off. A processing step, a computation, a command. **Not a `main`, not an
+accessor.**
 
-| Option | Ce qu'elle commande, et **rien d'autre** |
+Only one is named, and that is deliberate: capturing the values of every method would give
+hundreds of megabytes on a busy path.
+
+Without `--root` everything still works — only the values and the detailed call tree are
+lost.
+
+## The four restrictions do NOT restrict the same thing
+
+**This is the most frequent confusion**, and it costs a whole campaign: one widens a filter
+that had nothing to do with it, re-runs, and gets the same report.
+
+| Option | What it commands, and **nothing else** |
 |---|---|
-| `--sources` | l'affichage du code source dans la page |
-| `--root` | la capture des valeurs, et le filtre de temps par défaut |
-| `--filter` | la mesure du temps, seule |
-| `--cover` | l'instrumentation JaCoCo, donc la couverture |
+| `--sources` | the display of source code in the page |
+| `--root` | the capture of values, and the default time filter |
+| `--filter` | the measurement of time, alone |
+| `--cover` | JaCoCo's instrumentation, hence the coverage |
 
-Avant d'élargir quoi que ce soit, identifier **quel** symptôme on observe, puis prendre la
-ligne correspondante. Le rapport lui-même porte ce tableau, écrit à partir du symptôme.
+Before widening anything, work out **which** symptom is being seen, then take the matching
+row. The report itself carries this table, written from the symptom.
 
-## Ce qu'on accepte de payer
+## What one agrees to pay
 
-Sur un gros code, ne pas tout prendre du premier coup.
-
-```sh
---niveau couverture     # JaCoCo seul — le moins cher, souvent le plus utile
---niveau arbre          # + échantillonnage des piles
---niveau complet        # + valeurs (défaut)
-
---cover "com.example.*" # ← le poste de coût principal
---interval 10           # échantillonnage à 10 ms au lieu de 1 ms
-```
-
-**`--cover` est le premier levier.** Sans lui, *toute classe chargée* est instrumentée,
-dépendances comprises.
-
-### Quand c'est le nombre de fichiers qui coûte
-
-Les leviers ci-dessus baissent le coût de la **mesure**. Un autre coût existe, et il ne s'y
-réduit pas : JaCoCo écrit **deux fichiers par classe**, et l'outil lui demande **deux sites
-par exécution**. Le compte de fichiers d'une campagne croît donc avec la taille du code, pas
-avec la mesure — et sur un poste où chaque ouverture traverse un antivirus, un EDR, un DLP,
-c'est souvent lui le vrai frein.
+On a large codebase, do not take everything on the first go.
 
 ```sh
---jacoco-reports detailed   # le site complet seul, sans le ciblé
---jacoco-reports data       # jacoco.xml et .csv seuls, aucun site par exécution
+--level coverage      # JaCoCo alone — the cheapest, often the most useful
+--level tree          # + stack sampling
+--level full          # + values (the default)
+
+--cover "com.example.*"  # ← the main cost centre
+--interval 10            # sampling at 10 ms instead of 1 ms
 ```
 
-Ce réglage ne change **ni la mesure, ni ce que la page affiche** : la couverture vient de
-`jacoco.xml`, écrit dans tous les cas. `detailed` ne perd aucune donnée — le rapport ciblé
-n'en porte aucune que le complet n'ait déjà. `data` perd le rendu JaCoCo par exécution,
-mais garde celui de la campagne entière. Un rapport absent reste nommé dans la page, avec
-la commande qui le produit.
+**`--cover` is the first lever.** Without it, *every class loaded* is instrumented,
+dependencies included.
 
-Le répertoire `runs/` est par ailleurs le bon candidat à une exclusion antivirus : rien n'y
-est exécuté, tout y est engendré et reproductible.
+### When it is the number of files that costs
 
-## Observer un processus qu'on ne lance pas soi-même
+The levers above lower the cost of the **measurement**. Another cost exists, and does not
+reduce to it: JaCoCo writes **two files per class**, and the tool asks it for **two sites
+per run**. A campaign's file count therefore grows with the size of the code, not with the
+measurement — and on a machine where every file open crosses an antivirus, an EDR, a DLP,
+that is often the real brake.
 
-Service systemd, conteneur, serveur d'application, script d'intégration : l'outil ne lance
-rien, il rend le texte à coller.
+```sh
+--jacoco-reports detailed   # the complete site alone, without the focused one
+--jacoco-reports data       # jacoco.xml and .csv only, no site per run
+```
+
+This setting changes **neither the measurement nor what the page shows**: the coverage comes
+from `jacoco.xml`, written in every case. `detailed` loses no data — the focused report
+holds none the complete one lacks. `data` loses JaCoCo's rendering per run, but keeps the
+whole campaign's. An absent report stays named in the page, with the command that produces
+it.
+
+The `runs/` directory is, moreover, the right candidate for an antivirus exclusion: nothing
+in it is executed, everything in it is generated and reproducible.
+
+## Observing a process one does not launch oneself
+
+A systemd service, a container, an application server, an integration script: the tool
+launches nothing, it hands over the text to paste.
 
 ```sh
 java -jar runtime-xray.jar --print-options --out runtime-xray-out
 ```
 
-Puis on ajoute la ligne obtenue à la commande Java existante, on laisse tourner, et on
-assemble ensuite :
+Then the line obtained is added to the existing Java command, it is left to run, and the
+report is assembled afterwards:
 
 ```sh
 java -jar runtime-xray.jar --report-only --out runtime-xray-out
 ```
 
-C'est aussi la réponse quand la commande est **noyée dans des scripts imbriqués** : on
-n'essaie pas de faire remonter l'intelligence du lancement à travers les couches, on injecte
-les agents une fois, tout en bas.
+This is also the answer when the command is **buried in nested scripts**: one does not try
+to carry the launch's intelligence up through the layers, one injects the agents once, right
+at the bottom.
 
-## Voir ce qui se passe pendant l'exécution
+## Seeing what happens during the run
 
-Une analyse dure ce que dure l'application observée. Trois façons de ne pas attendre en
-aveugle, de la plus universelle à la plus lisible.
+An analysis lasts as long as the observed application. Three ways of not waiting blind, from
+the most universal to the most readable.
 
-**1. Le fichier — il marche partout, il n'y a rien à demander.**
+**1. The file — it works everywhere, there is nothing to ask for.**
 
 ```sh
 tail -f runtime-xray-out/progression.jsonl
 ```
 
-Une ligne JSON par seconde, écrite de toute façon : secondes écoulées, cœurs occupés,
-palier d'activité, taille de la sortie produite. La dernière ligne porte
-`"event":"end"` — c'est ce qui dit qu'on peut arrêter de regarder. Le chemin ne dépend
-pas du nom de l'exécution.
+One JSON line per second, written in any case: seconds elapsed, cores busy, activity tier,
+size of the output produced. The last line carries `"event":"end"` — that is what says one
+can stop watching. The path does not depend on the run's name.
 
-**2. La bande dans le terminal** — elle s'affiche seule devant un vrai terminal, et se tait
-dans un tuyau. Un shell imbriqué met souvent un tuyau au milieu ; on la réclame alors :
+**2. The band in the terminal** — it shows on its own in front of a real terminal, and stays
+quiet in a pipe. A nested shell often puts a pipe in the middle; one then asks for it:
 
 ```sh
 RUNTIME_XRAY_PROGRESSION=1 java -jar runtime-xray.jar …
 ```
 
-**3. La page, quand on a un navigateur.**
+**3. The page, when one has a browser.**
 
 ```sh
-java -jar runtime-xray.jar --suivi …          # http://127.0.0.1:8788
+java -jar runtime-xray.jar --follow …          # http://127.0.0.1:8788
 ```
 
-Elle montre ce qu'une suite de lignes JSON montre mal : la **forme** de l'exécution — la
-bande d'activité, la courbe des cœurs occupés, la sortie qui grossit ou qui ne grossit
-plus, et la fin du journal de l'application. Boucle locale seulement.
+It shows what a sequence of JSON lines shows badly: the **shape** of the run — the activity
+band, the curve of busy cores, the output growing or no longer growing, and the tail of the
+application's log. Local loopback only.
 
-**Aucune des trois ne mesure quoi que ce soit.** Le temps processeur vient de ce que le
-système compte de toute façon, la taille de sortie d'un fichier déjà écrit. Le rapport est
-identique selon qu'on suit l'exécution ou non — un affichage qui déplacerait la mesure
-ferait mentir le rapport qu'il accompagne.
+**None of the three measures anything.** The processor time comes from what the system
+counts anyway, the output size from a file already written. The report is identical whether
+one follows the run or not — a display that shifted the measurement would make the report it
+accompanies lie.
 
-## Plusieurs exécutions
+## Several runs
 
-Les exécutions **s'accumulent** dans le même `--out`. Les nommer, sinon le rapport devient
-illisible :
+Runs **accumulate** in the same `--out`. Name them, otherwise the report becomes unreadable:
 
 ```sh
---out campagne --name "recette nominale"
---out campagne --name "recette dégradée"
+--out campaign --name "nominal acceptance"
+--out campaign --name "degraded acceptance"
 ```
 
-La page permet ensuite de cumuler la couverture des exécutions cochées, et de voir quelle
-exécution a couvert quelle ligne.
+The page then allows accumulating the coverage of the ticked runs, and seeing which run
+covered which line.
 
-## Sur une machine sans réseau
+## On a machine with no network
 
-Les trois composants d'analyse (JaCoCo, async-profiler, Arthas) sont cherchés **d'abord sur
-la machine**, le réseau vient en dernier. Si le lancement échoue faute de composants, le
-message liste **tous les chemins essayés** : c'est lui qui suffit à s'en sortir, il faut le
-lire en entier plutôt que de deviner.
+The three analysis components (JaCoCo, async-profiler, Arthas) are looked for **on the
+machine first**, the network comes last. If the launch fails for want of components, the
+message lists **every path tried**: that message is what suffices to get out of it, and it
+must be read in full rather than guessed at.
 
 ```sh
---composants /chemin/vers/les/composants   # prime sur tout téléchargement
---repo https://miroir.interne/maven        # dépôt interne, en dernier recours
+--components /path/to/the/components   # takes priority over any download
+--repo https://mirror.internal/maven   # internal repository, as a last resort
 ```
 
-## Après la mesure : vérifier avant de conclure
+## After the measurement: check before concluding
 
-Un rapport décevant est **silencieux** : un panneau de code vide se lit exactement comme un
-panneau qu'on n'a pas su remplir.
+A disappointing report is **silent**: an empty code panel reads exactly like a panel nobody
+could fill.
 
-- `diagnostic.json` est écrit à chaque assemblage, sans qu'on le demande. Il porte
-  l'environnement, la configuration réelle du lancement, les racines de sources
-  effectivement ouvertes, et le rapprochement classe par classe. **C'est le fichier à
-  regarder en premier** quand le résultat surprend.
-- La section « Analyse des sources » de la vue d'ensemble le rend lisible, et propose des
-  racines de sources chiffrées — « cette racine résoudrait 27 des 27 classes sans source ».
-- **Ne jamais deviner une racine de sources d'après une convention.** Du code faux affiché
-  en face d'une couverture coûte plus cher qu'un panneau vide, parce qu'on le croit.
+- `diagnostic.json` is written at every assembly, without being asked for. It carries the
+  environment, the launch's real configuration, the source roots actually opened, and the
+  class-by-class matching. **It is the file to look at first** when the result surprises.
+- The "Source analysis" section of the overview makes it readable, and offers source roots
+  with figures — "this root would resolve 27 of the 27 classes without source".
+- **Never guess a source root from a convention.** Wrong code displayed against a coverage
+  costs more than an empty panel, because it is believed.
 
-## Limite de plateforme à annoncer, pas à découvrir
+## A platform limit to announce, not to discover
 
-**Sous Windows, il n'y a pas de mesure de temps** : async-profiler ne publie que des
-binaires Linux et macOS. La couverture et les valeurs fonctionnent. L'outil le dit au
-lancement. Un temps à zéro sous Windows ne signifie donc pas « jamais appelé ».
+**Under Windows there is no time measurement**: async-profiler publishes only Linux and
+macOS binaries. Coverage and values work. The tool says so at launch. A zero time under
+Windows therefore does not mean "never called".
 
-## Ensuite
+## Next
 
-Pour répondre à une question à partir du rapport obtenu, voir la compétence
-**runtime-xray-lire**.
+To answer a question from the report obtained, see the **runtime-xray-read** skill.

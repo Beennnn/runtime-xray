@@ -21,8 +21,8 @@ machine sans réseau. Ils ne sont **pas** la construction par défaut, et c'est 
 le jar ordinaire ne redistribue rien, ceux-là redistribuent de l'EPL-2.0 et de
 l'Apache-2.0. Voir [THIRD-PARTY.md](THIRD-PARTY.md), qui dit lequel porte quoi.
 
-Deux recettes de bout en bout vivent dans `bin/` : `recette-locale.sh` éprouve ce qu'on
-s'apprête à publier, `recette-central.sh` éprouve l'artefact publié. Elles lancent une
+Deux recettes de bout en bout vivent dans `bin/` : `acceptance-local.sh` éprouve ce qu'on
+s'apprête à publier, `acceptance-published.sh` éprouve l'artefact publié. Elles lancent une
 vraie JVM observée, ce que les tests unitaires ne font jamais.
 
 ## Publier une version
@@ -98,7 +98,7 @@ un fichier déclare sa version dans son manifeste, elle est vérifiée et l'outi
 elle correspond. Quand rien n'aboutit, le message liste tous les chemins essayés : sur une
 machine fermée, c'est lui qui doit suffire à s'en sortir, et il doit le rester.
 
-`bin/kit-hors-ligne.sh` assemble le paquet équivalent à emporter, empreintes comprises.
+`bin/offline-kit.sh` assemble le paquet équivalent à emporter, empreintes comprises.
 
 ## Quand le rapport ne montre pas ce qu'on attendait
 
@@ -267,7 +267,7 @@ explication, sur la machine où il ne peut rien vérifier.
 
 **L'outil ne parle à personne** : aucun nom de fournisseur, aucune clé, aucun appel réseau.
 Le format des requêtes change tous les six mois ; le besoin de donner un texte borné et
-exact, non. `bin/demander.sh` porte les trois enveloppes du moment (`openai`, `anthropic`,
+exact, non. `bin/ask.sh` porte les trois enveloppes du moment (`openai`, `anthropic`,
 `gemini`) côte à côte, en une trentaine de lignes chacune — et « openai » y désigne la
 **forme** de la requête, pas le fournisseur. Les valeurs capturées ne sortent jamais : elles
 restent dans leur bloc, sur le disque, et deux tests le gardent.
@@ -314,11 +314,12 @@ pousser, en relevant les chaînes affichées et en n'en gardant aucune français
   de `sample-app`, dont le code s'affiche dans le rapport. **Tout nouveau code s'écrit
   donc en anglais**, commentaires et `@DisplayName` compris.
 
-  Trois choses restent en français, chacune pour une raison : le **gabarit**
-  `dashboard.html`, parce que c'est la traduction qui parcourt son DOM et non l'inverse
-  (voir « La langue de la vue ») ; les **scripts de `bin/`** et la **documentation**, qui
-  s'adressent à qui reprend le dépôt et non à qui lance l'outil ; les **messages de
-  commit**, pour la même raison. Les exemples, eux, sont en anglais **partout**, y
+  Les **scripts de `bin/`** ont suivi — noms de fichiers compris — parce qu'ils écrivent
+  eux aussi sur une console, et que leur sortie se lit comme celle de l'outil. Restent en
+  français, chacun pour une raison : le **gabarit** `dashboard.html`, parce que c'est la
+  traduction qui parcourt son DOM et non l'inverse (voir « La langue de la vue ») ; la
+  **documentation** et les **messages de commit**, qui s'adressent à qui reprend le dépôt
+  et non à qui lance l'outil. Les exemples, eux, sont en anglais **partout**, y
   compris dans une prose française : `com.example.app`, `--contexte "which classes never
   ran?"`. Un exemple français dans une documentation anglaise est ce qui se remarque en
   premier.
