@@ -1,77 +1,77 @@
-# Outils écartés, et pourquoi
+# Tools ruled out, and why
 
-> Cette page existe pour que les rejets soient **motivés et datés**, et qu'on ne repose pas
-> les mêmes questions dans six mois. Aucun de ces outils n'est mauvais : ils sont
-> incompatibles avec *ces* contraintes.
+> This page exists so that the rejections are **motivated and dated**, and so that the same
+> questions are not asked again in six months. None of these tools is bad: they are
+> incompatible with *these* constraints.
 >
-> ⚠️ **Précision sur le critère hors ligne** : il porte sur l'**exécution**, pas sur
-> l'installation. Télécharger un outil au préalable — depuis Internet ou un miroir interne —
-> ne pose aucun problème. Est éliminatoire le besoin de réseau **pendant que le programme
-> tourne**. C'est cette lecture qui est appliquée ci-dessous.
+> ⚠️ **A precision on the offline criterion**: it bears on the **run**, not on the
+> installation. Downloading a tool beforehand — from the Internet or from an internal mirror —
+> poses no problem at all. What is disqualifying is needing the network **while the program is
+> running**. That is the reading applied below.
 
-## Écartés par la contrainte hors ligne
+## Ruled out by the offline constraint
 
-### Datadog, New Relic, Dynatrace — ⛔ incompatibilité d'architecture
+### Datadog, New Relic, Dynatrace — ⛔ architectural incompatibility
 
-Leur modèle repose sur une connexion sortante **permanente, pendant l'exécution** :
-l'agent instrumente, mais **n'affiche rien** — il envoie, en continu, vers l'éditeur. Ce
-n'est donc pas un problème d'installation qu'on règlerait en téléchargant à l'avance :
-sans lien sortant au moment où le programme tourne, l'agent n'a nulle part où écrire.
-Ce n'est pas un réglage, c'est le produit.
+Their model rests on a **permanent outbound connection, during the run**: the agent
+instruments, but **displays nothing** — it sends, continuously, to the publisher. It is
+therefore not an installation problem that downloading in advance would settle: with no
+outbound link at the moment the program runs, the agent has nowhere to write.
+It is not a setting, it is the product.
 
-**L'équivalent utilisable** : [Glowroot](fiches/glowroot.md) (agent + serveur web embarqué,
-auto-hébergeable) ou [OpenTelemetry](fiches/opentelemetry.md) + Jaeger/Tempo.
+**The usable equivalent**: [Glowroot](fiches/glowroot.md) (agent + embedded web server,
+self-hostable) or [OpenTelemetry](fiches/opentelemetry.md) + Jaeger/Tempo.
 
-### Codecov, Coveralls, SonarCloud — ⛔ même raison
+### Codecov, Coveralls, SonarCloud — ⛔ same reason
 
-Ce sont les afficheurs de couverture que GitHub utilise faute de support natif. Tous SaaS.
-**L'équivalent utilisable** : le rapport HTML de JaCoCo (aucun service), ou
-[SonarQube Community](fiches/sonarqube.md) auto-hébergé si un portail permanent est voulu.
+These are the coverage displayers GitHub uses for want of native support. All SaaS.
+**The usable equivalent**: JaCoCo's HTML report (no service at all), or
+[SonarQube Community](fiches/sonarqube.md) self-hosted if a permanent portal is wanted.
 
-### La visualisation de couverture dans une pull request GitHub — ⛔ pas de solution native
+### Coverage visualisation in a GitHub pull request — ⛔ no native solution
 
-GitHub ne sait pas afficher les lignes couvertes dans une diff sans service tiers, donc
-sans connexion. **GitLab auto-hébergé, lui, le fait nativement** à partir d'un rapport
-Cobertura — si la forge interne est un GitLab, ce canal redevient disponible.
+GitHub cannot display the covered lines in a diff without a third-party service, hence without
+a connection. **A self-hosted GitLab, for its part, does it natively** from a Cobertura report
+— if the internal forge is a GitLab, this channel becomes available again.
 
-## Écartés par les décisions prises
+## Ruled out by the decisions taken
 
-### SonarQube, Glowroot, OpenTelemetry — hors périmètre
+### SonarQube, Glowroot, OpenTelemetry — out of perimeter
 
-Techniquement compatibles hors ligne (tous auto-hébergeables), mais ils supposent
-**un serveur à installer et maintenir**. Les décisions n° 3 (un fichier qu'on envoie) et
-n° 4 (pas d'historisation) rendent cette infrastructure inutile.
+Technically compatible offline (all self-hostable), but they suppose **a server to install and
+maintain**. Decisions no. 3 (a file one sends) and no. 4 (no history keeping) make that
+infrastructure pointless.
 
-**À rouvrir si** le besoin passe du diagnostic ponctuel au suivi dans le temps.
+**To be reopened if** the need moves from a one-off diagnosis to tracking over time.
 
-### Le profiler d'IntelliJ IDEA Ultimate — hors chemin critique
+### IntelliJ IDEA Ultimate's profiler — off the critical path
 
-On ne peut pas supposer que tout le monde dispose d'une licence Ultimate (décision n° 5).
-Et le constat est confortable : son profiler **embarque async-profiler**, qu'on obtient
-gratuitement en ligne de commande, avec une sortie *plus* partageable que celle de l'IDE.
+One cannot suppose that everybody has an Ultimate licence (decision no. 5). And the finding is
+a comfortable one: its profiler **embeds async-profiler**, which one gets free on the command
+line, with an output *more* shareable than the IDE's.
 
-### JProfiler, YourKit — repoussés, pas rejetés
+### JProfiler, YourKit — postponed, not rejected
 
-La décision n° 1 les classe secondaires, et Arthas a comblé le manque qui les justifiait.
-Ils gardent un intérêt précis : l'**agrégation de l'arbre d'appel par valeur de paramètre**.
-Voir [les clés d'évaluation](cles-evaluation.md#ce-quon-attend-des-outils-commerciaux--et-pourquoi).
+Decision no. 1 classes them secondary, and Arthas filled the gap that justified them. They keep
+one precise interest: **aggregating the call tree by parameter value**. See [the evaluation
+keys](cles-evaluation.md#what-is-expected-of-the-commercial-tools-and-why).
 
-## Écartés parce qu'un autre outil fait mieux, pour le même prix
+## Ruled out because another tool does better, for the same price
 
-| Outil | Pourquoi il n'est pas retenu |
+| Tool | Why it is not retained |
 |---|---|
-| [VisualVM](fiches/visualvm.md) | Dominé par async-profiler sur l'arbre d'appel, et rien n'en sort : ni fichier à transmettre, ni script à rejouer |
-| [OpenClover](fiches/openclover.md) | Répond à « quel test couvre quoi ? », pas à « qu'a fait cette exécution ? ». Instrumentation à la compilation, donc plus intrusif que JaCoCo |
-| [BTrace, Byteman](fiches/btrace-byteman.md) | Font ce qu'Arthas fait, mais en demandant d'écrire un script ou une règle par question |
-| [JMC Agent](fiches/jmc-agent.md) | Bonne idée — capture déclarative adossée à JFR — mais pas de binaire prêt à l'emploi trouvé, là où Arthas fonctionne en deux commandes |
+| [VisualVM](fiches/visualvm.md) | Dominated by async-profiler on the call tree, and nothing comes out of it: no file to hand on, no script to replay |
+| [OpenClover](fiches/openclover.md) | Answers "which test covers what?", not "what did this run do?". Instrumentation at compile time, hence more intrusive than JaCoCo |
+| [BTrace, Byteman](fiches/btrace-byteman.md) | Do what Arthas does, but demanding a script or a rule to be written per question |
+| [JMC Agent](fiches/jmc-agent.md) | Good idea — declarative capture backed by JFR — but no ready-to-use binary found, where Arthas works in two commands |
 
-## Reporté, pas écarté
+## Deferred, not ruled out
 
-### [Kieker](fiches/kieker.md) — le bon outil pour la question suivante
+### [Kieker](fiches/kieker.md) — the right tool for the next question
 
-Le seul qui vise le **but final** de l'étude : reconstruire une architecture à partir de
-l'exécution. Mais c'est un projet en soi, et l'ouvrir avant d'avoir la première mesure
-inverserait l'ordre raisonnable.
+The only one that aims at the study's **final goal**: reconstructing an architecture from the
+run. But it is a project in itself, and opening it before having the first measurement would
+reverse the reasonable order.
 
-⚠️ À revérifier si le portage vers Java 25 est retenu : la version 2.0.3 annonce le
-support **jusqu'à Java 23**.
+⚠️ To be rechecked if the port to Java 25 is retained: version 2.0.3 announces support **up to
+Java 23**.

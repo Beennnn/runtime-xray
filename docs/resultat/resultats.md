@@ -225,7 +225,7 @@ console rather than a report, do not call the essential into question.
 **JProfiler or YourKit**, on top of the base, would bring one precise thing Arthas cannot do:
 **aggregating the call tree by parameter value** over the whole set of calls. Decision no. 1
 classed it secondary. What would have to be verified in a trial is detailed in [the
-evaluation keys](../etude/cles-evaluation.md#ce-quon-attend-des-outils-commerciaux--et-pourquoi).
+evaluation keys](../etude/cles-evaluation.md#what-is-expected-of-the-commercial-tools-and-why).
 
 ### For later
 
