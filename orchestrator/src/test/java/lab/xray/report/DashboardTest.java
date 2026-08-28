@@ -534,6 +534,53 @@ class DashboardTest {
                 + "both would have sent one of the two into a wall");
     }
 
+    @Test
+    @DisplayName("The source roots a run recorded are readable again, absent ones included")
+    void theRecordedSourceRootsCanBeReadBack(@TempDir Path dir) throws Exception {
+        // Reassembling without --sources used to lose the annotated code and announce "no
+        // source directory was given" — false, and expensive: it sent the reader looking
+        // for a setting they had already made when the measurement was taken.
+        Path out = dir.resolve("out");
+        Files.createDirectories(out);
+        Path gone = dir.resolve("gone/src/main/java");
+        Path here = sources(dir);
+
+        Path a = fixtureRun(out.resolve("runs"), "one", "UUID-1", true);
+        Path b = fixtureRun(out.resolve("runs"), "two", "UUID-2", true);
+        record(a, here + java.io.File.pathSeparator + gone);
+        record(b, here.toString());
+
+        List<Path> roots = Dashboard.recordedSourceRoots(out);
+
+        assertEquals(List.of(here, gone), roots,
+                "the runs' order is kept, and a root recorded twice is not returned twice");
+        assertTrue(roots.contains(gone),
+                "a root that no longer exists is returned all the same: it is what lets the "
+                + "caller name the path to correct, instead of claiming none was ever given");
+    }
+
+    @Test
+    @DisplayName("Runs that recorded nothing yield nothing — no root is invented")
+    void nothingRecordedYieldsNothing(@TempDir Path dir) throws Exception {
+        Path out = dir.resolve("out");
+        Files.createDirectories(out);
+        fixtureRun(out.resolve("runs"), "plain", "UUID-0", true);
+        // The fixture's context carries no source root: reading one back must not turn into
+        // deducing one. Guessing a root from a convention is what Sources.searchRoots
+        // refuses to do, and for the same reason.
+        assertEquals(List.of(), Dashboard.recordedSourceRoots(out));
+    }
+
+    /** Records a source root in a run's context, as a measurement does. */
+    private void record(Path run, String roots) throws IOException {
+        @SuppressWarnings("unchecked")
+        Map<String, Object> context = (Map<String, Object>) Json.read(
+                Files.readString(run.resolve("run-context.json"), StandardCharsets.UTF_8));
+        context.put("repertoiresSources", roots);
+        Files.writeString(run.resolve("run-context.json"), Json.write(context),
+                StandardCharsets.UTF_8);
+    }
+
     // ------------------------------------------ what one knows when it did not work
 
     @Test

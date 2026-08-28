@@ -280,6 +280,35 @@ public final class Dashboard {
         return found;
     }
 
+    /**
+     * The source roots the runs recorded for themselves.
+     *
+     * <p>Reassembling a report without {@code --sources} used to lose the annotated code
+     * entirely, and to say "no source directory was given" — which was false: one had been
+     * given, at capture time, and each run had written it down two directories away. The
+     * message sent the reader looking for a setting they had already made.
+     *
+     * <p>Reading it back is <b>not</b> guessing. {@code Sources.searchRoots} refuses to
+     * deduce a root from a convention, because on the machine where the application runs
+     * far from its code a convention names nothing, or worse, names another project's
+     * sources. Here nothing is deduced: the run states where its own sources were, and that
+     * statement is recalled. Whether the path still exists on this machine is another
+     * question, and the caller is the one to answer it — a report travels.
+     *
+     * <p>Every root is returned, existing or not, in the runs' order and without doubles:
+     * the ones that are gone are what lets the caller say so precisely.
+     */
+    public static List<Path> recordedSourceRoots(Path outDir) throws IOException {
+        java.util.LinkedHashSet<Path> out = new java.util.LinkedHashSet<>();
+        for (Path run : findRuns(outDir, 0, 3)) {
+            Object recorded = readContext(run).get("repertoiresSources");
+            if (recorded != null) {
+                out.addAll(lab.xray.Config.paths(String.valueOf(recorded)));
+            }
+        }
+        return new ArrayList<>(out);
+    }
+
     @SuppressWarnings("unchecked")
     private static Map<String, Object> readContext(Path base) {
         Path file = base.resolve("run-context.json");

@@ -137,6 +137,19 @@ manquante. Un homonyme venu d'un autre projet ne compte pas ; un test le garde. 
 proposition arrive avec son chiffre — « cette racine résoudrait 27 des 27 classes sans
 source » — et la ligne `SOURCE_DIRS=` à recopier. Quand rien ne concorde, elle le dit.
 
+**Réassembler ne perd pas ce que la mesure savait.** Chaque exécution enregistre ses
+racines de sources dans son `run-context.json` ; un `--report-only` sans `--sources` les
+reprend. Ce n'est pas une devinette et c'est ce qui le rend acceptable : l'exécution ne
+déduit rien, elle relit ce qu'elle a elle-même écrit. Ce qui est donné en ligne de commande
+l'emporte toujours — c'est le geste de quelqu'un qui est là, maintenant, et qui corrige
+peut-être un chemin qui a bougé.
+
+Une racine enregistrée qui n'existe plus est **adoptée quand même**, à dessein : le
+diagnostic sait déjà montrer une racine absente plutôt que de la faire disparaître, et sa
+conclusion nomme alors le chemin à corriger. La filtrer aurait remis le lecteur devant
+« no source directory was given » — la phrase qui l'envoyait chercher un réglage qu'il avait
+déjà fait, et le vrai coût du défaut d'origine.
+
 **L'index des sources est bâti sur le paquet déclaré**, pas sur le chemin relatif à la racine
 passée. `SOURCE_DIRS` peut donc désigner le projet entier, le répertoire de sources, ou un
 répertoire de paquet : cela retombe sur ses pieds. C'est ce qui a cassé le 26 août 2026 —
