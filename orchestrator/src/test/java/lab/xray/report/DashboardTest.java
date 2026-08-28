@@ -23,26 +23,26 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * La page assemblée est le livrable : elle est envoyée telle quelle, ouverte hors ligne,
- * parfois des mois plus tard. Deux défauts y seraient invisibles à la génération et fatals
- * à la lecture — un lien qui ne mène nulle part, et des données mal échappées qui empêchent
- * la page de s'afficher. C'est ce que vérifient ces tests.
+ * The assembled page is the deliverable: it is sent as it is, opened offline, sometimes
+ * months later. Two defects would be invisible at generation time and fatal at reading time
+ * — a link that leads nowhere, and badly escaped data that stops the page from showing. That
+ * is what these tests check.
  */
 class DashboardTest {
 
     private static final Pattern HREF = Pattern.compile("(?:href|src)=\"([^\"]+)\"");
-    /** Le balisage seul : le script embarqué contient des fragments de chaînes qui
-     *  ressemblent à des liens sans en être. */
+    /** The markup alone: the embedded script holds string fragments that look like links
+     *  without being any. */
     private static final Pattern SCRIPT =
             Pattern.compile("<script\\b.*?</script>", Pattern.DOTALL | Pattern.CASE_INSENSITIVE);
-    /** La fin de ligne est celle du gabarit tel qu'il a été extrait par git : \R les accepte
-     *  toutes, pour que la lecture ne dépende pas du poste. */
+    /** The line ending is the template's, as git checked it out: \R accepts them all, so
+     *  that reading does not depend on the machine. */
     private static final Pattern DATA =
             Pattern.compile("const D = (\\{.*?\\});\\R", Pattern.DOTALL);
 
     // ------------------------------------------------------------------ fixtures
 
-    /** Une exécution complète, telle que l'orchestrateur en produit une. */
+    /** A complete run, such as the orchestrator produces. */
     private Path fixtureRun(Path parent, String name, String uuid, boolean withReports)
             throws IOException {
         Path run = parent.resolve(name);
@@ -53,13 +53,13 @@ class DashboardTest {
         Files.writeString(run.resolve("jacoco/html/jacoco.xml"), """
                 <report name="t">
                   <package name="app">
-                    <class name="app/Moteur" sourcefilename="Moteur.java">
-                      <method name="calculer" desc="(I)I" line="3">
+                    <class name="app/Engine" sourcefilename="Engine.java">
+                      <method name="compute" desc="(I)I" line="3">
                         <counter type="INSTRUCTION" missed="0" covered="9"/>
                       </method>
                       <counter type="INSTRUCTION" missed="1" covered="9"/>
                     </class>
-                    <sourcefile name="Moteur.java">
+                    <sourcefile name="Engine.java">
                       <line nr="3" mi="0" ci="9" mb="0" cb="0"/>
                     </sourcefile>
                   </package>
@@ -67,10 +67,10 @@ class DashboardTest {
                 """, StandardCharsets.UTF_8);
 
         Files.writeString(run.resolve("async-profiler/profil.collapsed"),
-                "app/Main.main;app/Moteur.calculer 40\n", StandardCharsets.UTF_8);
+                "app/Main.main;app/Engine.compute 40\n", StandardCharsets.UTF_8);
 
         Files.writeString(run.resolve("arthas/watch-params.txt"), """
-                method=app.Moteur.calculer location=AtExit
+                method=app.Engine.compute location=AtExit
                 ts=2026-08-20 21:08:16.440; [cost=0.1ms] result=@ArrayList[
                     @Object[][
                         @Integer[7],
@@ -83,14 +83,14 @@ class DashboardTest {
                 "uuid", uuid,
                 "nomOrigine", name,
                 "commande", "java -jar app.jar",
-                "methodeRacine", "app.Moteur::calculer",
-                "machine", "poste-de-test")), StandardCharsets.UTF_8);
+                "methodeRacine", "app.Engine::compute",
+                "machine", "test-host")), StandardCharsets.UTF_8);
 
         if (withReports) {
-            Files.writeString(run.resolve("jacoco/html/index.html"), "<html>couverture</html>",
+            Files.writeString(run.resolve("jacoco/html/index.html"), "<html>coverage</html>",
                     StandardCharsets.UTF_8);
             Files.createDirectories(run.resolve("jacoco-focused/html"));
-            Files.writeString(run.resolve("jacoco-focused/html/index.html"), "<html>ciblee</html>",
+            Files.writeString(run.resolve("jacoco-focused/html/index.html"), "<html>focused</html>",
                     StandardCharsets.UTF_8);
         }
         return run;
@@ -99,10 +99,10 @@ class DashboardTest {
     private Path sources(Path dir) throws IOException {
         Path src = dir.resolve("src");
         Files.createDirectories(src.resolve("app"));
-        Files.writeString(src.resolve("app/Moteur.java"), """
+        Files.writeString(src.resolve("app/Engine.java"), """
                 package app;
-                class Moteur {
-                    int calculer(int x) { return x * x; }
+                class Engine {
+                    int compute(int x) { return x * x; }
                 }
                 """, StandardCharsets.UTF_8);
         return src;
@@ -112,35 +112,35 @@ class DashboardTest {
     private Map<String, Object> dataOf(Path page) throws IOException {
         String html = Files.readString(page, StandardCharsets.UTF_8);
         Matcher m = DATA.matcher(html);
-        assertTrue(m.find(), "les données doivent être embarquées dans la page");
+        assertTrue(m.find(), "the data must be embedded in the page");
         return (Map<String, Object>) Json.read(m.group(1));
     }
 
     // ------------------------------------------------------------------- tests
 
     @Test
-    @DisplayName("Une exécution produit une page complète, sans marqueur de gabarit résiduel")
+    @DisplayName("One run produces a complete page, with no template marker left over")
     void buildsCompletePage(@TempDir Path dir) throws Exception {
         Path out = dir.resolve("out");
         Files.createDirectories(out);
-        fixtureRun(out.resolve("runs"), "essai", "UUID-1", true);
+        fixtureRun(out.resolve("runs"), "trial", "UUID-1", true);
 
         Path page = Dashboard.build(out, List.of(sources(dir)), 8);
         String html = Files.readString(page, StandardCharsets.UTF_8);
 
-        assertEquals(out.resolve("index.html"), page, "la page vit à la racine du répertoire");
-        assertFalse(html.contains("/*__DATA__*/"), "le marqueur du gabarit doit être remplacé");
-        assertTrue(html.contains("<title>"), "la page doit être complète");
+        assertEquals(out.resolve("index.html"), page, "the page lives at the directory's root");
+        assertFalse(html.contains("/*__DATA__*/"), "the template marker must be replaced");
+        assertTrue(html.contains("<title>"), "the page must be complete");
     }
 
     @Test
-    @DisplayName("AUCUN lien de la page ne doit être cassé")
+    @DisplayName("NO link in the page may be broken")
     void producesNoBrokenLinks(@TempDir Path dir) throws Exception {
         Path out = dir.resolve("out");
         Files.createDirectories(out);
-        // Volontairement SANS les rapports détaillés : les liens correspondants ne doivent
-        // alors pas être écrits du tout, plutôt que de pointer dans le vide.
-        fixtureRun(out.resolve("runs"), "sans-rapports", "UUID-2", false);
+        // Deliberately WITHOUT the detailed reports: the matching links must then not be
+        // written at all, rather than point into the void.
+        fixtureRun(out.resolve("runs"), "no-reports", "UUID-2", false);
 
         Path page = Dashboard.build(out, List.of(sources(dir)), 8);
         String markup = SCRIPT.matcher(Files.readString(page, StandardCharsets.UTF_8))
@@ -159,15 +159,15 @@ class DashboardTest {
                 broken.add(href);
             }
         }
-        assertTrue(broken.isEmpty(), "liens cassés dans la page produite : " + broken);
+        assertTrue(broken.isEmpty(), "broken links in the produced page: " + broken);
     }
 
     @Test
-    @DisplayName("Les liens vers les rapports présents, eux, sont bien écrits et résolvent")
+    @DisplayName("Links to the reports that are there are written, and do resolve")
     void writesLinksForExistingReports(@TempDir Path dir) throws Exception {
         Path out = dir.resolve("out");
         Files.createDirectories(out);
-        Path run = fixtureRun(out.resolve("runs"), "avec-rapports", "UUID-3", true);
+        Path run = fixtureRun(out.resolve("runs"), "with-reports", "UUID-3", true);
 
         Path page = Dashboard.build(out, List.of(sources(dir)), 8);
         Map<String, Object> data = dataOf(page);
@@ -178,44 +178,44 @@ class DashboardTest {
 
         assertEquals(Boolean.TRUE, reports.get("couverture"));
         assertEquals(Boolean.TRUE, reports.get("ciblee"));
-        assertEquals(Boolean.FALSE, reports.get("flamegraph"), "ce rapport n'existe pas ici");
+        assertEquals(Boolean.FALSE, reports.get("flamegraph"), "this report does not exist here");
 
         String base = String.valueOf(first.get("chemin"));
         assertTrue(Files.exists(out.resolve(base + "jacoco/html/index.html")),
-                "le chemin annoncé doit mener au rapport : " + base);
-        assertTrue(run.toString().endsWith("avec-rapports"));
+                "the announced path must lead to the report: " + base);
+        assertTrue(run.toString().endsWith("with-reports"));
     }
 
     @Test
-    @DisplayName("Le chemin de chaque exécution est relatif à la page, jamais absolu")
+    @DisplayName("Each run's path is relative to the page, never absolute")
     void runPathsAreRelative(@TempDir Path dir) throws Exception {
         Path out = dir.resolve("out");
         Files.createDirectories(out);
-        fixtureRun(out.resolve("runs"), "relatif", "UUID-4", true);
+        fixtureRun(out.resolve("runs"), "relative", "UUID-4", true);
 
         Map<String, Object> data = dataOf(Dashboard.build(out, List.of(sources(dir)), 8));
         @SuppressWarnings("unchecked")
-        String chemin = String.valueOf(((Map<String, Object>)
+        String path = String.valueOf(((Map<String, Object>)
                 ((List<Object>) data.get("runs")).get(0)).get("chemin"));
-        assertFalse(chemin.startsWith("/"), "un chemin absolu casserait la page une fois déplacée");
-        assertTrue(chemin.endsWith("/"), "le chemin doit être un préfixe utilisable tel quel");
-        assertEquals("runs/relatif/", chemin);
+        assertFalse(path.startsWith("/"), "an absolute path would break the page once moved");
+        assertTrue(path.endsWith("/"), "the path must be a prefix usable as it is");
+        assertEquals("runs/relative/", path);
     }
 
     @Test
-    @DisplayName("Plusieurs exécutions sont réunies dans une seule page")
+    @DisplayName("Several runs are gathered into a single page")
     void gathersSeveralRuns(@TempDir Path dir) throws Exception {
         Path out = dir.resolve("out");
         Files.createDirectories(out);
-        fixtureRun(out.resolve("runs"), "premiere", "UUID-A", true);
-        fixtureRun(out.resolve("runs"), "seconde", "UUID-B", true);
+        fixtureRun(out.resolve("runs"), "first", "UUID-A", true);
+        fixtureRun(out.resolve("runs"), "second", "UUID-B", true);
 
         Map<String, Object> data = dataOf(Dashboard.build(out, List.of(sources(dir)), 8));
         assertEquals(2, ((List<?>) data.get("runs")).size());
     }
 
     @Test
-    @DisplayName("Des exécutions rassemblées depuis plusieurs répertoires sont toutes trouvées")
+    @DisplayName("Runs collected from several directories are all found")
     void findsRunsAcrossDirectories(@TempDir Path dir) throws Exception {
         Path out = dir.resolve("commun");
         Files.createDirectories(out);
@@ -224,84 +224,84 @@ class DashboardTest {
 
         Map<String, Object> data = dataOf(Dashboard.build(out, List.of(sources(dir)), 8));
         assertEquals(2, ((List<?>) data.get("runs")).size(),
-                "rassembler des répertoires de sortie doit suffire");
+                "gathering output directories must be enough");
     }
 
     @Test
-    @DisplayName("Le renommage après coup remplace le nom sans effacer l'origine")
+    @DisplayName("Renaming afterwards replaces the name without erasing the origin")
     void lateRenamingKeepsOrigin(@TempDir Path dir) throws Exception {
         Path out = dir.resolve("out");
         Files.createDirectories(out);
-        fixtureRun(out.resolve("runs"), "nom-technique", "UUID-R", true);
+        fixtureRun(out.resolve("runs"), "technical-name", "UUID-R", true);
         Files.writeString(out.resolve("noms.json"),
-                Json.write(Map.of("UUID-R", "Recette — cas nominal")), StandardCharsets.UTF_8);
+                Json.write(Map.of("UUID-R", "Acceptance — nominal case")), StandardCharsets.UTF_8);
 
         Map<String, Object> data = dataOf(Dashboard.build(out, List.of(sources(dir)), 8));
         @SuppressWarnings("unchecked")
         Map<String, Object> run = (Map<String, Object>) ((List<Object>) data.get("runs")).get(0);
-        assertEquals("Recette — cas nominal", run.get("nom"));
-        assertEquals("nom-technique", run.get("nomOrigine"), "l'origine permet le retour arrière");
+        assertEquals("Acceptance — nominal case", run.get("nom"));
+        assertEquals("technical-name", run.get("nomOrigine"), "the origin is what allows going back");
         assertEquals(Boolean.TRUE, run.get("renomme"));
     }
 
     @Test
-    @DisplayName("Une annotation complète porte le nom, la description et les étiquettes")
+    @DisplayName("A complete annotation carries the name, the description and the labels")
     void richAnnotationIsRead(@TempDir Path dir) throws Exception {
         Path out = dir.resolve("out");
         Files.createDirectories(out);
-        fixtureRun(out.resolve("runs"), "nom-technique", "UUID-A", true);
+        fixtureRun(out.resolve("runs"), "technical-name", "UUID-A", true);
         Files.writeString(out.resolve("noms.json"), Json.write(Map.of(
                 "UUID-A", Map.of(
-                        "nom", "Recette du 21/08",
-                        "description", "Vérifier la branche météo",
-                        "etiquettes", Map.of("ticket", "RX-142", "à-rejouer", "")))),
+                        "nom", "Acceptance of 21/08",
+                        "description", "Check the weather branch",
+                        "etiquettes", Map.of("ticket", "RX-142", "to-replay", "")))),
                 StandardCharsets.UTF_8);
 
         Map<String, Object> data = dataOf(Dashboard.build(out, List.of(sources(dir)), 8));
         @SuppressWarnings("unchecked")
         Map<String, Object> run = (Map<String, Object>) ((List<Object>) data.get("runs")).get(0);
-        assertEquals("Recette du 21/08", run.get("nom"));
-        assertEquals("nom-technique", run.get("nomOrigine"), "l'origine reste consultable");
-        assertEquals("Vérifier la branche météo", run.get("description"));
+        assertEquals("Acceptance of 21/08", run.get("nom"));
+        assertEquals("technical-name", run.get("nomOrigine"), "the origin stays consultable");
+        assertEquals("Check the weather branch", run.get("description"));
         assertEquals("RX-142", ((Map<?, ?>) run.get("etiquettes")).get("ticket"));
-        assertEquals("", ((Map<?, ?>) run.get("etiquettes")).get("à-rejouer"),
-                "une étiquette peut n'être qu'une clé");
+        assertEquals("", ((Map<?, ?>) run.get("etiquettes")).get("to-replay"),
+                "a label may be no more than a key");
     }
 
     @Test
-    @DisplayName("L'élagage enregistré voyage jusqu'à la page")
+    @DisplayName("The recorded pruning travels all the way to the page")
     void pruningTravelsToThePage(@TempDir Path dir) throws Exception {
         Path out = dir.resolve("out");
         Files.createDirectories(out);
-        fixtureRun(out.resolve("runs"), "essai", "UUID-E", true);
+        fixtureRun(out.resolve("runs"), "trial", "UUID-E", true);
         Files.writeString(out.resolve("noms.json"), Json.write(Map.of(
                 "UUID-E", Map.of("elagage", Map.of(
                         "racine", "app/Main.main",
-                        "coupes", List.of("app/Main.main;app/Moteur.ecrire"))))),
+                        "coupes", List.of("app/Main.main;app/Engine.write"))))),
                 StandardCharsets.UTF_8);
 
         Map<String, Object> data = dataOf(Dashboard.build(out, List.of(sources(dir)), 8));
         @SuppressWarnings("unchecked")
         Map<String, Object> run = (Map<String, Object>) ((List<Object>) data.get("runs")).get(0);
-        Map<?, ?> elagage = (Map<?, ?>) run.get("elagage");
-        assertNotNull(elagage, "sans lui, la page rouvrirait l'arbre entier à chaque lecture");
-        assertEquals("app/Main.main", elagage.get("racine"));
-        assertEquals(List.of("app/Main.main;app/Moteur.ecrire"), elagage.get("coupes"));
+        Map<?, ?> pruning = (Map<?, ?>) run.get("elagage");
+        assertNotNull(pruning, "without it, the page would reopen the whole tree at every reading");
+        assertEquals("app/Main.main", pruning.get("racine"));
+        assertEquals(List.of("app/Main.main;app/Engine.write"), pruning.get("coupes"));
 
-        // L'élagage cadre la lecture : la mesure, elle, reste entière. L'arbre vit sous
-        // l'exécution, dans son bloc — la page ne le porte plus.
-        String arbre = Files.readString(out.resolve(String.valueOf(run.get("chemin")))
+        // Pruning frames the reading: the measurement itself stays whole. The tree lives
+        // under the run, in its block — the page no longer carries it.
+        String tree = Files.readString(out.resolve(String.valueOf(run.get("chemin")))
                 .resolve("vue/arbre.js"), StandardCharsets.UTF_8);
-        assertTrue(arbre.contains("\"total\":40"), "le total mesuré ne bouge pas : " + arbre);
+        assertTrue(tree.contains("\"total\":40"), "the measured total does not move: " + tree);
     }
 
     @Test
-    @DisplayName("Sans nom au lancement, c'est l'identifiant qui désigne l'exécution")
+    @DisplayName("With no name at launch, the identifier names the run")
     void identifierStandsInForAMissingName(@TempDir Path dir) throws Exception {
         Path out = dir.resolve("out");
         Files.createDirectories(out);
         Path run = fixtureRun(out.resolve("runs"), "20260821-004121", "0123456789abcdef", true);
-        // Une exécution lancée sans --name : le contexte ne porte aucun nom.
+        // A run launched without --name: the context carries no name.
         Files.writeString(run.resolve("run-context.json"), Json.write(Map.of(
                 "uuid", "0123456789abcdef",
                 "commande", "java -jar app.jar")), StandardCharsets.UTF_8);
@@ -309,386 +309,386 @@ class DashboardTest {
         Map<String, Object> data = dataOf(Dashboard.build(out, List.of(sources(dir)), 8));
         @SuppressWarnings("unchecked")
         Map<String, Object> first = (Map<String, Object>) ((List<Object>) data.get("runs")).get(0);
-        assertNull(first.get("nomOrigine"), "aucun nom n'a été donné : rien n'est inventé");
-        assertEquals("01234567", first.get("nom"), "l'identifiant abrégé tient lieu de nom");
+        assertNull(first.get("nomOrigine"), "no name was given: nothing is invented");
+        assertEquals("01234567", first.get("nom"), "the shortened identifier stands in for a name");
     }
 
     @Test
-    @DisplayName("Un fichier de renommage illisible n'empêche pas de produire la page")
+    @DisplayName("An unreadable rename file does not stop the page from being produced")
     void brokenRenameFileIsTolerated(@TempDir Path dir) throws Exception {
         Path out = dir.resolve("out");
         Files.createDirectories(out);
-        fixtureRun(out.resolve("runs"), "essai", "UUID-X", true);
-        Files.writeString(out.resolve("noms.json"), "{ ceci n'est pas du JSON",
+        fixtureRun(out.resolve("runs"), "trial", "UUID-X", true);
+        Files.writeString(out.resolve("noms.json"), "{ this is not JSON",
                 StandardCharsets.UTF_8);
 
         Map<String, Object> data = dataOf(Dashboard.build(out, List.of(sources(dir)), 8));
         @SuppressWarnings("unchecked")
         Map<String, Object> run = (Map<String, Object>) ((List<Object>) data.get("runs")).get(0);
-        assertEquals("essai", run.get("nom"), "on retombe sur le nom d'origine");
+        assertEquals("trial", run.get("nom"), "we fall back on the original name");
     }
 
     @Test
-    @DisplayName("La page embarque tout : sources, couverture, arbre, valeurs, contexte")
+    @DisplayName("The page carries everything: sources, coverage, tree, values, context")
     void embedsEverythingNeeded(@TempDir Path dir) throws Exception {
         Path out = dir.resolve("out");
         Files.createDirectories(out);
-        fixtureRun(out.resolve("runs"), "complet", "UUID-C", true);
+        fixtureRun(out.resolve("runs"), "full", "UUID-C", true);
 
         Map<String, Object> data = dataOf(Dashboard.build(out, List.of(sources(dir)), 8));
 
-        // Le rapport est un dossier : la page porte le sommaire, les blocs portent le reste.
-        // Ce qui compte est que RIEN ne manque — pas que tout soit au même endroit.
-        assertTrue(((Map<?, ?>) data.get("sourcesDisponibles")).containsKey("app/Moteur.java"),
-                "la page doit savoir que ce code existe, et où le prendre");
+        // The report is a folder: the page carries the table of contents, the blocks carry
+        // the rest. What matters is that NOTHING is missing — not that everything sits in the
+        // same place.
+        assertTrue(((Map<?, ?>) data.get("sourcesDisponibles")).containsKey("app/Engine.java"),
+                "the page must know this code exists, and where to take it from");
         assertTrue(Files.readString(out.resolve("vue/sources/app.js"), StandardCharsets.UTF_8)
-                        .contains("class Moteur"),
-                "et le code doit être dans le bloc, sinon le dossier est illisible");
+                        .contains("class Engine"),
+                "and the code must be in the block, otherwise the folder is unreadable");
 
         @SuppressWarnings("unchecked")
         Map<String, Object> run = (Map<String, Object>) ((List<Object>) data.get("runs")).get(0);
-        assertNotNull(run.get("methods"), "l'arbre des classes s'affiche d'emblée : il reste");
+        assertNotNull(run.get("methods"), "the class tree shows straight away: it stays");
         assertNotNull(run.get("context"));
-        Path vue = out.resolve(String.valueOf(run.get("chemin"))).resolve("vue");
-        for (String bloc : List.of("couverture.js", "arbre.js", "valeurs.js")) {
-            assertTrue(Files.isRegularFile(vue.resolve(bloc)), bloc + " doit être sous l'exécution");
+        Path view = out.resolve(String.valueOf(run.get("chemin"))).resolve("vue");
+        for (String block : List.of("couverture.js", "arbre.js", "valeurs.js")) {
+            assertTrue(Files.isRegularFile(view.resolve(block)), block + " must live under the run");
         }
-        assertEquals("app/Moteur", run.get("tracedClass"),
-                "la classe inspectée vient du contexte, pas d'une valeur codée en dur");
-        assertTrue(Files.readString(vue.resolve("valeurs.js"), StandardCharsets.UTF_8)
-                        .contains("app/Moteur.calculer"),
-                "les valeurs relevées vivent dans le bloc de leur exécution");
+        assertEquals("app/Engine", run.get("tracedClass"),
+                "the inspected class comes from the context, not from a hard-coded value");
+        assertTrue(Files.readString(view.resolve("valeurs.js"), StandardCharsets.UTF_8)
+                        .contains("app/Engine.compute"),
+                "the captured values live in their run's block");
     }
 
     @Test
-    @DisplayName("Sans contexte, la classe inspectée se déduit des valeurs capturées")
+    @DisplayName("Without a context, the inspected class is derived from the captured values")
     void tracedClassFallsBackToCapturedValues(@TempDir Path dir) throws Exception {
         Path out = dir.resolve("out");
         Files.createDirectories(out);
-        Path run = fixtureRun(out.resolve("runs"), "sans-contexte", "UUID-D", true);
+        Path run = fixtureRun(out.resolve("runs"), "no-context", "UUID-D", true);
         Files.delete(run.resolve("run-context.json"));
 
         Map<String, Object> data = dataOf(Dashboard.build(out, List.of(sources(dir)), 8));
         @SuppressWarnings("unchecked")
         Map<String, Object> first = (Map<String, Object>) ((List<Object>) data.get("runs")).get(0);
-        assertEquals("app/Moteur", first.get("tracedClass"));
-        assertEquals("sans-contexte", first.get("nom"), "à défaut, le nom du répertoire");
+        assertEquals("app/Engine", first.get("tracedClass"));
+        assertEquals("no-context", first.get("nom"), "failing that, the directory's name");
     }
 
     @Test
-    @DisplayName("Un répertoire sans aucune exécution donne une erreur explicite")
+    @DisplayName("A directory with no run at all gives an explicit error")
     void emptyDirectoryFailsClearly(@TempDir Path dir) {
-        Path out = dir.resolve("vide");
+        Path out = dir.resolve("empty");
         Exception e = org.junit.jupiter.api.Assertions.assertThrows(Exception.class,
                 () -> Dashboard.build(out, List.of(), 8));
         assertTrue(e.getMessage().contains("no run found"), e.getMessage());
     }
 
     @Test
-    @DisplayName("Un nom d'exécution contenant des guillemets ne casse pas la page")
+    @DisplayName("A run name containing quotes does not break the page")
     void quotesInRunNameDoNotBreakThePage(@TempDir Path dir) throws Exception {
         Path out = dir.resolve("out");
         Files.createDirectories(out);
-        Path run = fixtureRun(out.resolve("runs"), "piege", "UUID-Q", true);
+        Path run = fixtureRun(out.resolve("runs"), "trap", "UUID-Q", true);
         Files.writeString(run.resolve("run-context.json"), Json.write(Map.of(
                 "uuid", "UUID-Q",
-                "nomOrigine", "essai \"guillemets\" et </script> et \\ antislash",
-                "methodeRacine", "app.Moteur::calculer")), StandardCharsets.UTF_8);
+                "nomOrigine", "trial \"quotes\" and </script> and \\ backslash",
+                "methodeRacine", "app.Engine::compute")), StandardCharsets.UTF_8);
 
         Map<String, Object> data = dataOf(Dashboard.build(out, List.of(sources(dir)), 8));
         @SuppressWarnings("unchecked")
         Map<String, Object> first = (Map<String, Object>) ((List<Object>) data.get("runs")).get(0);
-        assertEquals("essai \"guillemets\" et </script> et \\ antislash", first.get("nom"));
+        assertEquals("trial \"quotes\" and </script> and \\ backslash", first.get("nom"));
     }
 
     @Test
-    @DisplayName("Les fichiers de l'exécution sont décrits à un seul endroit")
+    @DisplayName("The run's files are described in one single place")
     void theFileTableIsNotDuplicated(@TempDir Path dir) throws Exception {
-        // Le menu du haut et le bloc « sorties brutes » de la vue d'ensemble montrent la même
-        // liste. Tant qu'ils la portaient chacun, ajouter un export à l'un l'oubliait dans
-        // l'autre — c'est arrivé, perf a manqué au menu pendant que le bloc l'annonçait.
+        // The top menu and the overview's "raw outputs" block show the same list. As long as
+        // each carried its own, adding an export to one forgot it in the other — it happened:
+        // perf was missing from the menu while the block announced it.
         Path out = dir.resolve("out");
         Files.createDirectories(out);
-        fixtureRun(out.resolve("runs"), "essai", "UUID-F", true);
+        fixtureRun(out.resolve("runs"), "trial", "UUID-F", true);
         String page = Files.readString(Dashboard.build(out, List.of(sources(dir)), 8),
                 StandardCharsets.UTF_8);
 
-        for (String chemin : List.of("exports/profil.perf.txt", "exports/profil.cpuprofile",
+        for (String path : List.of("exports/profil.perf.txt", "exports/profil.cpuprofile",
                 "exports/couverture.lcov", "exports/valeurs.json",
                 "async-profiler/profil.collapsed", "execution.log")) {
-            assertEquals(1, page.split(java.util.regex.Pattern.quote(chemin), -1).length - 1,
-                    "« " + chemin + " » est écrit plus d'une fois : les deux listes vont diverger");
+            assertEquals(1, page.split(java.util.regex.Pattern.quote(path), -1).length - 1,
+                    "\"" + path + "\" is written more than once: the two lists will diverge");
         }
-        assertTrue(page.contains("id=\"dlmenu\""), "le menu des exports doit être là");
+        assertTrue(page.contains("id=\"dlmenu\""), "the exports menu must be there");
     }
 
     @Test
-    @DisplayName("La page ne se donne jamais un ascenseur d'ensemble en plus de celui du rapport")
+    @DisplayName("The page never gives itself a whole-window scrollbar on top of the report's")
     void thePageNeverScrollsAsAWhole(@TempDir Path dir) throws Exception {
-        // La mise en page retirait au corps une hauteur d'en-tête écrite en dur — 47 px —
-        // alors que cet en-tête grandit avec ses liens, avec le zoom du navigateur et avec la
-        // police du système : il en mesure 49,75 dans Chromium. Trois pixels suffisaient à
-        // donner à la fenêtre entière un ascenseur qui venait se coller contre celui du
-        // rapport, et c'est celui du rapport — le seul qui serve — qui s'en trouvait masqué.
-        // Ce que ce test garde n'est pas la règle CSS : c'est le refus de deviner une hauteur
-        // qu'on peut mesurer.
+        // The layout subtracted a hard-coded header height from the body — 47 px — whereas
+        // that header grows with its links, with the browser's zoom and with the system font:
+        // it measures 49.75 in Chromium. Three pixels were enough to give the whole window a
+        // scrollbar that came and stuck against the report's, and it was the report's — the
+        // only useful one — that got hidden by it. What this test guards is not the CSS rule:
+        // it is the refusal to guess a height one can measure.
         Path out = dir.resolve("out");
         Files.createDirectories(out);
-        fixtureRun(out.resolve("runs"), "essai", "UUID-H", true);
+        fixtureRun(out.resolve("runs"), "trial", "UUID-H", true);
         String page = Files.readString(Dashboard.build(out, List.of(sources(dir)), 8),
                 StandardCharsets.UTF_8);
         String style = page.substring(page.indexOf("<style>"), page.indexOf("</style>"));
 
         assertFalse(style.contains("height:calc(100% - "),
-                "une hauteur d'en-tête devinée revient : c'est ce qui faisait le second ascenseur");
+                "a guessed header height is back: that is what made the second scrollbar");
         assertTrue(style.contains("body{display:flex;flex-direction:column;height:100%;overflow:hidden}"),
-                "le corps occupe la fenêtre et ne défile pas : ce sont ses panneaux qui défilent");
+                "the body fills the window and does not scroll: its panels are what scroll");
         assertTrue(style.contains("flex:1 1 auto;min-height:0}"),
-                "la zone de travail prend ce que l'en-tête laisse, quelle que soit sa hauteur");
+                "the working area takes what the header leaves, whatever its height");
     }
 
     @Test
-    @DisplayName("La liste « Jamais exécuté » se replie, sans emporter le compte avec elle")
+    @DisplayName("The \"never executed\" list folds, without taking the count with it")
     void theNeverExecutedListCanBeFolded(@TempDir Path dir) throws Exception {
-        // Sur un vrai projet cette liste tient des centaines de classes et pousse hors de
-        // l'écran tout ce qui la suit — les méthodes coûteuses, les valeurs capturées, la
-        // réserve — c'est-à-dire ce qu'on est venu chercher. Repliable, elle cesse de coûter
-        // la page entière. Deux choses la rendent utilisable une fois repliée, et ce sont
-        // elles que ce test garde : le compte reste affiché, et le choix est gardé.
+        // On a real project this list holds hundreds of classes and pushes off screen
+        // everything that follows it — the costly methods, the captured values, the caveat —
+        // that is to say what one came for. Foldable, it stops costing the whole page. Two
+        // things make it usable once folded, and those are what this test guards: the count
+        // stays shown, and the choice is kept.
         Path out = dir.resolve("out");
         Files.createDirectories(out);
-        fixtureRun(out.resolve("runs"), "essai", "UUID-P", true);
+        fixtureRun(out.resolve("runs"), "trial", "UUID-P", true);
         String page = Files.readString(Dashboard.build(out, List.of(sources(dir)), 8),
                 StandardCharsets.UTF_8);
 
         assertTrue(page.contains("sectionPliable(\"dead\", \"Jamais exécuté\""),
-                "la section « Jamais exécuté » doit être celle qu'on replie");
+                "the \"never executed\" section must be the one that folds");
         assertTrue(page.contains("class=\"plicnt\""),
-                "le compte doit rester lisible repliée, sinon replier fait perdre ce qui décide d'ouvrir");
+                "the count must stay readable when folded, otherwise folding loses what decides to open");
         assertTrue(page.contains("aria-expanded=") && page.contains("aria-controls=\"pli-"),
-                "un titre qui replie doit s'annoncer comme tel, y compris hors de la souris");
+                "a heading that folds must announce itself as such, mouse aside");
         assertTrue(page.contains("runtime-xray.plis"),
-                "le choix de repli est un réglage de lecture : il est gardé dans le navigateur");
+                "the folding choice is a reading setting: it is kept in the browser");
     }
 
     @Test
-    @DisplayName("L'arbre ne prend pas Entrée ni Espace aux commandes de la page")
+    @DisplayName("The tree does not steal Enter or Space from the page's controls")
     void theTreeDoesNotStealActivationKeys(@TempDir Path dir) throws Exception {
-        // Le parcours de l'arbre au clavier écoutait le document entier et retenait Entrée et
-        // Espace partout hors des champs de saisie. Résultat : aucun bouton de la page ne
-        // s'activait au clavier — ni l'aide, ni les exports, ni le repli des panneaux. Les
-        // flèches, elles, doivent rester à l'arbre : on veut le parcourir sans y revenir à
-        // la souris. C'est ce partage-là que le test garde.
+        // Keyboard navigation of the tree listened to the whole document and swallowed Enter
+        // and Space everywhere outside input fields. As a result, no button on the page
+        // activated from the keyboard — not the help, not the exports, not the panel folding.
+        // The arrows, on the other hand, must stay with the tree: one wants to walk it without
+        // going back to the mouse. It is that sharing the test guards.
         Path out = dir.resolve("out");
         Files.createDirectories(out);
-        fixtureRun(out.resolve("runs"), "essai", "UUID-K", true);
+        fixtureRun(out.resolve("runs"), "trial", "UUID-K", true);
         String page = Files.readString(Dashboard.build(out, List.of(sources(dir)), 8),
                 StandardCharsets.UTF_8);
 
         assertTrue(page.contains("t.closest(\"button, a[href], select, summary\")"),
-                "une commande qui a le focus doit garder Entrée et Espace pour elle");
+                "a control that has the focus must keep Enter and Space for itself");
         assertTrue(page.contains("\"ArrowDown\", \"ArrowUp\", \"ArrowRight\", \"ArrowLeft\""),
-                "les flèches restent au parcours de l'arbre");
+                "the arrows stay with the tree navigation");
     }
 
-    // ------------------------------------------------- ce qu'on sait quand ça n'a pas marché
+    // ------------------------------------------ what one knows when it did not work
 
     @Test
-    @DisplayName("Une racine de sources d'un cran trop haute donne quand même le code")
+    @DisplayName("A source root one notch too high still gives the code")
     @SuppressWarnings("unchecked")
     void findsSourcesEvenWhenTheRootIsTooHigh(@TempDir Path dir) throws Exception {
-        // Le défaut d'origine : la couverture indexe « app/Moteur.java », l'index indexait
-        // « src/app/Moteur.java » dès que la racine passée était le projet et non le
-        // répertoire de sources. Aucune correspondance, donc « Source indisponible »
-        // partout — et rien pour le comprendre.
+        // The original defect: coverage indexes "app/Engine.java", while the index indexed
+        // "src/app/Engine.java" as soon as the root passed was the project and not the source
+        // directory. No match, hence "Source unavailable" everywhere — and nothing to
+        // understand it by.
         Path out = dir.resolve("out");
         Files.createDirectories(out);
-        fixtureRun(out.resolve("runs"), "essai", "UUID-S", true);
+        fixtureRun(out.resolve("runs"), "trial", "UUID-S", true);
         sources(dir);
 
         Map<String, Object> data = dataOf(Dashboard.build(out, List.of(dir), 8));
 
         Map<String, Object> src = (Map<String, Object>) data.get("sourcesDisponibles");
-        assertTrue(src.containsKey("app/Moteur.java"),
-                "la clé doit être celle de JaCoCo, pas le chemin depuis la racine : " + src.keySet());
+        assertTrue(src.containsKey("app/Engine.java"),
+                "the key must be JaCoCo's, not the path from the root: " + src.keySet());
     }
 
     @Test
-    @DisplayName("Le diagnostic écrit à côté de la page dit ce qui a été cherché et trouvé")
+    @DisplayName("The diagnostic written beside the page says what was looked for and found")
     @SuppressWarnings("unchecked")
     void writesADiagnosticFileNextToThePage(@TempDir Path dir) throws Exception {
         Path out = dir.resolve("out");
         Files.createDirectories(out);
-        fixtureRun(out.resolve("runs"), "essai", "UUID-D", true);
+        fixtureRun(out.resolve("runs"), "trial", "UUID-D", true);
 
-        // Volontairement une racine qui ne contient pas la source de la classe mesurée.
-        Dashboard.build(out, List.of(dir.resolve("ailleurs")), 8);
+        // Deliberately a root that does not contain the measured class's source.
+        Dashboard.build(out, List.of(dir.resolve("elsewhere")), 8);
 
-        Path fichier = out.resolve("diagnostic.json");
-        assertTrue(Files.isRegularFile(fichier), "le diagnostic doit exister sans qu'on le demande");
+        Path file = out.resolve("diagnostic.json");
+        assertTrue(Files.isRegularFile(file), "the diagnostic must exist without being asked for");
         Map<String, Object> d = (Map<String, Object>) Json.read(
-                Files.readString(fichier, StandardCharsets.UTF_8));
+                Files.readString(file, StandardCharsets.UTF_8));
 
-        assertNotNull(d.get("machine"), "l'environnement explique la moitié des symptômes");
-        assertNotNull(d.get("executions"), "les exécutions et leurs rapports sont dans le fichier");
+        assertNotNull(d.get("machine"), "the environment explains half of the symptoms");
+        assertNotNull(d.get("executions"), "the runs and their reports are in the file");
         Map<String, Object> rap = (Map<String, Object>) d.get("rapprochement");
         assertEquals(1L, ((Number) rap.get("fichiersMesures")).longValue());
         assertEquals(1L, ((Number) rap.get("fichiersSansSource")).longValue());
-        assertNotNull(rap.get("conclusion"), "une phrase qu'on lit en premier");
-        List<Object> manquants = (List<Object>) rap.get("exemplesManquants");
-        assertEquals("app/Moteur.java", ((Map<String, Object>) manquants.get(0)).get("cherche"),
-                "le fichier doit nommer la clé exacte que la couverture réclamait");
+        assertNotNull(rap.get("conclusion"), "a sentence one reads first");
+        List<Object> missing = (List<Object>) rap.get("exemplesManquants");
+        assertEquals("app/Engine.java", ((Map<String, Object>) missing.get(0)).get("cherche"),
+                "the file must name the exact key the coverage was asking for");
 
         Map<String, Object> sources = (Map<String, Object>) d.get("sources");
-        List<Object> racines = (List<Object>) sources.get("racines");
-        assertEquals(Boolean.FALSE, ((Map<String, Object>) racines.get(0)).get("existe"),
-                "une racine inexistante doit se voir, pas disparaître");
+        List<Object> roots = (List<Object>) sources.get("racines");
+        assertEquals(Boolean.FALSE, ((Map<String, Object>) roots.get(0)).get("existe"),
+                "a non-existent root must show, not vanish");
     }
 
     @Test
-    @DisplayName("Le diagnostic ne contient aucun secret de serveur")
+    @DisplayName("The diagnostic contains no server secret")
     void theDiagnosticCarriesNoSharedSecret(@TempDir Path dir) throws Exception {
-        // Ce fichier est fait pour être transmis. Un jeton qui s'y glisserait circulerait
-        // avec lui, et rien dans la page ne le dirait.
+        // This file is made to be passed on. A token slipping into it would travel with it,
+        // and nothing in the page would say so.
         Path out = dir.resolve("out");
         Files.createDirectories(out);
-        fixtureRun(out.resolve("runs"), "essai", "UUID-T", true);
+        fixtureRun(out.resolve("runs"), "trial", "UUID-T", true);
         Dashboard.build(out, List.of(sources(dir)), 8);
 
-        String texte = Files.readString(out.resolve("diagnostic.json"), StandardCharsets.UTF_8);
-        assertFalse(texte.contains("serve-token") || texte.contains("secret"),
-                "aucun secret ne doit voyager avec le diagnostic");
+        String text = Files.readString(out.resolve("diagnostic.json"), StandardCharsets.UTF_8);
+        assertFalse(text.contains("serve-token") || text.contains("secret"),
+                "no secret may travel with the diagnostic");
     }
 
     @Test
-    @DisplayName("L'explorateur dit où est chaque classe, et ce que chaque réglage commande")
+    @DisplayName("The explorer says where each class is, and what each setting commands")
     @SuppressWarnings("unchecked")
     void explainsWhereEachClassWasFound(@TempDir Path dir) throws Exception {
-        // Trois choses peuvent manquer — le bytecode, la source, la classe — et un rapport
-        // vide leur donne le même visage. L'explorateur les sépare ; le tableau des réglages
-        // dit lequel élargir, parce qu'on soupçonne presque toujours le mauvais.
+        // Three things can be missing — the bytecode, the source, the class — and an empty
+        // report gives them the same face. The explorer separates them; the settings table
+        // says which one to widen, because one nearly always suspects the wrong one.
         Path out = dir.resolve("out");
         Files.createDirectories(out);
-        fixtureRun(out.resolve("runs"), "essai", "UUID-X", true);
+        fixtureRun(out.resolve("runs"), "trial", "UUID-X", true);
         Path classes = dir.resolve("classes/app");
         Files.createDirectories(classes);
-        Files.writeString(classes.resolve("Moteur.class"), "faux bytecode", StandardCharsets.UTF_8);
+        Files.writeString(classes.resolve("Engine.class"), "fake bytecode", StandardCharsets.UTF_8);
 
-        Map<String, Object> lancement = new java.util.LinkedHashMap<>();
-        lancement.put("commande", "java -jar app.jar");
-        lancement.put("methodeRacine", "app.Moteur");
-        lancement.put("racinesClasses", List.of(Map.of(
+        Map<String, Object> launch = new java.util.LinkedHashMap<>();
+        launch.put("commande", "java -jar app.jar");
+        launch.put("methodeRacine", "app.Engine");
+        launch.put("racinesClasses", List.of(Map.of(
                 "chemin", "classes", "absolu", dir.resolve("classes").toString(), "existe", true)));
 
-        Path page = Dashboard.build(out, List.of(sources(dir)), 8, PackageFilter.NONE, lancement);
+        Path page = Dashboard.build(out, List.of(sources(dir)), 8, PackageFilter.NONE, launch);
         Map<String, Object> data = dataOf(page);
         Map<String, Object> d = (Map<String, Object>) data.get("diagnostic");
 
         List<Object> bytecode = (List<Object>) d.get("bytecode");
-        assertEquals(1, bytecode.size(), "la racine de bytecode doit être recensée");
-        Map<String, Object> racine = (Map<String, Object>) bytecode.get(0);
-        assertEquals(List.of("app/Moteur"), racine.get("classes"),
-                "les classes trouvées sont ce qui permet de répondre « où est-elle ? »");
+        assertEquals(1, bytecode.size(), "the bytecode root must be listed");
+        Map<String, Object> root = (Map<String, Object>) bytecode.get(0);
+        assertEquals(List.of("app/Engine"), root.get("classes"),
+                "the classes found are what allows answering \"where is it?\"");
 
         String html = Files.readString(page, StandardCharsets.UTF_8);
         assertTrue(html.contains("function verdictRecherche("),
-                "la recherche doit dire si une classe a été trouvée, et où");
+                "the search must say whether a class was found, and where");
         assertTrue(html.contains("function arbreSources("),
-                "l'arbre doit exister, coloré par ce qui manque à chaque classe");
+                "the tree must exist, coloured by what each class is missing");
         assertTrue(html.contains("function piegesConfig("),
-                "le tableau des réglages est ce qui évite d'élargir le mauvais filtre");
+                "the settings table is what avoids widening the wrong filter");
         assertTrue(html.contains("ne restreint NI la couverture, NI les classes affichées"),
-                "--root ne doit plus pouvoir être soupçonné d'un rapport sans sources");
+                "--root must no longer be suspectable of a report without sources");
     }
 
     @Test
-    @DisplayName("Le diagnostic se lit sous « sources », et la page le lit au bon niveau")
+    @DisplayName("The diagnostic reads under \"sources\", and the page reads it at the right depth")
     void thePageReadsTheDiagnosticAtTheRightDepth(@TempDir Path dir) throws Exception {
-        // Lu un cran trop haut, le diagnostic annonçait « 0 racine » alors que tout avait
-        // été trouvé — et accusait la configuration de l'utilisateur.
+        // Read one notch too high, the diagnostic announced "0 roots" although everything
+        // had been found — and blamed the user's configuration.
         Path out = dir.resolve("out");
         Files.createDirectories(out);
-        fixtureRun(out.resolve("runs"), "essai", "UUID-N", true);
+        fixtureRun(out.resolve("runs"), "trial", "UUID-N", true);
         String page = Files.readString(Dashboard.build(out, List.of(sources(dir)), 8),
                 StandardCharsets.UTF_8);
 
         assertTrue(page.contains("function diagSources(){ return (D.diagnostic || {}).sources || {}; }"),
-                "un seul accès nommé, pour que les trois inventaires ne se confondent pas");
+                "a single named accessor, so the three inventories do not get confused");
         assertFalse(page.contains("(D.diagnostic || {}).racines"),
-                "les racines ne vivent pas à la racine du diagnostic");
+                "the roots do not live at the diagnostic's root");
     }
 
     @Test
-    @DisplayName("Seules les sources affichables voyagent, mais le diagnostic les connaît toutes")
+    @DisplayName("Only the displayable sources travel, but the diagnostic knows them all")
     @SuppressWarnings("unchecked")
     void carriesOnlyTheSourcesThePageCanShow(@TempDir Path dir) throws Exception {
-        // Une source qu'aucune classe mesurée ne réclame n'a aucun chemin d'affichage : rien
-        // dans la page n'y mène. L'embarquer, c'est recopier l'arborescence du projet — un
-        // rapport de 217 Mo que Firefox a renoncé à ouvrir, le 26 août 2026.
+        // A source no measured class asks for has no display path: nothing in the page leads
+        // to it. Embedding it means copying the project's whole tree — a 217 MB report that
+        // Firefox gave up on opening, on 26 August 2026.
         Path out = dir.resolve("out");
         Files.createDirectories(out);
-        fixtureRun(out.resolve("runs"), "essai", "UUID-P", true);
+        fixtureRun(out.resolve("runs"), "trial", "UUID-P", true);
         Path src = sources(dir);
-        Files.writeString(src.resolve("app/JamaisMesuree.java"), """
+        Files.writeString(src.resolve("app/NeverMeasured.java"), """
                 package app;
-                class JamaisMesuree { int x() { return 1; } }
+                class NeverMeasured { int x() { return 1; } }
                 """, StandardCharsets.UTF_8);
 
         Map<String, Object> data = dataOf(Dashboard.build(out, List.of(src), 8));
 
-        Map<String, Object> embarquees = (Map<String, Object>) data.get("sourcesDisponibles");
-        assertTrue(embarquees.containsKey("app/Moteur.java"), "la classe mesurée garde son code");
-        assertFalse(embarquees.containsKey("app/JamaisMesuree.java"),
-                "une source sans classe mesurée ne peut pas s'afficher, donc ne voyage pas");
+        Map<String, Object> bundled = (Map<String, Object>) data.get("sourcesDisponibles");
+        assertTrue(bundled.containsKey("app/Engine.java"), "the measured class keeps its code");
+        assertFalse(bundled.containsKey("app/NeverMeasured.java"),
+                "a source with no measured class cannot be shown, so it does not travel");
         assertFalse(Files.readString(out.resolve("vue/sources/app.js"), StandardCharsets.UTF_8)
-                        .contains("JamaisMesuree"),
-                "et elle ne doit pas non plus peser dans le bloc");
+                        .contains("NeverMeasured"),
+                "and it must not weigh in the block either");
 
-        // Mais rien de fonctionnel ne part : le diagnostic sait toujours qu'elle a été lue,
-        // et l'arbre « Où est chaque classe » continue de la situer.
+        // But nothing functional goes away: the diagnostic still knows it was read, and the
+        // "where is each class" tree still places it.
         Map<String, Object> d = (Map<String, Object>) data.get("diagnostic");
-        Map<String, Object> parNom =
+        Map<String, Object> byName =
                 (Map<String, Object>) ((Map<String, Object>) d.get("sources")).get("parNom");
-        assertTrue(parNom.containsKey("JamaisMesuree.java"),
-                "le diagnostic doit continuer de dire où chaque fichier a été lu");
+        assertTrue(byName.containsKey("NeverMeasured.java"),
+                "the diagnostic must keep saying where each file was read");
         assertEquals(1L, ((Number) ((Map<String, Object>) d.get("rapprochement"))
                 .get("sourcesSansClasse")).longValue(),
-                "et compter celles qui ne correspondent à aucune classe mesurée");
+                "and count those matching no measured class");
     }
 
     @Test
-    @DisplayName("La page sait cumuler la couverture des exécutions cochées, et dire laquelle")
+    @DisplayName("The page can unify the ticked runs' coverage, and say which one covered")
     void thePageCanUnifyCoverageAcrossRuns(@TempDir Path dir) throws Exception {
         Path out = dir.resolve("out");
         Files.createDirectories(out);
-        fixtureRun(out.resolve("runs"), "un", "UUID-C1", true);
-        fixtureRun(out.resolve("runs"), "deux", "UUID-C2", true);
+        fixtureRun(out.resolve("runs"), "one", "UUID-C1", true);
+        fixtureRun(out.resolve("runs"), "two", "UUID-C2", true);
         String page = Files.readString(Dashboard.build(out, List.of(sources(dir)), 8),
                 StandardCharsets.UTF_8);
 
         assertTrue(page.contains("function covPourVue("),
-                "la vue de code doit pouvoir lire une couverture réunie");
+                "the code view must be able to read a unified coverage");
         assertTrue(page.contains("function pastillesRuns("),
-                "réunir sans dire QUI a couvert ferait perdre l'information que la fusion "
-                + "JaCoCo perd déjà");
+                "unifying without saying WHO covered would lose the information the JaCoCo "
+                + "merge already loses");
         assertTrue(page.contains("runtime-xray.cumul"),
-                "le choix de cumuler est un réglage de lecture : il est gardé");
+                "the choice to accumulate is a reading setting: it is kept");
     }
 
     @Test
-    @DisplayName("La colonne du code a le droit d'être plus étroite que la ligne la plus longue")
+    @DisplayName("The code column may be narrower than its longest line")
     void theCodeColumnMayBeNarrowerThanItsLongestLine() throws Exception {
-        // Le minimum implicite d'une colonne de grille est le min-content de son contenu.
-        // Avec « 1fr », une ligne de 450 caractères — il en existe dans du code d'entreprise —
-        // élargissait la colonne à 3680 px dans une fenêtre de 1280 : le code ne défilait pas
-        // horizontalement, et son ascenseur vertical partait à 4016 px, hors de l'écran. On
-        // ne pouvait ni descendre dans le fichier, ni voir la fin de la ligne.
-        String gabarit = new String(Objects.requireNonNull(
+        // The implicit minimum of a grid column is its content's min-content. With "1fr", a
+        // 450-character line — such lines do exist in enterprise code — widened the column to
+        // 3680 px in a 1280 window: the code did not scroll horizontally, and its vertical
+        // scrollbar sat at 4016 px, off screen. One could neither go down the file nor see the
+        // end of the line.
+        String template = new String(Objects.requireNonNull(
                 Dashboard.class.getResourceAsStream("/lab/xray/dashboard.html")).readAllBytes(),
                 StandardCharsets.UTF_8);
-        assertTrue(gabarit.contains("minmax(0, 1fr)"),
-                "sans le zéro, la colonne du code s'élargit au lieu de défiler");
-        assertFalse(gabarit.contains("grid-template-columns:var(--navw,330px) 6px 1fr"),
-                "c'est exactement la forme qui avait poussé l'ascenseur hors de l'écran");
+        assertTrue(template.contains("minmax(0, 1fr)"),
+                "without the zero, the code column widens instead of scrolling");
+        assertFalse(template.contains("grid-template-columns:var(--navw,330px) 6px 1fr"),
+                "this is exactly the shape that pushed the scrollbar off screen");
     }
 }

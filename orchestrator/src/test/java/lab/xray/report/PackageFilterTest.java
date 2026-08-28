@@ -7,14 +7,14 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Masquer un paquet retire du code de la vue. Une règle trop large emporte du code métier
- * sans le dire — c'est le mode d'échec à couvrir en priorité, parce qu'il est silencieux :
- * on ne remarque pas l'absence de ce qu'on ne cherchait pas.
+ * Hiding a package removes code from the view. A rule that is too broad takes business code
+ * with it without saying so — that is the failure mode to cover first, because it is
+ * silent: one does not notice the absence of what one was not looking for.
  */
 class PackageFilterTest {
 
     @Test
-    @DisplayName("Sans consigne, rien n'est masqué")
+    @DisplayName("Without an instruction, nothing is hidden")
     void emptyByDefault() {
         assertTrue(PackageFilter.of("").isEmpty());
         assertTrue(PackageFilter.of(null).isEmpty());
@@ -22,32 +22,32 @@ class PackageFilterTest {
     }
 
     @Test
-    @DisplayName("Les deux écritures d'un paquet sont acceptées, avec ou sans étoile")
+    @DisplayName("Both spellings of a package are accepted, with or without a star")
     void acceptsBothNotations() {
         for (String spec : new String[]{"org.slf4j", "org/slf4j", "org.slf4j.*", "org/slf4j/*"}) {
             assertTrue(PackageFilter.of(spec).hidden("org/slf4j/Logger.debug"),
-                    "forme refusée : " + spec);
+                    "spelling refused: " + spec);
         }
     }
 
     @Test
-    @DisplayName("Un sous-paquet est masqué avec son parent")
+    @DisplayName("A sub-package is hidden along with its parent")
     void hidesSubPackages() {
         PackageFilter f = PackageFilter.of("org.slf4j");
         assertTrue(f.hidden("org/slf4j/helpers/Util.report"));
     }
 
     @Test
-    @DisplayName("Un paquet au nom voisin n'est PAS emporté")
+    @DisplayName("A package with a neighbouring name is NOT taken with it")
     void doesNotCatchNeighbours() {
-        // C'est l'erreur silencieuse : « org.slf4j » ne doit pas masquer « org.slf4jext ».
+        // This is the silent mistake: "org.slf4j" must not hide "org.slf4jext".
         PackageFilter f = PackageFilter.of("org.slf4j");
         assertFalse(f.hidden("org/slf4jext/Bridge.log"));
-        assertFalse(f.hidden("org/slf4j"), "le paquet lui-même, sans classe, n'est pas un membre");
+        assertFalse(f.hidden("org/slf4j"), "the package itself, without a class, is not a member");
     }
 
     @Test
-    @DisplayName("Plusieurs paquets, séparés par virgule, point-virgule ou espace")
+    @DisplayName("Several packages, separated by comma, semicolon or space")
     void readsSeveralEntries() {
         PackageFilter f = PackageFilter.of("org.slf4j, io.netty; ch.qos.logback");
         assertTrue(f.hidden("org/slf4j/Logger"));
@@ -57,15 +57,15 @@ class PackageFilterTest {
     }
 
     @Test
-    @DisplayName("Le code métier n'est jamais masqué par une règle qui ne le nomme pas")
+    @DisplayName("Business code is never hidden by a rule that does not name it")
     void neverHidesUnrelatedCode() {
         PackageFilter f = PackageFilter.of("org.slf4j, org.apache.commons");
         assertFalse(f.hidden("lab/sample/comfort/Breaks.count"));
-        assertFalse(f.hidden("com/example/moteur/Calcul.calculer"));
+        assertFalse(f.hidden("com/example/engine/Compute.run"));
     }
 
     @Test
-    @DisplayName("La liste d'origine est conservée telle quelle, pour être montrée au lecteur")
+    @DisplayName("The original list is kept as it is, to be shown to the reader")
     void keepsOriginalSpec() {
         assertTrue(PackageFilter.of("org.slf4j, io.netty").spec().contains("io.netty"));
     }

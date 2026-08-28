@@ -4,25 +4,25 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Les paquets que l'analyse doit taire.
+ * The packages the analysis must keep quiet about.
  *
- * <p>Le repli des frames du JDK est décidé une fois pour toutes : personne n'ouvre
- * {@code java.util.ArrayList.iterator} pour comprendre son application. Mais la même chose
- * vaut pour des bibliothèques qui ne sont <b>pas</b> dans le JDK et que l'on considère
- * néanmoins comme de l'infrastructure — un journal, un client HTTP, un cadriciel
- * d'injection. Leur présence dans l'arbre n'apprend rien et noie le code métier.
+ * <p>Folding the JDK frames is settled once and for all: nobody opens
+ * {@code java.util.ArrayList.iterator} to understand their application. But the same holds
+ * for libraries that are <b>not</b> in the JDK and that one nonetheless treats as
+ * infrastructure — a logger, an HTTP client, an injection framework. Their presence in the
+ * tree teaches nothing and drowns the business code.
  *
- * <p>Où placer la frontière n'est pas une question technique : elle dépend de ce que
- * l'équipe possède et de ce qu'elle subit. Elle ne peut donc pas être codée en dur, d'où
- * cette liste, tenue dans le fichier de configuration et transportée avec l'exécution.
+ * <p>Where to put the boundary is not a technical question: it depends on what the team
+ * owns and what it merely puts up with. It therefore cannot be hard-coded, hence this
+ * list, held in the configuration file and carried along with the run.
  *
- * <p>Le temps des frames masquées <b>n'est pas perdu</b> : il est attribué à la méthode
- * applicative qui les a appelées, exactement comme pour le JDK. Masquer déplace
- * l'information, ça ne la supprime pas.
+ * <p>The time of the hidden frames <b>is not lost</b>: it is attributed to the application
+ * method that called them, exactly as for the JDK. Hiding moves the information, it does
+ * not remove it.
  */
 public final class PackageFilter {
 
-    /** Rien n'est masqué — le comportement quand la configuration ne dit rien. */
+    /** Nothing is hidden — the behaviour when the configuration says nothing. */
     public static final PackageFilter NONE = new PackageFilter("", List.of());
 
     private final String spec;
@@ -34,18 +34,18 @@ public final class PackageFilter {
     }
 
     /**
-     * Lit une liste séparée par des virgules, des points-virgules ou des espaces.
+     * Reads a list separated by commas, semicolons or spaces.
      *
-     * <p>Les deux écritures d'un paquet sont acceptées, {@code org.slf4j} comme
-     * {@code org/slf4j}, avec ou sans {@code *} final : ce sont les formes que l'on a sous
-     * les yeux selon qu'on lit du code ou un rapport, et exiger la bonne serait une
-     * chicane de plus dans un fichier qui se remplit à la main.
+     * <p>Both spellings of a package are accepted, {@code org.slf4j} as well as
+     * {@code org/slf4j}, with or without a trailing {@code *}: these are the forms one has
+     * in front of one's eyes depending on whether one is reading code or a report, and
+     * demanding the right one would be one more quibble in a file filled in by hand.
      */
     public static PackageFilter of(String raw) {
         if (raw == null || raw.isBlank()) return NONE;
         List<String> prefixes = new ArrayList<>();
-        for (String part : raw.split("[,;\\s]+")) {
-            String p = part.trim().replace('.', '/');
+        for (String piece : raw.split("[,;\\s]+")) {
+            String p = piece.trim().replace('.', '/');
             while (p.endsWith("*") || p.endsWith("/")) {
                 p = p.substring(0, p.length() - 1);
             }
@@ -55,17 +55,17 @@ public final class PackageFilter {
     }
 
     /**
-     * {@code true} si ce nom relève d'un paquet masqué.
+     * {@code true} when this name belongs to a hidden package.
      *
-     * @param name un nom en {@code paquet/Classe.methode}, {@code paquet/Classe} ou
-     *             {@code paquet.Classe} — les trois formes circulent dans les rapports.
+     * @param name a name in {@code package/Class.method}, {@code package/Class} or
+     *             {@code package.Class} — all three forms circulate in the reports.
      */
     public boolean hidden(String name) {
         if (prefixes.isEmpty() || name == null) return false;
         String n = name.replace('.', '/');
         for (String p : prefixes) {
-            // Le '/' exigé après le préfixe évite qu'un paquet « org/slf4jx » soit emporté
-            // par une règle « org/slf4j » : ce sont deux bibliothèques différentes.
+            // The '/' required after the prefix stops a package "org/slf4jx" being caught
+            // by a rule "org/slf4j": these are two different libraries.
             if (n.startsWith(p + "/")) return true;
         }
         return false;
@@ -75,7 +75,7 @@ public final class PackageFilter {
         return prefixes.isEmpty();
     }
 
-    /** La liste telle qu'écrite dans la configuration, pour l'afficher au lecteur. */
+    /** The list as written in the configuration, to show it to the reader. */
     public String spec() {
         return spec;
     }

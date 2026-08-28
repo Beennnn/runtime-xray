@@ -20,14 +20,16 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
 /**
- * Récupère et met en cache les trois composants d'analyse.
+ * Fetches and caches the three analysis components.
  *
- * <p>Tout passe par un dépôt Maven — celui de l'éditeur par défaut, ou le miroir interne
- * de l'entreprise. C'est un choix : dans un réseau fermé, le miroir Maven est très souvent
- * le seul canal ouvert, et c'est déjà par lui que ces trois outils sont distribués.
+ * <p>Everything goes through a Maven repository — the publisher's by default, or the
+ * company's internal mirror. That is a choice: on a closed network, the Maven mirror is
+ * very often the only open channel, and it is already how these three tools are
+ * distributed.
  *
- * <p>Le cache ({@code ~/.runtime-xray}) fait qu'au deuxième lancement plus rien ne sort sur
- * le réseau. Sur une machine réellement isolée, il suffit de transporter ce répertoire.
+ * <p>The cache ({@code ~/.runtime-xray}) means that on the second launch nothing goes out
+ * on the network at all. On a genuinely isolated machine, carrying that directory is
+ * enough.
  */
 public final class Toolbox {
 
@@ -37,10 +39,10 @@ public final class Toolbox {
 
     private final Path cache;
     private final String repo;
-    /** Répertoires fouillés à plat, dans l'ordre, avant de sortir sur le réseau. */
-    private final List<Path> plats;
-    /** Dépôt Maven local, fouillé selon la disposition groupe/artefact/version. */
-    private final Path depotLocal;
+    /** Directories searched flat, in order, before going out on the network. */
+    private final List<Path> flat;
+    /** The local Maven repository, searched in group/artifact/version layout. */
+    private final Path localRepo;
     private final HttpClient http = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(20))
             .followRedirects(HttpClient.Redirect.NORMAL)
@@ -51,33 +53,33 @@ public final class Toolbox {
     }
 
     /**
-     * @param composants répertoire indiqué par l'utilisateur ({@code --composants}), ou vide.
+     * @param componentsDir directory named by the user ({@code --components}), or empty.
      */
-    public Toolbox(String repo, String composants) {
+    public Toolbox(String repo, String components) {
         this(repo,
              Path.of(System.getProperty("user.home"), ".runtime-xray"),
-             emplacements(composants),
-             depotMavenLocal());
+             locations(components),
+             localMavenRepo());
     }
 
-    Toolbox(String repo, Path cache, List<Path> plats, Path depotLocal) {
+    Toolbox(String repo, Path cache, List<Path> flat, Path localRepo) {
         this.cache = cache;
-        this.plats = plats;
-        this.depotLocal = depotLocal;
+        this.flat = flat;
+        this.localRepo = localRepo;
         this.repo = repo.endsWith("/") ? repo.substring(0, repo.length() - 1) : repo;
     }
 
     /**
-     * Les endroits où un composant déposé à la main peut se trouver, du plus explicite au
-     * moins probable : ce que l'utilisateur a désigné, puis le voisinage du jar — c'est le
-     * geste naturel quand on transporte l'outil sur une clé.
+     * The places where a hand-placed component can be, from the most explicit to the least
+     * likely: what the user named, then the jar's neighbourhood — that is the natural thing
+     * to do when carrying the tool on a stick.
      */
-    private static List<Path> emplacements(String composants) {
+    private static List<Path> locations(String components) {
         List<Path> dirs = new ArrayList<>();
-        if (composants != null && !composants.isBlank()) dirs.add(Path.of(composants.trim()));
+        if (components != null && !components.isBlank()) dirs.add(Path.of(components.trim()));
         String env = System.getenv("RUNTIME_XRAY_COMPOSANTS");
         if (env != null && !env.isBlank()) dirs.add(Path.of(env.trim()));
-        Path jar = repertoireDuJar();
+        Path jar = jarDir();
         if (jar != null) {
             dirs.add(jar);
             dirs.add(jar.resolve("composants"));
@@ -85,8 +87,8 @@ public final class Toolbox {
         return dirs;
     }
 
-    /** {@code null} hors d'un jar — en test, le code vit dans un répertoire de classes. */
-    private static Path repertoireDuJar() {
+    /** {@code null} outside a jar — under test, the code lives in a class directory. */
+    private static Path jarDir() {
         try {
             java.net.URL src = Toolbox.class.getProtectionDomain().getCodeSource().getLocation();
             Path p = Path.of(src.toURI());
@@ -96,9 +98,9 @@ public final class Toolbox {
         }
     }
 
-    private static Path depotMavenLocal() {
-        String explicite = System.getenv("MAVEN_REPO_LOCAL");
-        if (explicite != null && !explicite.isBlank()) return Path.of(explicite.trim());
+    private static Path localMavenRepo() {
+        String explicit = System.getenv("MAVEN_REPO_LOCAL");
+        if (explicit != null && !explicit.isBlank()) return Path.of(explicit.trim());
         return Path.of(System.getProperty("user.home"), ".m2", "repository");
     }
 
@@ -113,14 +115,14 @@ public final class Toolbox {
     }
 
     /**
-     * Le convertisseur officiel d'async-profiler : il transforme les piles repliées en la
-     * page que l'outil produit lui-même.
+     * async-profiler's official converter: it turns the folded stacks into the page the
+     * tool produces itself.
      *
-     * <p>Pourquoi la produire alors que cette page a déjà son propre arbre : parce que ce
-     * n'est pas la même chose. La nôtre est une <b>synthèse</b>, avec ses choix (repli du
-     * JDK, repli des paquets masqués, agrégation). Celle-ci est la sortie <b>brute</b> de
-     * l'outil, sans aucun de nos traitements — c'est elle qui fait foi si la synthèse se
-     * trompe, et c'est elle qui reste lisible si la synthèse ne s'ouvre plus.
+     * <p>Why produce it when this page already has its own tree: because they are not the
+     * same thing. Ours is a <b>summary</b>, with its choices (folding the JDK, folding the
+     * hidden packages, aggregating). This one is the tool's <b>raw</b> output, without any
+     * of our processing — it is the one that settles the matter if the summary is wrong,
+     * and the one that stays readable if the summary no longer opens.
      */
     public Path asyncProfilerConverter() throws IOException, InterruptedException {
         return artifact("tools.profiler", "jfr-converter", ASYNC_VERSION, null, "jar",
@@ -128,8 +130,8 @@ public final class Toolbox {
     }
 
     /**
-     * La bibliothèque native d'async-profiler, extraite du jar publié sur Maven Central.
-     * Le jar embarque les binaires de plusieurs plateformes ; on ne sort que la bonne.
+     * async-profiler's native library, extracted from the jar published on Maven Central.
+     * The jar bundles binaries for several platforms; only the right one is taken out.
      */
     public Path asyncProfilerLibrary() throws IOException, InterruptedException {
         String explicit = System.getenv("ASYNC_PROFILER_LIB");
@@ -156,19 +158,19 @@ public final class Toolbox {
         return target;
     }
 
-    /** Le paquet complet d'Arthas, décompressé : son lanceur ne sortira pas sur le réseau. */
+    /** Arthas's complete package, unpacked: its launcher will not go out on the network. */
     public Path arthasHome() throws IOException, InterruptedException {
         Path home = cache.resolve("arthas-" + ARTHAS_VERSION);
         if (Files.isRegularFile(home.resolve("arthas-boot.jar"))) return home;
 
-        // Arthas se distribue aussi décompressé : celui qui l'a déjà sous la main l'a le
-        // plus souvent sous cette forme, et le redemander en archive n'aurait aucun sens.
-        for (Path dir : plats) {
-            for (Path candidat : List.of(dir.resolve("arthas-" + ARTHAS_VERSION),
+        // Arthas is also distributed unpacked: whoever already has it to hand most often
+        // has it in that form, and asking for the archive again would make no sense.
+        for (Path dir : flat) {
+            for (Path candidate : List.of(dir.resolve("arthas-" + ARTHAS_VERSION),
                                          dir.resolve("arthas"), dir)) {
-                if (Files.isRegularFile(candidat.resolve("arthas-boot.jar"))) {
-                    System.out.println("   local component: " + candidat);
-                    return candidat;
+                if (Files.isRegularFile(candidate.resolve("arthas-boot.jar"))) {
+                    System.out.println("   local component: " + candidate);
+                    return candidate;
                 }
             }
         }
@@ -183,55 +185,56 @@ public final class Toolbox {
     // ------------------------------------------------------------------ interne
 
     /**
-     * Trouve un composant, sans réseau si possible.
+     * Finds a component, without the network where possible.
      *
-     * <p>Le réseau est le dernier recours, jamais le premier réflexe : sur la machine qui
-     * nous intéresse, il n'y en a pas. On regarde donc d'abord le cache, puis ce que
-     * l'utilisateur a déposé à la main, puis le dépôt Maven local — celui que le moindre
-     * {@code mvn} d'entreprise a déjà rempli depuis le miroir interne.
+     * <p>The network is the last resort, never the first reflex: on the machine we care
+     * about, there is none. So we look first at the cache, then at what the user placed by
+     * hand, then at the local Maven repository — the one that any company {@code mvn} has
+     * already filled from the internal mirror.
      *
-     * @param usuel nom du même composant dans la distribution de son éditeur. C'est sous ce
-     *              nom-là qu'on l'a quand on ne l'a pas pris sur Maven : {@code jacocoagent.jar},
-     *              pas {@code org.jacoco.agent-0.8.13-runtime.jar}. On l'accepte, en disant
-     *              que la version n'est alors pas vérifiée.
+     * @param usual the name of the same component in its publisher's distribution. That is
+     *              the name it has when it did not come from Maven:
+     *              {@code jacocoagent.jar}, not
+     *              {@code org.jacoco.agent-0.8.13-runtime.jar}. We accept it, while saying
+     *              that the version is then not verified.
      */
     private Path artifact(String group, String name, String version, String classifier, String ext,
-                          String usuel) throws IOException, InterruptedException {
+                          String usual) throws IOException, InterruptedException {
         String file = name + "-" + version + (classifier == null ? "" : "-" + classifier) + "." + ext;
-        List<String> vus = new ArrayList<>();
+        List<String> seen = new ArrayList<>();
 
         Path local = cache.resolve(file);
-        vus.add(local.toString());
+        seen.add(local.toString());
         if (Files.isRegularFile(local)) return local;
 
-        for (Path dir : plats) {
+        for (Path dir : flat) {
             Path exact = dir.resolve(file);
-            vus.add(exact.toString());
+            seen.add(exact.toString());
             if (Files.isRegularFile(exact)) {
                 System.out.println("   local component: " + exact);
                 return exact;
             }
-            if (usuel != null) {
-                Path autre = dir.resolve(usuel);
-                vus.add(autre.toString());
-                if (Files.isRegularFile(autre)) {
-                    System.out.println("   local component: " + autre + mention(autre, version));
-                    return autre;
+            if (usual != null) {
+                Path other = dir.resolve(usual);
+                seen.add(other.toString());
+                if (Files.isRegularFile(other)) {
+                    System.out.println("   local component: " + other + note(other, version));
+                    return other;
                 }
             }
         }
 
-        Path m2 = depotLocal.resolve(group.replace('.', '/')).resolve(name).resolve(version)
+        Path m2 = localRepo.resolve(group.replace('.', '/')).resolve(name).resolve(version)
                 .resolve(file);
-        vus.add(m2.toString());
+        seen.add(m2.toString());
         if (Files.isRegularFile(m2)) {
             System.out.println("   local component: " + m2);
             return m2;
         }
 
-        Path embarque = extraitDuJar(file);
-        if (embarque != null) return embarque;
-        vus.add("(embarqué dans le jar : édition complète uniquement)");
+        Path bundled = extractFromJar(file);
+        if (bundled != null) return bundled;
+        seen.add("(bundled in the jar: complete edition only)");
 
         String url = repo + "/" + group.replace('.', '/') + "/" + name + "/" + version + "/" + file;
         Files.createDirectories(cache);
@@ -241,86 +244,86 @@ public final class Toolbox {
         HttpResponse<Path> res;
         try {
             res = http.send(req, HttpResponse.BodyHandlers.ofFile(tmp));
-        } catch (IOException echec) {
+        } catch (IOException failure) {
             Files.deleteIfExists(tmp);
-            throw new IOException(indisponible(file, url, vus) + "\n   (" + echec + ")");
+            throw new IOException(unavailable(file, url, seen) + "\n   (" + failure + ")");
         }
         if (res.statusCode() != 200) {
             Files.deleteIfExists(tmp);
-            throw new IOException(indisponible(file, url + " → HTTP " + res.statusCode(), vus));
+            throw new IOException(unavailable(file, url + " → HTTP " + res.statusCode(), seen));
         }
         Files.move(tmp, local, StandardCopyOption.REPLACE_EXISTING);
         return local;
     }
 
     /**
-     * Ce qu'on ajoute derrière un composant trouvé sous son nom usuel.
+     * What is added after a component found under its usual name.
      *
-     * <p>Ce nom-là ne porte pas la version : {@code jacocoagent.jar} peut être n'importe
-     * lequel. Plutôt que d'avertir à tout hasard — ce qui inquiète celui qui a apporté le
-     * bon fichier et n'apprend rien à celui qui s'est trompé — on lit la version que le
-     * fichier déclare lui-même. Silence si elle correspond, avertissement précis sinon.
+     * <p>That name does not carry the version: {@code jacocoagent.jar} can be any of them.
+     * Rather than warning just in case — which worries whoever brought the right file and
+     * teaches nothing to whoever brought the wrong one — we read the version the file
+     * declares itself. Silence when it matches, a precise warning otherwise.
      *
-     * @return la mention à afficher, vide quand il n'y a rien à signaler.
+     * @return the note to display, empty when there is nothing to report.
      */
-    static String mention(Path fichier, String attendue) {
-        String declaree = versionDeclaree(fichier);
-        if (declaree == null) {
-            return "  (version not verified, " + attendue + " expected)";
+    static String note(Path file, String expected) {
+        String declared = declaredVersion(file);
+        if (declared == null) {
+            return "  (version not verified, " + expected + " expected)";
         }
-        if (declaree.equals(attendue)) {
+        if (declared.equals(expected)) {
             return "";
         }
-        return "  (version " + declaree + " found, " + attendue + " expected:"
+        return "  (version " + declared + " found, " + expected + " expected:"
                 + " components of the same tool must agree)";
     }
 
     /**
-     * La version que le fichier déclare dans son manifeste, ou {@code null} s'il n'en
-     * déclare aucune — les archives d'async-profiler et d'Arthas sont dans ce cas, et un
-     * fichier illisible aussi. On ne conclut alors rien : ne pas savoir n'est pas un défaut.
+     * The version the file declares in its manifest, or {@code null} when it declares none
+     * — async-profiler's and Arthas's archives are in that case, and so is an unreadable
+     * file. We then conclude nothing: not knowing is not a fault.
      */
-    private static String versionDeclaree(Path fichier) {
-        try (JarFile jar = new JarFile(fichier.toFile())) {
-            Manifest manifeste = jar.getManifest();
-            if (manifeste == null) return null;
-            return manifeste.getMainAttributes().getValue("Implementation-Version");
+    private static String declaredVersion(Path file) {
+        try (JarFile jar = new JarFile(file.toFile())) {
+            Manifest manifest = jar.getManifest();
+            if (manifest == null) return null;
+            return manifest.getMainAttributes().getValue("Implementation-Version");
         } catch (IOException | RuntimeException e) {
             return null;
         }
     }
 
     /**
-     * L'édition complète du jar porte les composants en ressources. On les dépose alors
-     * dans le cache — un {@code -javaagent} veut un fichier sur le disque, pas une entrée
-     * d'archive, et le CLI de JaCoCo comme Arthas sont lancés en processus séparés.
+     * The complete edition of the jar carries the components as resources. They are then
+     * dropped into the cache — a {@code -javaagent} wants a file on disk, not an archive
+     * entry, and JaCoCo's CLI as well as Arthas are launched as separate processes.
      *
-     * @return {@code null} pour le jar ordinaire, qui n'embarque rien.
+     * @return {@code null} for the ordinary jar, which bundles nothing.
      */
-    private Path extraitDuJar(String file) throws IOException {
+    private Path extractFromJar(String file) throws IOException {
         try (InputStream in = Toolbox.class.getResourceAsStream("/lab/xray/composants/" + file)) {
             if (in == null) return null;
             Files.createDirectories(cache);
             Path tmp = Files.createTempFile(cache, "ex-", ".part");
             System.out.println("   bundled component: " + file);
             Files.copy(in, tmp, StandardCopyOption.REPLACE_EXISTING);
-            Path cible = cache.resolve(file);
-            Files.move(tmp, cible, StandardCopyOption.REPLACE_EXISTING);
-            return cible;
+            Path target = cache.resolve(file);
+            Files.move(tmp, target, StandardCopyOption.REPLACE_EXISTING);
+            return target;
         }
     }
 
-    /** Un échec ici arrête tout : le message dit où on a cherché, et comment s'en sortir. */
-    private static String indisponible(String file, String url, List<String> vus) {
-        return "composant introuvable : " + file
+    /** A failure here stops everything: the message says where we looked, and the way out. */
+    private static String unavailable(String file, String url, List<String> seen) {
+        return "component not found: " + file
                 + "\n   looked for on the network: " + url
-                + "\n   looked for on disk:\n      " + String.join("\n      ", vus)
+                + "\n   looked for on disk:\n      " + String.join("\n      ", seen)
                 + "\n   On a closed network: drop the file into one of these directories,"
                 + "\n   point at it with --composants <directory>, or name the internal"
                 + "\n   Maven mirror with --repo <url> (or MAVEN_REPO).";
     }
 
-    /** Chemin de la bibliothèque native dans le jar, selon le système et l'architecture. */
+    /** Path of the native library inside the jar, by operating system and architecture. */
     private static String nativeEntryName() throws IOException {
         String os = System.getProperty("os.name", "").toLowerCase(Locale.ROOT);
         String arch = System.getProperty("os.arch", "").toLowerCase(Locale.ROOT);
@@ -344,7 +347,7 @@ public final class Toolbox {
             while (entries.hasMoreElements()) {
                 ZipEntry e = entries.nextElement();
                 Path out = target.resolve(e.getName()).normalize();
-                // Un zip peut contenir des chemins qui remontent hors de la cible.
+                // A zip can contain paths that climb out of the target.
                 if (!out.startsWith(target)) {
                     throw new IOException("suspicious archive entry: " + e.getName());
                 }

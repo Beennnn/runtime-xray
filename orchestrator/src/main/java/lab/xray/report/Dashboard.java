@@ -14,11 +14,11 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Assemble la page unique à partir des sorties des outils.
+ * Assembles the single page out of the tools' outputs.
  *
- * <p>Rien n'est mesuré ici : on relit ce qui a été produit et on le met côte à côte. La
- * page est <b>autonome</b> — données embarquées, aucune ressource externe — ce qui la rend
- * lisible hors ligne et transmissible en pièce jointe.
+ * <p>Nothing is measured here: we re-read what was produced and put it side by side. The
+ * page is <b>self-contained</b> — data embedded, no external resource — which makes it
+ * readable offline and sendable as an attachment.
  */
 public final class Dashboard {
 
@@ -35,13 +35,12 @@ public final class Dashboard {
     }
 
     /**
-     * @param hidden paquets masqués par la configuration courante. Une exécution qui a
-     *               enregistré sa propre liste garde la sienne : c'est celle sous laquelle
-     *               elle a été analysée, et la vue doit dire ce qui a été fait, pas ce
-     *               qu'on ferait aujourd'hui.
+     * @param hidden packages hidden by the current configuration. A run that recorded its
+     *               own list keeps that one: it is the list it was analysed under, and the
+     *               view must say what was done, not what one would do today.
      */
     public static Path build(Path commonDir, List<Path> sourceRoots, int valuesPerMethod,
-                             PackageFilter hidden, Map<String, Object> lancement)
+                             PackageFilter hidden, Map<String, Object> launch)
             throws Exception {
         Map<String, Object> overrides = Annotations.readCentral(commonDir);
         List<Path> bases = findRuns(commonDir, 0, 3);
@@ -49,7 +48,7 @@ public final class Dashboard {
             throw new IOException("no run found under " + commonDir
                     + " (a run is a directory containing run-context.json)");
         }
-        // La plus récente en premier : c'est celle qu'on vient de produire.
+        // The most recent first: that is the one just produced.
         bases.sort(Comparator.comparingLong((Path p) -> p.toFile().lastModified()).reversed());
 
         List<Object> runs = new ArrayList<>();
@@ -59,92 +58,91 @@ public final class Dashboard {
 
         Sources.Index index = Sources.load(sourceRoots);
 
-        // Le gros part en blocs, chargés à la demande et libérables. Ce qui reste ici est ce
-        // que la PREMIÈRE IMAGE montre : l'identité des exécutions, l'arbre des classes, et
-        // les clés des sources — jamais leur contenu.
+        // The bulk goes into blocks, loaded on demand and releasable. What stays here is
+        // what the FIRST PAINT shows: the identity of the runs, the tree of classes, and
+        // the source keys — never their content.
         Map<String, Object> data =
-                new LinkedHashMap<>(Blocs.ecrire(commonDir, runs, sourcesAffichables(runs, index)));
-        // Le diagnostic voyage AVEC la page, pas seulement à côté : c'est lui qui permet au
-        // panneau de code de dire ce qu'il a cherché quand il n'a rien à montrer. Une page
-        // transmise en pièce jointe reste alors explicable sans son répertoire d'origine.
-        Map<String, Object> diagnostic = Diagnostic.write(commonDir, runs, index, lancement);
-        data.put("diagnostic", sansCode(diagnostic));
-        // Le même contenu, mais rangé pour être filtré plutôt que parcouru — voir Faits.
-        // Rien de ce qui précède ne change : ce fichier s'ajoute, il ne remplace pas.
-        Faits.ecrire(commonDir, runs, index, diagnostic);
-        data.put("fusion", fusionPresente(commonDir, runs.size()));
+                new LinkedHashMap<>(Blocks.write(commonDir, runs, showableSources(runs, index)));
+        // The diagnostic travels WITH the page, not merely beside it: it is what lets the
+        // code panel say what it looked for when it has nothing to show. A page sent as an
+        // attachment then stays explainable without its original directory.
+        Map<String, Object> diagnostic = Diagnostic.write(commonDir, runs, index, launch);
+        data.put("diagnostic", withoutCode(diagnostic));
+        // The same content, but arranged to be filtered rather than browsed — see Facts.
+        // Nothing above changes: this file is added, it replaces nothing.
+        Facts.write(commonDir, runs, index, diagnostic);
+        data.put("fusion", mergePresent(commonDir, runs.size()));
 
         String template = loadTemplate();
         String page = template.replace("/*__DATA__*/", Json.write(data));
         Path out = commonDir.resolve("index.html");
         Files.writeString(out, page, StandardCharsets.UTF_8);
 
-        // La campagne sur une page, en SVG : la vue interactive répond aux questions qu'on
-        // lui pose, elle ne se transmet pas. Ce schéma-là se colle dans une diapositive.
-        Diagramme.ecrire(commonDir, runs);
+        // The campaign on one page, in SVG: the interactive view answers the questions put
+        // to it, it does not travel. This diagram pastes into a slide.
+        Diagram.write(commonDir, runs);
 
-        // Le même contenu en Markdown, sans surcoût de collecte : c'est le seul format
-        // qu'une forge affiche comme une page et non comme du code source.
+        // The same content in Markdown, at no extra collection cost: it is the only format
+        // a forge shows as a page and not as source code.
         Markdown.write(commonDir, runs);
         return out;
     }
 
     /**
-     * Le diagnostic allégé de ce que la page porte déjà.
+     * The diagnostic, relieved of what the page already carries.
      *
-     * <p>Le contexte de chaque exécution et la liste de ses rapports sont dans {@code runs} :
-     * les embarquer une seconde fois doublerait ces données dans une page qui se transmet
-     * en pièce jointe. Le fichier {@code diagnostic.json}, lui, les garde — il se lit seul.
+     * <p>Each run's context and the list of its reports are in {@code runs}: embedding them
+     * a second time would double that data in a page that gets sent as an attachment. The
+     * {@code diagnostic.json} file keeps them — it is read on its own.
      */
     /**
-     * Les sources que la page peut réellement montrer — et rien d'autre.
+     * The sources the page can actually show — and nothing else.
      *
-     * <p>On embarquait l'index entier, c'est-à-dire tout {@code .java} rencontré sous les
-     * racines. Or la vue de code n'ouvre un fichier que par une classe mesurée : une source
-     * absente de la couverture n'a aucun chemin qui y mène, jamais. Elle pesait sans pouvoir
-     * s'afficher.
+     * <p>We used to embed the whole index, that is, every {@code .java} met under the
+     * roots. But the code view only opens a file through a measured class: a source absent
+     * from the coverage has no path leading to it, ever. It weighed without being able to
+     * show.
      *
-     * <p>Le coût restait invisible tant qu'on désignait le répertoire de sources exact. Il a
-     * éclaté quand l'index s'est mis à accepter n'importe quelle racine : pointer le projet
-     * entier devient commode, et embarque alors les tests, les sources engendrées, les
-     * dépendances déballées. Un rapport de 217 Mo que Firefox renonce à afficher, constaté le
-     * 26 août 2026 ; sur le projet d'exemple, <b>93 % du poids des sources</b> ne pouvait pas
-     * s'afficher.
+     * <p>The cost stayed invisible as long as one named the exact source directory. It blew
+     * up when the index started accepting any root at all: pointing at the whole project
+     * becomes convenient, and then embeds the tests, the generated sources, the unpacked
+     * dependencies. A 217 MB report that Firefox gives up on displaying, seen on
+     * 26 August 2026; on the sample project, <b>93 % of the sources' weight</b> could not
+     * be displayed.
      *
-     * <p>Rien de fonctionnel ne part avec : l'index complet reste dans le diagnostic, qui
-     * continue de dire ce qui a été lu et où. Seul ce qui n'avait aucun chemin d'affichage
-     * cesse de voyager.
+     * <p>Nothing functional goes with it: the complete index stays in the diagnostic, which
+     * still says what was read and where. Only what had no display path stops travelling.
      */
-    static Map<String, Object> sourcesAffichables(List<Object> runs, Sources.Index index) {
-        Map<String, Object> retenues = new LinkedHashMap<>();
-        for (String cle : Diagnostic.mesures(runs)) {
-            Object lignes = index.parCle().get(cle);
-            if (lignes != null) retenues.put(cle, lignes);
+    static Map<String, Object> showableSources(List<Object> runs, Sources.Index index) {
+        Map<String, Object> kept = new LinkedHashMap<>();
+        for (String key : Diagnostic.samples(runs)) {
+            Object lines = index.byKey().get(key);
+            if (lines != null) kept.put(key, lines);
         }
-        return retenues;
+        return kept;
     }
 
     /**
-     * Le rapport JaCoCo de toutes les exécutions réunies, s'il a été produit.
+     * The JaCoCo report of all the runs together, if it was produced.
      *
-     * <p>On rapporte sa présence plutôt que de la déduire du nombre d'exécutions : il peut
-     * manquer pour de bonnes raisons — bytecode inconnu en réassemblage, composant JaCoCo
-     * introuvable — et un lien mort vaut moins que pas de lien.
+     * <p>We report its presence rather than deducing it from the number of runs: it can be
+     * missing for good reasons — bytecode unknown on reassembly, JaCoCo component not found
+     * — and a dead link is worth less than no link.
      */
-    private static Map<String, Object> fusionPresente(Path commonDir, int executions) {
+    private static Map<String, Object> mergePresent(Path commonDir, int runs) {
         Map<String, Object> m = new LinkedHashMap<>();
         Path html = commonDir.resolve("jacoco-fusion/html");
         m.put("couverture", Files.isRegularFile(html.resolve("index.html")));
         m.put("xml", Files.isRegularFile(html.resolve("jacoco.xml")));
         m.put("csv", Files.isRegularFile(html.resolve("jacoco.csv")));
-        m.put("executions", executions);
+        m.put("executions", runs);
         return m;
     }
 
-    private static Map<String, Object> sansCode(Map<String, Object> diagnostic) {
-        Map<String, Object> allege = new LinkedHashMap<>(diagnostic);
-        allege.remove("executions");
-        return allege;
+    private static Map<String, Object> withoutCode(Map<String, Object> diagnostic) {
+        Map<String, Object> thinned = new LinkedHashMap<>(diagnostic);
+        thinned.remove("executions");
+        return thinned;
     }
 
     private static Map<String, Object> readRun(Path base, Path commonDir,
@@ -169,8 +167,8 @@ public final class Dashboard {
         String origin = recordedName == null || String.valueOf(recordedName).isBlank()
                 ? null
                 : String.valueOf(recordedName);
-        // Trois emplacements possibles, le plus proche de l'exécution l'emporte —
-        // voir Annotations pour ce que chacun implique.
+        // Three possible locations, the closest to the run wins — see Annotations for
+        // what each one implies.
         Annotation annotation = Annotation.of(Annotations.forRun(base, uuid, overrides));
 
         Map<String, Object> run = new LinkedHashMap<>();
@@ -181,23 +179,24 @@ public final class Dashboard {
         run.put("etiquettes", annotation.tags);
         run.put("elagage", annotation.pruning);
         run.put("renomme", annotation.name != null);
-        // Trois sources, dans cet ordre : le nom posé dans l'outil, celui donné au
-        // lancement, et à défaut l'identifiant. Aucun libellé inventé : sans nom, ce qui
-        // s'affiche désigne quand même l'exécution, et une seule.
+        // Three sources, in this order: the name set in the tool, the one given at launch,
+        // and failing both the id. No invented label: without a name, what is displayed
+        // still designates the run, and only that one.
         run.put("nom", annotation.name != null ? annotation.name
                 : origin != null ? origin
                 : shortId(uuid, base));
         run.put("chemin", relative(commonDir, base));
         run.put("rapports", reportsPresent(base));
-        // La vue doit pouvoir dire ce qui a été écarté AVANT la mesure : ce code-là n'est
-        // pas « absent », il a été tu, et taire la différence serait mentir par omission.
+        // The view must be able to say what was set aside BEFORE the measurement: that
+        // code is not "absent", it was silenced, and silencing the difference would be
+        // lying by omission.
         run.put("paquetsMasques", recorded);
         run.put("coverage", coverage.lines);
         run.put("methods", coverage.methods);
         run.put("packages", coverage.packages);
         run.put("calltree", tree.root);
-        // Un relevé toutes les millisecondes : c'est ce qui permet de convertir un nombre
-        // d'échantillons en durée estimée dans la vue.
+        // One sample every millisecond: that is what makes it possible to turn a number of
+        // samples into an estimated duration in the view.
         run.put("intervalMs", 1);
         run.put("profileNote", tree.note);
         run.put("stacksNote", tree.stacksNote);
@@ -209,9 +208,9 @@ public final class Dashboard {
     }
 
     /**
-     * La classe inspectée se déduit, dans l'ordre : du contexte de l'exécution, sinon des
-     * valeurs réellement capturées. Rien n'est codé en dur — le rapport doit valoir pour
-     * n'importe quelle application.
+     * The inspected class is deduced, in order: from the run's context, otherwise from the
+     * values actually captured. Nothing is hard-coded — the report must hold for any
+     * application at all.
      */
     private static String tracedClass(Map<String, Object> context, Inspection inspection) {
         Object root = context.get("methodeRacine");
@@ -225,12 +224,12 @@ public final class Dashboard {
     }
 
     /**
-     * Ce que chaque outil a réellement écrit sur le disque, y compris les fichiers bruts.
+     * What each tool actually wrote to disk, raw files included.
      *
-     * <p>Tout est recensé, pas seulement les pages présentables : cette page est une
-     * synthèse, et une synthèse peut se tromper ou ne plus s'ouvrir. Les sorties d'origine
-     * doivent rester atteignables en un clic — c'est ce qui distingue un rapport
-     * vérifiable d'un rapport à croire sur parole.
+     * <p>Everything is listed, not just the presentable pages: this page is a summary, and
+     * a summary can be wrong or stop opening. The original outputs must stay one click
+     * away — that is what separates a report one can check from a report one has to take on
+     * trust.
      */
     private static Map<String, Object> reportsPresent(Path base) {
         Map<String, Object> m = new LinkedHashMap<>();
@@ -260,7 +259,7 @@ public final class Dashboard {
         return s.isEmpty() ? "" : s + "/";
     }
 
-    /** Une exécution est un répertoire qui contient son contexte, ou à défaut sa couverture. */
+    /** A run is a directory holding its context, or failing that its coverage. */
     private static List<Path> findRuns(Path dir, int level, int maxDepth) throws IOException {
         List<Path> found = new ArrayList<>();
         if (level > maxDepth || !Files.isDirectory(dir)) {
@@ -295,13 +294,13 @@ public final class Dashboard {
         }
     }
 
-    /** Faute de nom, l'identifiant abrégé : assez court pour tenir, assez long pour trier. */
+    /** Failing a name, the shortened id: short enough to fit, long enough to sort by. */
     private static String shortId(String uuid, Path base) {
         if (uuid == null || uuid.isBlank()) return base.getFileName().toString();
         return uuid.length() > 8 ? uuid.substring(0, 8) : uuid;
     }
 
-    /** Nom, description et étiquettes posés sur une exécution après sa mesure. */
+    /** Name, description and tags placed on a run after it was measured. */
     private record Annotation(String name, String description, Map<String, Object> tags,
                               Map<String, Object> pruning) {
 
@@ -333,7 +332,7 @@ public final class Dashboard {
     private static String loadTemplate() throws IOException {
         try (InputStream in = Dashboard.class.getResourceAsStream("/lab/xray/dashboard.html")) {
             if (in == null) {
-                throw new IOException("gabarit de page absent du jar");
+                throw new IOException("page template missing from the jar");
             }
             return new String(in.readAllBytes(), StandardCharsets.UTF_8);
         }

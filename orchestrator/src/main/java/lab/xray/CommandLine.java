@@ -5,15 +5,15 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * Transforme la commande fournie par l'utilisateur en quelque chose d'exécutable.
+ * Turns the command supplied by the user into something executable.
  *
- * <p>Deux cas, et c'est volontaire :
+ * <p>Two cases, and deliberately so:
  * <ul>
- *   <li>une commande simple — {@code java -jar app.jar --profil recette} — est découpée
- *       ici même et lancée directement. Aucun interpréteur n'est nécessaire, ce qui rend
- *       l'outil utilisable sur Windows comme ailleurs ;</li>
- *   <li>une commande qui utilise des tubes, des enchaînements ou des variables est confiée
- *       à l'interpréteur du système. On ne réimplémente pas un shell.</li>
+ *   <li>a plain command — {@code java -jar app.jar --profile acceptance} — is split right
+ *       here and launched directly. No interpreter is needed, which makes the tool usable
+ *       on Windows as well as anywhere else;</li>
+ *   <li>a command that uses pipes, chaining or variables is handed to the system's
+ *       interpreter. We do not reimplement a shell.</li>
  * </ul>
  */
 public final class CommandLine {
@@ -21,14 +21,15 @@ public final class CommandLine {
     private static final String SHELL_CHARS = "|&;<>$`(){}*?";
 
     /**
-     * Le tilde ne compte qu'en <b>tête de mot</b>, là où un interpréteur l'étendrait.
+     * The tilde only counts at the <b>start of a word</b>, where an interpreter would
+     * expand it.
      *
-     * <p>Ailleurs, il est littéral — et il est très courant sous Windows, où les noms courts
-     * en 8.3 en portent un : {@code C:\Users\RUNNER~1\AppData}, {@code C:\PROGRA~1}. Le
-     * compter partout envoyait ces commandes-là à {@code cmd /c}, ce qui les exécute très
-     * bien mais rend la ligne illisible pour l'outil : {@link ClassSources} n'y trouve plus
-     * le {@code -jar}, donc plus le bytecode, donc un rapport vide sans que rien ne
-     * l'explique. Constaté le 26 août 2026, au premier passage de la CI sous Windows.
+     * <p>Anywhere else it is literal — and it is very common on Windows, where the 8.3
+     * short names carry one: {@code C:\Users\RUNNER~1\AppData}, {@code C:\PROGRA~1}.
+     * Counting it everywhere sent those commands to {@code cmd /c}, which runs them
+     * perfectly well but makes the line unreadable to the tool: {@link ClassSources} no
+     * longer finds the {@code -jar} in it, so no bytecode, so an empty report with nothing
+     * to explain it. Seen on 26 August 2026, on the first Windows CI run.
      */
     private static final char TILDE = '~';
 
@@ -43,22 +44,22 @@ public final class CommandLine {
     }
 
     public static boolean needsShell(String command) {
-        boolean inSingle = false, inDouble = false, debutDeMot = true;
+        boolean inSingle = false, inDouble = false, wordStart = true;
         for (int i = 0; i < command.length(); i++) {
             char c = command.charAt(i);
-            if (c == '\'' && !inDouble) { inSingle = !inSingle; debutDeMot = false; }
-            else if (c == '"' && !inSingle) { inDouble = !inDouble; debutDeMot = false; }
-            else if (inSingle || inDouble) debutDeMot = false;
-            else if (Character.isWhitespace(c)) debutDeMot = true;
+            if (c == '\'' && !inDouble) { inSingle = !inSingle; wordStart = false; }
+            else if (c == '"' && !inSingle) { inDouble = !inDouble; wordStart = false; }
+            else if (inSingle || inDouble) wordStart = false;
+            else if (Character.isWhitespace(c)) wordStart = true;
             else {
-                if (c == TILDE ? debutDeMot : SHELL_CHARS.indexOf(c) >= 0) return true;
-                debutDeMot = false;
+                if (c == TILDE ? wordStart : SHELL_CHARS.indexOf(c) >= 0) return true;
+                wordStart = false;
             }
         }
         return false;
     }
 
-    /** Découpage sur les espaces, en respectant les guillemets simples et doubles. */
+    /** Splitting on spaces, honouring single and double quotes. */
     static List<String> tokenize(String command) {
         List<String> out = new ArrayList<>();
         StringBuilder current = new StringBuilder();

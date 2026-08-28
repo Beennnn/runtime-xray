@@ -10,47 +10,47 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * La commande vient de l'utilisateur et n'a aucune forme imposée : un découpage approximatif
- * lancerait le mauvais programme, ou perdrait un argument sans le dire.
+ * The command comes from the user and has no imposed shape: an approximate split would
+ * launch the wrong program, or lose an argument without saying so.
  */
 class CommandLineTest {
 
     @Test
-    @DisplayName("Découpage simple sur les espaces")
+    @DisplayName("A simple split on spaces")
     void simpleCommand() {
         assertEquals(List.of("java", "-jar", "app.jar", "--profil", "recette"),
                 CommandLine.tokenize("java -jar app.jar --profil recette"));
     }
 
     @Test
-    @DisplayName("Un argument entre guillemets reste entier, espaces compris")
+    @DisplayName("A quoted argument stays whole, spaces included")
     void keepsQuotedArgumentsWhole() {
         assertEquals(List.of("java", "-jar", "mon app.jar", "--nom", "cas nominal"),
                 CommandLine.tokenize("java -jar \"mon app.jar\" --nom 'cas nominal'"));
     }
 
     @Test
-    @DisplayName("Les espaces multiples ne produisent pas d'arguments vides")
+    @DisplayName("Repeated spaces do not produce empty arguments")
     void collapsesRepeatedSpaces() {
         assertEquals(List.of("java", "-jar", "app.jar"),
                 CommandLine.tokenize("  java   -jar    app.jar  "));
     }
 
     @Test
-    @DisplayName("Un argument vide explicite est conservé")
+    @DisplayName("An explicitly empty argument is kept")
     void keepsExplicitEmptyArgument() {
         assertEquals(List.of("prog", ""), CommandLine.tokenize("prog \"\""));
     }
 
     @Test
-    @DisplayName("Une commande sans métacaractère n'a pas besoin d'interpréteur")
+    @DisplayName("A command without a metacharacter needs no interpreter")
     void plainCommandNeedsNoShell() {
         assertFalse(CommandLine.needsShell("java -jar app.jar --profil recette"));
         assertEquals("java", CommandLine.toProcessArgs("java -jar app.jar").get(0));
     }
 
     @Test
-    @DisplayName("Tubes, enchaînements et variables passent par l'interpréteur du système")
+    @DisplayName("Pipes, chaining and variables go through the system's interpreter")
     void shellConstructsNeedShell() {
         assertTrue(CommandLine.needsShell("java -jar app.jar | tee sortie.log"));
         assertTrue(CommandLine.needsShell("build && java -jar app.jar"));
@@ -59,26 +59,26 @@ class CommandLineTest {
     }
 
     @Test
-    @DisplayName("Un métacaractère à l'intérieur de guillemets n'impose pas l'interpréteur")
+    @DisplayName("A metacharacter inside quotes does not force the interpreter")
     void quotedMetacharacterIsNotAShellConstruct() {
-        // Le motif d'un filtre contient une étoile : ce n'est pas une construction de shell.
+        // A filter pattern contains a star: that is not a shell construct.
         assertFalse(CommandLine.needsShell("java -Dfilter=\"com/example/*\" -jar app.jar"));
     }
 
     @Test
-    @DisplayName("La commande passée à l'interpréteur n'est pas réécrite")
+    @DisplayName("The command passed to the interpreter is not rewritten")
     void shellCommandIsPassedVerbatim() {
         List<String> args = CommandLine.toProcessArgs("a && b");
         assertEquals("a && b", args.get(args.size() - 1));
     }
 
     @Test
-    @DisplayName("Un tilde au milieu d'un chemin n'est pas un caractère d'interpréteur")
+    @DisplayName("A tilde in the middle of a path is not a shell character")
     void aTildeInsideAPathIsNotAShellCharacter() {
-        // Les noms courts 8.3 de Windows en portent un, et ils sont partout :
-        // C:\Users\RUNNER~1, C:\PROGRA~1. Compter ce tilde comme une demande d'expansion
-        // envoyait la commande à « cmd /c » — elle s'exécutait, mais l'outil n'y lisait
-        // plus le -jar, donc plus le bytecode, donc un rapport vide sans explication.
+        // Windows's 8.3 short names carry one, and they are everywhere:
+        // C:\Users\RUNNER~1, C:\PROGRA~1. Counting that tilde as a request for expansion
+        // sent the command to "cmd /c" — it ran, but the tool no longer read the -jar in
+        // it, so no bytecode, so an empty report with no explanation.
         assertFalse(CommandLine.needsShell(
                 "java -jar C:\\Users\\RUNNER~1\\AppData\\Local\\Temp\\appli.jar"));
         assertEquals(List.of("java", "-jar", "C:\\Users\\RUNNER~1\\appli.jar"),
@@ -86,9 +86,9 @@ class CommandLineTest {
     }
 
     @Test
-    @DisplayName("Un tilde en tête de mot reste une expansion, donc un interpréteur")
+    @DisplayName("A tilde at the start of a word stays an expansion, so an interpreter")
     void aTildeStartingAWordStillNeedsAShell() {
-        // C'est là, et là seulement, qu'un interpréteur l'étend en répertoire personnel.
+        // That is where, and only where, an interpreter expands it to a home directory.
         assertTrue(CommandLine.needsShell("java -jar ~/apps/appli.jar"));
         assertTrue(CommandLine.needsShell("~/bin/java -jar appli.jar"));
     }

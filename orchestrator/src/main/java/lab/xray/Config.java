@@ -12,36 +12,35 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Les réglages d'une analyse.
+ * The settings of one analysis.
  *
- * <p>Le fichier de configuration est un simple {@code clé="valeur"} par ligne — pas de
- * YAML, pas de TOML : le format doit se lire et s'écrire à la main sans documentation,
- * et se relire ici sans bibliothèque.
+ * <p>The configuration file is a plain {@code key="value"} per line — no YAML, no TOML:
+ * the format must read and write by hand without documentation, and read back here
+ * without a library.
  *
- * <p>Quand le fichier attendu n'existe pas, on en écrit un {@linkplain #writeTemplate
- * gabarit commenté} plutôt que d'afficher une erreur : personne ne devrait avoir à
- * deviner des noms de clés.
+ * <p>When the expected file does not exist, a {@linkplain #writeTemplate commented
+ * template} is written rather than an error shown: nobody should have to guess key names.
  */
 public final class Config {
 
     public String javaCommand = "";
     public String rootMethod = "";
     /**
-     * Où trouver le bytecode analysé : répertoires de classes <b>et/ou</b> archives jar,
-     * séparés par {@code :} ou {@code ,}.
+     * Where to find the analysed bytecode: class directories <b>and/or</b> jar archives,
+     * separated by {@code :} or {@code ,}.
      *
-     * <p>Les jar comptent autant que les répertoires : le code que l'on cherche à
-     * comprendre est souvent une dépendance interne livrée sous cette forme — un module
-     * commun, une bibliothèque maison — et c'est justement celui dont personne n'a le
-     * modèle mental. L'outil de couverture sait lire les deux ; il n'y avait aucune raison
-     * de n'en accepter qu'un.
+     * <p>Jars count as much as directories: the code one is trying to understand is often
+     * an internal dependency delivered in that form — a shared module, a home-grown library
+     * — and it is precisely the one nobody has a mental model of. The coverage tool can
+     * read both; there was no reason to accept only one.
      */
     public String classesDir = "";
     /**
-     * Paquets à taire, au même titre que le JDK — {@code org.slf4j, io.netty}…
+     * Packages to keep quiet about, on the same footing as the JDK —
+     * {@code org.slf4j, io.netty}…
      *
-     * <p>Voir {@link PackageFilter} pour ce que « taire » veut dire exactement (le temps
-     * est reporté sur l'appelant, il n'est pas perdu).
+     * <p>See {@link PackageFilter} for what "keep quiet about" means exactly (the time is
+     * carried over to the caller, it is not lost).
      */
     public String hiddenPackages = "";
     public String sourceDirs = "";
@@ -52,36 +51,36 @@ public final class Config {
     public int maxSeconds = 600;
     public int watchCount = 10;
     /**
-     * Ce qu'on accepte de payer pour observer, par ordre de priorité des informations.
+     * What one accepts to pay in order to observe, in order of priority of the information.
      *
-     * <p>Sur un code d'entreprise, tout mesurer d'un coup n'est pas toujours tenable : la
-     * couverture instrumente chaque classe chargée, l'échantillonnage réveille la JVM mille
-     * fois par seconde, et la capture des valeurs intercepte chaque entrée d'une méthode.
-     * Les trois informations n'ont pourtant pas la même valeur : savoir <b>ce qui a tourné</b>
-     * passe avant savoir <b>qui appelle qui</b>, qui passe avant <b>avec quelles valeurs</b>.
-     * Le niveau retenu dit jusqu'où on va.
+     * <p>On enterprise code, measuring everything at once is not always tenable: coverage
+     * instruments every class loaded, sampling wakes the JVM a thousand times a second, and
+     * value capture intercepts every entry into a method. The three pieces of information
+     * are not worth the same, though: knowing <b>what ran</b> comes before knowing <b>who
+     * calls whom</b>, which comes before <b>with which values</b>. The level chosen says
+     * how far one goes.
      *
      * <ul>
-     *   <li>{@code couverture} — JaCoCo seul ;</li>
-     *   <li>{@code arbre} — plus l'échantillonnage des piles ;</li>
-     *   <li>{@code complet} — plus la capture des valeurs (défaut).</li>
+     *   <li>{@code coverage} — JaCoCo alone;</li>
+     *   <li>{@code tree} — plus stack sampling;</li>
+     *   <li>{@code full} — plus value capture (the default).</li>
      * </ul>
      */
     public String level = "complet";
 
-    /** Les trois niveaux, sous leur nom interne. */
-    public static final java.util.List<String> NIVEAUX =
+    /** The three levels, under their internal name. */
+    public static final java.util.List<String> LEVELS =
             java.util.List.of("couverture", "arbre", "complet");
 
     /**
-     * Le niveau ramené à son nom interne.
+     * The level brought back to its internal name.
      *
-     * <p>L'outil parle anglais : {@code coverage}, {@code tree}, {@code full}. Les noms
-     * français restent acceptés, à vie et sans être documentés — un script déployé avant
-     * la bascule ne doit jamais cesser de marcher pour une question de langue.
+     * <p>The tool speaks English: {@code coverage}, {@code tree}, {@code full}. The French
+     * names stay accepted, for life and undocumented — a script deployed before the switch
+     * must never stop working over a question of language.
      */
-    public static String niveau(String valeur) {
-        String v = valeur == null ? "" : valeur.trim().toLowerCase(java.util.Locale.ROOT);
+    public static String level(String value) {
+        String v = value == null ? "" : value.trim().toLowerCase(java.util.Locale.ROOT);
         return switch (v) {
             case "coverage" -> "couverture";
             case "tree" -> "arbre";
@@ -90,46 +89,46 @@ public final class Config {
         };
     }
     /**
-     * Classes que JaCoCo instrumente, au format de son agent — {@code com.example.*}, plusieurs
-     * motifs séparés par {@code :}. Vide : tout ce que la JVM charge, y compris les
-     * bibliothèques tierces, ce qui est le plus coûteux et rarement le plus utile.
+     * Classes JaCoCo instruments, in its agent's format — {@code com.example.*}, several
+     * patterns separated by {@code :}. Empty: everything the JVM loads, third-party
+     * libraries included, which is the most expensive and rarely the most useful.
      */
     public String coverIncludes = "";
     /**
-     * Intervalle d'échantillonnage des piles, en millisecondes. L'augmenter est le levier le
-     * plus direct sur le coût du profil : à 10 ms, dix fois moins de relevés qu'à 1 ms.
+     * The stack sampling interval, in milliseconds. Raising it is the most direct lever on
+     * the profile's cost: at 10 ms, ten times fewer samples than at 1 ms.
      */
     public int sampleIntervalMs = 1;
 
     /**
-     * Le port de la page de suivi, ou 0 pour ne rien servir.
+     * The follow page's port, or 0 to serve nothing.
      *
-     * <p>Zéro par défaut, et c'est délibéré : {@code progression.jsonl} s'écrit de toute
-     * façon, et ouvrir un port sans qu'on l'ait demandé est une décision qui ne se prend
-     * pas à la place de l'exploitant.
+     * <p>Zero by default, and deliberately so: {@code progression.jsonl} is written anyway,
+     * and opening a port without being asked to is a decision one does not take on the
+     * operator's behalf.
      */
-    public int suiviPort = 0;
+    public int followPort = 0;
     /**
-     * Formats de réécriture demandés — {@code perf}, {@code cpuprofile}, {@code lcov},
-     * {@code valeurs}, ou {@code tout}. Vide : aucun export, et rien d'écrit en plus.
+     * Rewrite formats requested — {@code perf}, {@code cpuprofile}, {@code lcov},
+     * {@code values}, or {@code all}. Empty: no export, and nothing written extra.
      */
     public String exportFormats = "";
     /**
-     * Nombre d'invocations dont on trace l'arbre d'appel.
+     * How many invocations have their call tree traced.
      *
-     * <p>Chaque invocation empruntant des branches différentes, ce nombre détermine
-     * combien de lignes du code pourront être annotées : avec une seule, on ne voit que
-     * le chemin de cet appel-là. Le coût est faible — une invocation tracée fait quelques
-     * dizaines de lignes de sortie — donc la valeur par défaut est généreuse.
+     * <p>Since each invocation takes different branches, this number decides how many lines
+     * of code can be annotated: with only one, one sees the path of that call alone. The
+     * cost is low — one traced invocation makes a few dozen lines of output — so the
+     * default is generous.
      */
     public int traceCount = 10;
     public boolean captureValues = true;
-    /** Dépôt Maven d'où récupérer les composants. Un miroir interne suffit. */
+    /** The Maven repository to fetch the components from. An internal mirror is enough. */
     public String mavenRepo = "https://repo1.maven.org/maven2";
     /**
-     * Répertoire où chercher les composants déjà présents sur la machine, avant tout
-     * accès au réseau. Ce qu'il contient prime sur ce qui pourrait être téléchargé —
-     * c'est le geste de celui qui les a apportés lui-même.
+     * Directory to look in for components already present on the machine, before any
+     * network access. What it holds takes priority over what might be downloaded — it is
+     * the gesture of whoever brought them along.
      */
     public String componentsDir = "";
 
@@ -148,7 +147,7 @@ public final class Config {
     }
 
     private static String unquote(String v) {
-        // On coupe un éventuel commentaire de fin de ligne, mais seulement hors guillemets.
+        // A trailing comment is cut off, but only outside quotes.
         if (v.startsWith("\"")) {
             int end = v.indexOf('"', 1);
             return end > 0 ? v.substring(1, end) : v.substring(1);
@@ -176,9 +175,9 @@ public final class Config {
             case "LEVEL", "NIVEAU" -> level = value;
             case "COVER_INCLUDES" -> coverIncludes = value;
             case "SAMPLE_INTERVAL_MS" -> sampleIntervalMs = parse(value, sampleIntervalMs);
-            case "FOLLOW_PORT", "SUIVI_PORT" -> suiviPort = parse(value, suiviPort);
+            case "FOLLOW_PORT", "SUIVI_PORT" -> followPort = parse(value, followPort);
             case "TRACE_COUNT" -> traceCount = parse(value, traceCount);
-            default -> { /* une clé inconnue n'est pas une erreur : le fichier peut servir à autre chose */ }
+            default -> { /* an unknown key is not an error: the file can serve other purposes */ }
         }
     }
 
@@ -190,7 +189,7 @@ public final class Config {
         }
     }
 
-    /** Le filtre de profil se déduit du paquet de la méthode racine, faute de consigne. */
+    /** The profile filter is deduced from the root method's package, failing an instruction. */
     public String effectiveFilter() {
         if (!classFilter.isBlank()) return classFilter;
         if (rootMethod.isBlank()) return "";
@@ -199,81 +198,81 @@ public final class Config {
         return dot < 0 ? "" : cls.substring(0, dot).replace('.', '/') + "/*";
     }
 
-    /** Les entrées de {@link #classesDir}, répertoires ou jar, dans l'ordre donné. */
+    /** The entries of {@link #classesDir}, directories or jars, in the order given. */
     public List<Path> classesPaths() {
-        return chemins(classesDir);
+        return paths(classesDir);
     }
 
     /**
-     * Une liste de chemins telle qu'on l'écrit dans la configuration — <b>lecteur Windows
-     * compris</b>.
+     * A list of paths as it is written in the configuration — <b>Windows drive letters
+     * included</b>.
      *
-     * <p>Le séparateur documenté est {@code :}, ce qui va de soi sur Unix et ne va pas du tout
-     * sur Windows : {@code C:\projet\src} y commence par un {@code :} qui n'est pas un
-     * séparateur. Découpé bêtement, ce chemin donnait deux entrées — {@code C} et
-     * {@code \projet\src} — dont aucune n'existe, et l'outil concluait « répertoire
-     * introuvable » sur un chemin parfaitement valide que l'utilisateur avait sous les yeux.
+     * <p>The documented separator is {@code :}, which goes without saying on Unix and not
+     * at all on Windows: {@code C:\project\src} starts there with a {@code :} that is not a
+     * separator. Split naively, that path gave two entries — {@code C} and
+     * {@code \project\src} — neither of which exists, and the tool concluded "directory not
+     * found" about a perfectly valid path the user had in front of them.
      *
-     * <p>Le {@code :} qui suit une lettre seule en tête de segment et précède un séparateur de
-     * chemin est donc rendu au chemin. {@code ;} — le séparateur natif de Windows — et
-     * {@code ,} sont acceptés en plus, parce que c'est ce qu'un utilisateur de Windows écrira
-     * spontanément.
+     * <p>A {@code :} that follows a single letter at the start of a segment and precedes a
+     * path separator is therefore given back to the path. {@code ;} — Windows's native
+     * separator — and {@code ,} are accepted as well, because that is what a Windows user
+     * will write spontaneously.
      */
-    public static List<Path> chemins(String valeur) {
+    public static List<Path> paths(String value) {
         List<Path> paths = new ArrayList<>();
-        for (String part : decouper(valeur)) {
-            if (!part.isBlank()) paths.add(Path.of(part.trim()));
+        for (String piece : split(value)) {
+            if (!piece.isBlank()) paths.add(Path.of(piece.trim()));
         }
         return paths;
     }
 
-    /** Le découpage seul, sans interprétation : c'est lui que les tests éprouvent. */
-    static List<String> decouper(String valeur) {
+    /** The splitting alone, without interpretation: it is what the tests exercise. */
+    static List<String> split(String value) {
         List<String> out = new ArrayList<>();
-        if (valeur == null) return out;
-        StringBuilder courant = new StringBuilder();
-        for (int i = 0; i < valeur.length(); i++) {
-            char c = valeur.charAt(i);
-            boolean separe = (c == ',' || c == ';')
-                    || (c == ':' && !lettreDeLecteur(valeur, i));
-            if (separe) {
-                out.add(courant.toString());
-                courant.setLength(0);
+        if (value == null) return out;
+        StringBuilder current = new StringBuilder();
+        for (int i = 0; i < value.length(); i++) {
+            char c = value.charAt(i);
+            boolean separates = (c == ',' || c == ';')
+                    || (c == ':' && !driveLetter(value, i));
+            if (separates) {
+                out.add(current.toString());
+                current.setLength(0);
             } else {
-                courant.append(c);
+                current.append(c);
             }
         }
-        out.add(courant.toString());
+        out.add(current.toString());
         return out;
     }
 
     /**
-     * Vrai si ce {@code :} est celui d'un lecteur Windows, et non un séparateur.
+     * True when this {@code :} belongs to a Windows drive, and is not a separator.
      *
-     * <p>Trois conditions, et il les faut toutes : une lettre juste avant, cette lettre en
-     * tête de segment, et un séparateur de chemin juste après. {@code C:\x} est un lecteur ;
-     * {@code src:autre} ne l'est pas, ni {@code ab:c}.
+     * <p>Three conditions, and all three are needed: a letter just before, that letter at
+     * the start of a segment, and a path separator just after. {@code C:\x} is a drive;
+     * {@code src:other} is not, nor is {@code ab:c}.
      */
-    private static boolean lettreDeLecteur(String v, int i) {
+    private static boolean driveLetter(String v, int i) {
         if (i < 1 || !Character.isLetter(v.charAt(i - 1))) return false;
         if (i >= 2) {
-            char avant = v.charAt(i - 2);
-            boolean debutDeSegment = avant == ',' || avant == ';' || avant == ':'
-                    || Character.isWhitespace(avant);
-            if (!debutDeSegment) return false;
+            char before = v.charAt(i - 2);
+            boolean segmentStart = before == ',' || before == ';' || before == ':'
+                    || Character.isWhitespace(before);
+            if (!segmentStart) return false;
         }
         return i + 1 < v.length() && (v.charAt(i + 1) == '\\' || v.charAt(i + 1) == '/');
     }
 
-    /** Vrai si le niveau demandé va jusqu'à l'échantillonnage des piles. */
+    /** True when the level requested goes as far as stack sampling. */
     public boolean profileWanted() {
-        return !"couverture".equals(niveau(level));
+        return !"couverture".equals(level(level));
     }
 
-    /** Vrai si le niveau demandé va jusqu'à la capture des valeurs. */
+    /** True when the level requested goes as far as value capture. */
     public boolean valuesWanted() {
         String l = level.trim();
-        return captureValues && ("complet".equals(niveau(l)) || l.isBlank());
+        return captureValues && ("complet".equals(level(l)) || l.isBlank());
     }
 
     public PackageFilter hidden() {
@@ -293,8 +292,8 @@ public final class Config {
         m.put("paquetsMasques", hiddenPackages.isBlank() ? null : hiddenPackages);
         m.put("repertoiresSources", sourceDirs.isBlank() ? null : sourceDirs);
         m.put("valeursInspectees", valuesWanted() && !rootMethod.isBlank());
-        // Le niveau et ses réglages voyagent avec l'exécution : sans eux, un rapport moins
-        // fourni qu'un autre se lit comme une mesure ratée plutôt que comme un choix.
+        // The level and its settings travel with the run: without them, a report less
+        // full than another reads as a failed measurement rather than as a choice.
         m.put("niveau", level);
         m.put("classesInstrumentees", coverIncludes.isBlank() ? null : coverIncludes);
         m.put("intervalleMs", sampleIntervalMs);
@@ -311,130 +310,130 @@ public final class Config {
             # ---------------------------------------------------------------------------
             # Runtime X-Ray — configuration
             #
-            #   java -jar runtime-xray.jar --config ce-fichier.conf
+            #   java -jar runtime-xray.jar --config this-file.conf
             #
-            # Seule JAVA_CMD est obligatoire. Le reste a des valeurs par défaut raisonnables,
-            # et les lignes commentées montrent d'autres usages.
+            # Only JAVA_CMD is required. Everything else has sensible defaults, and the
+            # commented lines show other uses.
             # ---------------------------------------------------------------------------
 
-            # ── Comment lancer l'application ────────────────────────────────── OBLIGATOIRE
-            # Aucune contrainte : la commande est exécutée telle quelle. Les agents d'analyse
-            # sont injectés par JAVA_TOOL_OPTIONS, que toute JVM lit à son démarrage.
-            JAVA_CMD="java -jar target/mon-appli.jar"
-            #JAVA_CMD="java -Xmx2g -jar target/mon-appli.jar --profil recette --jeu 42"
+            # ── How to launch the application ──────────────────────────────────── REQUIRED
+            # No constraint: the command is executed as it is. The analysis agents are
+            # injected through JAVA_TOOL_OPTIONS, which every JVM reads at start-up.
+            JAVA_CMD="java -jar target/my-app.jar"
+            #JAVA_CMD="java -Xmx2g -jar target/my-app.jar --profile acceptance --set 42"
             #JAVA_CMD="mvn -q exec:java -Dexec.mainClass=com.example.Main"
-            #JAVA_CMD="./gradlew run --args='--profil recette'"
-            #JAVA_CMD="./scripts/demarrer-en-recette.sh"
+            #JAVA_CMD="./gradlew run --args='--profile acceptance'"
+            #JAVA_CMD="./scripts/start-acceptance.sh"
 
-            # ── Les classes compilées ──────────────────────────────────────────── facultatif
-            # Normalement INUTILE : le bytecode analysé est lu sur les arguments réels de la
-            # JVM observée, et à défaut déduit de la disposition du projet (target/classes,
-            # build/classes/java/main…). Les jar de dépendances sont écartés à dessein.
+            # ── The compiled classes ──────────────────────────────────────────── optional
+            # Normally UNNECESSARY: the analysed bytecode is read off the observed JVM's real
+            # arguments, and failing that deduced from the project's layout (target/classes,
+            # build/classes/java/main…). Dependency jars are left out on purpose.
             #
-            # Ne l'écrire que pour analyser AUTRE CHOSE : une dépendance interne livrée
-            # compilée, un jar « gras », ou un module précis.
-            # Répertoires ET archives jar sont acceptés, séparés par ':' (ou ';' sous
-            # Windows, où un chemin commence par « C: »). Ajouter le jar
-            # d'une dépendance interne la fait entrer dans l'analyse au même titre que le
-            # code du projet — c'est souvent elle que l'on cherche à comprendre.
-            #CLASSES_DIR="target/classes:libs/module-commun-3.2.jar"  # + une dépendance
-            #CLASSES_DIR="target/mon-appli-boot.jar"                   # un jar « gras »
-            #CLASSES_DIR="modules/facturation/target/classes"          # un module précis
+            # Only write it to analyse SOMETHING ELSE: an internal dependency delivered
+            # compiled, a "fat" jar, or one precise module.
+            # Directories AND jar archives are accepted, separated by ':' (or ';' on
+            # Windows, where a path starts with "C:"). Adding an internal dependency's jar
+            # brings it into the analysis on the same footing as the project's code — it is
+            # often the one you are trying to understand.
+            #CLASSES_DIR="target/classes:libs/shared-module-3.2.jar"  # + a dependency
+            #CLASSES_DIR="target/my-app-boot.jar"                      # a "fat" jar
+            #CLASSES_DIR="modules/billing/target/classes"              # one precise module
 
-            # ── Les paquets à ne pas voir ───────────────────────────────────── facultatif
-            # Le JDK est toujours masqué : personne n'ouvre java.util.ArrayList pour
-            # comprendre son application. La même chose vaut pour des bibliothèques qui n'en
-            # font pas partie mais que l'on considère comme de l'infrastructure — un
-            # journal, un client HTTP, un cadriciel d'injection.
+            # ── The packages not to see ───────────────────────────────────────── optional
+            # The JDK is always hidden: nobody opens java.util.ArrayList to understand their
+            # application. The same holds for libraries that are not part of it but that one
+            # treats as infrastructure — a logger, an HTTP client, an injection framework.
             #
-            # Où passe cette frontière dépend de ce que l'équipe possède et de ce qu'elle
-            # subit : c'est un choix, pas une règle, d'où ce réglage.
+            # Where that boundary lies depends on what the team owns and what it merely puts
+            # up with: it is a choice, not a rule, hence this setting.
             #
-            # Le temps des paquets masqués n'est pas perdu : il est attribué à la méthode
-            # applicative qui les a appelés, exactement comme pour le JDK.
+            # The time of the hidden packages is not lost: it is attributed to the
+            # application method that called them, exactly as for the JDK.
             #HIDDEN_PACKAGES="org.slf4j, ch.qos.logback"
             #HIDDEN_PACKAGES="org.slf4j, io.netty, org.springframework, com.fasterxml"
 
-            # ── La méthode racine ───────────────────────────────────────────── recommandé
-            # La fonction dont on veut voir les valeurs des paramètres et l'arbre d'un appel.
-            # Format paquet.Classe::methode. Choisir un point d'entrée MÉTIER : un traitement,
-            # un calcul, une commande — pas un main, pas un accesseur.
-            # Laisser vide pour n'obtenir que la couverture et les temps.
-            ROOT_METHOD="com.example.moteur.Calculateur::calculer"
-            #ROOT_METHOD="com.example.api.CommandeService::valider"
+            # ── The root method ───────────────────────────────────────────── recommended
+            # The function whose argument values and single-call tree you want to see.
+            # Format package.Class::method. Pick a BUSINESS entry point: a processing step,
+            # a computation, a command — not a main, not an accessor.
+            # Leave it empty to get coverage and times only.
+            ROOT_METHOD="com.example.engine.Calculator::compute"
+            #ROOT_METHOD="com.example.api.OrderService::validate"
             #ROOT_METHOD=""
 
-            # ── Les sources ─────────────────────────────────────────────────── recommandé
-            # Pour afficher le code annoté. Plusieurs racines : séparées par ':' — ou par
-            # ';' sous Windows, où un chemin absolu commence lui-même par « C: ».
+            # ── The sources ───────────────────────────────────────────────── recommended
+            # To show the annotated code. Several roots: separated by ':' — or by ';' on
+            # Windows, where an absolute path itself starts with "C:".
             SOURCE_DIRS="src/main/java"
             #SOURCE_DIRS="src/main/java:src/generated/java"
 
-            # ── Le nom de cette exécution ───────────────────────────────────── facultatif
-            # Les exécutions s'accumulent dans <OUT_DIR>/runs/ et la vue permet de passer de
-            # l'une à l'autre. Un nom parlant vaut mieux qu'un horodatage.
-            # Il reste modifiable après coup, sans relancer : voir OUT_DIR/noms.json.
-            #RUN_NAME="recette v2"
+            # ── The name of this run ──────────────────────────────────────────── optional
+            # Runs accumulate under <OUT_DIR>/runs/ and the view lets you move from one to
+            # the next. A telling name is worth more than a timestamp.
+            # It stays changeable afterwards, without running again: see OUT_DIR/noms.json.
+            #RUN_NAME="acceptance v2"
             #RUN_NAME="incident 4712"
 
-            # ── Le filtre de profil ─────────────────────────────────────────── facultatif
-            # Restreint les mesures de temps au code applicatif. Sans lui, la majorité des
-            # relevés concernent le compilateur interne de la JVM : exact, mais illisible.
-            # Déduit du paquet de ROOT_METHOD s'il est absent.
+            # ── The profile filter ────────────────────────────────────────────── optional
+            # Restricts the time measurements to the application's code. Without it, most of
+            # the samples concern the JVM's own compiler: exact, but unreadable.
+            # Deduced from ROOT_METHOD's package when absent.
             #CLASS_FILTER="com/example/*"
 
-            # ── Sortie et garde-fous ────────────────────────────────────────── facultatif
+            # ── Output and safety limits ──────────────────────────────────────── optional
             OUT_DIR="runtime-xray-out"
 
-            # Délai avant d'inspecter les valeurs. L'application doit avoir démarré ET être
-            # encore en train de travailler. Si elle est trop rapide, augmenter sa charge
-            # plutôt que de réduire ce délai : un relevé sur deux secondes ne dit rien.
+            # Delay before inspecting the values. The application must have started AND
+            # still be working. If it is too fast, increase its load rather than shortening
+            # this delay: a reading over two seconds says nothing.
             ATTACH_AFTER=8
 
-            # Au-delà, l'exécution est interrompue et les rapports sont tout de même produits.
+            # Beyond this the run is stopped, and the reports are produced all the same.
             MAX_SECONDS=600
 
-            # Nombre d'appels dont on capture les valeurs, toutes méthodes de la classe racine.
+            # How many calls have their values captured, across the root class's methods.
             WATCH_COUNT=10
 
-            # Nombre d'invocations dont on trace l'arbre d'appel. Chaque invocation emprunte
-            # des branches différentes : plus il y en a, plus de lignes du code portent
-            # l'annotation « appelle … ». Le coût est faible.
+            # How many invocations have their call tree traced. Each invocation takes
+            # different branches: the more there are, the more lines of code carry the
+            # "calls …" annotation. The cost is low.
             TRACE_COUNT=10
 
-            # ── L'empreinte sur l'application observée ──────────────────────── facultatif
-            # Trois informations, pas la même valeur ni le même coût : ce qui a tourné passe
-            # avant qui appelle qui, qui passe avant avec quelles valeurs. NIVEAU dit jusqu'où
-            # on va, et c'est le premier réglage à baisser quand la mesure devient trop chère.
+            # ── The footprint on the observed application ─────────────────────── optional
+            # Three pieces of information, not the same value nor the same cost: what ran
+            # comes before who calls whom, which comes before with which values. LEVEL says
+            # how far one goes, and it is the first setting to lower when the measurement
+            # becomes too expensive.
             #
-            #   couverture  JaCoCo seul — le moins cher, et l'information la plus sûre
-            #   arbre       + l'échantillonnage des piles
-            #   complet     + la capture des valeurs (défaut)
-            #NIVEAU="arbre"
+            #   coverage  JaCoCo alone — the cheapest, and the most reliable information
+            #   tree      + stack sampling
+            #   full      + value capture (the default)
+            #NIVEAU="tree"
 
-            # Classes que JaCoCo instrumente, au format de son agent (motifs séparés par ':').
-            # Sans ce réglage, TOUTE classe chargée est instrumentée, dépendances comprises :
-            # c'est le poste de coût principal sur une application d'entreprise.
-            #COVER_INCLUDES="com.example.*:com.example.commun.*"
+            # Classes JaCoCo instruments, in its agent's format (patterns separated by ':').
+            # Without this setting, EVERY class loaded is instrumented, dependencies
+            # included: it is the main cost centre on an enterprise application.
+            #COVER_INCLUDES="com.example.*:com.example.shared.*"
 
-            # Intervalle d'échantillonnage des piles, en millisecondes. Le multiplier par dix
-            # divise par dix le nombre de relevés — et le coût qui va avec.
+            # The stack sampling interval, in milliseconds. Multiplying it by ten divides
+            # the number of samples — and the cost that goes with it — by ten.
             #SAMPLE_INTERVAL_MS=10
 
-            # Réécriture des mesures pour d'autres outils : perf, cpuprofile, lcov, valeurs,
-            # ou « tout ». Les fichiers vont dans <exécution>/exports/.
+            # Rewriting the measurements for other tools: perf, cpuprofile, lcov, values,
+            # or "all". The files go into <run>/exports/.
             #EXPORT="cpuprofile,lcov"
 
-            # Servir le rapport ne se règle pas ici : c'est un mode de lancement, pas une
-            # propriété du projet. « --serve » sert le répertoire de sortie et laisse la page
-            # écrire ses annotations à côté des exécutions ; « --serve-host 0.0.0.0 » en fait
-            # un serveur partagé, où plusieurs personnes annotent en parallèle, que
-            # « --serve-token » ferme par un secret (XRAY_SERVE_TOKEN pour ne pas l'exposer
-            # dans « ps »). Un secret ne se range pas dans un fichier suivi en version.
+            # Serving the report is not set here: it is a way of launching, not a property
+            # of the project. "--serve" serves the output directory and lets the page write
+            # its annotations beside the runs; "--serve-host 0.0.0.0" makes it a shared
+            # server, where several people annotate in parallel, which "--serve-token"
+            # closes with a secret (XRAY_SERVE_TOKEN so as not to expose it in "ps"). A
+            # secret does not belong in a file under version control.
 
-            # Dépôt d'où récupérer les composants d'analyse, une seule fois. Sur un réseau
-            # fermé, indiquer le miroir interne : c'est le seul réglage qui compte pour
-            # fonctionner sans accès à Internet.
-            #MAVEN_REPO="https://nexus.interne.exemple.com/repository/maven-public"
+            # The repository to fetch the analysis components from, once. On a closed
+            # network, name the internal mirror: it is the only setting that matters for
+            # working without access to the Internet.
+            #MAVEN_REPO="https://nexus.internal.example.com/repository/maven-public"
             """;
 }

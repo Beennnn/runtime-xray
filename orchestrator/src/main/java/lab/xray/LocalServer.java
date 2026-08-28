@@ -23,57 +23,57 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
- * Le rapport servi, pour que les annotations cessent d'être prisonnières d'un navigateur.
+ * The served report, so that annotations stop being prisoners of one browser.
  *
- * <p>Une page ouverte comme fichier ne peut rien écrire sur le disque — c'est une règle du
- * navigateur, et c'est aussi ce qui rend la page transmissible telle quelle. Les noms,
- * descriptions, étiquettes et élagages saisis dedans vivent donc dans le navigateur de
- * chacun. C'est le mode le plus simple, et il suffit souvent.
+ * <p>A page opened as a file cannot write anything to disk — that is a browser rule, and it
+ * is also what makes the page sendable as it is. The names, descriptions, tags and prunings
+ * typed into it therefore live in each person's browser. That is the simplest mode, and it
+ * is often enough.
  *
- * <p>Ce serveur ouvre les deux autres :
+ * <p>This server opens the other two:
  * <ul>
- *   <li><b>sur son poste</b> — {@code --serve} : la page écrit ses annotations à côté des
- *       exécutions — voir {@link Annotations} pour les emplacements possibles — et le
- *       rapport est régénéré, pour que l'annotation y soit acquise même hors serveur ;</li>
- *   <li><b>déployé quelque part</b> — {@code --serve --serve-host 0.0.0.0} : on y dépose
- *       les résultats, tout le monde y accède par un navigateur, et <b>plusieurs
- *       personnes annotent en parallèle</b>. Les exécutions déposées pendant qu'il tourne
- *       sont prises en compte toutes seules : voir la veille, plus bas.</li>
+ *   <li><b>on one's own machine</b> — {@code --serve}: the page writes its annotations
+ *       beside the runs — see {@link Annotations} for the possible locations — and the
+ *       report is regenerated, so that the annotation is acquired even away from the
+ *       server;</li>
+ *   <li><b>deployed somewhere</b> — {@code --serve --serve-host 0.0.0.0}: results are
+ *       dropped there, everyone reaches them through a browser, and <b>several people
+ *       annotate in parallel</b>. Runs dropped while it runs are taken into account on
+ *       their own: see the watcher, below.</li>
  * </ul>
  *
- * <p>Le parallélisme est la seule difficulté réelle, et elle est traitée là où elle se
- * pose : <b>l'écriture porte sur une exécution</b>, pas sur le fichier entier. Deux
- * personnes qui annotent deux exécutions ne se voient donc jamais. Deux personnes sur la
- * <b>même</b> exécution sont départagées par l'empreinte de ce qu'elles avaient sous les
- * yeux : la seconde reçoit un refus et la version courante, plutôt que d'écraser en
- * silence le travail de la première.
+ * <p>Concurrency is the only real difficulty, and it is dealt with where it arises: <b>a
+ * write targets one run</b>, not the whole file. Two people annotating two runs therefore
+ * never see each other. Two people on the <b>same</b> run are settled by the fingerprint of
+ * what they had in front of them: the second gets a refusal and the current version, rather
+ * than silently overwriting the first one's work.
  *
- * <p>Il n'écoute que la boucle locale par défaut, et la seule écriture qu'il accepte est
- * l'annotation d'une exécution, dans un fichier dont il choisit lui-même le nom. Déployé
- * au-delà, {@code --serve-token} lui donne un secret partagé — voir {@link Access} pour ce
- * que ce secret vaut et ne vaut pas. Sans secret, l'avertissement est imprimé au démarrage :
- * il se met alors derrière ce qui filtre déjà les accès de l'entreprise.
+ * <p>It only listens on the loopback by default, and the only write it accepts is the
+ * annotation of a run, into a file whose name it chooses itself. Deployed beyond that,
+ * {@code --serve-token} gives it a shared secret — see {@link Access} for what that secret
+ * is and is not worth. Without a secret, the warning is printed at start-up: it then sits
+ * behind whatever already filters the company's access.
  */
 public final class LocalServer {
 
     private static final int MAX_BODY = 4 * 1024 * 1024;
 
-    /** Les écritures sont sérialisées : lire, fondre, écrire ne doit pas s'entrelacer. */
+    /** Writes are serialised: read, merge, write must not interleave. */
     private static final ReentrantLock LOCK = new ReentrantLock();
 
     private LocalServer() {}
 
     /**
-     * Sert {@code outDir} et bloque jusqu'à l'interruption.
+     * Serves {@code outDir} and blocks until interrupted.
      *
-     * @param host  interface d'écoute — {@code 127.0.0.1} par défaut
-     * @param rebuild régénère la page après une écriture, en arrière-plan : sans lui, une
-     *                page rouverte comme fichier afficherait l'annotation d'avant
+     * @param host  the listening interface — {@code 127.0.0.1} by default
+     * @param rebuild regenerates the page after a write, in the background: without it, a
+     *                page reopened as a file would show the previous annotation
      */
     public static void serve(Path outDir, String host, int port, Callable<Void> rebuild,
-                             Access acces) throws IOException {
-        HttpServer server = start(outDir, host, port, rebuild, acces);
-        annonce(outDir.toAbsolutePath().normalize(), host, port, acces);
+                             Access access) throws IOException {
+        HttpServer server = start(outDir, host, port, rebuild, access);
+        announcement(outDir.toAbsolutePath().normalize(), host, port, access);
 
         CountDownLatch stop = new CountDownLatch(1);
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
@@ -88,19 +88,19 @@ public final class LocalServer {
     }
 
     /**
-     * Monte et démarre le serveur, sans bloquer.
+     * Builds and starts the server, without blocking.
      *
-     * <p>Séparé de {@link #serve} pour que les tests puissent le lancer sur un port choisi
-     * par le système, l'interroger, puis l'arrêter — un serveur qui ne rend jamais la main
-     * ne se teste pas.
+     * <p>Separate from {@link #serve} so that the tests can launch it on a port chosen by
+     * the system, query it, then stop it — a server that never hands control back cannot be
+     * tested.
      */
     static HttpServer start(Path outDir, String host, int port, Callable<Void> rebuild)
             throws IOException {
-        return start(outDir, host, port, rebuild, Access.ouvert());
+        return start(outDir, host, port, rebuild, Access.open());
     }
 
     static HttpServer start(Path outDir, String host, int port, Callable<Void> rebuild,
-                            Access acces) throws IOException {
+                            Access access) throws IOException {
         Path root = outDir.toAbsolutePath().normalize();
         InetAddress address = "0.0.0.0".equals(host) || "*".equals(host)
                 ? new InetSocketAddress(port).getAddress()
@@ -108,77 +108,77 @@ public final class LocalServer {
         HttpServer server = HttpServer.create(new InetSocketAddress(address, port), 0);
         Rebuilder rebuilder = new Rebuilder(rebuild);
 
-        // La page interroge ce chemin au chargement : c'est ce qui lui dit qu'elle peut
-        // proposer « Enregistrer » plutôt que le seul export de fichier.
+        // The page queries this path on load: that is what tells it that it can offer
+        // "Save" rather than a file export alone.
         server.createContext("/__xray/ping", ex -> {
             noCache(ex);
-            if (barre(ex, acces)) return;
-            json(ex, 200, Map.of("peutEcrire", true, "fichier", Annotations.DANS_LE_RUN,
-                    "garde", acces.garde()));
+            if (bar(ex, access)) return;
+            json(ex, 200, Map.of("peutEcrire", true, "fichier", Annotations.IN_THE_RUN,
+                    "garde", access.guards()));
         });
 
-        // La porte, quand il y a un secret : un formulaire, et le cookie qui s'ensuit.
-        if (acces.garde()) server.createContext("/__xray/entrer", ex -> {
+        // The door, when there is a secret: a form, and the cookie that follows.
+        if (access.guards()) server.createContext("/__xray/entrer", ex -> {
             try {
-                entrer(ex, acces);
+                entrer(ex, access);
             } catch (Exception e) {
-                // Un gestionnaire qui remonte une exception n'envoie RIEN : le navigateur
-                // voit une connexion coupée, et personne ne sait pourquoi il ne peut pas
-                // entrer. Mieux vaut une erreur nommée.
+                // A handler that lets an exception through sends NOTHING: the browser
+                // sees a cut connection, and nobody knows why they cannot get in. A named
+                // error is better.
                 System.err.println("   entry page failed: " + e);
                 text(ex, 500, String.valueOf(e.getMessage()));
             }
         });
 
-        // Les annotations partagées, avec l'empreinte de chacune : c'est elle qui permet de
-        // détecter qu'une exécution a bougé pendant qu'on l'annotait.
+        // The shared annotations, each with its fingerprint: that is what makes it
+        // possible to detect that a run moved while it was being annotated.
         server.createContext("/__xray/noms", ex -> {
             noCache(ex);
-            if (barre(ex, acces)) return;
+            if (bar(ex, access)) return;
             try {
                 String method = ex.getRequestMethod().toUpperCase(Locale.ROOT);
                 String rest = ex.getRequestURI().getPath().substring("/__xray/noms".length());
                 String uuid = rest.startsWith("/") ? rest.substring(1) : "";
 
                 if (method.equals("GET")) {
-                    Map<String, Object> tout = annotationsEffectives(root);
-                    // La révision dit à la page si le rapport a changé sous ses pieds —
-                    // une exécution déposée, une autre retirée. Elle la relit à intervalle
-                    // régulier de toute façon : autant qu'elle l'apprenne là.
+                    Map<String, Object> all = effectiveAnnotations(root);
+                    // The revision tells the page whether the report changed under its
+                    // feet — a run dropped, another removed. It re-reads it at regular
+                    // intervals anyway: it may as well learn it there.
                     String revision = revision(root);
-                    // Une empreinte pour CHAQUE exécution, y compris celles qui n'ont pas
-                    // encore d'annotation : sans elle, la première écriture n'aurait rien à
-                    // comparer, et deux personnes qui créent la même annotation en même
-                    // temps ne se verraient pas.
-                    Map<String, Object> empreintes = new LinkedHashMap<>();
+                    // One fingerprint for EVERY run, including those that have no
+                    // annotation yet: without it the first write would have nothing to
+                    // compare against, and two people creating the same annotation at the
+                    // same time would not see each other.
+                    Map<String, Object> fingerprints = new LinkedHashMap<>();
                     Annotations.runsByUuid(root).forEach(
-                            (uuidRun, dir) -> empreintes.put(uuidRun, fingerprint(tout.get(uuidRun))));
-                    json(ex, 200, Map.of("annotations", tout, "empreintes", empreintes,
-                            "revision", revision, "executions", empreintes.size()));
+                            (runUuid, dir) -> fingerprints.put(runUuid, fingerprint(all.get(runUuid))));
+                    json(ex, 200, Map.of("annotations", all, "empreintes", fingerprints,
+                            "revision", revision, "executions", fingerprints.size()));
                     return;
                 }
                 if (!method.equals("POST") && !method.equals("PUT")) {
-                    text(ex, 405, "méthode non acceptée");
+                    text(ex, 405, "method not allowed");
                     return;
                 }
                 if (uuid.isBlank()) {
-                    text(ex, 400, "l'écriture porte sur une exécution : /__xray/noms/<uuid>");
+                    text(ex, 400, "a write targets one run: /__xray/noms/<uuid>");
                     return;
                 }
-                // Un corps illisible est une faute de l'appelant, pas une panne du
-                // serveur : répondre 500 enverrait chercher le problème du mauvais côté.
-                Object lu;
+                // An unreadable body is the caller's fault, not the server breaking down:
+                // answering 500 would send people looking on the wrong side.
+                Object read;
                 try {
-                    lu = Json.read(read(ex.getRequestBody()));
-                } catch (Exception malforme) {
-                    text(ex, 400, "corps illisible : " + malforme.getMessage());
+                    read = Json.read(read(ex.getRequestBody()));
+                } catch (Exception malformed) {
+                    text(ex, 400, "corps illisible : " + malformed.getMessage());
                     return;
                 }
-                if (!(lu instanceof Map<?, ?> corps)) {
-                    text(ex, 400, "le corps attendu est un objet JSON");
+                if (!(read instanceof Map<?, ?> body)) {
+                    text(ex, 400, "the expected body is a JSON object");
                     return;
                 }
-                ecrire(root, uuid, corps, ex, rebuilder);
+                write(root, uuid, body, ex, rebuilder);
             } catch (Exception e) {
                 System.err.println("   write refused: " + e.getMessage());
                 text(ex, 500, String.valueOf(e.getMessage()));
@@ -187,7 +187,7 @@ public final class LocalServer {
 
         server.createContext("/", ex -> {
             try {
-                if (barre(ex, acces)) return;
+                if (bar(ex, access)) return;
                 Path file = resolve(root, ex.getRequestURI().getPath());
                 if (file == null || !Files.isRegularFile(file)) {
                     text(ex, 404, "introuvable");
@@ -202,26 +202,25 @@ public final class LocalServer {
 
         server.setExecutor(java.util.concurrent.Executors.newFixedThreadPool(4));
         server.start();
-        veiller(root, rebuilder);
+        watch(root, rebuilder);
         return server;
     }
 
     /**
-     * Surveille l'arrivée d'exécutions déposées pendant que le serveur tourne.
+     * Watches for runs dropped in while the server is running.
      *
-     * <p>C'est le scénario même du serveur partagé : on y dépose des résultats, et tout le
-     * monde les lit. Sans cette veille, il faudrait redémarrer le serveur à chaque dépôt —
-     * autant dire que personne ne le ferait, et que le répertoire et la page finiraient par
-     * dire deux choses différentes.
+     * <p>That is the shared server's very scenario: results are dropped there, and everyone
+     * reads them. Without this watcher the server would have to be restarted at every drop
+     * — which is to say nobody would, and the directory and the page would end up saying
+     * two different things.
      *
-     * <p>Par sondage, et non par surveillance du système de fichiers : les résultats
-     * arrivent souvent par un partage réseau, où les notifications de modification sont au
-     * mieux irrégulières. Dix secondes suffisent — on ne dépose pas une exécution dix fois
-     * par minute.
+     * <p>By polling, and not by watching the file system: results often arrive over a
+     * network share, where change notifications are irregular at best. Ten seconds is
+     * enough — one does not drop a run ten times a minute.
      */
-    private static void veiller(Path root, Rebuilder rebuilder) {
+    private static void watch(Path root, Rebuilder rebuilder) {
         Thread.ofPlatform().daemon().name("runtime-xray-veille").start(() -> {
-            String connu = revision(root);
+            String known = revision(root);
             while (true) {
                 try {
                     Thread.sleep(10_000);
@@ -229,21 +228,21 @@ public final class LocalServer {
                     Thread.currentThread().interrupt();
                     return;
                 }
-                String maintenant = revision(root);
-                if (!maintenant.equals(connu)) {
-                    connu = maintenant;
+                String now = revision(root);
+                if (!now.equals(known)) {
+                    known = now;
                     System.out.println("   runs changed on disk — the page is "
-                            + "réassemblée");
-                    rebuilder.demander();
+                            + "rebuilt");
+                    rebuilder.request();
                 }
             }
         });
     }
 
     /**
-     * Ce qui distingue un état du répertoire d'un autre : les exécutions présentes et la
-     * date de leur contexte. Deux dépôts successifs donnent deux révisions différentes ;
-     * une simple relecture, non.
+     * What tells one state of the directory from another: the runs present and the date of
+     * their context. Two successive drops give two different revisions; a mere re-read does
+     * not.
      */
     static String revision(Path root) {
         StringBuilder sb = new StringBuilder();
@@ -260,35 +259,35 @@ public final class LocalServer {
     }
 
     /**
-     * Écrit l'annotation d'une exécution, là où elle vit déjà ou dans son répertoire.
+     * Writes a run's annotation, where it already lives or into its directory.
      *
-     * <p>Le corps porte {@code base}, l'empreinte de ce que l'auteur avait sous les yeux.
-     * Si elle ne correspond plus, quelqu'un d'autre est passé entre-temps : on refuse, et
-     * on rend la version courante pour qu'il puisse décider — écraser serait perdre le
-     * travail d'un tiers sans que personne ne s'en aperçoive.
+     * <p>The body carries {@code base}, the fingerprint of what the author had in front of
+     * them. If it no longer matches, somebody else came through in the meantime: we refuse,
+     * and hand back the current version so they can decide — overwriting would lose a third
+     * party's work without anyone noticing.
      */
     @SuppressWarnings("unchecked")
-    private static void ecrire(Path root, String uuid, Map<?, ?> corps, HttpExchange ex,
+    private static void write(Path root, String uuid, Map<?, ?> body, HttpExchange ex,
                                Rebuilder rebuilder) throws IOException {
-        Object valeur = corps.get("valeur");
-        String base = corps.get("base") == null ? null : String.valueOf(corps.get("base"));
+        Object value = body.get("valeur");
+        String base = body.get("base") == null ? null : String.valueOf(body.get("base"));
 
         LOCK.lock();
         try {
             Path runDir = Annotations.runsByUuid(root).get(uuid);
             if (runDir == null) {
-                text(ex, 404, "aucune exécution ne porte l'identifiant " + uuid);
+                text(ex, 404, "no run carries the id " + uuid);
                 return;
             }
-            Object courante = Annotations.forRun(runDir, uuid, Annotations.readCentral(root));
-            String actuelle = fingerprint(courante);
-            if (base != null && !base.equals(actuelle)) {
+            Object known = Annotations.forRun(runDir, uuid, Annotations.readCentral(root));
+            String current = fingerprint(known);
+            if (base != null && !base.equals(current)) {
                 json(ex, 409, Map.of("conflit", true,
-                        "valeur", courante == null ? Map.of() : courante,
-                        "empreinte", actuelle));
+                        "valeur", known == null ? Map.of() : known,
+                        "empreinte", current));
                 return;
             }
-            Map<String, Object> annotation = valeur instanceof Map<?, ?> m
+            Map<String, Object> annotation = value instanceof Map<?, ?> m
                     ? new LinkedHashMap<>((Map<String, Object>) m)
                     : new LinkedHashMap<>();
             Path file = Annotations.write(runDir, annotation);
@@ -298,60 +297,59 @@ public final class LocalServer {
         } finally {
             LOCK.unlock();
         }
-        // Après la réponse : régénérer la page prend une seconde, et personne n'a de raison
-        // d'attendre dessus pour continuer à annoter.
-        rebuilder.demander();
+        // After the response: regenerating the page takes a second, and nobody has any
+        // reason to wait on it to carry on annotating.
+        rebuilder.request();
     }
 
     /**
-     * Les annotations telles que la page doit les voir : pour chaque exécution, celle qui
-     * l'emporte parmi les trois emplacements possibles — voir {@link Annotations}.
+     * The annotations as the page must see them: for each run, the one that wins among the
+     * three possible locations — see {@link Annotations}.
      */
-    private static Map<String, Object> annotationsEffectives(Path root) {
+    private static Map<String, Object> effectiveAnnotations(Path root) {
         Map<String, Object> central = Annotations.readCentral(root);
         Map<String, Object> out = new LinkedHashMap<>();
         Annotations.runsByUuid(root).forEach((uuid, runDir) -> {
-            Object valeur = Annotations.forRun(runDir, uuid, central);
-            if (valeur != null) out.put(uuid, valeur);
+            Object value = Annotations.forRun(runDir, uuid, central);
+            if (value != null) out.put(uuid, value);
         });
         return out;
     }
 
-    /** Empreinte d'une annotation : elle change dès que son contenu change, et pas avant. */
-    static String fingerprint(Object valeur) {
-        String texte = valeur == null ? "" : Json.write(valeur);
+    /** An annotation's fingerprint: it changes as soon as its content does, and not before. */
+    static String fingerprint(Object value) {
+        String text = value == null ? "" : Json.write(value);
         try {
             byte[] hash = MessageDigest.getInstance("SHA-256")
-                    .digest(texte.getBytes(StandardCharsets.UTF_8));
+                    .digest(text.getBytes(StandardCharsets.UTF_8));
             StringBuilder sb = new StringBuilder();
             for (int i = 0; i < 8; i++) sb.append(String.format("%02x", hash[i]));
             return sb.toString();
         } catch (Exception e) {
-            return Integer.toHexString(texte.hashCode());
+            return Integer.toHexString(text.hashCode());
         }
     }
 
     /**
-     * Régénération de la page, une à la fois et jamais en rafale.
+     * Regenerating the page, one at a time and never in bursts.
      *
-     * <p>Dix personnes qui enregistrent en même temps ne doivent pas déclencher dix
-     * assemblages concurrents : une demande pendant qu'un assemblage tourne se contente
-     * d'en réclamer un de plus, à la fin.
+     * <p>Ten people saving at the same time must not trigger ten concurrent assemblies: a
+     * request made while an assembly is running merely asks for one more, at the end.
      */
     private static final class Rebuilder {
         private final Callable<Void> action;
-        private boolean enCours;
-        private boolean redemande;
+        private boolean running;
+        private boolean askedAgain;
 
         Rebuilder(Callable<Void> action) { this.action = action; }
 
-        synchronized void demander() {
-            if (enCours) { redemande = true; return; }
-            enCours = true;
-            Thread.ofPlatform().daemon().start(this::boucle);
+        synchronized void request() {
+            if (running) { askedAgain = true; return; }
+            running = true;
+            Thread.ofPlatform().daemon().start(this::loop);
         }
 
-        private void boucle() {
+        private void loop() {
             while (true) {
                 try {
                     action.call();
@@ -359,103 +357,103 @@ public final class LocalServer {
                     System.err.println("   page could not be rebuilt: " + e.getMessage());
                 }
                 synchronized (this) {
-                    if (!redemande) { enCours = false; return; }
-                    redemande = false;
+                    if (!askedAgain) { running = false; return; }
+                    askedAgain = false;
                 }
             }
         }
     }
 
     /**
-     * Arrête net une requête qui n'a pas montré patte blanche, et dit {@code true} si elle
-     * est traitée.
+     * Stops a request that has not shown its credentials, and says {@code true} when it
+     * has been dealt with.
      *
-     * <p>Deux réponses différentes, parce que deux appelants différents : un navigateur qui
-     * demande une page est envoyé vers le formulaire, où il saura quoi faire ; un
-     * {@code fetch} de la page, ou un script, reçoit un 401 — le renvoyer vers du HTML lui
-     * ferait analyser un formulaire comme si c'étaient ses données.
+     * <p>Two different answers, because two different callers: a browser asking for a page
+     * is sent to the form, where it will know what to do; a {@code fetch} from the page, or
+     * a script, gets a 401 — sending it to HTML would have it parse a form as if it were
+     * its data.
      */
-    private static boolean barre(HttpExchange ex, Access acces) throws IOException {
-        if (acces.autorise(ex)) return false;
-        String chemin = ex.getRequestURI().getPath();
-        if (chemin.startsWith("/__xray/")) {
-            text(ex, 401, "secret partagé requis : ouvrir " + chemin.replaceFirst("/__xray/.*",
-                    "/") + " dans un navigateur, ou passer un en-tête Authorization: Bearer");
+    private static boolean bar(HttpExchange ex, Access access) throws IOException {
+        if (access.allows(ex)) return false;
+        String path = ex.getRequestURI().getPath();
+        if (path.startsWith("/__xray/")) {
+            text(ex, 401, "shared secret required: open " + path.replaceFirst("/__xray/.*",
+                    "/") + " in a browser, or send an Authorization: Bearer header");
             return true;
         }
-        String vers = ex.getRequestURI().getRawQuery() == null ? chemin
-                : chemin + "?" + ex.getRequestURI().getRawQuery();
-        ex.getResponseHeaders().add("Location", Access.versEntree(vers));
+        String target = ex.getRequestURI().getRawQuery() == null ? path
+                : path + "?" + ex.getRequestURI().getRawQuery();
+        ex.getResponseHeaders().add("Location", Access.toEntryPage(target));
         send(ex, 302, "text/plain; charset=utf-8", new byte[0]);
         return true;
     }
 
-    /** Le formulaire d'entrée, puis le cookie et le retour vers la page demandée. */
-    private static void entrer(HttpExchange ex, Access acces) throws IOException {
+    /** The entry form, then the cookie and the return to the page asked for. */
+    private static void entrer(HttpExchange ex, Access access) throws IOException {
         noCache(ex);
-        String methode = ex.getRequestMethod().toUpperCase(Locale.ROOT);
-        if (methode.equals("GET")) {
-            String vers = parametre(ex.getRequestURI().getRawQuery(), "vers");
-            html(ex, 200, Access.pageEntree(vers, null));
+        String method = ex.getRequestMethod().toUpperCase(Locale.ROOT);
+        if (method.equals("GET")) {
+            String target = param(ex.getRequestURI().getRawQuery(), "vers");
+            html(ex, 200, Access.entryPage(target, null));
             return;
         }
-        if (!methode.equals("POST")) {
-            text(ex, 405, "méthode non acceptée");
+        if (!method.equals("POST")) {
+            text(ex, 405, "method not allowed");
             return;
         }
-        Map<String, String> champs = Access.champs(read(ex.getRequestBody()));
-        String origine = Access.origine(ex);
-        if (acces.misDeCote(origine)) {
-            html(ex, 429, Access.pageEntree(champs.get("vers"),
-                    "Trop d'essais depuis cette adresse. Réessayer dans une trentaine de secondes."));
+        Map<String, String> fields = Access.fields(read(ex.getRequestBody()));
+        String origin = Access.origin(ex);
+        if (access.throttled(origin)) {
+            html(ex, 429, Access.entryPage(fields.get("vers"),
+                    "Too many attempts from this address. Try again in about thirty seconds."));
             return;
         }
-        String session = acces.ouvrirSession(champs.get("jeton"), origine);
+        String session = access.openSession(fields.get("jeton"), origin);
         if (session == null) {
-            System.err.println("   access refused from " + origine);
-            html(ex, 401, Access.pageEntree(champs.get("vers"), "Ce secret n'est pas le bon."));
+            System.err.println("   access refused from " + origin);
+            html(ex, 401, Access.entryPage(fields.get("vers"), "That is not the right secret."));
             return;
         }
-        String vers = champs.getOrDefault("vers", "/");
-        // Une redirection ouverte enverrait ailleurs quelqu'un qui vient de se fier à
-        // l'adresse qu'on lui a donnée : on ne repart que vers une page de ce serveur.
-        if (!vers.startsWith("/") || vers.startsWith("//")) vers = "/";
-        ex.getResponseHeaders().add("Set-Cookie", acces.enteteCookie(session));
-        ex.getResponseHeaders().add("Location", vers);
+        String target = fields.getOrDefault("vers", "/");
+        // An open redirect would send somebody who just trusted the address they were
+        // given somewhere else: we only go back to a page of this server.
+        if (!target.startsWith("/") || target.startsWith("//")) target = "/";
+        ex.getResponseHeaders().add("Set-Cookie", access.cookieHeader(session));
+        ex.getResponseHeaders().add("Location", target);
         send(ex, 302, "text/plain; charset=utf-8", new byte[0]);
     }
 
-    private static String parametre(String requete, String nom) {
-        if (requete == null) return null;
-        for (String morceau : requete.split("&")) {
-            String[] paire = morceau.split("=", 2);
-            if (paire.length == 2 && paire[0].equals(nom)) {
-                return java.net.URLDecoder.decode(paire[1], StandardCharsets.UTF_8);
+    private static String param(String request, String name) {
+        if (request == null) return null;
+        for (String chunk : request.split("&")) {
+            String[] pair = chunk.split("=", 2);
+            if (pair.length == 2 && pair[0].equals(name)) {
+                return java.net.URLDecoder.decode(pair[1], StandardCharsets.UTF_8);
             }
         }
         return null;
     }
 
-    private static void annonce(Path root, String host, int port, Access acces) {
+    private static void announcement(Path root, String host, int port, Access access) {
         boolean local = host.startsWith("127.") || host.equals("localhost");
         System.out.println();
         System.out.println("▶ Report served at http://" + (local ? "localhost" : host)
                 + ":" + port + "/");
         System.out.println("   Annotations typed in the page are written to the");
-        System.out.println("   directory of each run (" + Annotations.DANS_LE_RUN
+        System.out.println("   directory of each run (" + Annotations.IN_THE_RUN
                 + "), and the page is rebuilt:");
         System.out.println("   so they hold for everyone, and travel with the run "
                 + "if it is moved.");
-        acces.annoncer(local);
+        access.announce(local);
         System.out.println("   Ctrl-C to stop.");
     }
 
     /**
-     * Le fichier demandé, ou {@code null} s'il sort du répertoire servi.
+     * The file asked for, or {@code null} when it lies outside the served directory.
      *
-     * <p>Un chemin de requête peut contenir n'importe quoi, y compris de quoi remonter
-     * l'arborescence : on normalise, puis on vérifie que le résultat est bien sous la
-     * racine — la vérification porte sur le chemin résolu, jamais sur ce qui a été écrit.
+     * <p>A request path can contain anything, including enough to climb the tree: we
+     * normalise, then check that the result is indeed under the root — the check is on the
+     * resolved path, never on what was written.
      */
     static Path resolve(Path root, String requestPath) {
         String decoded = java.net.URLDecoder.decode(requestPath, StandardCharsets.UTF_8);
@@ -478,8 +476,8 @@ public final class LocalServer {
     }
 
     private static void noCache(HttpExchange ex) {
-        // La page est régénérée sous les pieds du navigateur : une version gardée en cache
-        // afficherait l'annotation d'avant, ce qui ressemblerait à une écriture perdue.
+        // The page is regenerated under the browser's feet: a cached version would show
+        // the previous annotation, which would look like a lost write.
         ex.getResponseHeaders().add("Cache-Control", "no-store");
     }
 
@@ -503,9 +501,9 @@ public final class LocalServer {
     private static void send(HttpExchange ex, int code, String type, byte[] body)
             throws IOException {
         ex.getResponseHeaders().add("Content-Type", type);
-        // Une longueur de zéro ne veut PAS dire « pas de corps » ici : elle demande un
-        // encodage par morceaux, et le client attend alors des octets qui ne viendront
-        // jamais. Une redirection sans corps doit passer -1.
+        // A length of zero does NOT mean "no body" here: it asks for chunked encoding, and
+        // the client then waits for bytes that will never come. A redirect without a body
+        // must pass -1.
         ex.sendResponseHeaders(code, body.length == 0 ? -1 : body.length);
         try (OutputStream out = ex.getResponseBody()) {
             out.write(body);

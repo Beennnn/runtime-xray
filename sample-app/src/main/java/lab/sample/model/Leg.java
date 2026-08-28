@@ -1,4 +1,4 @@
 package lab.sample.model;
 
-/** Une étape du trajet : une portion parcourue d'un seul tenant. */
+/** One leg of the trip: a stretch covered in one go. */
 public record Leg(String from, String to, double distanceKm) {}

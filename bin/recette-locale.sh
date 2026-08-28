@@ -42,7 +42,7 @@ java -jar "$JAR" \
   --out sortie --export tout > analyse.log 2>&1
 etape $? "l'analyse se termine sans erreur"
 
-grep -q "Classes analysées" analyse.log
+grep -q "Classes analysed" analyse.log
 etape $? "le bytecode est déduit tout seul (aucun --classes)"
 
 [ -s sortie/index.html ]; etape $? "la page est produite"
@@ -56,19 +56,30 @@ etape $? "les valeurs des paramètres sont capturées"
 echo
 
 echo "2. La page porte les trois informations, pas un gabarit"
+# La page ne porte plus tout dans « const D » : les gros blocs sont chargés depuis
+# vue/, à la demande. On vérifie donc l'index ET les blocs qu'il désigne — c'est la
+# paire qui décide si la page a quelque chose à montrer.
 python3 - <<'PY'
 import json, pathlib, re, sys
-t = pathlib.Path("sortie/index.html").read_text()
+racine = pathlib.Path("sortie")
+t = (racine / "index.html").read_text()
 m = re.search(r'const D = (\{.*?\});\r?\n', t, re.S)
 if not m: sys.exit(1)
 d = json.loads(m.group(1))
 run = d["runs"][0]
+blocs = {pathlib.Path(b).name: (racine / b) for b in run.get("blocs", [])}
+
+def porte(nom, minimum):
+    f = blocs.get(nom)
+    return f is not None and f.is_file() and f.stat().st_size > minimum
+
 manque = []
-if not d.get("sources"):                      manque.append("sources")
-if len(run.get("methods", {})) < 5:           manque.append("couverture")
-if run.get("calltree", {}).get("total", 0) < 100: manque.append("arbre d'appel")
-if not run.get("values"):                     manque.append("valeurs")
-if not run.get("context"):                    manque.append("contexte")
+if not list((racine / "vue" / "sources").glob("*.js")): manque.append("sources")
+if len(run.get("methods", {})) < 5:                     manque.append("couverture")
+if not porte("arbre.js", 500):                          manque.append("arbre d'appel")
+if not porte("valeurs.js", 200):                        manque.append("valeurs")
+if not run.get("context"):                              manque.append("contexte")
+if run.get("mesures", 0) < 100:                         manque.append("relevés de temps")
 print("   manque : " + ", ".join(manque) if manque else "", end="")
 sys.exit(1 if manque else 0)
 PY
@@ -104,7 +115,7 @@ java -jar "$JAR" \
   --niveau couverture --sources "$DEPOT/sample-app/src/main/java" \
   --name "Couverture seule" --out leger > leger.log 2>&1
 etape $? "une mesure au niveau « couverture » se termine"
-grep -q "pas d'échantillonnage" leger.log
+grep -q "no stack sampling" leger.log
 etape $? "l'outil annonce qu'il n'échantillonne pas"
 [ ! -s "$(ls leger/runs/*/async-profiler/profil.collapsed 2>/dev/null | head -1)" ]
 etape $? "aucun profil n'est écrit à ce niveau"

@@ -9,7 +9,7 @@ Le [README](README.md) explique l'outil ; ici, on explique le dépôt.
 ## Construire et éprouver
 
 ```bash
-mvn test                            # 183 tests, aucun n'accède au réseau
+mvn test                            # 248 tests, aucun n'accède au réseau
 mvn -DskipTests package             # orchestrator/target/runtime-xray.jar   (175 Ko)
 mvn -Pjacoco  -DskipTests package   # runtime-xray-jacoco.jar               (950 Ko)
 mvn -Pcomplet -DskipTests package   # runtime-xray-complet.jar               (19 Mo)
@@ -130,7 +130,7 @@ aurait besoin : sur la machine où l'application tourne loin de son code, la con
 désigne rien, ou pire, désigne les sources d'un autre projet. Du code faux affiché en face
 d'une couverture coûte plus cher qu'un panneau vide, parce qu'on le croit.
 
-`Sources.chercherRacines` cherche donc, et compte. Elle explore le voisinage du bytecode
+`Sources.searchRoots` cherche donc, et compte. Elle explore le voisinage du bytecode
 analysé, celui des racines déjà configurées et le répertoire de lancement — jamais au-delà —
 et ne retient un fichier que si le **paquet qu'il déclare** produit exactement une clé
 manquante. Un homonyme venu d'un autre projet ne compte pas ; un test le garde. Chaque
@@ -145,7 +145,7 @@ indisponible » sur les 447 classes d'une analyse.
 
 ## La bande d'activité pendant l'attente
 
-`Progression` écrit une ligne qui se réécrit pendant que l'application observée travaille.
+`Progress` écrit une ligne qui se réécrit pendant que l'application observée travaille.
 Trois décisions la tiennent, et elles sont liées :
 
 - **Elle ne mesure rien.** Le temps processeur vient de `ProcessHandle.Info.totalCpuDuration`
@@ -161,6 +161,12 @@ Trois décisions la tiennent, et elles sont liées :
 - **Le compte est en cœurs occupés**, pas en pourcentage de la machine. Sur un serveur à
   trente-deux cœurs, une application qui en sature un travaille à plein régime : ramenée à
   3 %, elle s'afficherait endormie.
+
+La bande, la page de `--suivi` et les messages de la console sont **en anglais**, comme le
+reste de ce que l'utilisateur voit. Les nombres suivent : `41.3 s`, `812.0 KB`, un
+horodatage en `yyyy-MM-dd HH:mm:ss`. Un nom d'option ou une valeur en français — `--niveau
+complet`, `--export tout` — reste accepté à vie ; ce n'est simplement plus lui qu'on
+affiche.
 
 Elle se tait hors terminal (`System.console() == null`) : dans un tuyau ou un journal
 d'intégration, une ligne par seconde n'apprend rien et noie le reste. `RUNTIME_XRAY_PROGRESSION`
@@ -180,8 +186,8 @@ plus rien**.
 - **`--suivi [port]` sert une page** qui relit ce fichier, et rien d'autre. Elle montre ce
   qu'une suite de lignes JSON montre mal — la *forme* de l'exécution. Boucle locale
   seulement : elle affiche une commande et la sortie d'une application.
-- **Le calcul de charge est dans `Progression`, et nulle part ailleurs.**
-  `Progression.avancement` le rend, `Suivi` le recopie. Deux calculs séparés finiraient par
+- **Le calcul de charge est dans `Progress`, et nulle part ailleurs.**
+  `Progress.tick` le rend, `Follow` le recopie. Deux calculs séparés finiraient par
   diverger, et le fichier contredirait la bande sans que rien ne le signale.
 - **Un échec d'écriture du fil n'emporte jamais la mesure** — c'est un confort, elle est ce
   qu'on est venu chercher ; un test le garde, comme il garde que la fin du journal servie
@@ -210,7 +216,7 @@ rapport par combinaison — c'est précisément ce que le cumul dans la page év
 `faits.jsonl` s'écrit à côté de la page, un objet JSON par ligne, chacune se comprenant
 seule — son vocabulaire est dans sa première ligne, parce qu'une documentation posée à côté
 se perd dans le premier zip. `--contexte "une question"` en tire un extrait borné et prêt à
-coller. Trois décisions le tiennent, chacune gardée par un test dans `ContexteTest` :
+coller. Trois décisions le tiennent, chacune gardée par un test dans `ContextTest` :
 
 - **Ce qui n'a PAS été mesuré passe avant les chiffres**, et n'est jamais élagué par le
   budget. Un lecteur qui voit les chiffres d'abord les a déjà interprétés quand il arrive
@@ -242,7 +248,7 @@ conduire une campagne, lire un rapport — et le kit hors ligne les emporte, par
 sur la machine isolée qu'on ne peut plus aller lire la documentation. Ce sont deux fichiers
 Markdown, mais ils sont **tenus par `SkillsTest`** : toute option qu'ils citent doit exister
 dans le `switch` de `Main`, et la table du vocabulaire doit coïncider avec
-`Faits.VOCABULAIRE`, dans les deux sens. Une option renommée ici et laissée écrite là-bas
+`Facts.VOCABULARY`, dans les deux sens. Une option renommée ici et laissée écrite là-bas
 n'échoue nulle part — elle envoie quelqu'un dans le mur avec « Option inconnue » pour toute
 explication, sur la machine où il ne peut rien vérifier.
 
@@ -253,14 +259,53 @@ exact, non. `bin/demander.sh` porte les trois enveloppes du moment (`openai`, `a
 **forme** de la requête, pas le fournisseur. Les valeurs capturées ne sortent jamais : elles
 restent dans leur bloc, sur le disque, et deux tests le gardent.
 
+## La langue de la vue
+
+La page s'ouvre **en anglais**. Un rapport s'envoie, se joint à un ticket, se lit par
+quelqu'un qui n'a pas lancé la mesure : rien ne dit qu'il parle français. Le sélecteur
+`EN | FR` de l'en-tête rend le français à qui le veut, et un navigateur qui annonce le
+français l'obtient d'emblée. Tout autre navigateur lit l'anglais — il n'y a pas de
+troisième langue, et il n'y en aura pas. Deux lettres, pas de drapeau : un drapeau nomme un
+pays, pas une langue.
+
+**Le gabarit est resté en français, et c'est la traduction qui parcourt le DOM.** La page
+fait cinq mille lignes et la moitié de son texte est composée dans des concaténations de
+balises ; y semer des clés aurait demandé de toucher chacune de ces lignes — donc de risquer
+un `id`, un sélecteur ou une comparaison sur chaque — pour un gain nul. Le dictionnaire vit
+dans un bloc à part, à la fin du fichier, et rien d'autre n'a bougé. Trois règles le tiennent :
+
+- **On ne traduit que des chaînes entières et connues.** Pas de remplacement de mots. Un nom
+  de classe, une valeur capturée, une ligne de code de l'application observée ne sont jamais
+  un libellé du dictionnaire. La **cellule de code** est en plus écartée du parcours — et
+  elle seule, parce que les replis et les annotations d'appel de la même ligne sont, eux, du
+  texte de l'outil. Les libellés de l'arbre le sont aussi : une classe nommée `Comment` ne
+  doit pas devenir `How`.
+- **Le français d'origine est gardé**, pas retraduit à l'envers. Un aller-retour sur un
+  dictionnaire non injectif perdrait du texte ; là il rend l'original à l'octet près.
+- **Un `title` réécrit après coup est surveillé comme un nœud ajouté.** La page en réaffecte
+  plusieurs — le bouton « tout déplier » change le sien à chaque bascule — et cela ne crée
+  aucun nœud, donc ne se voit pas dans `childList`.
+
+**Le décrochage est le mode d'échec, et il est silencieux** : quelqu'un reformule un libellé
+dans le gabarit, le dictionnaire ne le connaît plus, et la vue anglaise affiche du français
+sans que rien ne le signale. `ViewLanguageTest` vérifie pour cela le corps statique en entier —
+chaque phrase française qu'il porte doit avoir sa traduction. Le reste du texte naît en
+JavaScript et ne se relève qu'au rendu : la vérification s'y fait au navigateur, avant de
+pousser, en relevant les chaînes affichées et en n'en gardant aucune française.
+
 ## Conventions
 
-- **L'outil parle anglais ; le dépôt est encore en français.** La bascule est décidée et
-  se fait par étapes — l'aide, les exemples et les mots-clés y sont déjà passés, les
-  messages console, la vue, le format et le code suivront. En attendant, deux règles
-  cohabitent sans se contredire : **tout ce que l'utilisateur voit est en anglais**, et le
-  reste — code, commentaires, `@DisplayName`, messages de commit — **reste en français
-  jusqu'à ce que son étape arrive**. Les exemples, eux, sont en anglais **partout**, y
+- **L'outil parle anglais, et le code aussi désormais.** La bascule s'est faite par
+  étapes — l'aide, les exemples, les mots-clés, le format des faits, la vue, les messages
+  console, puis les noms du code, ses commentaires et ses `@DisplayName`, y compris ceux
+  de `sample-app`, dont le code s'affiche dans le rapport. **Tout nouveau code s'écrit
+  donc en anglais**, commentaires et `@DisplayName` compris.
+
+  Trois choses restent en français, chacune pour une raison : le **gabarit**
+  `dashboard.html`, parce que c'est la traduction qui parcourt son DOM et non l'inverse
+  (voir « La langue de la vue ») ; les **scripts de `bin/`** et la **documentation**, qui
+  s'adressent à qui reprend le dépôt et non à qui lance l'outil ; les **messages de
+  commit**, pour la même raison. Les exemples, eux, sont en anglais **partout**, y
   compris dans une prose française : `com.example.app`, `--contexte "which classes never
   ran?"`. Un exemple français dans une documentation anglaise est ce qui se remarque en
   premier.
@@ -313,6 +358,34 @@ restent dans leur bloc, sur le disque, et deux tests le gardent.
 - **Les tests ne comparent jamais un chemin à un littéral à séparateurs** : `endsWith(
   "projet/src/main/java")` échoue sous Windows alors que le code a trouvé exactement ce qu'il
   fallait. Construire le chemin attendu avec `resolve` et comparer les deux.
+- **Le rapport engendre beaucoup de petits fichiers, et c'est ce qui coûte sur un poste
+  bardé d'agents de sécurité.** Le compte croît avec le nombre de classes analysées, pas
+  avec le volume : JaCoCo écrit deux fichiers HTML par classe, l'outil lui en fait produire
+  **deux sites** par exécution — le complet et le ciblé — et y ajoute une copie du bytecode
+  de chaque classe exécutée dans `classes-executees/`. Sur une grosse application, une
+  campagne de plusieurs exécutions se compte en centaines de milliers de fichiers, de
+  quelques kilo-octets chacun.
+
+  Sur Linux, les ouvrir prend quelques secondes. Sur un poste où chaque ouverture de
+  fichier traverse une pile de filtres, cela prend des minutes — et **la machine n'y peut
+  rien** : la latence se paie en série, une ouverture après l'autre, donc ni la mémoire ni
+  les cœurs ne la rachètent. Ce n'est pas propre à Git Bash : un archiveur natif souffre
+  autant, ce qui écarte la traduction POSIX de MSYS2 comme cause. La JVM y échappe parce
+  qu'elle ouvre peu de fichiers et garde ses handles.
+
+  Deux choses à savoir avant d'y toucher, et elles ne sont pas de même nature.
+  **`classes-executees/` est un résidu** : il n'existe que pour être passé en
+  `--classfiles` au rapport ciblé, et n'est effacé qu'au début de l'exécution suivante,
+  jamais après usage — c'est un oubli. **Les deux sites HTML ne servent pas à la page** :
+  elle rend la couverture depuis `jacoco.xml`, que `Coverage.parse` lit directement ; le
+  HTML n'est qu'un lien, et le chiffre qui fait foi est celui de `jacoco-fusion/`. Les
+  rendre optionnels diviserait le compte par plusieurs — mais c'est une décision, pas une
+  correction, et `CharacterisationTest` épingle les fichiers produits. Le cas « pas de
+  HTML » est déjà géré : `Dashboard` n'écrit le lien que si `index.html` existe, et un test
+  construit exprès une exécution sans rapports.
+
+  En attendant, `runs/` est le bon candidat à une exclusion : un répertoire unique, qui ne
+  contient que des artefacts engendrés, dont rien n'est exécuté et tout est reproductible.
 - **Terminal Windows** : l'outil écrit en UTF-8. Un terminal en cp850 — le défaut de bien
   des postes — rend les accents illisibles. Corriger côté terminal (mintty → Options →
   Text → UTF-8), ou lancer avec `-Dstdout.encoding=cp850`. Ne pas « corriger » cela dans

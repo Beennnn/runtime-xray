@@ -3,11 +3,11 @@ package lab.sample.export;
 import lab.sample.model.Trip;
 
 /**
- * Export des trajets au format CSV.
+ * Exporting trips to CSV.
  *
- * <p><b>Volontairement jamais appelée</b>, comme le reste de ce paquet — voir
- * {@link ItineraryExporter}. Deux classes plutôt qu'une : un paquet entier en rouge se
- * remarque, là où une classe isolée se perd dans une liste.
+ * <p><b>Deliberately never called</b>, like the rest of this package — see
+ * {@link ItineraryExporter}. Two classes rather than one: a whole package in red gets
+ * noticed, where a lone class gets lost in a list.
  */
 public final class CsvExporter {
 

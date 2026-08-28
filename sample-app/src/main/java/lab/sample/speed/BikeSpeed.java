@@ -2,7 +2,7 @@ package lab.sample.speed;
 
 import lab.sample.model.Leg;
 
-/** À vélo : on ralentit sur les longues distances (fatigue). */
+/** By bike: one slows down over long distances (fatigue). */
 public final class BikeSpeed implements SpeedModel {
 
     @Override

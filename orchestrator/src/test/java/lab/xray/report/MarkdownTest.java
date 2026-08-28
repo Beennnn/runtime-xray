@@ -17,46 +17,46 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Ce format est celui que la forge affiche réellement — donc celui que quelqu'un lira sans
- * jamais ouvrir la page. Deux façons de le rater : produire un tableau cassé (une valeur
- * capturée peut contenir n'importe quoi, y compris un {@code |}), et annoncer un taux de
- * couverture sans dire de quoi il est le taux.
+ * This format is the one the forge actually displays — so the one somebody will read
+ * without ever opening the page. Two ways to get it wrong: producing a broken table (a
+ * captured value can contain anything at all, including a {@code |}), and announcing a
+ * coverage rate without saying what it is a rate of.
  */
 class MarkdownTest {
 
-    private static Map<String, Object> classe(String nom, int couvert, int manque) {
+    private static Map<String, Object> clazz(String name, int covered, int missing) {
         Map<String, Object> m = new LinkedHashMap<>();
-        m.put("name", nom);
-        m.put("simple", nom.substring(nom.lastIndexOf('/') + 1));
-        m.put("covered", couvert);
-        m.put("missed", manque);
+        m.put("name", name);
+        m.put("simple", name.substring(name.lastIndexOf('/') + 1));
+        m.put("covered", covered);
+        m.put("missed", missing);
         return m;
     }
 
-    private static Map<String, Object> noeud(String nom, long total, Object... enfants) {
+    private static Map<String, Object> node(String name, long total, Object... children) {
         Map<String, Object> m = new LinkedHashMap<>();
-        m.put("name", nom);
+        m.put("name", name);
         m.put("total", total);
-        m.put("children", List.of(enfants));
+        m.put("children", List.of(children));
         return m;
     }
 
     private static Map<String, Object> run() {
         Map<String, Object> packages = new LinkedHashMap<>();
-        packages.put("app/moteur", List.of(classe("app/moteur/Calcul", 90, 10)));
-        packages.put("app/mort", List.of(classe("app/mort/JamaisAppele", 0, 40)));
+        packages.put("app/moteur", List.of(clazz("app/moteur/Calcul", 90, 10)));
+        packages.put("app/mort", List.of(clazz("app/mort/JamaisAppele", 0, 40)));
 
-        Map<String, Object> appel = new LinkedHashMap<>();
-        appel.put("params", List.of(Map.of("type", "Trip", "value", "Trip[id=A|B, mode=CAR]")));
-        appel.put("retour", Map.of("type", "Double", "value", "42.0"));
+        Map<String, Object> call = new LinkedHashMap<>();
+        call.put("params", List.of(Map.of("type", "Trip", "value", "Trip[id=A|B, mode=CAR]")));
+        call.put("retour", Map.of("type", "Double", "value", "42.0"));
 
         Map<String, Object> run = new LinkedHashMap<>();
         run.put("nom", "Recette");
         run.put("context", new LinkedHashMap<>(Map.of("commande", "java -jar app.jar",
                 "java", "Temurin 25")));
         run.put("packages", packages);
-        run.put("calltree", noeud("tout", 100, noeud("app/moteur/Calcul.calculer", 80)));
-        run.put("values", Map.of("app/moteur/Calcul.calculer", List.of(appel)));
+        run.put("calltree", node("tout", 100, node("app/moteur/Calcul.calculer", 80)));
+        run.put("values", Map.of("app/moteur/Calcul.calculer", List.of(call)));
         return run;
     }
 
@@ -66,44 +66,44 @@ class MarkdownTest {
     }
 
     @Test
-    @DisplayName("Les trois observations ont chacune leur section")
+    @DisplayName("The three observations each have their section")
     void hasOneSectionPerObservation(@TempDir Path dir) throws IOException {
         String md = write(dir);
-        assertTrue(md.contains("## Recette"), "l'exécution est nommée");
-        assertTrue(md.contains("### Par où le code est passé"));
-        assertTrue(md.contains("### Où le temps est passé"));
-        assertTrue(md.contains("### Avec quelles valeurs"));
+        assertTrue(md.contains("## Recette"), "the run is named");
+        assertTrue(md.contains("### Where the code went"));
+        assertTrue(md.contains("### Where the time went"));
+        assertTrue(md.contains("### With which values"));
     }
 
     @Test
-    @DisplayName("Le taux de couverture dit de quoi il est le taux")
+    @DisplayName("The coverage rate says what it is a rate of")
     void qualifiesTheCoverageRatio(@TempDir Path dir) throws IOException {
         String md = write(dir);
-        assertTrue(md.contains("64 % des instructions analysées"),
-                "90 couvertes sur 140 analysées : " + md.lines().filter(l -> l.contains("%"))
+        assertTrue(md.contains("64% of the analysed instructions"),
+                "90 covered out of 140 analysed: " + md.lines().filter(l -> l.contains("%"))
                         .findFirst().orElse("aucune ligne avec un %"));
-        assertTrue(md.contains("dénominateur"),
-                "sans quoi le taux se lit comme une note, alors qu'il dépend de ce qu'on "
-                + "a donné à analyser");
+        assertTrue(md.contains("denominator"),
+                "without which the rate reads as a mark, when it depends on what was "
+                + "given to be analysed");
     }
 
     @Test
-    @DisplayName("Le code jamais exécuté est nommé, pas seulement compté")
+    @DisplayName("Never-executed code is named, not merely counted")
     void namesDeadCode(@TempDir Path dir) throws IOException {
         String md = write(dir);
         assertTrue(md.contains("app.mort.JamaisAppele"),
-                "c'est précisément ce que la lecture du code ne révèle pas");
+                "that is precisely what reading the code does not reveal");
     }
 
     @Test
-    @DisplayName("Une valeur contenant un « | » ne casse pas le tableau")
+    @DisplayName("A value containing a \"|\" does not break the table")
     void escapesPipesInValues(@TempDir Path dir) throws IOException {
         String md = write(dir);
-        String ligne = md.lines().filter(l -> l.contains("Trip[id=")).findFirst().orElseThrow();
-        // 4 séparateurs pour 3 colonnes : | # | paramètres | retour |
-        assertEquals(4, ligne.chars().filter(c -> c == '|').count() - countEscaped(ligne),
-                "colonne cassée par un séparateur non échappé : " + ligne);
-        assertTrue(ligne.contains("\\|"), "le séparateur de la valeur doit être échappé");
+        String line = md.lines().filter(l -> l.contains("Trip[id=")).findFirst().orElseThrow();
+        // 4 separators for 3 columns: | # | arguments | return |
+        assertEquals(4, line.chars().filter(c -> c == '|').count() - countEscaped(line),
+                "column broken by an unescaped separator: " + line);
+        assertTrue(line.contains("\\|"), "the value's separator must be escaped");
     }
 
     private static long countEscaped(String s) {
@@ -111,23 +111,23 @@ class MarkdownTest {
     }
 
     @Test
-    @DisplayName("Le contexte de l'exécution accompagne le rapport")
+    @DisplayName("The run's context comes with the report")
     void carriesTheRunContext(@TempDir Path dir) throws IOException {
         String md = write(dir);
-        assertTrue(md.contains("java -jar app.jar"), "la commande lancée");
+        assertTrue(md.contains("java -jar app.jar"), "the command launched");
         assertTrue(md.contains("Temurin 25"), "la plateforme");
     }
 
     @Test
-    @DisplayName("Sans donnée, une section est absente plutôt que vide")
+    @DisplayName("Without data, a section is absent rather than empty")
     void skipsEmptySections(@TempDir Path dir) throws IOException {
-        Map<String, Object> vide = new LinkedHashMap<>();
-        vide.put("nom", "Rien");
-        vide.put("calltree", noeud("tout", 0));
-        Markdown.write(dir, List.of(vide));
+        Map<String, Object> empty = new LinkedHashMap<>();
+        empty.put("nom", "Rien");
+        empty.put("calltree", node("tout", 0));
+        Markdown.write(dir, List.of(empty));
         String md = Files.readString(dir.resolve("rapport.md"), StandardCharsets.UTF_8);
-        assertFalse(md.contains("### Où le temps est passé"),
-                "une section vide fait croire à une panne de l'outil");
-        assertFalse(md.contains("### Avec quelles valeurs"));
+        assertFalse(md.contains("### Where the time went"),
+                "an empty section suggests the tool broke down");
+        assertFalse(md.contains("### With which values"));
     }
 }

@@ -6,20 +6,20 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Lecture et écriture JSON minimales.
+ * Minimal JSON reading and writing.
  *
- * <p>Pourquoi ne pas prendre une bibliothèque : l'outil doit pouvoir être déposé sur une
- * machine et lancé, sans rien résoudre. Une seule dépendance suffirait à casser cette
- * promesse en environnement déconnecté. Le format qu'on manipule tient en quatre types —
- * objet, tableau, chaîne, nombre — et ne justifie pas plus.
+ * <p>Why not take a library: the tool must be droppable onto a machine and launched, with
+ * nothing to resolve. A single dependency would be enough to break that promise in a
+ * disconnected environment. The format we handle fits in four types — object, array,
+ * string, number — and warrants no more.
  */
 public final class Json {
 
     private Json() {}
 
-    // ------------------------------------------------------------------ écriture
+    // ------------------------------------------------------------------ writing
 
-    /** Sérialise Map / List / String / Number / Boolean / null. */
+    /** Serialises Map / List / String / Number / Boolean / null. */
     public static String write(Object value) {
         StringBuilder sb = new StringBuilder();
         writeTo(sb, value);
@@ -58,8 +58,8 @@ public final class Json {
         }
     }
 
-    /** JSON ne connaît ni NaN ni l'infini : on les rabat sur 0 plutôt que de produire
-     *  un document que le navigateur refusera de lire. */
+    /** JSON knows neither NaN nor infinity: they are folded to 0 rather than producing
+     *  a document the browser will refuse to read. */
     private static String finite(Number n) {
         double d = n.doubleValue();
         if (Double.isNaN(d) || Double.isInfinite(d)) return "0";
@@ -77,9 +77,9 @@ public final class Json {
                 case '\r' -> sb.append("\\r");
                 case '\t' -> sb.append("\\t");
                 default -> {
-                    // On échappe aussi U+2028/U+2029 : valides en JSON, mais ils coupent
-                    // une ligne pour un moteur JavaScript, et le document est embarqué
-                    // dans une balise <script>.
+                    // U+2028/U+2029 are escaped too: valid in JSON, but they break a line
+                    // as far as a JavaScript engine is concerned, and the document is
+                    // embedded in a <script> tag.
                     if (c < 0x20 || c == ' ' || c == ' ') {
                         sb.append(String.format("\\u%04x", (int) c));
                     } else {
@@ -93,7 +93,7 @@ public final class Json {
 
     // ------------------------------------------------------------------ lecture
 
-    /** Analyse un document JSON. Rend Map, List, String, Double, Boolean ou null. */
+    /** Parses a JSON document. Returns Map, List, String, Double, Boolean or null. */
     public static Object read(String text) {
         Parser p = new Parser(text);
         p.skipWhitespace();
@@ -194,7 +194,7 @@ public final class Json {
 
         void expect(char c) {
             if (i >= s.length() || s.charAt(i) != c) {
-                throw new IllegalArgumentException("attendu '" + c + "' à la position " + i);
+                throw new IllegalArgumentException("expected '" + c + "' at position " + i);
             }
             i++;
         }

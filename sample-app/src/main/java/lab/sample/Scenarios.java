@@ -10,13 +10,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Les trajets rejoués à l'identique par tous les outils.
+ * The trips replayed identically by every tool.
  *
- * <p>Le tirage est <b>déterministe</b> : ni {@code Random}, ni horloge. Deux exécutions
- * produisent exactement la même trace — sans quoi comparer deux rapports reviendrait à
- * comparer deux exécutions différentes, et l'écart observé ne dirait plus rien de l'outil.
+ * <p>The draw is <b>deterministic</b>: no {@code Random}, no clock. Two runs produce exactly
+ * the same trace — otherwise comparing two reports would amount to comparing two different
+ * runs, and the gap observed would no longer say anything about the tool.
  *
- * <p>{@code Mode.PLANE} et {@code Weather.SNOW} sont volontairement absents du tirage.
+ * <p>{@code Mode.PLANE} and {@code Weather.SNOW} are deliberately absent from the draw.
  */
 final class Scenarios {
 
@@ -41,9 +41,9 @@ final class Scenarios {
             double km = 2 + ((i + l * 7) % 60);
             legs.add(new Leg(from, to, km));
         }
-        // Concaténation simple et non "TRIP-%05d".formatted(i) : le formatage coûtait à lui
-        // seul ~40 % du temps CPU et écrasait le calcul dans le flame graph. Le profil doit
-        // montrer la logique évaluée, pas la fabrication du jeu de test.
+        // Plain concatenation rather than "TRIP-%05d".formatted(i): the formatting alone
+        // cost ~40 % of the CPU time and crushed the computation in the flame graph. The
+        // profile must show the logic being evaluated, not the making of the test set.
         return new Trip("TRIP-" + i, mode, weather, time, luggage, List.copyOf(legs));
     }
 }

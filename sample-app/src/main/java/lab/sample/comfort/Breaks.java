@@ -3,24 +3,24 @@ package lab.sample.comfort;
 import org.apache.commons.lang3.Range;
 
 /**
- * Pauses obligatoires sur les longs trajets.
+ * Mandatory breaks on long trips.
  *
- * <p>Cette classe est aussi la seule à appeler une <b>bibliothèque externe</b>
- * ({@code commons-lang3}). C'est délibéré : le code d'une dépendance n'arrive pas sous
- * forme de répertoire de classes mais de jar, et l'outil doit savoir l'analyser dans cette
- * forme-là — sans quoi tout un pan du code réellement exécuté reste invisible.
+ * <p>This class is also the only one to call an <b>external library</b>
+ * ({@code commons-lang3}). That is deliberate: a dependency's code does not arrive as a
+ * directory of classes but as a jar, and the tool must know how to analyse it in that form —
+ * without which a whole swathe of the code actually executed stays invisible.
  *
- * <p>Particularité volontaire : la décision se prend sur une <b>valeur calculée</b>
- * (la durée obtenue jusque-là) et non sur un argument reçu tel quel. Un outil qui ne
- * capture que les arguments d'entrée de la fonction analysée ne saura pas expliquer
- * pourquoi cette branche a été prise — alors qu'elle change le résultat.
+ * <p>A deliberate peculiarity: the decision is taken on a <b>computed value</b> (the duration
+ * obtained so far) and not on an argument received as it is. A tool that only captures the
+ * analysed function's input arguments will not be able to explain why this branch was taken —
+ * even though it changes the result.
  */
 public final class Breaks {
 
-    /** Au-delà de 2 h de conduite ou de marche, on s'arrête. */
+    /** Beyond 2 h of driving or walking, one stops. */
     public static final double THRESHOLD_MINUTES = 120;
 
-    /** Au-delà, la pause n'est plus une pause : c'est une étape, et elle se planifie. */
+    /** Beyond that, the break is no longer a break: it is a stopover, and it gets planned. */
     private static final Range<Integer> REASONABLE = Range.of(0, 6);
 
     private Breaks() {}

@@ -1,9 +1,9 @@
 package lab.sample.model;
 
-/** Comment on se déplace. C'est le principal <b>aiguilleur</b> du calcul : chaque mode
- *  active une famille de calculs différente (bouchons pour la voiture, correspondances
- *  pour le train, météo pour le vélo et la marche).
+/** How one travels. This is the calculation's main <b>switchman</b>: each mode activates a
+ *  different family of computations (traffic jams for the car, connections for the train,
+ *  weather for the bike and for walking).
  *
- *  <p>{@code PLANE} n'est jamais choisi par les scénarios : la classe de vitesse
- *  correspondante doit rester à 0 % dans un rapport de couverture. */
+ *  <p>{@code PLANE} is never chosen by the scenarios: the matching speed class must stay at
+ *  0 % in a coverage report. */
 public enum Mode { CAR, TRAIN, BIKE, WALK, PLANE }

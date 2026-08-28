@@ -2,14 +2,14 @@ package lab.sample.traffic;
 
 import lab.sample.model.Leg;
 
-/** Retard dû aux bouchons de l'heure de pointe. */
+/** Delay caused by rush-hour traffic jams. */
 public final class RushHourDelay {
 
     private RushHourDelay() {}
 
     static double minutesFor(Leg leg) {
-        // Les bouchons pénalisent surtout les entrées et sorties d'agglomération,
-        // donc les étapes courtes : d'où un retard qui ne suit pas la distance.
+        // Traffic jams mostly penalise entering and leaving built-up areas, hence short
+        // legs: which is why the delay does not follow the distance.
         if (leg.distanceKm() < 5) {
             return 8;
         }

@@ -15,60 +15,66 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Réécriture des mesures dans des formats que d'autres outils savent lire.
+ * Rewriting the measurements into formats other tools can read.
  *
- * <p>La page produite par cet outil est <b>une</b> façon de lire une exécution, pas la
- * seule. Un profil s'examine très bien dans Firefox Profiler, une couverture s'affiche dans
- * un éditeur, un arbre d'appel se compare dans speedscope. Refuser ces usages reviendrait à
- * enfermer une mesure ouverte dans un rendu unique — exactement ce que l'étude reproche aux
- * outils fermés.
+ * <p>The page this tool produces is <b>one</b> way of reading a run, not the only one. A
+ * profile examines very well in Firefox Profiler, a coverage shows in an editor, a call
+ * tree compares in speedscope. Refusing those uses would amount to locking an open
+ * measurement into a single rendering — exactly what the study holds against closed tools.
  *
- * <p>Le principe tenu ici : <b>on n'exporte que ce qui a été mesuré</b>. Aucun repli, aucun
- * masquage, aucune agrégation de la page ne s'applique à ces fichiers ; ils reproduisent la
- * sortie des outils dans une autre grammaire. Ce qu'un tiers en tire ne dépend alors que de
- * son propre outil.
+ * <p>The principle held here: <b>only what was measured is exported</b>. None of the
+ * page's folding, hiding or aggregating applies to these files; they reproduce the tools'
+ * output in another grammar. What a third party makes of it then depends only on their own
+ * tool.
  *
- * <p>Les formats retenus sont publics et documentés :
+ * <p>The formats kept are public and documented:
  * <ul>
- *   <li><b>perf script</b> — la sortie texte de {@code perf script} sous Linux. C'est le
- *       format d'import de Firefox Profiler et de plusieurs convertisseurs.</li>
- *   <li><b>cpuprofile</b> — le profil échantillonné de Chrome DevTools : compact, lu par
- *       speedscope et par les outils de développement des navigateurs.</li>
- *   <li><b>LCOV</b> — le format de couverture le plus largement accepté : éditeurs,
- *       forges, services de suivi.</li>
- *   <li><b>JSON</b> pour les valeurs capturées, dont la structure est décrite dans la
- *       documentation : il n'existe pas de format d'échange établi pour cette information.</li>
+ *   <li><b>perf script</b> — the text output of {@code perf script} on Linux. It is the
+ *       import format of Firefox Profiler and of several converters.</li>
+ *   <li><b>cpuprofile</b> — Chrome DevTools' sampled profile: compact, read by speedscope
+ *       and by the browsers' development tools.</li>
+ *   <li><b>LCOV</b> — the most widely accepted coverage format: editors, forges, tracking
+ *       services.</li>
+ *   <li><b>JSON</b> for the captured values, whose structure is described in the
+ *       documentation: there is no established exchange format for that information.</li>
  * </ul>
  */
 public final class Exports {
 
     /**
-     * Ce qu'un export {@code perf} pèse au plus.
+     * What a {@code perf} export weighs at most.
      *
-     * <p>Le plafond porte sur les <b>octets</b>, et pas sur le nombre de relevés : ce format
-     * réécrit la pile entière à chaque échantillon, si bien que sa taille dépend d'abord de
-     * la <b>profondeur</b> des piles. Quatre-vingt mille relevés de quarante frames pèsent
-     * plus que huit cent mille relevés de deux — compter les relevés serait compter la
-     * mauvaise chose.
+     * <p>The cap is on <b>bytes</b>, not on the number of samples: this format rewrites the
+     * whole stack at every sample, so its size depends first on the <b>depth</b> of the
+     * stacks. Eighty thousand samples forty frames deep weigh more than eight hundred
+     * thousand samples two deep — counting samples would be counting the wrong thing.
      *
-     * <p>Au-delà, on <b>allège proportionnellement</b> plutôt que de s'arrêter en route.
-     * S'arrêter coupait la fin de l'exécution : tout ce qui s'était passé après le plafond
-     * disparaissait sans laisser de trace, et le profil mentait sur la forme du programme.
-     * Alléger garde cette forme — c'est exactement ce que fait un profileur échantillonné
-     * quand on espace ses relevés, et la même réserve s'applique : ce qui pèse très peu peut
-     * disparaître. Le facteur retenu est annoncé sur la sortie standard.
+     * <p>Beyond it, we <b>thin out proportionally</b> rather than stopping half way.
+     * Stopping cut off the end of the run: everything that happened after the cap vanished
+     * without a trace, and the profile lied about the shape of the program. Thinning keeps
+     * that shape — it is exactly what a sampling profiler does when its samples are spaced
+     * out, and the same caveat applies: what weighs very little can disappear. The factor
+     * used is announced on standard output.
      */
-    private static final long MAX_OCTETS = 32L * 1024 * 1024;
+    private static final long MAX_BYTES = 32L * 1024 * 1024;
 
-    /** Formats disponibles. Le nom est celui qu'on écrit sur la ligne de commande. */
+    /** Available formats. The name is the one written on the command line. */
     public enum Format {
-        PERF("perf"), CPUPROFILE("cpuprofile"), LCOV("lcov"), VALEURS("valeurs");
+        PERF("perf", "perf"), CPUPROFILE("cpuprofile", "cpuprofile"),
+        LCOV("lcov", "lcov"), VALUES("valeurs", "values");
 
         public final String option;
 
-        Format(String option) { this.option = option; }
+        /**
+         * The name that is displayed. It differs from {@link #option} for {@code valeurs},
+         * and that is the whole point of the switch: the French name stays accepted for
+         * life because scripts write it, but it is no longer the one shown.
+         */
+        public final String affiche;
 
-        /** Les noms anglais, canoniques. Les français restent acceptés, à vie. */
+        Format(String option, String affiche) { this.option = option; this.affiche = affiche; }
+
+        /** The English names, canonical. The French ones stay accepted, for life. */
         private static final java.util.Map<String, String> ALIAS =
                 java.util.Map.of("values", "valeurs");
 
@@ -88,8 +94,8 @@ public final class Exports {
                 return Set.of(values());
             }
             Set<Format> out = new java.util.LinkedHashSet<>();
-            for (String part : list.split("[,\\s]+")) {
-                if (!part.isBlank()) out.add(of(part));
+            for (String piece : list.split("[,\\s]+")) {
+                if (!piece.isBlank()) out.add(of(piece));
             }
             return out;
         }
@@ -98,9 +104,9 @@ public final class Exports {
     private Exports() {}
 
     /**
-     * Écrit les formats demandés dans {@code <exécution>/exports/} et rend les fichiers
-     * produits. Un format dont la source manque est simplement sauté : une exécution
-     * lancée sans capture de valeurs n'a rien à exporter de ce côté-là.
+     * Writes the requested formats into {@code <run>/exports/} and returns the files
+     * produced. A format whose source is missing is simply skipped: a run launched without
+     * value capture has nothing to export on that side.
      */
     public static List<Path> write(Path runDir, Set<Format> formats, int intervalMs,
                                    int valuesPerMethod) throws Exception {
@@ -121,7 +127,7 @@ public final class Exports {
             Files.createDirectories(dir);
             written.add(lcov(Coverage.parse(jacoco), dir.resolve("couverture.lcov")));
         }
-        if (formats.contains(Format.VALEURS)) {
+        if (formats.contains(Format.VALUES)) {
             Inspection inspection = Inspection.read(
                     runDir.resolve("arthas/watch-params.txt"),
                     runDir.resolve("arthas/trace-calltree.txt"),
@@ -137,29 +143,28 @@ public final class Exports {
     // ------------------------------------------------------------------ perf script
 
     /**
-     * Traduit les piles repliées en sortie {@code perf script}.
+     * Translates the folded stacks into {@code perf script} output.
      *
-     * <p>Un bloc par échantillon, l'appelé d'abord et l'appelant ensuite — c'est l'ordre de
-     * {@code perf}, l'inverse du fichier replié. Les adresses sont nulles : elles n'ont
-     * aucun sens pour du code compilé à la volée, et aucun lecteur ne s'en sert dès lors
-     * que le symbole est là.
+     * <p>One block per sample, callee first and caller after — that is {@code perf}'s
+     * order, the reverse of the folded file. The addresses are zero: they mean nothing for
+     * just-in-time compiled code, and no reader uses them once the symbol is there.
      */
     private static Path perf(Path collapsed, Path out, int intervalMs) throws IOException {
-        List<String> lignes = Files.readAllLines(collapsed, StandardCharsets.UTF_8);
-        Allegement allegement = Allegement.pour(lignes);
+        List<String> lines = Files.readAllLines(collapsed, StandardCharsets.UTF_8);
+        Thinning thinning = Thinning.of(lines);
         long emitted = 0;
-        double reste = 0;
+        double remains = 0;
         try (BufferedWriter w = Files.newBufferedWriter(out, StandardCharsets.UTF_8)) {
-            for (String line : lignes) {
+            for (String line : lines) {
                 Sample sample = Sample.of(line);
                 if (sample == null) continue;
-                // Le reliquat se reporte d'une pile à l'autre : sans lui, tout ce qui pèse
-                // moins que le facteur disparaîtrait, et le total s'effondrerait.
-                double du = sample.count * allegement.facteur + reste;
-                long combien = (long) Math.floor(du);
-                reste = du - combien;
-                for (long i = 0; i < combien; i++, emitted++) {
-                    double when = emitted * (intervalMs / 1000.0) / allegement.facteur;
+                // The remainder carries from one stack to the next: without it everything
+                // weighing less than the factor would vanish, and the total would collapse.
+                double du = sample.count * thinning.factor + remains;
+                long howMany = (long) Math.floor(du);
+                remains = du - howMany;
+                for (long i = 0; i < howMany; i++, emitted++) {
+                    double when = emitted * (intervalMs / 1000.0) / thinning.factor;
                     w.write(String.format(Locale.ROOT, "java 1/1 %.6f: 1 cpu-clock:%n", when));
                     for (int f = sample.frames.length - 1; f >= 0; f--) {
                         w.write("\t0 " + sample.frames[f] + " ([jit])\n");
@@ -168,11 +173,11 @@ public final class Exports {
                 }
             }
         }
-        if (allegement.allege()) {
+        if (thinning.thinned()) {
             System.out.println("   perf export thinned out: " + emitted + " samples out of "
-                    + allegement.total + " (" + Math.round(allegement.facteur * 100)
-                    + " %) — this format rewrites the whole stack at every sample, and would\n"
-                    + "      otherwise weigh " + allegement.octets / (1024 * 1024) + " MB.");
+                    + thinning.total + " (" + Math.round(thinning.factor * 100)
+                    + "%) — this format rewrites the whole stack at every sample, and would\n"
+                    + "      otherwise weigh " + thinning.bytes / (1024 * 1024) + " MB.");
             System.out.println("      The shape of the profile is kept; very small shares "
                     + "may vanish. The cpuprofile, itself, carries everything.");
         }
@@ -180,47 +185,48 @@ public final class Exports {
     }
 
     /**
-     * De combien alléger, et de quoi le dire.
+     * By how much to thin out, and what to say about it.
      *
-     * <p>Le facteur vaut 1 tant que le fichier tient sous le plafond : la grande majorité des
-     * mesures ne sont pas concernées, et un export qui ne change rien ne doit rien annoncer.
+     * <p>The factor is 1 as long as the file stays under the cap: the vast majority of
+     * measurements are not concerned, and an export that changes nothing must announce
+     * nothing.
      */
-    private record Allegement(long total, long octets, double facteur) {
+    private record Thinning(long total, long bytes, double factor) {
 
-        /** Ce qu'écrit une ligne d'échantillon, en-tête comprise, mesuré sur les données. */
-        static Allegement pour(List<String> lignes) {
-            long total = 0, octets = 0;
-            for (String line : lignes) {
+        /** What one sample line writes, header included, measured on the data. */
+        static Thinning of(List<String> lines) {
+            long total = 0, bytes = 0;
+            for (String line : lines) {
                 Sample sample = Sample.of(line);
                 if (sample == null) continue;
                 total += sample.count;
-                long parEchantillon = ENTETE;
+                long perSample = HEADER;
                 for (String frame : sample.frames) {
-                    parEchantillon += frame.length() + DECOR;
+                    perSample += frame.length() + DECOR;
                 }
-                octets += sample.count * parEchantillon;
+                bytes += sample.count * perSample;
             }
-            return new Allegement(total, octets,
-                    octets <= MAX_OCTETS ? 1.0 : (double) MAX_OCTETS / octets);
+            return new Thinning(total, bytes,
+                    bytes <= MAX_BYTES ? 1.0 : (double) MAX_BYTES / bytes);
         }
 
-        boolean allege() { return facteur < 1.0; }
+        boolean thinned() { return factor < 1.0; }
 
-        /** « java 1/1 12.345678: 1 cpu-clock: » plus la ligne vide de fin. */
-        private static final int ENTETE = 34;
-        /** La tabulation, l'adresse, l'espace, « ([jit]) » et le retour à la ligne. */
+        /** "java 1/1 12.345678: 1 cpu-clock:" plus the blank line at the end. */
+        private static final int HEADER = 34;
+        /** The tab, the address, the space, "([jit])" and the newline. */
         private static final int DECOR = 13;
     }
 
     // ------------------------------------------------------------------ cpuprofile
 
     /**
-     * Traduit les piles repliées en profil échantillonné de Chrome DevTools.
+     * Translates the folded stacks into Chrome DevTools' sampled profile.
      *
-     * <p>Bien plus compact que {@code perf script} : les piles y sont partagées dans un
-     * arbre, et l'échantillon n'est qu'un renvoi vers un nœud. Un profil d'une minute tient
-     * en quelques centaines de kilo-octets là où le texte en occupe des dizaines de
-     * méga-octets. Il n'a donc pas besoin d'être allégé : il porte tous les relevés.
+     * <p>Far more compact than {@code perf script}: the stacks are shared in a tree there,
+     * and a sample is only a reference to a node. A one-minute profile fits in a few
+     * hundred kilobytes where the text takes tens of megabytes. It therefore needs no
+     * thinning: it carries every sample.
      */
     private static Path cpuprofile(Path collapsed, Path out, int intervalMs) throws IOException {
         Node root = new Node(1, "(root)");
@@ -252,7 +258,7 @@ public final class Exports {
         return out;
     }
 
-    /** Nœud de l'arbre des piles, dans la forme attendue par le format cpuprofile. */
+    /** A node of the stack tree, in the shape the cpuprofile format expects. */
     private static final class Node {
         final int id;
         final String frame;
@@ -270,8 +276,8 @@ public final class Exports {
         }
 
         Map<String, Object> toMap() {
-            // async-profiler écrit « paquet/Classe.methode » : la classe fait un « url »
-            // acceptable, et le lecteur retrouve ses repères habituels.
+            // async-profiler writes "package/Class.method": the class makes an acceptable
+            // "url", and the reader finds their usual bearings.
             int cut = frame.lastIndexOf('.');
             String owner = cut > 0 ? frame.substring(0, cut).replace('/', '.') : "";
             String method = cut > 0 ? frame.substring(cut + 1) : frame;
@@ -294,7 +300,7 @@ public final class Exports {
         }
     }
 
-    /** Une ligne de pile repliée : les frames, de la racine à l'appelé, et son poids. */
+    /** One folded stack line: the frames, from root to callee, and its weight. */
     private record Sample(String[] frames, long count) {
 
         static Sample of(String line) {
@@ -314,11 +320,11 @@ public final class Exports {
     // ------------------------------------------------------------------ LCOV
 
     /**
-     * Traduit la couverture JaCoCo en LCOV.
+     * Translates the JaCoCo coverage into LCOV.
      *
-     * <p>Une réserve honnête : JaCoCo dit <b>si</b> une ligne a été exécutée, jamais
-     * <b>combien de fois</b>. Le compteur LCOV vaut donc 1 ou 0 — c'est toute l'information
-     * disponible, et la présenter autrement serait inventer des passages.
+     * <p>An honest caveat: JaCoCo says <b>whether</b> a line ran, never <b>how many
+     * times</b>. The LCOV counter is therefore 1 or 0 — that is all the information there
+     * is, and presenting it otherwise would be inventing passes.
      */
     private static Path lcov(Coverage coverage, Path out) throws IOException {
         StringBuilder sb = new StringBuilder();
@@ -386,7 +392,7 @@ public final class Exports {
 
     // ------------------------------------------------------------------ valeurs
 
-    /** Les valeurs capturées, telles que la page les lit, dans un JSON qu'un script relit. */
+    /** The captured values, as the page reads them, in a JSON a script can read back. */
     private static Path values(Inspection inspection, Path out) throws IOException {
         Map<String, Object> doc = new LinkedHashMap<>();
         doc.put("valeurs", inspection.values);

@@ -18,208 +18,208 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * La machine visée n'a pas de réseau : c'est le cas d'usage qui a motivé l'outil. Ce que
- * ces tests éprouvent n'est donc pas le téléchargement, mais tout ce qui permet de s'en
- * passer — et la qualité du message quand on ne peut vraiment pas.
+ * The target machine has no network: that is the use case that motivated the tool. What
+ * these tests exercise is therefore not the download, but everything that makes it possible
+ * to do without — and the quality of the message when one really cannot.
  *
- * <p>Le dépôt est partout pointé sur une adresse morte : un test qui passerait en sortant
- * sur le réseau ne prouverait rien.
+ * <p>The repository is pointed at a dead address everywhere: a test that passed by going
+ * out on the network would prove nothing.
  */
 class ToolboxTest {
 
-    private static final String MORT = "http://127.0.0.1:1/aucun-depot";
+    private static final String DEAD = "http://127.0.0.1:1/aucun-depot";
 
-    private Path fichier(Path dir, String nom) throws IOException {
+    private Path file(Path dir, String name) throws IOException {
         Files.createDirectories(dir);
-        Path f = dir.resolve(nom);
+        Path f = dir.resolve(name);
         Files.writeString(f, "composant", StandardCharsets.UTF_8);
         return f;
     }
 
-    private Toolbox outils(Path cache, List<Path> plats, Path depotLocal) {
-        return new Toolbox(MORT, cache, plats, depotLocal);
+    private Toolbox tools(Path cache, List<Path> flat, Path localRepo) {
+        return new Toolbox(DEAD, cache, flat, localRepo);
     }
 
     @Test
-    @DisplayName("Un composant déposé à côté du jar est pris tel quel, sans réseau")
+    @DisplayName("A component placed beside the jar is taken as it is, without the network")
     void takesComponentPlacedNextToTheJar(@TempDir Path dir) throws Exception {
-        Path apporte = fichier(dir.resolve("voisinage"), "org.jacoco.agent-0.8.13-runtime.jar");
+        Path brings = file(dir.resolve("voisinage"), "org.jacoco.agent-0.8.13-runtime.jar");
 
-        Toolbox t = outils(dir.resolve("cache"), List.of(dir.resolve("voisinage")),
+        Toolbox t = tools(dir.resolve("cache"), List.of(dir.resolve("voisinage")),
                 dir.resolve("m2"));
 
-        assertEquals(apporte, t.jacocoAgent());
+        assertEquals(brings, t.jacocoAgent());
     }
 
     @Test
-    @DisplayName("Il est aussi reconnu sous le nom que lui donne son éditeur")
+    @DisplayName("It is also recognised under the name its publisher gives it")
     void acceptsTheNameFromTheOfficialDistribution(@TempDir Path dir) throws Exception {
-        // Celui qui a « le fichier de JaCoCo » sous la main l'a pris dans la distribution
-        // de JaCoCo, pas sur Maven : il s'appelle jacocoagent.jar, et rien d'autre.
-        Path apporte = fichier(dir.resolve("voisinage"), "jacocoagent.jar");
+        // Whoever has "the JaCoCo file" to hand took it from JaCoCo's distribution, not
+        // from Maven: it is called jacocoagent.jar, and nothing else.
+        Path brings = file(dir.resolve("voisinage"), "jacocoagent.jar");
 
-        Toolbox t = outils(dir.resolve("cache"), List.of(dir.resolve("voisinage")),
+        Toolbox t = tools(dir.resolve("cache"), List.of(dir.resolve("voisinage")),
                 dir.resolve("m2"));
 
-        assertEquals(apporte, t.jacocoAgent());
+        assertEquals(brings, t.jacocoAgent());
     }
 
     @Test
-    @DisplayName("À défaut, le dépôt Maven local de la machine fait l'affaire")
+    @DisplayName("Failing that, the machine's local Maven repository will do")
     void fallsBackToTheLocalMavenRepository(@TempDir Path dir) throws Exception {
         Path m2 = dir.resolve("m2");
-        Path apporte = fichier(m2.resolve("org/jacoco/org.jacoco.cli/0.8.13"),
+        Path brings = file(m2.resolve("org/jacoco/org.jacoco.cli/0.8.13"),
                 "org.jacoco.cli-0.8.13-nodeps.jar");
 
-        Toolbox t = outils(dir.resolve("cache"), List.of(), m2);
+        Toolbox t = tools(dir.resolve("cache"), List.of(), m2);
 
-        assertEquals(apporte, t.jacocoCli());
+        assertEquals(brings, t.jacocoCli());
     }
 
     @Test
-    @DisplayName("Le cache de l'outil garde la priorité sur tout le reste")
+    @DisplayName("The tool's own cache keeps priority over everything else")
     void theToolsOwnCacheComesFirst(@TempDir Path dir) throws Exception {
         Path cache = dir.resolve("cache");
-        Path attendu = fichier(cache, "jfr-converter-4.1.jar");
-        fichier(dir.resolve("voisinage"), "jfr-converter-4.1.jar");
-        fichier(dir.resolve("m2/tools/profiler/jfr-converter/4.1"), "jfr-converter-4.1.jar");
+        Path expected = file(cache, "jfr-converter-4.1.jar");
+        file(dir.resolve("voisinage"), "jfr-converter-4.1.jar");
+        file(dir.resolve("m2/tools/profiler/jfr-converter/4.1"), "jfr-converter-4.1.jar");
 
-        Toolbox t = outils(cache, List.of(dir.resolve("voisinage")), dir.resolve("m2"));
+        Toolbox t = tools(cache, List.of(dir.resolve("voisinage")), dir.resolve("m2"));
 
-        assertEquals(attendu, t.asyncProfilerConverter());
+        assertEquals(expected, t.asyncProfilerConverter());
     }
 
     @Test
-    @DisplayName("Un Arthas déjà décompressé est reconnu, sous ses deux noms de répertoire")
+    @DisplayName("An already unpacked Arthas is recognised, under both its directory names")
     void findsAnAlreadyUnpackedArthas(@TempDir Path dir) throws Exception {
-        Path voisinage = dir.resolve("voisinage");
-        fichier(voisinage.resolve("arthas"), "arthas-boot.jar");
+        Path neighbourhood = dir.resolve("voisinage");
+        file(neighbourhood.resolve("arthas"), "arthas-boot.jar");
 
-        Toolbox t = outils(dir.resolve("cache"), List.of(voisinage), dir.resolve("m2"));
+        Toolbox t = tools(dir.resolve("cache"), List.of(neighbourhood), dir.resolve("m2"));
 
-        assertEquals(voisinage.resolve("arthas"), t.arthasHome());
+        assertEquals(neighbourhood.resolve("arthas"), t.arthasHome());
     }
 
     @Test
-    @DisplayName("Les répertoires sont fouillés dans l'ordre annoncé : le premier gagne")
+    @DisplayName("The directories are searched in the announced order: the first one wins")
     void searchesInTheAnnouncedOrder(@TempDir Path dir) throws Exception {
-        Path designe = dir.resolve("designe");
-        Path voisinage = dir.resolve("voisinage");
-        Path attendu = fichier(designe, "jacocoagent.jar");
-        fichier(voisinage, "jacocoagent.jar");
+        Path designates = dir.resolve("designe");
+        Path neighbourhood = dir.resolve("voisinage");
+        Path expected = file(designates, "jacocoagent.jar");
+        file(neighbourhood, "jacocoagent.jar");
 
-        Toolbox t = outils(dir.resolve("cache"), List.of(designe, voisinage), dir.resolve("m2"));
+        Toolbox t = tools(dir.resolve("cache"), List.of(designates, neighbourhood), dir.resolve("m2"));
 
-        assertEquals(attendu, t.jacocoAgent());
+        assertEquals(expected, t.jacocoAgent());
     }
 
     @Test
-    @DisplayName("L'édition complète porte ses composants : ils sont déposés dans le cache")
+    @DisplayName("The complete edition carries its components: they are dropped into the cache")
     void extractsAComponentEmbeddedInTheJar(@TempDir Path dir) throws Exception {
-        // Le classpath de test porte /lab/xray/composants/jfr-converter-4.1.jar, comme le
-        // ferait le jar construit avec -Pcomplet. Rien sur le disque, dépôt injoignable.
+        // The test classpath carries /lab/xray/composants/jfr-converter-4.1.jar, as the jar
+        // built with -Pcomplet would. Nothing on disk, repository unreachable.
         Path cache = dir.resolve("cache");
 
-        Path obtenu = outils(cache, List.of(), dir.resolve("m2")).asyncProfilerConverter();
+        Path obtained = tools(cache, List.of(), dir.resolve("m2")).asyncProfilerConverter();
 
-        assertEquals(cache.resolve("jfr-converter-4.1.jar"), obtenu,
+        assertEquals(cache.resolve("jfr-converter-4.1.jar"), obtained,
                 "un -javaagent veut un fichier : le composant doit atterrir sur le disque");
-        assertTrue(Files.isRegularFile(obtenu));
+        assertTrue(Files.isRegularFile(obtained));
         assertTrue(Files.list(cache).noneMatch(f -> f.getFileName().toString().startsWith("ex-")),
-                "aucun fichier de travail ne doit rester derrière");
+                "no working file must be left behind");
     }
 
     @Test
-    @DisplayName("Un composant qui déclare la bonne version ne déclenche aucun avertissement")
+    @DisplayName("A component declaring the right version raises no warning")
     void staysSilentWhenTheBroughtComponentDeclaresTheRightVersion(@TempDir Path dir)
             throws Exception {
-        Path bon = jarAvecVersion(dir.resolve("jacocoagent.jar"), "0.8.13");
+        Path right = jarWithVersion(dir.resolve("jacocoagent.jar"), "0.8.13");
 
-        assertEquals("", Toolbox.mention(bon, "0.8.13"),
-                "avertir quand tout va bien apprend à ne plus lire les avertissements");
+        assertEquals("", Toolbox.note(right, "0.8.13"),
+                "warning when all is well teaches one to stop reading warnings");
     }
 
     @Test
-    @DisplayName("Une version différente est nommée, pas seulement soupçonnée")
+    @DisplayName("A differing version is named, not merely suspected")
     void namesTheVersionWhenItDiffers(@TempDir Path dir) throws Exception {
-        Path ancien = jarAvecVersion(dir.resolve("jacocoagent.jar"), "0.8.11");
+        Path previous = jarWithVersion(dir.resolve("jacocoagent.jar"), "0.8.11");
 
-        String mention = Toolbox.mention(ancien, "0.8.13");
+        String note = Toolbox.note(previous, "0.8.13");
 
-        assertTrue(mention.contains("0.8.11") && mention.contains("0.8.13"),
-                "les deux versions doivent apparaître : " + mention);
+        assertTrue(note.contains("0.8.11") && note.contains("0.8.13"),
+                "both versions must appear: " + note);
     }
 
     @Test
-    @DisplayName("Un fichier qui ne déclare rien reste « non vérifié », sans échouer")
+    @DisplayName("A file that declares nothing stays \"not verified\", without failing")
     void keepsTheOldCautionWhenNothingIsDeclared(@TempDir Path dir) throws Exception {
-        // Les archives d'async-profiler et d'Arthas sont dans ce cas, un fichier tronqué aussi.
-        Path muet = jarAvecVersion(dir.resolve("sans-version.jar"), null);
-        Path pasUnJar = fichier(dir, "texte.jar");
+        // The async-profiler and Arthas archives are in this case, so is a truncated file.
+        Path silent = jarWithVersion(dir.resolve("no-version.jar"), null);
+        Path notAJar = file(dir, "text.jar");
 
-        assertTrue(Toolbox.mention(muet, "4.1").contains("not verified"));
-        assertTrue(Toolbox.mention(pasUnJar, "4.1").contains("not verified"),
-                "ne pas savoir n'est pas un défaut : surtout, ne pas lever d'exception");
+        assertTrue(Toolbox.note(silent, "4.1").contains("not verified"));
+        assertTrue(Toolbox.note(notAJar, "4.1").contains("not verified"),
+                "not knowing is not a fault: above all, do not raise an exception");
     }
 
-    /** @param version {@code null} pour un jar dont le manifeste n'en déclare aucune. */
-    private Path jarAvecVersion(Path cible, String version) throws IOException {
-        Manifest manifeste = new Manifest();
-        manifeste.getMainAttributes().put(Attributes.Name.MANIFEST_VERSION, "1.0");
+    /** @param version {@code null} for a jar whose manifest declares none. */
+    private Path jarWithVersion(Path target, String version) throws IOException {
+        Manifest manifest = new Manifest();
+        manifest.getMainAttributes().put(Attributes.Name.MANIFEST_VERSION, "1.0");
         if (version != null) {
-            manifeste.getMainAttributes().put(Attributes.Name.IMPLEMENTATION_VERSION, version);
+            manifest.getMainAttributes().put(Attributes.Name.IMPLEMENTATION_VERSION, version);
         }
-        Files.createDirectories(cible.getParent());
-        try (JarOutputStream out = new JarOutputStream(Files.newOutputStream(cible), manifeste)) {
-            out.putNextEntry(new java.util.zip.ZipEntry("rien.txt"));
-            out.write("rien".getBytes(StandardCharsets.UTF_8));
+        Files.createDirectories(target.getParent());
+        try (JarOutputStream out = new JarOutputStream(Files.newOutputStream(target), manifest)) {
+            out.putNextEntry(new java.util.zip.ZipEntry("nothing.txt"));
+            out.write("nothing".getBytes(StandardCharsets.UTF_8));
             out.closeEntry();
         }
-        return cible;
+        return target;
     }
 
     @Test
-    @DisplayName("Les versions du pom ne divergent pas des constantes du code")
+    @DisplayName("The pom versions do not diverge from the code's constants")
     void thePomVersionsMatchTheCode() throws Exception {
-        // Le profil « complet » embarque ce que dit le pom ; à l'exécution, Toolbox cherche
-        // ce que disent ses constantes. Deux sources qui divergeraient donneraient un jar
-        // d'apparence complète, qui retéléchargerait tout.
+        // The "complet" profile bundles what the pom says; at run time, Toolbox looks for
+        // what its constants say. Two sources that diverged would give a jar that looks
+        // complete and would re-download everything.
         String pom = Files.readString(Path.of("pom.xml"), StandardCharsets.UTF_8);
         String code = Files.readString(
                 Path.of("src/main/java/lab/xray/Toolbox.java"), StandardCharsets.UTF_8);
 
-        for (String[] paire : new String[][]{{"jacoco.version", "JACOCO_VERSION"},
+        for (String[] pair : new String[][]{{"jacoco.version", "JACOCO_VERSION"},
                                              {"arthas.version", "ARTHAS_VERSION"},
                                              {"async.version", "ASYNC_VERSION"}}) {
-            String duPom = entre(pom, "<" + paire[0] + ">", "</" + paire[0] + ">");
-            String duCode = entre(code, paire[1] + " = \"", "\"");
-            assertEquals(duCode, duPom, paire[0] + " et " + paire[1] + " doivent coïncider");
+            String fromPom = between(pom, "<" + pair[0] + ">", "</" + pair[0] + ">");
+            String fromCode = between(code, pair[1] + " = \"", "\"");
+            assertEquals(fromCode, fromPom, pair[0] + " and " + pair[1] + " must coincide");
         }
     }
 
-    private static String entre(String texte, String debut, String fin) {
-        int i = texte.indexOf(debut);
-        assertTrue(i >= 0, "marqueur introuvable : " + debut);
-        i += debut.length();
-        return texte.substring(i, texte.indexOf(fin, i));
+    private static String between(String text, String start, String end) {
+        int i = text.indexOf(start);
+        assertTrue(i >= 0, "marker not found: " + start);
+        i += start.length();
+        return text.substring(i, text.indexOf(end, i));
     }
 
     @Test
-    @DisplayName("Introuvable, le message dit où l'on a cherché et comment s'en sortir")
+    @DisplayName("When nothing is found, the message says where it looked and how to get out")
     void tellsWhereItLookedWhenNothingIsFound(@TempDir Path dir) {
         Path cache = dir.resolve("cache");
-        Path voisinage = dir.resolve("voisinage");
+        Path neighbourhood = dir.resolve("voisinage");
 
-        Toolbox t = outils(cache, List.of(voisinage), dir.resolve("m2"));
+        Toolbox t = tools(cache, List.of(neighbourhood), dir.resolve("m2"));
 
-        IOException echec = assertThrows(IOException.class, t::jacocoAgent);
-        String message = echec.getMessage();
+        IOException failure = assertThrows(IOException.class, t::jacocoAgent);
+        String message = failure.getMessage();
         assertTrue(message.contains("org.jacoco.agent-0.8.13-runtime.jar"),
-                "le composant manquant doit être nommé : " + message);
-        assertTrue(message.contains(cache.toString()) && message.contains(voisinage.toString()),
-                "les répertoires fouillés doivent être listés : " + message);
+                "the missing component must be named: " + message);
+        assertTrue(message.contains(cache.toString()) && message.contains(neighbourhood.toString()),
+                "the directories searched must be listed: " + message);
         assertTrue(message.contains("--composants") && message.contains("--repo"),
-                "les deux issues doivent être rappelées : " + message);
-        assertTrue(message.contains("embarqué"), "l'édition complète doit être évoquée : " + message);
+                "both ways out must be recalled: " + message);
+        assertTrue(message.contains("bundled"), "the complete edition must be mentioned: " + message);
     }
 }

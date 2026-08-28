@@ -4,16 +4,14 @@ import lab.sample.model.Leg;
 import lab.sample.model.Trip;
 
 /**
- * Mise en forme d'un trajet pour impression.
+ * Formatting a trip for printing.
  *
- * <p><b>Volontairement jamais appelée.</b> Ce paquet entier existe pour montrer ce que
- * l'analyse dynamique révèle et qu'aucune lecture du code ne donne : du code qui compile,
- * qui a l'air utile, qui est peut-être maintenu depuis des années — et que l'exécution
- * n'atteint jamais.
+ * <p><b>Deliberately never called.</b> This whole package exists to show what dynamic
+ * analysis reveals and no reading of the code gives: code that compiles, that looks useful,
+ * that has perhaps been maintained for years — and that execution never reaches.
  *
- * <p>C'est le cas le plus intéressant pour une reprise de code : un rapport de couverture
- * fait apparaître un paquet complet en rouge, et la question « qui appelle ça ? » devient
- * une question qu'on se pose enfin.
+ * <p>It is the most interesting case when taking over code: a coverage report turns a whole
+ * package red, and the question "who calls this?" becomes a question one finally asks.
  */
 public final class ItineraryExporter {
 
@@ -21,19 +19,19 @@ public final class ItineraryExporter {
 
     public static String toPrintable(Trip trip, double minutes) {
         StringBuilder sb = new StringBuilder();
-        sb.append("Trajet ").append(trip.id()).append(" — ").append(trip.mode()).append('\n');
+        sb.append("Trip ").append(trip.id()).append(" — ").append(trip.mode()).append('\n');
         for (Leg leg : trip.legs()) {
             sb.append("  ").append(leg.from()).append(" → ").append(leg.to())
               .append(" (").append(leg.distanceKm()).append(" km)").append('\n');
         }
-        sb.append("Durée estimée : ").append(Math.round(minutes)).append(" minutes");
+        sb.append("Estimated duration: ").append(Math.round(minutes)).append(" minutes");
         if (trip.withLuggage()) {
-            sb.append(" (avec bagages)");
+            sb.append(" (with luggage)");
         }
         return sb.toString();
     }
 
     public static String summary(Trip trip) {
-        return trip.legs().size() + " étape(s), " + Math.round(trip.totalDistanceKm()) + " km";
+        return trip.legs().size() + " leg(s), " + Math.round(trip.totalDistanceKm()) + " km";
     }
 }

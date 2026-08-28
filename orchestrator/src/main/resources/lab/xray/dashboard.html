@@ -114,6 +114,15 @@
   .helpbtn{font:inherit;font-size:12px;font-weight:600;padding:4px 11px;border-radius:15px;
            cursor:pointer;border:1px solid var(--border);background:var(--bg);color:var(--muted)}
   .helpbtn:hover{border-color:var(--accent);color:var(--accent)}
+  /* Deux lettres, pas de drapeau : un drapeau nomme un pays, pas une langue — et il
+     faudrait alors en choisir un pour l'anglais. */
+  .langsel{display:inline-flex;border:1px solid var(--border);border-radius:15px;overflow:hidden}
+  .langsel button{font:inherit;font-size:11px;font-weight:700;letter-spacing:.4px;
+                  padding:4px 9px;cursor:pointer;border:0;background:var(--bg);
+                  color:var(--muted)}
+  .langsel button + button{border-left:1px solid var(--border)}
+  .langsel button:hover{color:var(--accent)}
+  .langsel button.on{background:var(--accent-soft);color:var(--accent)}
   #help{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:50;display:flex;
         align-items:flex-start;justify-content:center;padding:40px 16px;overflow:auto}
   #help[hidden]{display:none}
@@ -781,6 +790,9 @@
   <span class="spacer"></span>
   <span class="links" id="links"></span>
   <span class="links" id="annotbar"></span>
+  <span class="langsel" id="langsel" role="group" aria-label="Language">
+    <button type="button" data-lang="en">EN</button><button type="button" data-lang="fr">FR</button>
+  </span>
   <button id="helpbtn" class="helpbtn" title="Comment lire et utiliser cette page">? Aide</button>
 </header>
 <div id="annotout" hidden></div>
@@ -5046,6 +5058,602 @@ setOption("clean",    {icon: OPT.cible});
   AGG = computeAgg();
   renderClasses();
   drawHome();
+})();
+</script>
+<script>
+/*
+ * La langue de la vue — EN par défaut, FR au choix.
+ *
+ * L'outil parle anglais en premier : un rapport s'envoie, se joint à un ticket, se lit par
+ * quelqu'un qui n'a pas lancé la mesure. Le français reste offert parce qu'il ne coûte rien
+ * à garder, mais il ne s'impose qu'à un navigateur qui l'annonce.
+ *
+ * <h2>Pourquoi un parcours du DOM, et pas des clés dans le gabarit</h2>
+ *
+ * Parce que la page fait cinq mille lignes et que la moitié de son texte est composée dans
+ * des concaténations de balises. Y semer des clés aurait demandé de toucher chacune de ces
+ * lignes — donc de risquer un `id`, un sélecteur ou une comparaison sur chaque — pour un
+ * gain nul : le texte affiché est exactement ce que ce parcours voit. Le dictionnaire vit
+ * ici, seul, et le gabarit n'a pas bougé.
+ *
+ * Trois choses tiennent ce choix :
+ *
+ * - **On ne traduit que des chaînes entières et connues.** Pas de remplacement de mots,
+ *   pas de correspondance partielle. Un nom de classe, une valeur capturée, une ligne de
+ *   code de l'application observée ne sont jamais un libellé du dictionnaire, et donc ne
+ *   sont jamais touchés. Le code source affiché est en plus exclu du parcours — c'est le
+ *   code de quelqu'un d'autre, et c'est le plus gros du DOM.
+ * - **Le français d'origine est gardé**, dans une WeakMap, plutôt que retraduit à l'envers.
+ *   Un aller-retour EN → FR → EN sur un dictionnaire non injectif perdrait du texte ; ici
+ *   il rend l'original, à l'octet près.
+ * - **Le choix survit au rechargement, et son échec n'emporte rien.** Une page ouverte en
+ *   `file://` n'a pas toujours le droit d'écrire dans `localStorage` : la lecture comme
+ *   l'écriture sont sous `try`, et sans stockage la vue s'ouvre simplement dans la langue
+ *   du navigateur.
+ */
+(() => {
+  "use strict";
+
+  /* Les libellés, mot pour mot. La clé est le français tel que la page l'écrit. */
+  const DICO = {
+    "(bouton au-dessus du code, actif par défaut) : le centre n'affiche que la méthode choisie, sans ses lignes jamais exécutées. C'est ce qui garantit qu'on regarde": "(button above the code, on by default): the middle shows only the chosen method, without its never-executed lines. That is what guarantees you are looking at",
+    "(masquée tant que « Resserré sur la méthode » est actif)": "(hidden while “Focused on the method” is on)",
+    "(une clé, et un texte si besoin).": "(a key, and a text if needed).",
+    "), ou à défaut sous son identifiant. Le": "), or failing that under its identifier. The",
+    "+ étiquette": "+ tag",
+    ", colorié ligne par ligne :": ", coloured line by line:",
+    ", comparés": ", compared",
+    ", des": ", some",
+    ", en haut.": ", at the top.",
+    ", il suffit de faire": ", it is enough to make",
+    ", même dans une classe qui en contient plusieurs.": ", even in a class that holds several.",
+    ", ou la ligne d'une exécution dans l'arbre d'appel.": ", or a run's line in the call tree.",
+    ", puis cliquer sur une ligne.": ", then click a line.",
+    ", sous le fil d'Ariane : par quels chemins la méthode a été atteinte, et dans quelle proportion. S'il y a plusieurs exécutions, celles où la méthode a aussi tourné sont proposées.": ", under the breadcrumb: by which paths the method was reached, and in what proportion. When there are several runs, those where the method also ran are offered.",
+    ", une": ", a",
+    ", une fois retiré ce qu'elle a délégué. Une barre large et pâle ne fait que passer le relais ;": ", once what it delegated is taken out. A wide, pale bar only passes the baton on;",
+    ", à côté de cette page. C'est le fichier à joindre pour faire analyser un rapport qui ne montre pas ce qu'on attendait.": ", next to this page. It is the file to attach when a report does not show what you expected.",
+    ", à gauche": ", on the left",
+    ". C'est volontaire : capturer les valeurs de toutes les méthodes produirait un volume ingérable.": ". This is deliberate: capturing the values of every method would produce an unmanageable volume.",
+    ". Les sources ne sont pas sur cette machine, ou hors des répertoires explorés — auquel cas il faut désigner le bon à la main.": ". The sources are not on this machine, or outside the directories explored — in which case the right one must be named by hand.",
+    ". On peut aussi cliquer le marqueur violet posé sur sa ligne de déclaration.": ". You can also click the purple marker on its declaration line.",
+    ". À droite de chaque ligne, les appels qui en partent et leur durée.": ". To the right of each line, the calls that leave it and their duration.",
+    ". Élargir la mauvaise redonne exactement le même rapport.": ". Widening the wrong one gives back exactly the same report.",
+    "1 méthodes": "1 methods",
+    ": c'est le mode par défaut, parce qu'il donne les trois informations recherchées d'un coup et que le temps d'exécution n'est pas un critère du projet.": ": that is the default mode, because it gives the three pieces of information at once and execution time is not a criterion of this project.",
+    ": c'est un exemple.": ": it is one example.",
+    ": ce que": ": what",
+    ": la": ": the",
+    ": la fiche se pose à côté, et se retire sans rien perdre.": ": the card sits beside them, and comes off without losing anything.",
+    ": le bouton en haut du code, le titre": ": the button at the top of the code, the title",
+    ": ouvrir la méthode depuis la liste de gauche — elle porte une pastille": ": open the method from the list on the left — it carries a dot",
+    ": sur une méthode ouverte,": ": on an open method,",
+    ": un clic entre dans l'appel. Un nom n'est lié que si sa destination est certaine.": ": one click enters the call. A name is linked only when its destination is certain.",
+    ": un premier pour la couverture et le profil, un second pour la capture des valeurs. Les pourcentages deviennent alors exacts, au prix d'une exécution supplémentaire.": ": a first one for coverage and the profile, a second one for value capture. The percentages then become exact, at the price of one extra run.",
+    ": une exécution est le contexte d'appel le plus haut qui soit. On suit ce qui s'est passé.": ": a run is the highest call context there is. You follow what happened.",
+    "? Aide": "? Help",
+    "Afficher sur le code la réunion des exécutions cochées, en indiquant pour chaque ligne laquelle l'a couverte": "Show on the code the union of the ticked runs, marking for each line which one covered it",
+    "Aller à la liste du code": "Skip to the code list",
+    "Analyse des sources": "Source analysis",
+    "Annotations « appelle … » dans le code, à droite": "“calls …” annotations in the code, on the right",
+    "Appelée depuis :": "Called from:",
+    "Au centre, le code s'affiche": "In the middle, the code is shown",
+    "Aucun ne fait les trois : c'est leur combinaison qui répond. Tous fonctionnent sans connexion Internet et sans licence.": "None of them does all three: it is their combination that answers. All of them work without an Internet connection and without a licence.",
+    "Aucun répertoire de sources n'a été passé à l'outil : la mesure n'en a pas besoin, l'affichage du code annoté si. Renseigner": "No source directory was given to the tool: the measurement does not need one, the display of annotated code does. Set",
+    "Aucune instruction de la ligne n'a été exécutée": "No instruction on this line was executed",
+    "Aucune mesure n'en est modifiée": "No measurement is changed by it",
+    "Aucune méthode n'a été observée dans cette exécution : relancer avec": "No method was observed in this run: run again with",
+    "Aucune valeur n'a été capturée pour ce rapport. Relancer en indiquant la méthode racine à inspecter (": "No value was captured for this report. Run again naming the root method to inspect (",
+    "Bytecode analysé": "Analysed bytecode",
+    "Ce qu'on y voit d'une exécution réelle : par où le code est passé, quel appel en a déclenché un autre, et avec quelles valeurs.": "What it shows of a real run: where the code went, which call triggered which, and with what values.",
+    "Ce que cette exécution a fait dans son ensemble : couverture, temps, valeurs capturées et contexte de lancement": "What this run did as a whole: coverage, time, captured values and launch context",
+    "Ce que chaque réglage commande": "What each setting actually controls",
+    "Ce que l'application a écrit sur sa sortie, et ce que l'outil a fait autour.": "What the application wrote on its output, and what the tool did around it.",
+    "Ce que les exécutions ont fait : l'arbre d'appel, avec les exécutions pour racines": "What the runs did: the call tree, with runs as roots",
+    "Ce que vous ajoutez à cette exécution : un nom, une description, des étiquettes. Rien ici ne touche aux mesures.": "What you add to this run: a name, a description, tags. Nothing here touches the measurements.",
+    "Ce qui a été comparé, ce qui a été écarté, et ce qui reste à trancher.": "What was compared, what was set aside, and what is left to decide.",
+    "Ce qui suit n'est pas produit par cette page : ce sont les fichiers que chaque outil a écrits, tels quels. À consulter quand la synthèse surprend — ou si elle ne s'ouvre plus. Ils sont aussi dans le menu": "What follows is not produced by this page: these are the files each tool wrote, as they are. To consult when the summary surprises — or if it no longer opens. They are also in the",
+    "Cette classe n'a jamais été chargée ni exécutée pendant cette mesure": "This class was never loaded nor executed during this measurement",
+    "Cette exécution": "This run",
+    "Cette page en réunit plusieurs ; l'onglet Exécutions les montre côte à côte": "This page gathers several; the Runs tab shows them side by side",
+    "Chaque barre est une méthode ; sa": "Each bar is a method; its",
+    "Chaque barre est une méthode, empilée sous celle qui l'appelle. Largeur : la part du temps passée dessous. Couleur : la part qu'elle garde pour elle. Cliquer une barre ouvre la méthode.": "Each bar is a method, stacked under its caller. Width: the share of time spent beneath it. Colour: the share it keeps for itself. Clicking a bar opens the method.",
+    "Chercher une classe dans l'inventaire des sources": "Search a class in the source inventory",
+    "Chercher une classe — dit si on l'a trouvée, et où": "Search a class — tells whether it was found, and where",
+    "Chercher…": "Search…",
+    "Classes analysées": "Analysed classes",
+    "Classes analysées dont aucune instruction n'a été exécutée : ni la lecture du code, ni un test qui passe ne les font apparaître. Cliquer le titre replie la liste.": "Analysed classes with no instruction executed: neither reading the code nor a passing test reveals them. Clicking the title folds the list.",
+    "Classes analysées sous ce paquet": "Analysed classes under this package",
+    "Code et exécutions — flèches pour parcourir, Entrée pour ouvrir": "Code and runs — arrows to browse, Enter to open",
+    "Commande lancée, méthode racine, filtres, machine, version de Java, durée.": "Command launched, root method, filters, machine, Java version, duration.",
+    "Comment": "How",
+    "Comment ce rapport est produit": "How this report is produced",
+    "Comment lire et utiliser cette page": "How to read and use this page",
+    "Contexte": "Context",
+    "Contexte de cette exécution": "Context of this run",
+    "Couper cette branche, ou repartir d'ici": "Cut this branch, or restart from here",
+    "Couverture au format LCOV": "Coverage in LCOV format",
+    "Couverture ciblée": "Focused coverage",
+    "Couverture détaillée": "Detailed coverage",
+    "D'où la répartition : on cherche": "Hence the division of labour: you look for",
+    "D'où vient le code affiché à côté de la couverture, ce qui manque, et où chaque classe a été trouvée. Cliquer le titre replie la section.": "Where the code shown beside the coverage comes from, what is missing, and where each class was found. Clicking the title folds the section.",
+    "Dans le code, les noms de méthodes de l'application sont cliquables": "In the code, the application's method names are clickable",
+    "Description de cette exécution": "Description of this run",
+    "Description libre, gardée avec l'exécution": "Free text, kept with the run",
+    "Deux arbres, deux questions — on utilise les deux": "Two trees, two questions — both are used",
+    "Deux entrées vers le même code": "Two ways into the same code",
+    "Dire ce que fait l'application": "Say what the application does",
+    "Distinguer deux appels de la même méthode : c'est une somme.": "Tell two calls of the same method apart: it is a sum.",
+    "Données CSV": "CSV data",
+    "Données XML": "XML data",
+    "Début": "Start",
+    "Décocher retire cette exécution de la liste du code": "Unticking removes this run from the code list",
+    "Décocher une exécution la retire de la liste du code : une classe n'apparaît que si elle a tourné dans au moins une des exécutions cochées": "Unticking a run removes it from the code list: a class only appears if it ran in at least one ticked run",
+    "Dépôt du projet ↗": "Project repository ↗",
+    "Elles ne sont capturées que sur": "They are captured only on",
+    "En haut à gauche,": "At the top left,",
+    "Exécutions": "Runs",
+    "Fermer": "Close",
+    "Fichier source lu par l'outil": "Source file read by the tool",
+    "Fichiers de cette exécution": "Files of this run",
+    "Filtre de profil": "Profile filter",
+    "Filtrer la liste par nom de classe ou de méthode": "Filter the list by class or method name",
+    "Filtrer…": "Filter…",
+    "Fin": "End",
+    "Formats ouverts": "Open formats",
+    "Glisser pour redimensionner": "Drag to resize",
+    "Invocations de cette méthode dont Arthas a relevé les paramètres et le retour — cliquer ouvre le bandeau du bas": "Invocations of this method whose arguments and return value Arthas recorded — clicking opens the bottom panel",
+    "Invocations de cette méthode dont les paramètres ont été relevés : les déplier montre un nœud par appel": "Invocations of this method whose arguments were recorded: unfolding them shows one node per call",
+    "Jamais exécuté": "Never executed",
+    "Journal de l'exécution": "Run log",
+    "L'arbre agrégé": "The aggregated tree",
+    "L'outil a cherché les fichiers": "The tool looked for the files",
+    "L'outil s'intègre à une exécution Java, lance trois observateurs, et réunit leurs sorties dans un rapport unique": "The tool fits into a Java run, starts three observers, and gathers their outputs into a single report",
+    "La classe a tourné et son fichier source a été trouvé : la vue de code la montre annotée.": "The class ran and its source file was found: the code view shows it annotated.",
+    "La classe a tourné, mais aucun fichier source ne lui correspond. C'est ce qui donne « Source indisponible » — il manque une racine de sources.": "The class ran, but no source file matches it. That is what gives “Source unavailable” — a source root is missing.",
+    "La classe est dans le bytecode analysé mais aucune de ses instructions n'a été exécutée, ou elle a été écartée par un filtre.": "The class is in the analysed bytecode but none of its instructions were executed, or a filter left it out.",
+    "La fiche d'une exécution": "A run's card",
+    "La fiche de cette exécution : le nom, la description et les étiquettes que VOUS lui donnez — le bandeau juste en dessous. Aucune mesure n'en est modifiée.": "The record of this run: the name, description and tags YOU give it — the band just below. No measurement is changed by it.",
+    "La mesure elle-même : une pile d'appels par ligne, suivie de son nombre de relevés.": "The measurement itself: one call stack per line, followed by its sample count.",
+    "La même couverture en barre : la part verte est ce qui a tourné, la part rose ce qui ne l'a jamais fait.": "The same coverage as a bar: the green part is what ran, the pink part what never did.",
+    "La sortie texte de perf script. C'est ce que Firefox Profiler sait ouvrir.": "The text output of perf script. That is what Firefox Profiler can open.",
+    "La sortie texte de perf script. C'est ce que Firefox Profiler sait ouvrir. — pas encore produit pour ce rapport.": "The text output of perf script. This is what Firefox Profiler can open. — not produced for this report yet.",
+    "La source que cette page lit. Exploitable par un autre outil, ou à la main.": "The source this page reads. Usable by another tool, or by hand.",
+    "Le bandeau du bas montre les valeurs.": "The bottom panel shows the values.",
+    "Le bandeau sous le fil d'Ariane est": "The strip under the breadcrumb is",
+    "Le bytecode analysé n'est pas connu de ce rapport — il l'est quand la mesure est lancée par l'outil, ou quand": "The analysed bytecode is not known to this report — it is when the measurement is launched by the tool, or when",
+    "Le champ": "The",
+    "Le chemin d'un appel": "The path of one call",
+    "Le code, les scripts de collecte, et comment lancer cet outil sur un autre projet.": "The code, the collection scripts, and how to run this tool on another project.",
+    "Le code, les scripts, et comment lancer cet outil sur un autre projet": "The code, the scripts, and how to run this tool on another project",
+    "Le code, par paquet et par classe, filtré sur ce qui a tourné": "The code, by package and class, filtered on what ran",
+    "Le contexte d'appel": "The call context",
+    "Le dépôt du projet ↗": "The project repository ↗",
+    "Le détail — configuration du lancement, exécutions, rapprochement classe par classe — est dans": "The detail — launch configuration, runs, class-by-class matching — is in",
+    "Le format que lisent les éditeurs et les services de suivi de couverture.": "The format editors and coverage-tracking services read.",
+    "Le format que lisent les éditeurs et les services de suivi de couverture. — pas encore produit pour ce rapport.": "The format editors and coverage services read. — not produced for this report yet.",
+    "Le lancer sur votre propre application : paramètres, configuration, publication du résultat.": "Running it on your own application: options, configuration, publishing the result.",
+    "Le menu Exports": "The Exports menu",
+    "Le même contenu, une ligne par classe — pour un tableur.": "The same content, one line per class — for a spreadsheet.",
+    "Le même retourné : part d'une méthode coûteuse et remonte vers ses appelants.": "The same, reversed: starts from a costly method and climbs back to its callers.",
+    "Le même, restreint aux classes qui ont réellement tourné.": "The same, restricted to the classes that actually ran.",
+    "Le principe": "The principle",
+    "Le profil échantillonné de Chrome DevTools — plus compact, lu par speedscope.": "The sampled profile of Chrome DevTools — more compact, read by speedscope.",
+    "Le profil échantillonné de Chrome DevTools — plus compact, lu par speedscope. — pas encore produit pour ce rapport.": "The sampled profile of Chrome DevTools — more compact, read by speedscope. — not produced for this report yet.",
+    "Le rapport complet, fichier par fichier, avec le code annoté ligne à ligne.": "The full report, file by file, with the code annotated line by line.",
+    "Le rendu de l'outil lui-même, sans aucun de nos replis ni agrégations.": "The tool's own rendering, without any of our folding or aggregation.",
+    "Les appels observés et leurs valeurs, pour un script qui les compare.": "The observed calls and their values, for a script that compares them.",
+    "Les appels observés et leurs valeurs, pour un script qui les compare. — pas encore produit pour ce rapport.": "The observed calls and their values, for a script that compares them. — not produced for this report yet.",
+    "Les arbres d'appel réels, un par invocation, avec les numéros de ligne.": "The real call trees, one per invocation, with line numbers.",
+    "Les colonnes": "The columns",
+    "Les fichiers écrits par cette exécution : sorties brutes des outils, formats ouverts, journal": "The files written by this run: raw tool outputs, open formats, log",
+    "Les méthodes observées": "The observed methods",
+    "Les méthodes sous lesquelles le plus de temps a été passé, appels compris": "The methods under which the most time was spent, calls included",
+    "Les mêmes mesures réécrites pour être reprises ailleurs — un profileur, un éditeur, un script. Sans repli ni masquage : c'est la mesure, pas la synthèse.": "The same measurements rewritten to be used elsewhere — a profiler, an editor, a script. No folding, no hiding: this is the measurement, not the summary.",
+    "Les noms de paquet sont affichés — cliquer pour ne garder que les noms de classe": "Package names are shown — click to keep only class names",
+    "Les paramètres et retours relevés, dans la forme où l'outil les a imprimés.": "The arguments and return values recorded, in the form the tool printed them.",
+    "Les plus coûteuses": "The most costly",
+    "Les sorties brutes des outils": "The raw outputs of the tools",
+    "Les valeurs des paramètres": "The argument values",
+    "Ligne exécutée": "Line executed",
+    "Mettre cet appel en évidence": "Highlight this call",
+    "Mode d'emploi de l'outil ↗": "The tool's manual ↗",
+    "Méthode racine inspectée": "Root method inspected",
+    "Méthodes ayant tourné dans cette exécution": "Methods that ran in this run",
+    "Méthodes dont Arthas a relevé les paramètres et le retour de quelques invocations": "Methods whose arguments and return value Arthas recorded for a few invocations",
+    "Ne peut pas": "Cannot",
+    "Ne plus voir ce paquet ni ce qu'il contient": "Stop showing this package and what it holds",
+    "Ne plus voir cette classe, ou tout son paquet": "Stop showing this class, or its whole package",
+    "Nombre d'invocations dont Arthas a relevé les paramètres et le retour. Quelques-unes seulement : les capturer coûte cher, elles servent d'exemples, pas de statistique.": "Number of invocations whose arguments and return Arthas recorded. Only a few: capturing them is costly, they serve as examples, not as statistics.",
+    "Nombre de méthodes dont au moins une instruction a été exécutée, parmi les classes analysées.": "Number of methods with at least one instruction executed, among the analysed classes.",
+    "Nombre de relevés de pile pris par async-profiler pendant l'exécution — un toutes les 1 ms. C'est la base de tous les pourcentages de temps.": "Number of stack samples taken by async-profiler during the run — one every 1 ms. It is the basis of every time percentage.",
+    "Onglet": "Tab",
+    "Ouvrir cette classe dans le rapport HTML de JaCoCo — la même couverture, présentée par l'outil qui l'a mesurée": "Open this class in JaCoCo's HTML report — the same coverage, presented by the tool that measured it",
+    "Ouvrir le bandeau du bas sur les invocations relevées de cette méthode : leurs paramètres et leur retour": "Open the bottom panel on the recorded invocations of this method: their arguments and their return value",
+    "Ouvrir toutes les branches d'un coup": "Open every branch at once",
+    "Où": "Where",
+    "Où elle est gardée dépend de la façon dont cette page est ouverte, et elle le dit à droite du bandeau :": "Where it is kept depends on how this page is opened, and it says so on the right of the strip:",
+    "Où est chaque classe": "Where each class is",
+    "Où le temps est passé": "Where the time went",
+    "Où voir les valeurs des paramètres": "Where to see the argument values",
+    "Par instrumentation : chaque entrée et sortie est notée. Rien n'échappe, mais seules quelques invocations sont suivies, et elles sont ralenties.": "By instrumentation: every entry and exit is noted. Nothing escapes, but only a few invocations are followed, and they are slowed down.",
+    "Par sondage : la JVM est photographiée mille fois par seconde, et les photos sont additionnées. Rien n'est ralenti, mais un appel bref peut échapper à toutes les photos.": "By sampling: the JVM is photographed a thousand times a second, and the photographs are added up. Nothing is slowed down, but a brief call can escape every photograph.",
+    "Part des instructions atteintes pendant cette exécution, mesurée par JaCoCo. Un pourcentage de couverture ne dit pas que le code est juste : seulement qu'il est passé par là.": "Share of instructions reached during this run, measured by JaCoCo. A coverage percentage does not say the code is correct: only that it went through there.",
+    "Part des instructions de cette classe qui ont été exécutées": "Share of this class's instructions that were executed",
+    "Part du temps mesuré passée dans cette méthode et dans ce qu'elle appelle, tous appels confondus": "Share of the measured time spent in this method and in what it calls, all calls taken together",
+    "Part du temps mesuré passée sous cet appel, ce qu'il appelle compris": "Share of the measured time spent under this call, what it calls included",
+    "Part du temps total — cliquer pour voir un temps estimé": "Share of the total time — click to see an estimated duration",
+    "Piles repliées": "Folded stacks",
+    "Plan de l'interface : liste à gauche, code au centre, valeurs en bas, bouton resserré en haut à droite": "Layout of the interface: list on the left, code in the middle, values at the bottom, focus button at the top right",
+    "Pour aller plus loin": "Going further",
+    "Pour les voir": "To see them",
+    "Pour ne plus voir une classe ou un paquet, cliquer": "To stop showing a class or a package, click",
+    "Pourquoi ces outils ↗": "Why these tools ↗",
+    "Produit par": "Produced by",
+    "Profil au format cpuprofile": "Profile in cpuprofile format",
+    "Profil au format perf": "Profile in perf format",
+    "Profil brut": "Raw profile",
+    "Profil inversé": "Reversed profile",
+    "Programme lancé": "Program launched",
+    "Quatre options restreignent quelque chose de": "Four options each restrict something",
+    "Racines proposées": "Suggested roots",
+    "Relevés de pile pris pendant cette exécution : c'est le total dont découlent ses pourcentages": "Stack samples taken during this run: this is the total its percentages derive from",
+    "Replier / déplier le panneau de gauche": "Fold / unfold the left panel",
+    "Replier / déplier le panneau des valeurs": "Fold / unfold the values panel",
+    "Reprendre un fichier de fiches, entier ou pour une seule exécution": "Load a records file, whole or for a single run",
+    "Resserré : seule la méthode sélectionnée est affichée, sans ses lignes mortes": "Focused: only the selected method is shown, without its dead lines",
+    "Resserré sur la méthode": "Focused on the method",
+    "Restreindre le périmètre": "Narrowing the scope",
+    "Revenir à la vue d'ensemble": "Back to the overview",
+    "Répertoire de travail": "Working directory",
+    "Répond à": "Answers",
+    "Sans nom, une exécution s'affiche sous celui de son lancement (": "Without a name, a run appears under the one from its launch (",
+    "Seul le code exécuté est listé — cliquer pour voir tout le code": "Only executed code is listed — click to see all the code",
+    "Si les temps devaient compter": "If the times had to be exact",
+    "Sources indexées": "Indexed sources",
+    "Statut": "Status",
+    "Système": "System",
+    "Tout a été collecté en": "Everything was collected in",
+    "Tout déplier, ou tout replier": "Unfold everything, or fold everything",
+    "Toutes les instructions de la ligne ont été exécutées": "Every instruction on this line was executed",
+    "Trace d'invocation": "Invocation trace",
+    "Trois outils libres et gratuits ont observé la même exécution :": "Three free and open tools observed the same run:",
+    "Télécharger les fiches de toutes les exécutions de ce rapport, en un fichier": "Download the records of every run in this report, as one file",
+    "Un fichier source existe, sans classe correspondante dans le bytecode ni dans la mesure : code non compilé, ou hors du périmètre analysé.": "A source file exists, with no matching class in the bytecode nor in the measurement: code not compiled, or outside the analysed scope.",
+    "Un nœud d'arbre désigne un chemin d'appel, pas un appel : le profil est un agrégat. Les appels individuels viennent de l'inspection, et chacun est sélectionnable à part — dans l'arbre sous la méthode, ou depuis la liste du bandeau.": "A tree node names a call path, not a call: the profile is an aggregate. Individual calls come from the inspection, and each one is selectable on its own — in the tree under the method, or from the list in the panel.",
+    "Une clé, et un texte si besoin": "A key, and a value if needed",
+    "Une ligne par champ de la valeur — cliquer pour n'avoir qu'une ligne par paramètre": "One line per field of the value — click for one line per argument",
+    "Une partie seulement : typiquement une condition dont une seule branche a été prise": "Only part of it: typically a condition where a single branch was taken",
+    "Une réserve sur les pourcentages de temps.": "One caveat on the time percentages.",
+    "Valeurs capturées": "Captured values",
+    "Valeurs capturées en JSON": "Captured values as JSON",
+    "Valeurs des paramètres": "Argument values",
+    "Voir ce qui serait écrit": "See what would be written",
+    "Voir chaque passage de la boucle, un par un": "See each pass of the loop, one by one",
+    "Vue intégrée — Runtime X-Ray": "Integrated view — Runtime X-Ray",
+    "Vue précédente": "Previous view",
+    "Vue précédente (Alt + ←)": "Previous view (Alt + ←)",
+    "Vue suivante": "Next view",
+    "Vue suivante (Alt + →)": "Next view (Alt + →)",
+    "agit sur ce qui est replié À LA MESURE — le temps est reporté sur l'appelant, pas perdu": "acts on what is folded AT MEASUREMENT TIME — the time is carried to the caller, not lost",
+    "agit sur l'affichage du code annoté, et lui seul": "acts on the display of the annotated code, and nothing else",
+    "agit sur la capture des valeurs de paramètres (Arthas), et le filtre de temps par défaut": "acts on the capture of argument values (Arthas), and the default time filter",
+    "agit sur le bytecode analysé : d'où viennent les classes du rapport": "acts on the analysed bytecode: where the report's classes come from",
+    "agit sur les classes instrumentées par JaCoCo — la COUVERTURE": "acts on the classes JaCoCo instruments — COVERAGE",
+    "agit sur les classes échantillonnées par le profileur — la mesure du TEMPS": "acts on the classes the profiler samples — the TIME measurement",
+    "ajoutez à une exécution pour la reconnaître plus tard — un": "add to a run to recognise it later — a",
+    "appel-là, dans l'ordre ? »": "call do, in order?”",
+    "appels avec leurs valeurs": "calls with their values",
+    "au bout de sa ligne.": "at the end of its line.",
+    "aucun ne porte les paquets attendus": "none of them holds the expected packages",
+    "c'est lui, et pas --filter, qui vide un rapport de couverture s'il est trop étroit": "it is this one, not --filter, that empties a coverage report when it is too narrow",
+    "ce qui s'y est passé": "what happened there",
+    "cet": "that",
+    "choisir un onglet, puis cliquer": "pick a tab, then click",
+    "cliquable : il déplie un nœud par passage.": "you can click: it unfolds one node per pass.",
+    "code exécuté": "executed code",
+    "compilée, jamais mesurée": "compiled, never measured",
+    "correspondants autour du projet et du bytecode analysé :": "matching ones around the project and the analysed bytecode:",
+    "couleur": "colour",
+    "cumuler la couverture des exécutions cochées": "accumulate the coverage of the ticked runs",
+    "dans l'arbre agrégé, puis on ouvre la méthode et on lit": "in the aggregated tree, then you open the method and read",
+    "dans la configuration, ou": "in the configuration, or",
+    "dans le chemin d'un appel. Une ligne dans une boucle porte un": "in the path of one call. A line inside a loop carries a",
+    "différent": "different",
+    "du code exécuté": "of the executed code",
+    "décrire cette exécution — ce qu'on cherchait, ce qu'on a vu": "describe this run — what you were after, what you saw",
+    "désignée au lancement — ici": "named at launch — here",
+    "en général": "in general",
+    "en ligne de commande.": "on the command line.",
+    "en rend le fichier et": "hands back the file and",
+    "enregistrer": "save",
+    "est donné à la réassemblée.": "is given when it is reassembled.",
+    "est la part du temps passé dessous, sa": "is the share of time spent beneath it, its",
+    "exporter": "export",
+    "exécution": "run",
+    "exécutions affichées": "runs shown",
+    "exécuté / tout": "executed / all",
+    "exécutée": "executed",
+    "fiche": "card",
+    "filtrer": "filter",
+    "formats ouverts": "open formats",
+    "gardé dans ce navigateur": "kept in this browser",
+    "importer": "import",
+    "indexé(s) au total. Le niveau de la racine importe peu : l'outil lit le paquet déclaré par chaque fichier, pas son chemin.": "indexed in total. The level of the root matters little: the tool reads the package each file declares, not its path.",
+    "jamais exécutée": "never executed",
+    "la fiche": "the card",
+    "la part qu'elle garde": "the share it keeps",
+    "largeur": "width",
+    "le code, colorié": "the code, coloured",
+    "les exécutions pour racines": "runs as its roots",
+    "les valeurs reçues": "the values received",
+    "mesures de temps prises": "time samples taken",
+    "mesurée, code affiché": "measured, code shown",
+    "mesurée, code manquant": "measured, code missing",
+    "montre aussi le code qui n'a pas servi, en rouge.": "button also shows the code that never served, in red.",
+    "méthode racine": "root method",
+    "méthodes ayant tourné": "methods that ran",
+    "n'a aucun effet sur la mesure : couverture, temps et valeurs sont identiques sans lui": "has no effect on the measurement: coverage, time and values are identical without it",
+    "n'efface rien du disque : les rapports bruts des outils gardent tout": "erases nothing from disk: the raw tool reports keep everything",
+    "ne change rien à la couverture ni au code affiché": "changes neither the coverage nor the displayed code",
+    "ne garde dans la liste que le code appelé sous elle — sans avoir à descendre d'appel en appel.": "keeps in the list only the code called beneath it — without having to descend call by call.",
+    "ne restreint NI la couverture, NI les classes affichées, NI les sources": "restricts NEITHER the coverage, NOR the displayed classes, NOR the sources",
+    "nom": "name",
+    "noms de paquet": "package names",
+    "non enregistré": "not saved",
+    "ou": "or",
+    "où regarder": "where to look",
+    "par champ": "per field",
+    "part du temps": "share of time",
+    "partiellement": "partially",
+    "plusieurs lancements": "several launches",
+    "pointé sur un jar de dépendance, il noie le code du projet dans des milliers de classes": "pointed at a dependency jar, it drowns the project's code in thousands of classes",
+    "pour capturer les valeurs reçues par une méthode.": "to capture the values received by a method.",
+    "pour elle": "for itself",
+    "pour un script. Un format qui n'a pas été produit reste nommé, en grisé : cliquer dit comment l'obtenir, sans relancer la moindre mesure.": "for a script. A format that was not produced stays named, greyed out: clicking says how to get it, without running a single measurement again.",
+    "pour un éditeur,": "for an editor,",
+    "que Firefox Profiler importe,": "that Firefox Profiler imports,",
+    "que speedscope lit,": "that speedscope reads,",
+    "reprend celui d'un collègue ;": "picks up a colleague's;",
+    "resserrer": "focus",
+    "réduit la liste à mesure qu'on tape. Les deux boutons à côté basculent l'affichage du temps (part ou durée) et les noms de paquet.": "field narrows the list as you type. The two buttons beside it switch the display of time (share or duration) and the package names.",
+    "réunit tous les fichiers de l'exécution regardée : les sorties brutes de chaque outil, le journal, et les": "gathers every file of the run being looked at: the raw outputs of each tool, the log, and the",
+    "sont celles dont la valeur change d'un appel à l'autre : c'est là qu'il faut chercher ce qui a fait diverger l'exécution.": "are those whose value changes from one call to the next: that is where to look for what made the run diverge.",
+    "source seule": "source only",
+    "surlignées": "highlighted",
+    "tout déplier": "unfold all",
+    "toutes les classes mesurées ont leur source.": "every measured class has its source.",
+    "un seul lancement": "a single launch",
+    "une barre colorée est un endroit où le temps se consomme vraiment. Cliquer entre dans la méthode.": "a coloured bar is a place where time is really consumed. Clicking enters the method.",
+    "une seule méthode": "a single method",
+    "une seule méthode à la fois": "one method at a time",
+    "voir dans JaCoCo ↗": "see in JaCoCo ↗",
+    "vous": "you",
+    "vue d'ensemble": "overview",
+    "« Où passe le temps, tous appels confondus ? »": "“Where does the time go, all calls taken together?”",
+    "« Qu'a fait": "“What did",
+    "« ne montrer que ce qui tourne sous cette méthode »": "“show only what runs under this method”",
+    "À gauche, choisir un onglet": "On the left, pick a tab",
+    "à côté du nom revient à celui du lancement.": "beside the name goes back to the launch one.",
+    "à jour": "up to date",
+    "écrit la fiche à côté des mesures, pour tout le monde.": "writes the card beside the measurements, for everyone.",
+    "élaguer": "prune",
+    "étiquettes": "tags",
+    "— chacune a ses propres valeurs :": "— each has its own values:",
+    "— l'arbre d'appel, avec": "— the call tree, with",
+    "— l'organisation du code : paquet, sous-paquet, classe, méthode, filtrée sur ce qui a réellement tourné. On cherche une classe qu'on connaît. Le bouton": "— the layout of the code: package, sub-package, class, method, filtered on what actually ran. You look for a class you know. The",
+    "— la fiche ne quitte pas ce poste,": "— the card does not leave this machine,",
+    "— la page est servie par l'outil, et": "— the page is served by the tool, and",
+    "— les lignes exécutées, et la liste exhaustive du code qui a tourné.": "— the executed lines, and the exhaustive list of the code that ran.",
+    "— les mesures de temps et l'arbre agrégé des appels.": "— the time measurements and the aggregated call tree.",
+    "— les valeurs des paramètres, et le chemin réellement suivi par un appel précis.": "— the argument values, and the path one precise call actually followed.",
+    "— pour n'avoir qu'une page à lire plutôt que trois formats à rapprocher.": "— so there is one page to read rather than three formats to reconcile.",
+    "— puis regarder le": "— then look at the",
+    "→ Comment se servir de cette page": "→ How to use this page",
+    "● Resserré sur la méthode": "● Focused on the method",
+    "⚠ C'est le seul réglage qui explique « Source indisponible ». La couverture reste juste : ce sont les fichiers .java qui manquent, pas la mesure.": "⚠ It is the only setting that explains “Source unavailable”. The coverage stays correct: it is the .java files that are missing, not the measurement.",
+  };
+
+  /*
+   * Les phrases composées, que le dictionnaire exact ne peut pas atteindre : elles portent
+   * un nom de classe, un compte, un pourcentage. On les reconnaît par leur forme et on
+   * garde la part variable telle quelle — sauf les nombres, qui changent de convention en
+   * passant la Manche : « 1 234 » et « 12,3 % » deviennent « 1,234 » et « 12.3% ».
+   */
+  const nb = s => s.replace(/[\s\u00a0\u202f]/g, "").replace(",", ".")
+                   .replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  const dec = s => s.replace(",", ".");
+
+  const MOTIFS = [
+    [/^Paquet (.+) — cliquer déplie ce qu'il contient$/,
+      (m) => "Package " + m[1] + " — clicking unfolds what it holds"],
+    [/^(.+) — cliquer ouvre cette méthode et son code$/,
+      (m) => m[1] + " — clicking opens this method and its code"],
+    [/^(.+) — code hors des classes analysées : ni source, ni couverture$/,
+      (m) => m[1] + " — code outside the analysed classes: no source, no coverage"],
+    [/^(.+?)\s+—\s+(.+?) au total, dont (.+) % en propre$/,
+      (m) => m[1] + "  —  " + m[2] + " total, of which " + dec(m[3]) + "% self"],
+    [/^Afficher le code de (.+)$/, (m) => "Show the code of " + m[1]],
+    [/^Identifiant permanent : (.+)$/, (m) => "Permanent id: " + m[1]],
+    [/^Nom au lancement : (.+) · Identifiant : (.+)$/,
+      (m) => "Name at launch: " + m[1] + " · Id: " + m[2]],
+    [/^Nom au lancement : (.+)$/, (m) => "Name at launch: " + m[1]],
+    [/^Nom de cette exécution\. (.+)$/, (m) => "Name of this run. " + (traduire(m[1]) || m[1])],
+    [/^([\d\s\u00a0\u202f,.]+) méthodes?$/, (m) => nb(m[1]) + " methods"],
+    [/^([\d\s\u00a0\u202f,.]+) mesures$/, (m) => nb(m[1]) + " samples"],
+    [/^([\d\s\u00a0\u202f,.]+) exécutions?$/, (m) => nb(m[1]) + " runs"],
+    [/^([\d,.]+) % du temps$/, (m) => dec(m[1]) + "% of time"],
+    [/^(\d+) sur (\d+)$/, (m) => m[1] + " of " + m[2]],
+    [/^\s*classe\(s\) mesurée\(s\) ont leur code source dans cette page \((\d+) %\)\.$/,
+      (m) => " measured class(es) have their source code in this page (" + m[1] + "%)."],
+    [/^(\d+) classe\(s\) mesurée\(s\) sur (\d+) n'ont pas leur source\.$/,
+      (m) => m[1] + " measured class(es) out of " + m[2] + " have no source."],
+    [/^✓ (\d+) classe\(s\)$/, (m) => "\u2713 " + m[1] + " class(es)"],
+    [/^(\d+) sans source$/, (m) => m[1] + " without source"],
+    [/^… (\d+) ligne\(s\) au-dessus, hors de cette méthode$/,
+      (m) => "… " + m[1] + " line(s) above, outside this method"],
+    [/^… (\d+) ligne\(s\) en dessous, hors de cette méthode$/,
+      (m) => "… " + m[1] + " line(s) below, outside this method"],
+    [/^… (\d+) ligne\(s\) jamais exécutée\(s\)$/,
+      (m) => "… " + m[1] + " line(s) never executed"],
+    [/^▾ valeurs des paramètres \((\d+)\)$/, (m) => "▾ argument values (" + m[1] + ")"],
+    [/^✓ (\d+) fichier\(s\) \.java$/, (m) => "\u2713 " + m[1] + " .java file(s)"],
+    [/^(\d+) fichier\(s\)$/, (m) => m[1] + " file(s)"],
+    [/^terminée normalement \(code (\d+)\)$/, (m) => "ended normally (code " + m[1] + ")"],
+    [/^(.+) — (\d+) cœurs?$/, (m) => m[1] + " — " + m[2] + (m[2] === "1" ? " core" : " cores")],
+    [/^Ouvrir (.+) dans la liste du code$/, (m) => "Open " + m[1] + " in the code list"],
+    [/^Ouvrir (.+) et ses appels relevés$/, (m) => "Open " + m[1] + " and its recorded calls"],
+    [/^→ Ouvrir (.+) et voir ses valeurs$/, (m) => "→ Open " + m[1] + " and see its values"],
+    [/^(\d+) appel\(s\) capturé\(s\) — voir les valeurs$/,
+      (m) => m[1] + " captured call(s) — see the values"],
+    [/^Les (\d+) appels observés de$/, (m) => "The " + m[1] + " observed calls of"],
+    // Borné à un nom qualifié : « Ouvrir » commence aussi des phrases entières.
+    [/^Ouvrir ([\w.$<>]+)$/, (m) => "Open " + m[1]],
+    [/^appelle (.+) ([\d,.]+) ms$/, (m) => "calls " + m[1] + " " + dec(m[2]) + " ms"],
+    [/^← Vue d'ensemble(.*)$/, (m) => "← Overview" + m[1]],
+    [/^([\d\s\u00a0\u202f,.]+) classes?$/,
+      (m) => nb(m[1]) + (m[1].trim() === "1" ? " class" : " classes")],
+    [/^([\d,.]+) % du code exécuté · ([\d\s\u00a0\u202f,.]+) méthodes$/,
+      (m) => dec(m[1]) + "% of the executed code · " + nb(m[2]) + " methods"],
+    [/^Identifiant permanent, il ne change jamais : (.+)$/,
+      (m) => "Permanent id, it never changes: " + m[1]],
+    [/^VALEURS REÇUES PAR (.+)$/, (m) => "VALUES RECEIVED BY " + m[1]],
+    [/^(.+) — ([\d,.]+) % de ses instructions ont tourné\. Cliquer déplie ses méthodes et ouvre la classe\.$/,
+      (m) => m[1] + " — " + dec(m[2]) + "% of its instructions ran. Clicking unfolds its methods and opens the class."],
+    [/^Les relevés de temps ont été pris pendant que l'inspection des valeurs était active : ([\d,.]+) % d'entre eux tombaient dans son instrumentation\..*$/,
+      (m) => "The time samples were taken while value inspection was active: " + dec(m[1])
+           + "% of them fell inside its instrumentation. They were attributed to the "
+           + "application method that triggered them, which restores the shape of the tree. "
+           + "Caveat: the cost shown for the observed method remains overestimated."],
+    // La plus générale en dernier : « 38,3 % Machin » ne doit être essayée qu'une fois
+    // les phrases qui commencent par un pourcentage écartées.
+    [/^([\d,.]+) % (.+)$/, (m) => dec(m[1]) + "% " + m[2]]
+  ];
+
+  /** Le français d'origine de chaque nœud déjà traduit — pour le rendre intact. */
+  const ORIGINE = new WeakMap();
+
+  function traduire(fr) {
+    const cle = fr.trim();
+    if (!cle) return null;
+    const exact = DICO[cle];
+    if (exact !== undefined) return fr.replace(cle, exact);
+    for (const [motif, rendre] of MOTIFS) {
+      const m = cle.match(motif);
+      if (m) return fr.replace(cle, rendre(m));
+    }
+    return null;
+  }
+
+  /*
+   * Le code source affiché ne se traduit pas : c'est le code de l'application observée. Il
+   * est aussi, de loin, le plus gros du DOM — l'écarter tient la traduction instantanée sur
+   * un rapport de plusieurs centaines de classes.
+   */
+  const HORS = new Set(["SCRIPT", "STYLE", "TEXTAREA"]);
+  const ecarte = el => HORS.has(el.nodeName.toUpperCase())
+      // Seule la CELLULE de code est écartée, pas le tableau : les mêmes lignes portent
+      // les replis (« … 50 ligne(s) au-dessus ») et les annotations d'appel, qui sont du
+      // texte de l'outil.
+      || (el.nodeName === "TD" && el.classList.contains("c"))
+      // Ces deux-là ne portent qu'un nom de paquet ou de classe. Les traduire ferait d'une
+      // classe nommée « Comment » un « How » — du texte faux, à l'endroit où l'on cherche.
+      || el.classList.contains("nm") || el.classList.contains("lbl");
+
+  const ATTRS = ["title", "placeholder", "aria-label"];
+
+  function parcourir(racine, vers) {
+    const pile = [racine];
+    while (pile.length) {
+      const n = pile.pop();
+      if (n.nodeType === 1) {
+        if (ecarte(n)) continue;
+        for (const a of ATTRS) {
+          const v = n.getAttribute && n.getAttribute(a);
+          if (v) poser(n, a, v, vers);
+        }
+        for (let k = n.firstChild; k; k = k.nextSibling) pile.push(k);
+      } else if (n.nodeType === 3 && n.nodeValue.trim()) {
+        poser(n, null, n.nodeValue, vers);
+      }
+    }
+  }
+
+  function poser(n, attr, valeur, vers, neuf) {
+    const boite = ORIGINE.get(n) || {};
+    const cle = attr || "#texte";
+    // Une infobulle réécrite par la page apporte un NOUVEAU français : garder l'ancien
+    // reviendrait à retraduire un texte qui n'est plus affiché.
+    const fr = !neuf && boite[cle] !== undefined ? boite[cle] : valeur;
+    if (neuf) delete boite[cle];
+    const rendu = vers === "fr" ? fr : traduire(fr);
+    // La ponctuation double prend une espace en français et n'en prend pas en anglais.
+    // Cette espace est dans le gabarit, hors du texte traduit : sans cela, « scope : on »
+    // survivrait à la traduction et se remarquerait à chaque ligne.
+    const fini = vers === "en" && rendu !== null ? rendu.replace(/ +([:;!?])/g, "$1") : rendu;
+    if (fini === null || fini === valeur) return;
+    if (boite[cle] === undefined) { boite[cle] = fr; ORIGINE.set(n, boite); }
+    if (attr) n.setAttribute(attr, fini); else n.nodeValue = fini;
+  }
+
+  // ------------------------------------------------------------------ la langue
+
+  const CLE = "runtime-xray.langue";
+  const lu = () => { try { return localStorage.getItem(CLE); } catch (e) { return null; } };
+  const garder = v => { try { localStorage.setItem(CLE, v); } catch (e) { /* file:// */ } };
+
+  // Anglais par défaut. Le français seulement si le navigateur l'annonce — et rien d'autre :
+  // un navigateur allemand lit l'anglais, pas du français par accident d'ordre alphabétique.
+  const choisie = lu();
+  let langue = choisie === "fr" || choisie === "en" ? choisie
+      : (navigator.language || "en").toLowerCase().startsWith("fr") ? "fr" : "en";
+
+  const TITRE_FR = document.title;
+
+  let observateur = null;
+
+  function appliquer(vers) {
+    langue = vers;
+    if (observateur) observateur.disconnect();
+    parcourir(document.body, vers);
+    document.documentElement.lang = vers;
+    document.title = vers === "fr" ? TITRE_FR
+        : (DICO[TITRE_FR] !== undefined ? DICO[TITRE_FR] : TITRE_FR);
+    document.querySelectorAll("#langsel button").forEach(b => {
+      const on = b.dataset.lang === vers;
+      b.classList.toggle("on", on);
+      b.setAttribute("aria-pressed", on ? "true" : "false");
+    });
+    if (observateur) observateur.observe(document.body, QUOI);
+  }
+
+  document.querySelectorAll("#langsel button").forEach(b => {
+    b.addEventListener("click", () => { garder(b.dataset.lang); appliquer(b.dataset.lang); });
+  });
+
+  // Tout ce que la page dessine ensuite — et elle dessine presque tout ensuite — passe par
+  // là. L'observateur est coupé pendant qu'on écrit : sans cela, chaque traduction se
+  // rappellerait elle-même.
+  // Les infobulles sont surveillées en plus des nœuds : la page en réécrit plusieurs après
+  // coup — le bouton « tout déplier » change la sienne à chaque bascule — et un `title`
+  // réaffecté ne crée aucun nœud, donc ne se voit pas dans `childList`.
+  const QUOI = {childList: true, subtree: true, attributes: true, attributeFilter: ATTRS};
+
+  observateur = new MutationObserver(lots => {
+    if (langue === "fr") return;
+    observateur.disconnect();
+    for (const lot of lots) {
+      if (lot.type === "attributes") {
+        const v = lot.target.getAttribute(lot.attributeName);
+        if (v) poser(lot.target, lot.attributeName, v, langue, true);
+      } else for (const n of lot.addedNodes) {
+        if (n.nodeType === 1 || n.nodeType === 3) parcourir(n, langue);
+      }
+    }
+    observateur.observe(document.body, QUOI);
+  });
+
+  appliquer(langue);
 })();
 </script>
 </body>

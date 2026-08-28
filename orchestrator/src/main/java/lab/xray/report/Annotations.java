@@ -13,77 +13,77 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Ce qu'on ajoute à une exécution après l'avoir mesurée : un nom, une description, des
- * étiquettes, un élagage de son arbre.
+ * What is added to a run after it has been measured: a name, a description, tags, a
+ * pruning of its tree.
  *
- * <p>Ces annotations peuvent vivre à trois endroits, et le choix n'est pas cosmétique — il
- * décide de <b>ce qui voyage avec quoi</b> :
+ * <p>These annotations can live in three places, and the choice is not cosmetic — it
+ * decides <b>what travels with what</b>:
  *
  * <table>
- *   <caption>Où une annotation peut vivre</caption>
- *   <tr><th>Emplacement</th><th>Ce que ça implique</th></tr>
- *   <tr><td>{@code runs/<exécution>/config.json}</td>
- *       <td><b>Prioritaire.</b> L'annotation est dans le répertoire de l'exécution : elle
- *       la suit partout — copie, archive, envoi à un collègue</td></tr>
- *   <tr><td>{@code runs/<exécution>-config.json}</td>
- *       <td>À côté du répertoire, même nom suffixé. L'exécution reste intacte, ce qui est
- *       utile quand elle est en lecture seule ou signée</td></tr>
+ *   <caption>Where an annotation can live</caption>
+ *   <tr><th>Location</th><th>What it implies</th></tr>
+ *   <tr><td>{@code runs/<run>/config.json}</td>
+ *       <td><b>Takes priority.</b> The annotation is inside the run's directory: it follows
+ *       the run everywhere — a copy, an archive, a colleague's inbox</td></tr>
+ *   <tr><td>{@code runs/<run>-config.json}</td>
+ *       <td>Beside the directory, same name with a suffix. The run stays untouched, which
+ *       helps when it is read-only or signed</td></tr>
  *   <tr><td>{@code noms.json}</td>
- *       <td>Un seul fichier pour tout le rapport, indexé par identifiant. C'est le format
- *       d'échange : celui qu'on exporte de la page et qu'on repasse à quelqu'un</td></tr>
+ *       <td>One single file for the whole report, indexed by id. This is the exchange
+ *       format: the one exported from the page and handed to someone else</td></tr>
  * </table>
  *
- * <p>L'ordre est celui du tableau : <b>le plus proche de l'exécution l'emporte</b>. Une
- * annotation posée dans le répertoire gagne sur celle d'à côté, qui gagne sur le fichier
- * central — parce que celui qui a pris la peine de la ranger avec la mesure a exprimé une
- * intention plus précise que celui qui a rempli le fichier commun.
+ * <p>The order is the table's: <b>the closest to the run wins</b>. An annotation placed in
+ * the directory beats the one beside it, which beats the central file — because whoever
+ * took the trouble to file it with the measurement expressed a more precise intent than
+ * whoever filled in the common file.
  *
- * <p>Aucune fusion champ à champ entre les trois : la source la plus proche est prise
- * <b>entière</b>. Mélanger un nom d'un fichier et une description d'un autre donnerait une
- * annotation que personne n'a écrite, et qu'on ne saurait pas corriger.
+ * <p>No field-by-field merge between the three: the closest source is taken <b>whole</b>.
+ * Mixing a name from one file and a description from another would give an annotation
+ * nobody wrote, and that nobody would know how to correct.
  */
 public final class Annotations {
 
-    /** Le fichier commun, indexé par identifiant d'exécution. */
+    /** The common file, indexed by run id. */
     public static final String CENTRAL = "noms.json";
-    /** Le fichier posé DANS le répertoire de l'exécution. */
-    public static final String DANS_LE_RUN = "config.json";
-    /** Le suffixe du fichier posé À CÔTÉ du répertoire. */
-    public static final String SUFFIXE = "-config.json";
+    /** The file placed INSIDE the run's directory. */
+    public static final String IN_THE_RUN = "config.json";
+    /** The suffix of the file placed BESIDE the directory. */
+    public static final String SUFFIX = "-config.json";
 
     private Annotations() {}
 
     /**
-     * L'annotation retenue pour une exécution, source la plus proche d'abord.
+     * The annotation kept for a run, closest source first.
      *
-     * @param central contenu de {@code noms.json}, déjà lu — il sert à toutes les exécutions
-     * @return la valeur telle qu'elle a été écrite (chaîne ou objet), ou {@code null}
+     * @param central the contents of {@code noms.json}, already read — it serves every run
+     * @return the value as it was written (string or object), or {@code null}
      */
     public static Object forRun(Path runDir, String uuid, Map<String, Object> central) {
-        Object dedans = readFile(runDir.resolve(DANS_LE_RUN));
-        if (dedans != null) return dedans;
-        Object aCote = readFile(runDir.resolveSibling(runDir.getFileName() + SUFFIXE));
-        if (aCote != null) return aCote;
+        Object inside = readFile(runDir.resolve(IN_THE_RUN));
+        if (inside != null) return inside;
+        Object beside = readFile(runDir.resolveSibling(runDir.getFileName() + SUFFIX));
+        if (beside != null) return beside;
         return uuid == null || uuid.isBlank() ? null : central.get(uuid);
     }
 
     /**
-     * Où écrire l'annotation d'une exécution.
+     * Where to write a run's annotation.
      *
-     * <p>Là où elle vit déjà, si elle vit quelque part : réécrire ailleurs laisserait deux
-     * versions dont l'une, prioritaire, ne serait pas celle qu'on vient de saisir. Sinon,
-     * dans le répertoire de l'exécution — c'est l'emplacement qui la fait voyager avec la
-     * mesure, et celui qu'on veut par défaut.
+     * <p>Where it already lives, if it lives anywhere: rewriting elsewhere would leave two
+     * versions, one of which — the one that takes priority — would not be the one just
+     * typed in. Otherwise, in the run's directory: that is the location that makes it
+     * travel with the measurement, and the one wanted by default.
      */
     public static Path fileFor(Path runDir) {
-        Path dedans = runDir.resolve(DANS_LE_RUN);
-        if (Files.isRegularFile(dedans)) return dedans;
-        Path aCote = runDir.resolveSibling(runDir.getFileName() + SUFFIXE);
-        if (Files.isRegularFile(aCote)) return aCote;
-        return dedans;
+        Path inside = runDir.resolve(IN_THE_RUN);
+        if (Files.isRegularFile(inside)) return inside;
+        Path beside = runDir.resolveSibling(runDir.getFileName() + SUFFIX);
+        if (Files.isRegularFile(beside)) return beside;
+        return inside;
     }
 
-    /** Écrit l'annotation d'une exécution, ou retire le fichier si elle est vide. */
+    /** Writes a run's annotation, or removes the file when it is empty. */
     public static Path write(Path runDir, Map<String, Object> annotation) throws IOException {
         Path file = fileFor(runDir);
         if (annotation == null || annotation.isEmpty()) {
@@ -98,7 +98,7 @@ public final class Annotations {
         return file;
     }
 
-    /** Les exécutions présentes sous {@code commonDir}, par identifiant. */
+    /** The runs present under {@code commonDir}, by id. */
     public static Map<String, Path> runsByUuid(Path commonDir) {
         Map<String, Path> out = new LinkedHashMap<>();
         for (Path run : runDirs(commonDir)) {
@@ -108,7 +108,7 @@ public final class Annotations {
         return out;
     }
 
-    /** Les répertoires d'exécution : ceux qui portent un {@code run-context.json}. */
+    /** The run directories: those that carry a {@code run-context.json}. */
     public static List<Path> runDirs(Path commonDir) {
         List<Path> out = new ArrayList<>();
         Path runs = commonDir.resolve("runs");
@@ -126,15 +126,15 @@ public final class Annotations {
 
     @SuppressWarnings("unchecked")
     private static String uuidOf(Path runDir) {
-        Object lu = readFile(runDir.resolve("run-context.json"));
-        if (lu instanceof Map<?, ?> m) {
+        Object read = readFile(runDir.resolve("run-context.json"));
+        if (read instanceof Map<?, ?> m) {
             Object uuid = ((Map<String, Object>) m).get("uuid");
             return uuid == null || String.valueOf(uuid).isBlank() ? null : String.valueOf(uuid);
         }
         return null;
     }
 
-    /** Lit un fichier JSON, ou {@code null} s'il est absent — ou illisible, et on le dit. */
+    /** Reads a JSON file, or {@code null} when it is absent — or unreadable, and we say so. */
     public static Object readFile(Path file) {
         if (!Files.isRegularFile(file)) return null;
         try {
@@ -145,11 +145,11 @@ public final class Annotations {
         }
     }
 
-    /** Le fichier commun, ou une carte vide s'il n'existe pas. */
+    /** The common file, or an empty map when it does not exist. */
     @SuppressWarnings("unchecked")
     public static Map<String, Object> readCentral(Path commonDir) {
-        Object lu = readFile(commonDir.resolve(CENTRAL));
-        return lu instanceof Map<?, ?> m
+        Object read = readFile(commonDir.resolve(CENTRAL));
+        return read instanceof Map<?, ?> m
                 ? new LinkedHashMap<>((Map<String, Object>) m)
                 : new LinkedHashMap<>();
     }

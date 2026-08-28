@@ -14,25 +14,25 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Le gabarit généré est la première chose que voit un nouvel utilisateur. S'il ne se relit
- * pas lui-même, l'outil envoie quelqu'un dans le mur dès le premier lancement.
+ * The generated template is the first thing a new user sees. If it does not read itself
+ * back, the tool sends someone into a wall on the very first run.
  */
 class ConfigTest {
 
     @Test
-    @DisplayName("Le gabarit généré est relisible et donne des valeurs exploitables")
+    @DisplayName("The generated template reads back and yields usable values")
     void generatedTemplateReloads(@TempDir Path dir) throws IOException {
         Path file = dir.resolve("runtime-xray.conf");
         Config.writeTemplate(file);
         assertTrue(Files.isRegularFile(file));
 
         Config c = Config.load(file);
-        assertFalse(c.javaCommand.isBlank(), "JAVA_CMD doit être renseigné dans le gabarit");
-        // CLASSES_DIR ne doit PAS être actif : le bytecode est déterminé automatiquement, et
-        // un chemin pré-rempli au hasard ferait échouer la première exécution en donnant
-        // l'impression que l'outil réclame un réglage dont il n'a pas besoin.
+        assertFalse(c.javaCommand.isBlank(), "JAVA_CMD must be filled in in the template");
+        // CLASSES_DIR must NOT be active: the bytecode is determined automatically, and a
+        // path pre-filled at random would make the first run fail, giving the impression
+        // that the tool demands a setting it does not need.
         assertTrue(c.classesDir.isBlank(),
-                "CLASSES_DIR doit rester commenté : il est facultatif");
+                "CLASSES_DIR must stay commented out: it is optional");
         assertEquals(8, c.attachAfterSeconds);
         assertEquals(600, c.maxSeconds);
         assertEquals(10, c.watchCount);
@@ -40,24 +40,24 @@ class ConfigTest {
     }
 
     @Test
-    @DisplayName("Le gabarit contient des exemples commentés pour chaque clé qui en mérite")
+    @DisplayName("The template carries commented examples for each key that deserves one")
     void templateCarriesExamples() throws IOException {
         Path file = Files.createTempFile("conf", ".conf");
         Config.writeTemplate(file);
         String text = Files.readString(file, StandardCharsets.UTF_8);
-        // Ce sont ces exemples qui évitent d'avoir à lire la documentation.
-        assertTrue(text.contains("#JAVA_CMD=\"mvn"), "un exemple Maven est attendu");
-        assertTrue(text.contains("#JAVA_CMD=\"./gradlew"), "un exemple Gradle est attendu");
-        // Facultatif, donc présenté par ses cas d'usage réels plutôt que par un défaut.
-        assertTrue(text.contains("#CLASSES_DIR="), "les cas où le préciser sont attendus");
-        assertTrue(text.contains("facultatif"), "CLASSES_DIR doit être annoncé facultatif");
-        assertTrue(text.contains("#RUN_NAME="), "un exemple de nom d'exécution est attendu");
-        assertTrue(text.contains("MAVEN_REPO"), "le miroir interne doit être documenté");
+        // These examples are what saves one from having to read the documentation.
+        assertTrue(text.contains("#JAVA_CMD=\"mvn"), "a Maven example is expected");
+        assertTrue(text.contains("#JAVA_CMD=\"./gradlew"), "a Gradle example is expected");
+        // Optional, hence presented through its real use cases rather than through a default.
+        assertTrue(text.contains("#CLASSES_DIR="), "the cases where it is worth setting are expected");
+        assertTrue(text.contains("optional"), "CLASSES_DIR must be announced as optional");
+        assertTrue(text.contains("#RUN_NAME="), "a run-name example is expected");
+        assertTrue(text.contains("MAVEN_REPO"), "the internal mirror must be documented");
         Files.deleteIfExists(file);
     }
 
     @Test
-    @DisplayName("Les commentaires de fin de ligne ne polluent pas les valeurs")
+    @DisplayName("End-of-line comments do not pollute the values")
     void trailingCommentsAreStripped(@TempDir Path dir) throws IOException {
         Path file = dir.resolve("c.conf");
         Files.writeString(file, """
@@ -74,42 +74,42 @@ class ConfigTest {
     }
 
     @Test
-    @DisplayName("Une clé inconnue est ignorée sans faire échouer la lecture")
+    @DisplayName("An unknown key is ignored without failing the read")
     void unknownKeysAreIgnored(@TempDir Path dir) throws IOException {
         Path file = dir.resolve("c.conf");
-        Files.writeString(file, "CLEF_INCONNUE=\"x\"\nJAVA_CMD=\"java -jar a.jar\"\n",
+        Files.writeString(file, "UNKNOWN_KEY=\"x\"\nJAVA_CMD=\"java -jar a.jar\"\n",
                 StandardCharsets.UTF_8);
         assertEquals("java -jar a.jar", Config.load(file).javaCommand);
     }
 
     @Test
-    @DisplayName("Une valeur numérique invalide retombe sur le défaut plutôt que de planter")
+    @DisplayName("An invalid numeric value falls back on the default rather than crashing")
     void invalidNumberFallsBack(@TempDir Path dir) throws IOException {
         Path file = dir.resolve("c.conf");
-        Files.writeString(file, "ATTACH_AFTER=beaucoup\n", StandardCharsets.UTF_8);
+        Files.writeString(file, "ATTACH_AFTER=plenty\n", StandardCharsets.UTF_8);
         assertEquals(8, Config.load(file).attachAfterSeconds);
     }
 
     @Test
-    @DisplayName("Le filtre de profil se déduit du paquet de la méthode racine")
+    @DisplayName("The profile filter is derived from the root method's package")
     void filterIsDerivedFromRootMethod() {
         Config c = new Config();
-        c.rootMethod = "com.example.moteur.Calculateur::calculer";
-        assertEquals("com/example/moteur/*", c.effectiveFilter());
-        assertEquals("com.example.moteur.Calculateur", c.rootClass());
+        c.rootMethod = "com.example.engine.Calculator::compute";
+        assertEquals("com/example/engine/*", c.effectiveFilter());
+        assertEquals("com.example.engine.Calculator", c.rootClass());
     }
 
     @Test
-    @DisplayName("Un filtre explicite l'emporte sur la déduction")
+    @DisplayName("An explicit filter wins over the derivation")
     void explicitFilterWins() {
         Config c = new Config();
-        c.rootMethod = "com.example.moteur.Calculateur::calculer";
+        c.rootMethod = "com.example.engine.Calculator::compute";
         c.classFilter = "com/example/*";
         assertEquals("com/example/*", c.effectiveFilter());
     }
 
     @Test
-    @DisplayName("Sans méthode racine, aucun filtre n'est inventé")
+    @DisplayName("Without a root method, no filter is invented")
     void noRootMeansNoFilter() {
         Config c = new Config();
         assertTrue(c.effectiveFilter().isBlank());
@@ -117,28 +117,28 @@ class ConfigTest {
     }
 
     @Test
-    @DisplayName("Le niveau d'observation décide de ce qu'on paie")
+    @DisplayName("The observation level decides what one pays")
     void levelDecidesWhatIsMeasured() {
         Config c = new Config();
-        assertTrue(c.profileWanted(), "par défaut, on va jusqu'aux valeurs");
+        assertTrue(c.profileWanted(), "by default, one goes all the way to the values");
         assertTrue(c.valuesWanted());
 
         c.level = "arbre";
-        assertTrue(c.profileWanted(), "l'arbre suppose l'échantillonnage");
-        assertFalse(c.valuesWanted(), "mais pas la capture des valeurs");
+        assertTrue(c.profileWanted(), "the tree implies the sampling");
+        assertFalse(c.valuesWanted(), "but not the value capture");
 
         c.level = "couverture";
         assertFalse(c.profileWanted());
         assertFalse(c.valuesWanted());
 
-        // --no-values reste un veto, quel que soit le niveau demandé.
+        // --no-values stays a veto, whatever the level asked for.
         c.level = "complet";
         c.captureValues = false;
         assertFalse(c.valuesWanted());
     }
 
     @Test
-    @DisplayName("Le niveau et ses réglages voyagent avec l'exécution")
+    @DisplayName("The level and its settings travel with the run")
     void levelIsRecorded() {
         Config c = new Config();
         c.level = "arbre";
@@ -152,7 +152,7 @@ class ConfigTest {
     }
 
     @Test
-    @DisplayName("Le contexte décrit reflète les réglages effectifs")
+    @DisplayName("The described context reflects the effective settings")
     void describeReflectsSettings() {
         Config c = new Config();
         c.javaCommand = "java -jar a.jar";
@@ -165,80 +165,80 @@ class ConfigTest {
         assertEquals(Boolean.TRUE, described.get("valeursInspectees"));
     }
 
-    // ---------------------------------------- plusieurs chemins, y compris sous Windows
+    // ------------------------------------------ several paths, Windows included
 
     @Test
-    @DisplayName("Un chemin Windows absolu n'est pas coupé sur la lettre de son lecteur")
+    @DisplayName("An absolute Windows path is not cut on its drive letter")
     void aWindowsDriveLetterIsNotASeparator() {
-        // Le séparateur documenté est « : », ce qui va de soi sur Unix et pas du tout sur
-        // Windows : découpé bêtement, C:\projet\src donnait « C » et « \projet\src », deux
-        // chemins qui n'existent pas. L'outil annonçait alors « introuvable » sur un chemin
-        // parfaitement valide que l'utilisateur avait sous les yeux.
-        assertEquals(java.util.List.of("C:\\Users\\moi\\projet\\src\\main\\java"),
-                Config.decouper("C:\\Users\\moi\\projet\\src\\main\\java"));
+        // The documented separator is ':', which goes without saying on Unix and not at
+        // all on Windows: split naively, C:\project\src gave 'C' and '\project\src', two
+        // paths that do not exist. The tool then announced "not found" on a perfectly valid
+        // path the user had right in front of them.
+        assertEquals(java.util.List.of("C:\\Users\\me\\project\\src\\main\\java"),
+                Config.split("C:\\Users\\me\\project\\src\\main\\java"));
 
-        assertEquals(java.util.List.of("C:/Users/moi/projet", "D:/autre/module"),
-                Config.decouper("C:/Users/moi/projet;D:/autre/module"),
-                "le point-virgule est le séparateur natif de Windows : on l'accepte");
+        assertEquals(java.util.List.of("C:/Users/me/project", "D:/other/module"),
+                Config.split("C:/Users/me/project;D:/other/module"),
+                "the semicolon is Windows' native separator: we accept it");
     }
 
     @Test
-    @DisplayName("Sur Unix, « : » reste le séparateur de plusieurs racines")
+    @DisplayName("On Unix, ':' stays the separator between several roots")
     void aColonStillSeparatesRootsOnUnix() {
-        assertEquals(java.util.List.of("src/main/java", "src/generated/java", "/opt/autre/src"),
-                Config.decouper("src/main/java:src/generated/java:/opt/autre/src"));
-        assertEquals(java.util.List.of("a", "b", "c"), Config.decouper("a,b:c"));
+        assertEquals(java.util.List.of("src/main/java", "src/generated/java", "/opt/other/src"),
+                Config.split("src/main/java:src/generated/java:/opt/other/src"));
+        assertEquals(java.util.List.of("a", "b", "c"), Config.split("a,b:c"));
     }
 
     @Test
-    @DisplayName("Seule une lettre SEULE devant un séparateur de chemin fait un lecteur")
+    @DisplayName("Only a letter ALONE before a path separator makes a drive")
     void onlyASingleLetterBeforeAPathSeparatorCountsAsADrive() {
-        // Sans quoi « src:autre » ou « lib:cible » seraient recollés en un seul chemin.
-        assertEquals(java.util.List.of("src", "autre"), Config.decouper("src:autre"));
-        assertEquals(java.util.List.of("ab", "/c"), Config.decouper("ab:/c"),
-                "deux lettres ne sont pas un lecteur");
-        assertEquals(java.util.List.of("C", "sans-slash"), Config.decouper("C:sans-slash"),
-                "sans séparateur de chemin derrière, ce « : » sépare bien deux entrées");
+        // Without which "src:other" or "lib:target" would be glued into a single path.
+        assertEquals(java.util.List.of("src", "other"), Config.split("src:other"));
+        assertEquals(java.util.List.of("ab", "/c"), Config.split("ab:/c"),
+                "two letters are not a drive");
+        assertEquals(java.util.List.of("C", "no-slash"), Config.split("C:no-slash"),
+                "with no path separator behind it, that ':' really does separate two entries");
     }
 
     @Test
-    @DisplayName("Les classes et les sources se découpent de la même façon")
+    @DisplayName("Classes and sources are split the same way")
     void classesAndSourcesAreSplitTheSameWay() {
-        // Les deux réglages s'écrivent pareil, et se trompaient pareil : la correction doit
-        // valoir pour les deux, ou le prochain lecteur croira que l'un des deux est cassé.
+        // Both settings are written the same way, and got it wrong the same way: the fix
+        // must hold for both, or the next reader will think one of the two is broken.
         Config c = new Config();
-        c.classesDir = "C:\\projet\\target\\classes;C:\\projet\\libs\\interne.jar";
-        assertEquals(2, c.classesPaths().size(), "un lecteur ne coupe pas un chemin en deux");
-        assertEquals(Path.of("C:\\projet\\target\\classes"), c.classesPaths().get(0));
+        c.classesDir = "C:\\project\\target\\classes;C:\\project\\libs\\internal.jar";
+        assertEquals(2, c.classesPaths().size(), "a drive does not cut a path in two");
+        assertEquals(Path.of("C:\\project\\target\\classes"), c.classesPaths().get(0));
 
-        assertEquals(java.util.List.of(Path.of("C:\\projet\\src\\main\\java")),
-                Config.chemins("C:\\projet\\src\\main\\java"));
+        assertEquals(java.util.List.of(Path.of("C:\\project\\src\\main\\java")),
+                Config.paths("C:\\project\\src\\main\\java"));
     }
 
     @Test
-    @DisplayName("Une valeur vide ou en blancs ne produit aucun chemin")
+    @DisplayName("An empty or blank value produces no path")
     void blankValuesProduceNoPaths() {
-        assertTrue(Config.chemins("").isEmpty());
-        assertTrue(Config.chemins("  ,  : ").isEmpty(),
-                "des séparateurs sans contenu ne désignent rien");
-        assertTrue(Config.chemins(null).isEmpty());
+        assertTrue(Config.paths("").isEmpty());
+        assertTrue(Config.paths("  ,  : ").isEmpty(),
+                "separators with no content name nothing");
+        assertTrue(Config.paths(null).isEmpty());
     }
 
     @Test
-    @DisplayName("Les noms anglais sont canoniques, les français marchent encore")
+    @DisplayName("The English names are canonical, the French ones still work")
     void theEnglishNamesAreCanonicalAndTheFrenchOnesStillWork() {
-        // Un script déployé avant la bascule ne doit jamais cesser de marcher pour une
-        // question de langue. Les alias ne sont pas documentés : ils marchent, c'est tout.
-        assertEquals("couverture", Config.niveau("coverage"));
-        assertEquals("arbre", Config.niveau("tree"));
-        assertEquals("complet", Config.niveau("full"));
-        assertEquals("couverture", Config.niveau("couverture"));
-        assertEquals("arbre", Config.niveau("  Arbre "));
-        assertEquals("complet", Config.niveau("COMPLET"));
+        // A script deployed before the switch must never stop working over a question of
+        // language. The aliases are not documented: they work, that is all.
+        assertEquals("couverture", Config.level("coverage"));
+        assertEquals("arbre", Config.level("tree"));
+        assertEquals("complet", Config.level("full"));
+        assertEquals("couverture", Config.level("couverture"));
+        assertEquals("arbre", Config.level("  Arbre "));
+        assertEquals("complet", Config.level("COMPLET"));
 
         Config c = new Config();
         c.level = "coverage";
-        assertFalse(c.profileWanted(), "« coverage » doit valoir « couverture »");
+        assertFalse(c.profileWanted(), "\"coverage\" must mean \"couverture\"");
         c.level = "full";
         assertTrue(c.valuesWanted());
 

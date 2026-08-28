@@ -6,61 +6,60 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Lanceur de l'application-cible.
+ * Launcher for the target application.
  *
- * <p>Deux options n'existent que pour les besoins de l'analyse :
+ * <p>Two options exist only for the needs of the analysis:
  * <ul>
- *   <li>{@code --iterations} — un profiler par échantillonnage n'a rien à montrer sur
- *       une exécution de 5 ms ; il faut du temps CPU pour que des frames soient prélevées.</li>
- *   <li>{@code --hold-seconds} — les outils qui s'<em>attachent</em> à un process vivant
- *       (VisualVM, JMC, JProfiler, YourKit) ont besoin que la JVM soit encore là quand
- *       l'opérateur clique. Sans cette pause, la cible est morte avant d'avoir été
- *       sélectionnée dans la liste.</li>
+ *   <li>{@code --iterations} — a sampling profiler has nothing to show on a 5 ms run; CPU
+ *       time is needed for frames to be collected.</li>
+ *   <li>{@code --hold-seconds} — tools that <em>attach</em> to a live process (VisualVM, JMC,
+ *       JProfiler, YourKit) need the JVM to still be there when the operator clicks. Without
+ *       this pause, the target is dead before it has been selected from the list.</li>
  * </ul>
  */
 public final class Main {
 
-    /** Nombre de trajets distincts fabriqués avant la mesure. Assez pour couvrir toutes
-     *  les combinaisons mode × météo × horaire × bagages, assez peu pour que leur
-     *  fabrication ne pèse rien face à la boucle de calcul. */
+    /** Number of distinct trips built before the measurement. Enough to cover every
+     *  mode × weather × time × luggage combination, few enough that building them weighs
+     *  nothing against the computation loop. */
     private static final int TRIP_VARIANTS = 240;
 
-    /** Calibré pour que le calcul dure ~10 s sur un Mac Apple Silicon. C'est le minimum
-     *  confortable pour qu'un outil qui s'attache à un process vivant (VisualVM, JMC,
-     *  JProfiler) ait le temps d'être lancé, de sélectionner la JVM et d'enregistrer
-     *  quelque chose. Une exécution d'une seconde ne laisse aucune prise. */
+    /** Calibrated so the computation lasts ~10 s on an Apple Silicon Mac. That is the
+     *  comfortable minimum for a tool attaching to a live process (VisualVM, JMC, JProfiler)
+     *  to have time to be launched, to select the JVM and to record something. A one-second
+     *  run offers no grip at all. */
     private static final int DEFAULT_ITERATIONS = 16_000_000;
 
     public static void main(String[] args) throws InterruptedException {
         int iterations = intArg(args, "--iterations", DEFAULT_ITERATIONS);
         int holdSeconds = intArg(args, "--hold-seconds", 0);
 
-        System.out.printf("sample-app : %d trajets évalués, pause finale %d s%n", iterations, holdSeconds);
+        System.out.printf("sample-app: %d trips evaluated, final pause %d s%n", iterations, holdSeconds);
         Metrics metrics = new Metrics();
-        metrics.stage("JVM démarrée");
+        metrics.stage("JVM started");
 
-        // Les trajets sont fabriqués UNE FOIS, hors de la boucle mesurée.
-        // Sans cette séparation, la génération du jeu de test (concaténations de chaînes,
-        // allocations de listes) capte ~70 % des échantillons et l'arbre d'appel montre
-        // java.lang.StringConcatHelper au lieu du calcul d'itinéraire. Mesuré, pas supposé.
+        // The trips are built ONCE, outside the measured loop. Without that separation,
+        // generating the test set (string concatenations, list allocations) captures ~70 % of
+        // the samples and the call tree shows java.lang.StringConcatHelper instead of the
+        // route computation. Measured, not assumed.
         List<Trip> trips = new ArrayList<>(TRIP_VARIANTS);
         for (int i = 0; i < TRIP_VARIANTS; i++) {
             trips.add(Scenarios.at(i));
         }
 
-        metrics.stage("jeu de trajets fabriqué");
+        metrics.stage("trip set built");
 
         double total = 0;
         for (int i = 0; i < iterations; i++) {
             total += RoutePlanner.travelTimeMinutes(trips.get(i % TRIP_VARIANTS));
         }
-        // Imprimé pour que le calcul ne puisse pas être éliminé, et pour vérifier d'un
-        // coup d'œil que deux exécutions comparées ont bien fait le même travail.
-        metrics.stage("calcul terminé");
-        System.out.printf("durée cumulée = %.0f minutes%n", total);
+        // Printed so the computation cannot be eliminated, and to check at a glance that two
+        // runs being compared really did the same work.
+        metrics.stage("computation finished");
+        System.out.printf("total duration = %.0f minutes%n", total);
 
         if (holdSeconds > 0) {
-            System.out.printf("JVM maintenue en vie %d s — attache ton profiler (pid %d)%n",
+            System.out.printf("JVM kept alive %d s — attach your profiler (pid %d)%n",
                     holdSeconds, ProcessHandle.current().pid());
             Thread.sleep(holdSeconds * 1000L);
         }

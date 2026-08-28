@@ -6,16 +6,16 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Consultation des horaires — la seule opération <b>bloquante</b> du programme.
+ * Timetable lookup — the program's only <b>blocking</b> operation.
  *
- * <p>Elle simule un appel à un service extérieur par un {@code Thread.sleep}. Sa
- * présence n'est pas décorative : elle crée du <em>temps d'attente</em> à côté du temps
- * de calcul, et c'est un excellent discriminant entre outils. Un profiler qui échantillonne
- * le CPU ne la verra pratiquement pas ; un profiler en temps réel (wall clock) la verra
- * dominer. Deux outils peuvent donc donner deux réponses opposées à « où passe le temps ? »
- * sur exactement la même exécution — et il faut savoir laquelle on regarde.
+ * <p>It simulates a call to an external service with a {@code Thread.sleep}. Its presence is
+ * not decorative: it creates <em>waiting time</em> alongside computation time, and that is an
+ * excellent discriminator between tools. A profiler that samples the CPU will hardly see it;
+ * a wall-clock profiler will see it dominate. Two tools can therefore give two opposite
+ * answers to "where does the time go?" on exactly the same run — and one has to know which
+ * one is being looked at.
  *
- * <p>Le résultat est mis en cache : un horaire ne se demande qu'une fois par liaison.
+ * <p>The result is cached: a timetable is asked for only once per link.
  */
 public final class Timetable {
 
@@ -24,11 +24,11 @@ public final class Timetable {
 
     private Timetable() {}
 
-    /** @return la fréquence de passage, en minutes, pour cette liaison. */
+    /** @return the service frequency, in minutes, for this link. */
     public static int frequencyMinutes(Leg leg) {
         return CACHE.computeIfAbsent(leg.from() + ">" + leg.to(), key -> {
             try {
-                Thread.sleep(LOOKUP_MILLIS); // appel réseau simulé
+                Thread.sleep(LOOKUP_MILLIS); // simulated network call
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
             }

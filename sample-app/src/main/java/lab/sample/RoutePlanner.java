@@ -15,28 +15,27 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * <b>La fonction sous analyse.</b> « Combien de temps pour aller de A à B ? »
+ * <b>The function under analysis.</b> "How long does it take to get from A to B?"
  *
- * <p>C'est le point d'entrée que chaque outil doit savoir cibler : à l'exécution de
- * cette fonction, donne-moi les lignes exécutées, l'arbre d'appel et les valeurs des
- * paramètres.
+ * <p>This is the entry point every tool must be able to target: while this function runs,
+ * give me the lines executed, the call tree and the parameter values.
  *
- * <p>Elle appelle quatre familles de calcul <b>selon le contexte</b>, jamais toutes en
- * même temps :
+ * <p>It calls four families of computation <b>depending on the context</b>, never all at
+ * once:
  * <ul>
- *   <li>la vitesse du mode choisi — toujours, mais via une implémentation différente ;</li>
- *   <li>les bouchons — voiture à l'heure de pointe uniquement ;</li>
- *   <li>la météo et les bagages — vélo et marche uniquement ;</li>
- *   <li>les correspondances — train uniquement ;</li>
- *   <li>les pauses — au-delà d'une durée <em>calculée</em>, quel que soit le mode.</li>
+ *   <li>the chosen mode's speed — always, but through a different implementation;</li>
+ *   <li>traffic jams — car at rush hour only;</li>
+ *   <li>weather and luggage — bike and walking only;</li>
+ *   <li>connections — train only;</li>
+ *   <li>breaks — beyond a <em>computed</em> duration, whatever the mode.</li>
  * </ul>
- * Deux trajets différents produisent donc deux arbres d'appel différents, à partir du
- * même appel de la même méthode. C'est précisément ce qu'on demande aux outils de montrer.
+ * Two different trips therefore produce two different call trees, from the same call to the
+ * same method. That is precisely what tools are asked to show.
  *
- * <p>Le journal est là pour une raison qui n'est pas fonctionnelle : {@code org.slf4j}
- * n'est pas dans le JDK, donc rien ne le replie automatiquement, et il apparaît dans
- * l'arbre d'appel au milieu du calcul d'itinéraire. C'est le cas type de la bibliothèque
- * que l'on veut masquer par configuration — voir {@code HIDDEN_PACKAGES}.
+ * <p>The logging is there for a reason that is not functional: {@code org.slf4j} is not in
+ * the JDK, so nothing folds it away automatically, and it shows up in the call tree in the
+ * middle of the route computation. It is the archetypal library one wants to hide by
+ * configuration — see {@code HIDDEN_PACKAGES}.
  */
 public final class RoutePlanner {
 
@@ -45,19 +44,19 @@ public final class RoutePlanner {
     private RoutePlanner() {}
 
     /**
-     * @param trip le trajet à évaluer
-     * @return la durée totale estimée, en minutes
+     * @param trip the trip to evaluate
+     * @return the total estimated duration, in minutes
      */
     public static double travelTimeMinutes(Trip trip) {
-        // Appel volontairement laissé dans la boucle chaude : c'est ce qui rend slf4j
-        // visible dans le profil, donc masquable, donc démontrable.
-        log.debug("évaluation du trajet {}", trip.id());
+        // A call deliberately left in the hot loop: that is what makes slf4j visible in the
+        // profile, hence hideable, hence demonstrable.
+        log.debug("evaluating trip {}", trip.id());
         SpeedModel speed = Speeds.forMode(trip.mode());
 
         double minutes = 0;
-        // Boucle indexée volontairement : la boucle for-each sur une List immuable
-        // allouait un itérateur par étape, qui représentait à lui seul la moitié des
-        // échantillons. Constaté au profiler, corrigé, re-mesuré.
+        // An indexed loop on purpose: the for-each loop over an immutable List allocated one
+        // iterator per leg, which on its own accounted for half the samples. Seen in the
+        // profiler, fixed, re-measured.
         for (int i = 0; i < trip.legs().size(); i++) {
             minutes += legMinutes(trip.legs().get(i), speed, trip.mode());
         }
@@ -75,7 +74,7 @@ public final class RoutePlanner {
             minutes += Connections.waitMinutes(trip.legs(), 0);
         }
 
-        // Décidé sur la durée obtenue, pas sur un argument reçu : voir Breaks.
+        // Decided on the duration obtained, not on an argument received: see Breaks.
         minutes += Breaks.totalMinutes(minutes);
 
         return minutes;

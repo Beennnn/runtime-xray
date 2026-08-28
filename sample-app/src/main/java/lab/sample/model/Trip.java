@@ -3,20 +3,20 @@ package lab.sample.model;
 import java.util.List;
 
 /**
- * Le trajet dont on veut connaître la durée — <b>le paramètre dont on veut voir la
- * valeur capturée</b>.
+ * The trip whose duration one wants to know — <b>the parameter whose captured value one
+ * wants to see</b>.
  *
- * <p>Chaque champ envoie l'exécution dans une branche différente. C'est ce qui rend la
- * question « quelles valeurs ont été passées ? » décisive : deux appels de même
- * signature peuvent parcourir des sous-arbres complètement disjoints, et un outil qui
- * n'affiche que {@code Trip@3f2a1b} ne permet pas de savoir lequel des deux on regarde.
+ * <p>Each field sends the execution down a different branch. That is what makes the question
+ * "which values were passed?" decisive: two calls with the same signature may walk completely
+ * disjoint sub-trees, and a tool that only shows {@code Trip@3f2a1b} gives no way of knowing
+ * which of the two one is looking at.
  */
 public record Trip(
         String id,
         Mode mode,
         Weather weather,
         TimeOfDay timeOfDay,
-        boolean withLuggage,   // ne pèse qu'à vélo et à pied
+        boolean withLuggage,   // only weighs by bike and on foot
         List<Leg> legs) {
 
     public double totalDistanceKm() {
