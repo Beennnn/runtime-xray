@@ -373,19 +373,37 @@ pousser, en relevant les chaînes affichées et en n'en gardant aucune français
   autant, ce qui écarte la traduction POSIX de MSYS2 comme cause. La JVM y échappe parce
   qu'elle ouvre peu de fichiers et garde ses handles.
 
-  Deux choses à savoir avant d'y toucher, et elles ne sont pas de même nature.
-  **`classes-executees/` est un résidu** : il n'existe que pour être passé en
-  `--classfiles` au rapport ciblé, et n'est effacé qu'au début de l'exécution suivante,
-  jamais après usage — c'est un oubli. **Les deux sites HTML ne servent pas à la page** :
-  elle rend la couverture depuis `jacoco.xml`, que `Coverage.parse` lit directement ; le
-  HTML n'est qu'un lien, et le chiffre qui fait foi est celui de `jacoco-fusion/`. Les
-  rendre optionnels diviserait le compte par plusieurs — mais c'est une décision, pas une
-  correction, et `CharacterisationTest` épingle les fichiers produits. Le cas « pas de
-  HTML » est déjà géré : `Dashboard` n'écrit le lien que si `index.html` existe, et un test
-  construit exprès une exécution sans rapports.
+  **`JACOCO_REPORTS` décide de ce qu'on en écrit**, et de rien d'autre : `full` les deux
+  sites (le défaut, inchangé), `detailed` le complet seul, `data` ni l'un ni l'autre. Le
+  réglage ne touche ni la mesure ni l'affichage — la couverture rendue vient de
+  `jacoco.xml`, écrit dans tous les cas, et `Coverage.parse` le lit directement. Sur
+  l'application-exemple, une exécution passe de 186 à 101 fichiers en `detailed`, à 9 en
+  `data`, avec la même couverture au chiffre près.
 
-  En attendant, `runs/` est le bon candidat à une exclusion : un répertoire unique, qui ne
-  contient que des artefacts engendrés, dont rien n'est exécuté et tout est reproductible.
+  Trois décisions le tiennent, et ce sont elles qu'il faut connaître avant d'y toucher :
+
+  - **Le défaut ne bouge pas.** Aucun rapport existant ne change de forme sans qu'on l'ait
+    demandé. C'est ce qui distingue ce réglage d'une correction.
+  - **Le filet est au niveau campagne, pas au niveau exécution.** `data` ne retire pas le
+    rendu JaCoCo : `jacoco-fusion/` reste, et `jacoco.xml` aussi. C'est ce qui rend la
+    valeur agressive défendable — on retire une commodité par exécution, jamais la
+    dernière lecture possible.
+  - **Une absence n'est jamais silencieuse.** Le groupe JaCoCo de la page est en
+    `toujours: true` : un rapport non produit reste nommé, grisé, et le clic donne la
+    commande. Sans cela, le réglage aurait fabriqué exactement le mode d'échec que ce
+    projet combat partout — un rapport plus pauvre qui ne dit pas qu'il l'est. Chaque
+    groupe porte **sa** commande : les formats ouverts se réécrivent des mesures déjà là,
+    les sites JaCoCo demandent un autre réglage.
+
+  Le staging des classes exécutées est en **un jar** et non une arborescence :
+  `jacococli` accepte les deux et en tire un rapport identique — vérifié, `diff -r` ne
+  trouve rien — et la copie passe par le système de fichiers zip, donc les fichiers
+  intermédiaires n'existent jamais. Les écrire pour les effacer aurait coûté ce qu'on
+  cherche à éviter.
+
+  `runs/` reste par ailleurs le bon candidat à une exclusion antivirus : un répertoire
+  unique, qui ne contient que des artefacts engendrés, dont rien n'est exécuté et tout est
+  reproductible.
 - **Terminal Windows** : l'outil écrit en UTF-8. Un terminal en cp850 — le défaut de bien
   des postes — rend les accents illisibles. Corriger côté terminal (mintty → Options →
   Text → UTF-8), ou lancer avec `-Dstdout.encoding=cp850`. Ne pas « corriger » cela dans

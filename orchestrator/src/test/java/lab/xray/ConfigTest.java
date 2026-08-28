@@ -138,6 +138,50 @@ class ConfigTest {
     }
 
     @Test
+    @DisplayName("What JaCoCo renders is a setting of its own, distinct from the level")
+    void jacocoReportsIsItsOwnAxis() {
+        Config c = new Config();
+        assertEquals(Config.FULL, c.jacocoReports, "the default writes what it always wrote");
+        assertTrue(c.jacocoHtmlWanted());
+        assertTrue(c.focusedReportWanted());
+
+        c.jacocoReports = Config.DETAILED;
+        assertTrue(c.jacocoHtmlWanted(), "the complete site stays: it is the fallback");
+        assertFalse(c.focusedReportWanted(),
+                "the focused report holds no datum the complete one lacks");
+
+        c.jacocoReports = Config.DATA;
+        assertFalse(c.jacocoHtmlWanted());
+        assertFalse(c.focusedReportWanted());
+
+        // The level says what is MEASURED, this says what is WRITTEN. Confusing the two is
+        // how one lowers the wrong knob, re-runs a whole campaign and gets the same report.
+        c.level = "couverture";
+        c.jacocoReports = Config.FULL;
+        assertTrue(c.focusedReportWanted(),
+                "lowering the level must not silently drop the rendering, nor the reverse");
+    }
+
+    @Test
+    @DisplayName("A sparser run says so in its context, so it does not read as a failure")
+    void aSparserRunIsRecordedAsAChoice() {
+        Config c = new Config();
+        c.jacocoReports = Config.DATA;
+        // Without this, a report with no JaCoCo site reads as a measurement that went
+        // wrong rather than as a setting someone chose — the same reason the level travels.
+        assertEquals("data", c.describe().get("rapportsJacoco"));
+    }
+
+    @Test
+    @DisplayName("JACOCO_REPORTS is read from the configuration file like any other key")
+    void jacocoReportsIsReadFromTheFile(@TempDir Path dir) throws IOException {
+        Path file = dir.resolve("c.conf");
+        Files.writeString(file, "JAVA_CMD=\"java -jar a.jar\"\nJACOCO_REPORTS=\"data\"\n",
+                StandardCharsets.UTF_8);
+        assertEquals("data", Config.load(file).jacocoReports);
+    }
+
+    @Test
     @DisplayName("The level and its settings travel with the run")
     void levelIsRecorded() {
         Config c = new Config();

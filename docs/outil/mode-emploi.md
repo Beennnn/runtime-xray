@@ -263,7 +263,7 @@ runtime-xray-out/
         ├── execution.log        ← la sortie de l'application
         ├── jacoco/html/         ← la couverture détaillée, tout le code analysé
         ├── jacoco-focused/html/ ← la même, restreinte aux classes qui ont tourné
-        ├── classes-executees/   ← le bytecode retenu pour ce second rapport
+        ├── classes-executees.jar ← le bytecode retenu pour ce second rapport
         ├── async-profiler/      ← les piles repliées, plus le profil rendu par l'outil
         │                          lui-même (flamegraph.html et son inverse)
         ├── arthas/              ← les valeurs capturées et la trace d'invocation
@@ -273,6 +273,31 @@ runtime-xray-out/
 Tout ce que les outils ont écrit reste ainsi atteignable. La page en donne la liste, groupée
 par outil : c'est ce qui permet de vérifier la synthèse quand elle surprend — et de rester
 exploitable si elle ne s'ouvre plus.
+
+### Quand le nombre de fichiers coûte
+
+Les deux répertoires `jacoco*/html/` sont le gros du compte : JaCoCo écrit **deux fichiers
+par classe**, et l'outil lui demande **deux sites par exécution**. Le compte croît donc avec
+la taille du code analysé, pas avec la mesure. Sur un poste où chaque ouverture de fichier
+traverse une pile de filtres — antivirus, EDR, DLP — c'est ce compte-là qu'une campagne
+paie, à l'écriture, à chaque parcours ultérieur, et à la mise en archive pour transmettre.
+
+`JACOCO_REPORTS` (ou `--jacoco-reports`) décide de ce qu'on en écrit :
+
+| Valeur | Ce qui est écrit | Ce qu'on perd |
+|---|---|---|
+| `full` *(défaut)* | les deux sites | rien |
+| `detailed` | le site complet seul | un cadrage : le rapport ciblé ne porte **aucune donnée** que le complet n'ait déjà |
+| `data` | `jacoco.xml` et `jacoco.csv` seuls | le rendu JaCoCo **par exécution** ; celui de la campagne (`jacoco-fusion/`) reste |
+
+Ce réglage ne touche **ni la mesure, ni ce que la page affiche** : la couverture rendue ligne
+à ligne vient de `jacoco.xml`, écrit dans tous les cas. Et un rapport absent n'est jamais
+silencieux — la page continue de le nommer, en grisé, et le clic donne la commande qui le
+produit.
+
+`runs/` est par ailleurs le bon candidat à une exclusion antivirus : un répertoire unique,
+qui ne contient que des artefacts engendrés, dont rien n'est exécuté et tout est
+reproductible.
 
 ### `rapport.md` — pour une forge
 

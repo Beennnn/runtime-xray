@@ -96,7 +96,8 @@ class CharacterisationTest {
     private static final List<String> EXPECTED_OPTIONS = List.of(
             "--attach-after", "--classes", "--components", "--composants", "--config",
             "--context", "--contexte", "--cover", "--export", "--families", "--familles",
-            "--filter", "--follow", "--help", "--hide", "--interval", "--java", "--level",
+            "--filter", "--follow", "--help", "--hide", "--interval", "--jacoco-reports",
+            "--java", "--level",
             "--max-seconds", "--name", "--niveau", "--no-values", "--out", "--print-options",
             "--repo", "--report-only", "--root", "--serve", "--serve-host", "--serve-token",
             "--sources", "--suivi");

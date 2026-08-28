@@ -123,6 +123,30 @@ ls leger/runs/*/jacoco/html/index.html >/dev/null 2>&1
 etape $? "la couverture, elle, est bien là"
 echo
 
+# Ce que JaCoCo rend sur le disque n'est pas ce que la page affiche. Le vérifier demande une
+# vraie mesure : la couverture doit sortir identique alors que le nombre de fichiers s'effondre.
+echo "4 bis. Ce qu'on écrit sur le disque se règle sans toucher à la mesure"
+pct(){ grep -o '"pct":[0-9.]*' "$1"/faits.jsonl | head -1; }
+compte(){ find "$1"/runs -type f | wc -l; }
+for v in detailed data; do
+  java -jar "$JAR" \
+    --java "java -jar $APP --iterations 200000" \
+    --niveau couverture --sources "$DEPOT/sample-app/src/main/java" \
+    --jacoco-reports "$v" --name "rapports $v" --out "rap-$v" > "rap-$v.log" 2>&1
+  etape $? "une mesure avec --jacoco-reports $v se termine"
+  ls rap-$v/runs/*/jacoco/html/jacoco.xml >/dev/null 2>&1
+  etape $? "  le jacoco.xml est écrit quand même — c'est lui que la page lit"
+  [ "$(pct rap-$v)" = "$(pct leger)" ]
+  etape $? "  la couverture affichée est identique à celle de l'étape 4"
+  [ "$(compte rap-$v)" -lt "$(compte leger)" ]
+  etape $? "  et le compte de fichiers a baissé : $(compte leger) → $(compte rap-$v)"
+done
+[ ! -e "$(ls -d rap-data/runs/*/jacoco/html/index.html 2>/dev/null | head -1)" ]
+etape $? "en « data », aucun site HTML n'est écrit pour l'exécution"
+grep -q 'toujours: true' "$DEPOT/orchestrator/src/main/resources/lab/xray/dashboard.html"
+etape $? "et la page nomme quand même les rapports absents, avec leur commande"
+echo
+
 echo "5. Le serveur écrit les annotations à côté des mesures"
 PORT="$(python3 -c 'import socket;s=socket.socket();s.bind(("127.0.0.1",0));print(s.getsockname()[1]);s.close()')"
 java -jar "$JAR" --report-only --out sortie \
