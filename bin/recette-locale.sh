@@ -147,6 +147,20 @@ grep -q 'toujours: true' "$DEPOT/orchestrator/src/main/resources/lab/xray/dashbo
 etape $? "et la page nomme quand même les rapports absents, avec leur commande"
 echo
 
+# Un rapport se réassemble souvent sans repasser les options du lancement. Ce qu'on avait
+# donné à la mesure ne doit pas se perdre en route — et surtout, ne pas être nié.
+echo "4 ter. Réassembler sans --sources retrouve le code annoté"
+rm -rf reassemble && cp -r sortie reassemble
+java -jar "$JAR" --report-only --out reassemble > reassemble.log 2>&1
+etape $? "le réassemblage sans --sources se termine"
+grep -q "taking back what the run(s) recorded" reassemble.log
+etape $? "l'outil reprend les racines que l'exécution avait enregistrées"
+! grep -q "no source directory was given" reassemble.log
+etape $? "et ne prétend plus qu'aucune racine n'avait été donnée"
+grep -q '"sourcesDisponibles":{"' reassemble/index.html
+etape $? "le code annoté est de nouveau dans le rapport"
+echo
+
 echo "5. Le serveur écrit les annotations à côté des mesures"
 PORT="$(python3 -c 'import socket;s=socket.socket();s.bind(("127.0.0.1",0));print(s.getsockname()[1]);s.close()')"
 java -jar "$JAR" --report-only --out sortie \

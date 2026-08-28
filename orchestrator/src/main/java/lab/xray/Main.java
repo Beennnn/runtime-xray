@@ -215,7 +215,7 @@ public final class Main {
         require(Config.LEVELS.contains(Config.level(config.level)),
                 "--level expects coverage, tree or full (got: " + config.level + ")");
         // The classes serve to MEASURE. Reassembling a view from existing measurements
-        // n'en a aucun besoin.
+        // needs none of them.
         // --classes is no longer required here: the bytecode is deduced from the observed
         // JVM, once it has run. See ClassSources for the order of the sources consulted.
         for (Path entry : config.classesPaths()) {
@@ -225,6 +225,7 @@ public final class Main {
 
         Path outDir = Path.of(config.outDir);
         Files.createDirectories(outDir);
+        adoptRecordedSourceRoots(config, outDir);
 
         if (!reportOnly) {
             collect(config, tools, outDir);
@@ -871,6 +872,51 @@ public final class Main {
 
     private static String toInt(Object o) {
         return o instanceof Number n ? String.valueOf(n.longValue()) : String.valueOf(o);
+    }
+
+    /**
+     * Takes back the source roots the runs recorded, when none is given.
+     *
+     * <p>{@code --report-only} used to reassemble without any annotated code and announce
+     * "no source directory was given". That was false, and the falsehood was the expensive
+     * part: one had been given when the measurement was taken, each run had written it into
+     * its own context, and the message sent the reader looking for a setting they had
+     * already made.
+     *
+     * <p>What is given on the command line always wins: it is the gesture of someone who is
+     * here now, in front of this machine, and it may well correct a path that has moved.
+     *
+     * <p>A root that no longer exists is <b>not</b> adopted, and not passed over in silence
+     * either — a report travels, and the machine that reads it is rarely the one that
+     * produced it. Saying which paths were recorded is what turns "no source" into
+     * something one can act on.
+     */
+    private static void adoptRecordedSourceRoots(Config config, Path outDir) throws IOException {
+        if (!Config.paths(config.sourceDirs).isEmpty()) {
+            return;
+        }
+        List<Path> recorded = Dashboard.recordedSourceRoots(outDir);
+        if (recorded.isEmpty()) {
+            return;
+        }
+        // Joined with the platform's own separator: Config reads both, and ':' would cut a
+        // Windows path on its drive letter — the defect this project already met once.
+        config.sourceDirs = recorded.stream().map(Path::toString)
+                .collect(java.util.stream.Collectors.joining(java.io.File.pathSeparator));
+
+        // A root that no longer exists is adopted all the same, and that is deliberate: the
+        // diagnostic already shows a root as absent rather than making it disappear, and
+        // its conclusion then names the path to correct. Filtering here would have put the
+        // reader back in front of "no source directory was given" — the very sentence that
+        // sent them looking for a setting they had already made.
+        List<Path> here = recorded.stream().filter(Files::isDirectory).toList();
+        System.out.println("   sources: none given — taking back what the run(s) recorded:");
+        recorded.forEach(p -> System.out.println("      " + p
+                + (Files.isDirectory(p) ? "" : "   (absent from this machine)")));
+        if (here.isEmpty()) {
+            System.out.println("   → none of them exist here: pass --sources with the path "
+                    + "they have on this machine.");
+        }
     }
 
     private static List<Path> sourceRoots(Config config) {
