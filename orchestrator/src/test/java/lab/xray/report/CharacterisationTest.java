@@ -24,35 +24,34 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Ce que l'outil produit aujourd'hui, épinglé tel quel — avant de le déplacer.
+ * What the tool produces today, pinned as it is — before moving it.
  *
- * <h2>Pourquoi ces tests-là, et pourquoi maintenant</h2>
+ * <h2>Why these tests, and why now</h2>
  *
- * <p>Les autres tests de ce dépôt gardent des <b>décisions</b> : pourquoi une racine de
- * sources ne se devine pas, pourquoi le compte est en cœurs. Ceux-ci ne gardent aucune
- * décision. Ils gardent un <b>constat</b> : à entrées égales, voilà exactement les fichiers
- * produits, les faits écrits et les chiffres calculés.
+ * <p>The repository's other tests guard <b>decisions</b>: why a source root is not guessed,
+ * why the count is in cores. These guard no decision at all. They guard a <b>reading</b>:
+ * given equal inputs, here are exactly the files produced, the facts written and the
+ * numbers computed.
  *
- * <p>Ils existent pour une réécriture annoncée — le format qui passe à l'anglais, puis le
- * code lui-même. Ces deux chantiers renomment beaucoup et ne devraient rien changer d'autre.
- * Or « ne rien changer d'autre » est précisément ce qu'aucun test ne vérifiait : on aurait
- * perdu un fait, décalé un pourcentage ou cessé d'écrire un fichier sans qu'une seule
- * assertion bronche.
+ * <p>They exist for an announced rewrite — the format switching to English, then the code
+ * itself. Both undertakings rename a great deal and should change nothing else. And
+ * "changing nothing else" is precisely what no test was checking: one could have lost a
+ * fact, shifted a percentage or stopped writing a file without a single assertion flinching.
  *
- * <p><b>Ils sont faits pour être modifiés</b>, et c'est ce qui les distingue du reste. Quand
- * le format renommera {@code classe.jamais_executee} en {@code class.never_executed}, la
- * valeur attendue ici changera — c'est normal, c'est le but du chantier. Ce qui ne doit pas
- * changer, et que le test attrapera, c'est le <b>nombre</b> de faits, la <b>liste</b> des
- * classes mortes et les <b>chiffres</b> de couverture. Un renommage qui touche à cela n'est
- * plus un renommage.
+ * <p><b>They are made to be modified</b>, and that is what sets them apart from the rest.
+ * When the format renames {@code classe.jamais_executee} to {@code class.never_executed},
+ * the value expected here will change — that is normal, that is the point of the work. What
+ * must not change, and what the test will catch, is the <b>number</b> of facts, the
+ * <b>list</b> of dead classes and the coverage <b>figures</b>. A rename that touches those
+ * is no longer a rename.
  */
 class CharacterisationTest {
 
     /**
-     * Les fichiers qu'un rapport de deux exécutions contient, aujourd'hui.
+     * The files a two-run report contains, today.
      *
-     * <p>Rien ici n'est joli ni définitif : c'est un relevé. Il attrape le fichier qu'on
-     * cesserait d'écrire, celui qu'on écrirait en double, et le renommage involontaire.
+     * <p>Nothing here is pretty or final: it is a survey. It catches the file one would stop
+     * writing, the one one would write twice, and the unintended rename.
      */
     private static final List<String> EXPECTED_FILES = List.of(
             "diagnostic.json",
@@ -82,7 +81,7 @@ class CharacterisationTest {
             "vue/presence.js",
             "vue/sources/app.js");
 
-    /** Le compte de faits par famille, aujourd'hui. */
+    /** The fact count per family, today. */
     private static final Map<String, Integer> EXPECTED_FACTS = new TreeMap<>(Map.of(
             "campaign", 1,
             "class", 1,
@@ -93,7 +92,7 @@ class CharacterisationTest {
             "method.hot", 4,
             "source.missing", 1));
 
-    /** Les options que la ligne de commande accepte, aujourd'hui. */
+    /** The options the command line accepts, today. */
     private static final List<String> EXPECTED_OPTIONS = List.of(
             "--attach-after", "--classes", "--components", "--composants", "--config",
             "--context", "--contexte", "--cover", "--export", "--families", "--familles",
@@ -103,16 +102,16 @@ class CharacterisationTest {
             "--sources", "--suivi");
 
     @Test
-    @DisplayName("Deux exécutions produisent exactement ces vingt-six fichiers")
+    @DisplayName("Two runs produce exactly these twenty-six files")
     void twoRunsProduceExactlyTheseFiles(@TempDir Path dir) throws Exception {
         Path out = assemble(dir);
         assertEquals(EXPECTED_FILES, files(out),
-                "un fichier en plus ou en moins n'est jamais un détail : le rapport est un "
-                + "dossier, et la page comme les compétences comptent sur sa forme");
+                "one file more or less is never a detail: the report is a folder, and "
+                + "the page as much as the skills count on its shape");
     }
 
     @Test
-    @DisplayName("Les mêmes exécutions donnent toujours les mêmes faits, en même nombre")
+    @DisplayName("The same runs always yield the same facts, in the same number")
     void theSameRunsAlwaysYieldTheSameFacts(@TempDir Path dir) throws Exception {
         Path out = assemble(dir);
         List<Map<String, Object>> facts = facts(out);
@@ -122,16 +121,16 @@ class CharacterisationTest {
             counts.merge(String.valueOf(f.get("fact")), 1, Integer::sum);
         }
         assertEquals(EXPECTED_FACTS, counts,
-                "renommer une famille est prévu ; en perdre une, en dupliquer une, ou cesser "
-                + "d'en écrire une ne l'est pas");
+                "renaming a family is expected; losing one, duplicating one, or ceasing "
+                + "to write one is not");
 
-        assertEquals(List.of("app.Jamais"), values(facts, "class.never_executed", "class"),
-                "la classe morte est LE fait que l'outil existe pour donner");
-        assertEquals(List.of("app.Moteur"), values(facts, "class", "class"));
+        assertEquals(List.of("app.Never"), values(facts, "class.never_executed", "class"),
+                "the dead class is THE fact the tool exists to give");
+        assertEquals(List.of("app.Engine"), values(facts, "class", "class"));
     }
 
     @Test
-    @DisplayName("Les chiffres de couverture ne bougent pas d'une virgule")
+    @DisplayName("The coverage figures do not move by one decimal")
     void theCoverageNumbersDoNotMoveOneDecimal(@TempDir Path dir) throws Exception {
         List<Map<String, Object>> facts = facts(assemble(dir));
         List<Map<String, Object>> coverages = new ArrayList<>();
@@ -143,42 +142,42 @@ class CharacterisationTest {
             assertEquals(9L, number(c.get("instructionsCovered")));
             assertEquals(22L, number(c.get("instructionsTotal")));
             assertEquals(40.9, ((Number) c.get("pct")).doubleValue(), 0.001,
-                    "un pourcentage qui glisse à la faveur d'un renommage est le pire des "
-                    + "défauts : personne ne le remarque, et il fait conclure");
+                    "a percentage that slips under cover of a rename is the worst kind of "
+                    + "defect: nobody notices it, and it makes one conclude");
         }
     }
 
     @Test
-    @DisplayName("Réassembler deux fois donne les mêmes blocs, à l'octet près")
+    @DisplayName("Assembling twice yields the same blocks, byte for byte")
     void rebuildingTwiceYieldsTheSameBlocks(@TempDir Path dir) throws Exception {
-        Path a = assemble(dir.resolve("un"));
-        Path b = assemble(dir.resolve("deux"));
+        Path a = assemble(dir.resolve("one"));
+        Path b = assemble(dir.resolve("two"));
 
-        // Les blocs sont de pures dérivations des mesures : aucune horloge, aucun chemin
-        // absolu. Une différence entre deux assemblages y serait un non-déterminisme, et le
-        // rapport cesserait d'être comparable à lui-même d'une semaine sur l'autre.
+        // The blocks are pure derivations of the measurements: no clock, no absolute path.
+        // A difference between two assemblies would be non-determinism there, and the report
+        // would stop being comparable with itself from one week to the next.
         for (String block : EXPECTED_FILES) {
             if (!block.endsWith(".js")) continue;
             assertArrayEquals(Files.readAllBytes(a.resolve(block)),
-                    Files.readAllBytes(b.resolve(block)), block + " diffère d'un assemblage à "
-                    + "l'autre alors qu'il ne dérive que des mesures");
+                    Files.readAllBytes(b.resolve(block)), block + " differs from one assembly to "
+                    + "the next although it derives only from the measurements");
         }
     }
 
     @Test
-    @DisplayName("Aucune option de la ligne de commande ne disparaît sans qu'on le voie")
+    @DisplayName("No command-line option disappears without being seen")
     void noCommandLineOptionQuietlyDisappears() throws Exception {
-        // Les alias français doivent survivre à la bascule, et une option retirée par
-        // inadvertance ne se remarque que le jour où un script de recette s'arrête.
+        // The French aliases must survive the switch, and an option removed inadvertently
+        // is noticed only the day an acceptance script stops.
         String main = Files.readString(Path.of("").toAbsolutePath().getParent()
                 .resolve("orchestrator/src/main/java/lab/xray/Main.java").normalize(),
                 StandardCharsets.UTF_8);
         List<String> views = new ArrayList<>();
-        // Borné au seul switch des options : plus loin, Main compose les lignes de commande
-        // de JaCoCo, qui ont leurs propres « --xml » et « --classfiles ».
+        // Bounded to the options switch alone: further on, Main composes JaCoCo's command
+        // lines, which have their own "--xml" and "--classfiles".
         int start = main.indexOf("switch (a) {");
         int end = main.indexOf("unknown option", start);
-        assertTrue(start > 0 && end > start, "le switch des options doit rester repérable");
+        assertTrue(start > 0 && end > start, "the options switch must stay locatable");
         Matcher m = Pattern.compile("\"(--[a-z-]+)\"").matcher(main.substring(start, end));
         while (m.find()) if (!views.contains(m.group(1))) views.add(m.group(1));
         Collections.sort(views);
@@ -199,36 +198,36 @@ class CharacterisationTest {
     private static Path sources(Path dir) throws IOException {
         Path src = dir.resolve("src");
         Files.createDirectories(src.resolve("app"));
-        Files.writeString(src.resolve("app/Moteur.java"), """
+        Files.writeString(src.resolve("app/Engine.java"), """
                 package app;
-                class Moteur { int calculer(int x) { return x * x; } }
+                class Engine { int compute(int x) { return x * x; } }
                 """, StandardCharsets.UTF_8);
         return src;
     }
 
-    /** Une exécution telle que l'orchestrateur en produit : une classe couverte, une morte. */
+    /** A run such as the orchestrator produces: one covered class, one dead. */
     private static void run(Path parent, String name, String uuid) throws IOException {
         Path run = parent.resolve(name);
         Files.createDirectories(run.resolve("jacoco/html"));
         Files.createDirectories(run.resolve("async-profiler"));
         Files.writeString(run.resolve("jacoco/html/jacoco.xml"), """
                 <report name="t"><package name="app">
-                <class name="app/Moteur" sourcefilename="Moteur.java">
-                  <method name="calculer" desc="(I)I" line="3">
+                <class name="app/Engine" sourcefilename="Engine.java">
+                  <method name="compute" desc="(I)I" line="3">
                     <counter type="INSTRUCTION" missed="0" covered="9"/></method>
                   <counter type="INSTRUCTION" missed="1" covered="9"/></class>
-                <class name="app/Jamais" sourcefilename="Jamais.java">
+                <class name="app/Never" sourcefilename="Never.java">
                   <counter type="INSTRUCTION" missed="12" covered="0"/></class>
-                <sourcefile name="Moteur.java"><line nr="3" mi="0" ci="9" mb="0" cb="0"/></sourcefile>
+                <sourcefile name="Engine.java"><line nr="3" mi="0" ci="9" mb="0" cb="0"/></sourcefile>
                 </package></report>
                 """, StandardCharsets.UTF_8);
         Files.writeString(run.resolve("async-profiler/profil.collapsed"),
-                "app/Main.main;app/Moteur.calculer 40\n", StandardCharsets.UTF_8);
+                "app/Main.main;app/Engine.compute 40\n", StandardCharsets.UTF_8);
         Files.writeString(run.resolve("jacoco/html/index.html"), "<html>c</html>",
                 StandardCharsets.UTF_8);
         Files.writeString(run.resolve("run-context.json"), Json.write(new LinkedHashMap<>(Map.of(
                 "uuid", uuid, "nomOrigine", name, "commande", "java -jar app.jar",
-                "methodeRacine", "app.Moteur::calculer", "machine", "poste"))),
+                "methodeRacine", "app.Engine::compute", "machine", "host"))),
                 StandardCharsets.UTF_8);
     }
 
