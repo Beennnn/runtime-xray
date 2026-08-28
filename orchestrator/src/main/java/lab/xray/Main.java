@@ -25,11 +25,11 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Runtime X-Ray — point d'entrée.
+ * Runtime X-Ray — entry point.
  *
- * <p>Un seul fichier à déposer, lancé par le {@code java} qui est déjà là. C'est tout
- * l'intérêt d'un orchestrateur écrit en Java : la machine qui exécute l'application
- * analysée possède forcément un JDK, mais pas nécessairement bash ni Python.
+ * <p>One single file to drop, launched by the {@code java} that is already there. That is
+ * the whole point of an orchestrator written in Java: the machine that runs the analysed
+ * application necessarily has a JDK, but not necessarily bash or Python.
  */
 public final class Main {
 
@@ -47,14 +47,13 @@ public final class Main {
     }
 
     /**
-     * Écrit sur la console en UTF-8, quelle que soit l'encodage de la machine.
+     * Writes to the console in UTF-8, whatever the machine's encoding.
      *
-     * <p>Java choisit l'encodage de {@code System.out} d'après celui du système. Sur une
-     * machine réglée en C/POSIX — un conteneur, un serveur d'intégration, une session
-     * distante — cela vaut ASCII, et tous les messages de cet outil, qui sont en français,
-     * y perdent leurs accents : « Classes analys?es », « pas d'?chantillonnage ». Ce n'est
-     * pas cosmétique : ce sont des messages qu'on lit pour comprendre ce qui s'est passé,
-     * et qu'on cherche parfois dans un journal.
+     * <p>Java picks {@code System.out}'s encoding from the system's. On a machine set to
+     * C/POSIX — a container, an integration server, a remote session — that means ASCII,
+     * and any message carrying a non-ASCII character loses it there: "Classes analys?ed",
+     * "no ?ampling". That is not cosmetic: these are messages one reads to understand what
+     * happened, and sometimes searches for in a log.
      */
     private static void speakUtf8() {
         System.setOut(new java.io.PrintStream(
@@ -97,13 +96,13 @@ public final class Main {
                 case "--max-seconds" -> config.maxSeconds = Integer.parseInt(args[++i]);
                 case "--no-values" -> config.captureValues = false;
                 case "--print-options" -> printOptionsOnly = true;
-                // Le paquet de contexte : ce qu'il faut savoir pour répondre à une question,
-                // et rien de plus. Aucun réseau, aucun fournisseur — voir Context.
+                // The context pack: what one needs in order to answer a question, and
+                // nothing more. No network, no provider — see Context.
                 case "--context", "--contexte" -> contextQuestion =
                         i + 1 < args.length && !args[i + 1].startsWith("--") ? args[++i] : "";
-                // Le chemin des scripts : nommer les familles plutôt que de faire
-                // interpréter une phrase, dont le résultat n'est reproductible que tant
-                // qu'on ne touche pas aux mots-clés.
+                // The path scripts take: naming the families rather than having a
+                // sentence interpreted, whose result is only reproducible as long as the
+                // keywords are left alone.
                 case "--families", "--familles" -> contextFamilies =
                         java.util.List.of(args[++i].split("\\s*,\\s*"));
                 case "--report-only" -> reportOnly = true;
@@ -111,8 +110,8 @@ public final class Main {
                 case "--level", "--niveau" -> config.level = args[++i];
                 case "--cover" -> config.coverIncludes = args[++i];
                 case "--interval" -> config.sampleIntervalMs = Integer.parseInt(args[++i]);
-                // Le port se colle à l'option, comme pour --serve : « --suivi » seul prend
-                // le port par défaut, et « --suivi 9100 » celui qu'on lui donne.
+                // The port attaches to the option, as for --serve: "--suivi" alone takes
+                // the default port, and "--suivi 9100" the one given to it.
                 case "--follow", "--suivi" -> {
                     config.followPort = Follow.PORT;
                     if (i + 1 < args.length && args[i + 1].matches("\\d+")) {
@@ -121,9 +120,9 @@ public final class Main {
                 }
                 case "--serve-host" -> serveHost = args[++i];
                 case "--serve-token" -> {
-                    // Le secret se colle à l'option, ou se tait : « --serve-token » seul en
-                    // tire un au sort et l'affiche. C'est le cas le plus fréquent — on veut
-                    // fermer la porte, pas inventer une phrase.
+                    // The secret attaches to the option, or stays silent: "--serve-token"
+                    // alone draws one at random and shows it. That is the most frequent
+                    // case — one wants to close the door, not invent a phrase.
                     if (i + 1 < args.length && !args[i + 1].startsWith("--")) {
                         serveToken = args[++i];
                     } else {
@@ -133,17 +132,17 @@ public final class Main {
                 }
                 case "--serve" -> {
                     serve = true;
-                    // Le port se colle à l'option quand on le donne, et se tait sinon :
-                    // « --serve 9000 » et « --serve --report-only » doivent marcher tous les deux.
+                    // The port attaches to the option when given, and stays silent
+                    // otherwise: "--serve 9000" and "--serve --report-only" must both work.
                     if (i + 1 < args.length && args[i + 1].matches("\\d+")) {
                         servePort = Integer.parseInt(args[++i]);
                     }
                 }
                 default -> {
-                    // Le message court, et le renvoi — pas l'aide entière. Déverser cent
-                    // lignes sur la sortie standard chasse de l'écran la seule ligne qui
-                    // explique le problème, et l'utilisateur ne voit que la fin de l'aide,
-                    // c'est-à-dire ce qui ne le concerne pas.
+                    // The short message, and the pointer — not the whole help. Dumping a
+                    // hundred lines on standard output pushes the one line that explains
+                    // the problem off the screen, and the user sees only the end of the
+                    // help, that is, what does not concern them.
                     System.err.println("runtime-xray: unknown option: " + a);
                     System.err.println("Try \"runtime-xray --help\" for the list of options.");
                     return 2;
@@ -151,23 +150,23 @@ public final class Main {
             }
         }
 
-        // Lire un rapport déjà assemblé ne lance rien et n'écrit rien : ni configuration à
-        // renseigner, ni --java à fournir. D'où cette sortie avant tout le reste — la
-        // réclamer pour une lecture serait le même contresens que de générer un gabarit
-        // devant un --report-only.
+        // Reading an already assembled report launches nothing and writes nothing: no
+        // configuration to fill in, no --java to supply. Hence this exit before everything
+        // else — demanding one for a read would be the same nonsense as generating a
+        // template in front of a --report-only.
         if (contextQuestion != null) {
             var pkg = lab.xray.report.Context.of(Path.of(config.outDir),
                     contextQuestion, contextFamilies, lab.xray.report.Context.BUDGET);
-            // Ce qui a été compris part sur la sortie d'erreur, et le paquet sur la sortie
-            // standard : l'opérateur voit l'un sans que l'autre en soit pollué quand il
-            // est redirigé — ce qu'il est presque toujours.
+            // What was understood goes to standard error, and the pack to standard
+            // output: the operator sees the one without the other being polluted when it
+            // is redirected — which it almost always is.
             System.err.println(pkg.announcement());
             System.out.print(pkg.text());
             return 0;
         }
 
-        // Le fichier de configuration est GÉNÉRÉ s'il manque : personne ne devrait avoir à
-        // deviner un format. On s'arrête là pour laisser l'utilisateur le renseigner.
+        // The configuration file is GENERATED when missing: nobody should have to guess a
+        // format. We stop there to let the user fill it in.
         if (configFile != null) {
             if (!Files.isRegularFile(configFile)) {
                 Config.writeTemplate(configFile);
@@ -178,9 +177,9 @@ public final class Main {
             merge(fromFile, config);
             config = fromFile;
         } else if (!reportOnly && config.javaCommand.isBlank() && config.classesDir.isBlank()) {
-            // --report-only ne relance rien : il réassemble la vue depuis des exécutions
-            // déjà sur le disque. Lui réclamer une configuration serait absurde, et écrire
-            // un gabarit à sa place l'était encore plus.
+            // --report-only launches nothing: it reassembles the view from runs already
+            // on disk. Demanding a configuration of it would be absurd, and writing a
+            // template in its place was more absurd still.
             Path def = Path.of(DEFAULT_CONFIG);
             if (Files.isRegularFile(def)) {
                 System.out.println("▶ Configuration read from: " + DEFAULT_CONFIG);
@@ -194,9 +193,9 @@ public final class Main {
 
         Toolbox tools = new Toolbox(config.mavenRepo, config.componentsDir);
 
-        // Mode « je veux juste les options à coller » : l'outil doit pouvoir s'ajouter à une
-        // ligne de commande Java quelconque, y compris une qu'on ne contrôle pas — un
-        // service géré par systemd, un conteneur, un serveur d'application.
+        // The "I just want the options to paste" mode: the tool must be able to add
+        // itself to any Java command line at all, including one you do not control — a
+        // service managed by systemd, a container, an application server.
         if (printOptionsOnly) {
             printAgentOptions(config, tools);
             return 0;
@@ -205,10 +204,10 @@ public final class Main {
         require(!config.javaCommand.isBlank() || reportOnly, "--java is required");
         require(Config.LEVELS.contains(Config.level(config.level)),
                 "--level expects coverage, tree or full (got: " + config.level + ")");
-        // Les classes servent à MESURER. Réassembler une vue depuis des mesures existantes
+        // The classes serve to MEASURE. Reassembling a view from existing measurements
         // n'en a aucun besoin.
-        // --classes n'est plus exigé ici : le bytecode se déduit de la JVM observée, une
-        // fois qu'elle a tourné. Voir ClassSources pour l'ordre des sources consultées.
+        // --classes is no longer required here: the bytecode is deduced from the observed
+        // JVM, once it has run. See ClassSources for the order of the sources consulted.
         for (Path entry : config.classesPaths()) {
             require(Files.isDirectory(entry) || Files.isRegularFile(entry),
                     "classes not found: " + entry + " (neither a directory nor a jar)");
@@ -240,16 +239,16 @@ public final class Main {
             String secret = Access.secretRequested(serveToken, System.getenv());
             Access access = secret == null ? Access.open() : Access.withSecret(secret);
             if (randomToken) {
-                // Affiché une fois, ici et nulle part ailleurs : il n'est écrit dans aucun
-                // fichier, et le serveur ne le réaffichera pas.
+                // Shown once, here and nowhere else: it is written to no file, and the
+                // server will not show it again.
                 System.out.println();
                 System.out.println("▶ Shared secret drawn at random: " + secret);
                 System.out.println("   Pass it to whoever needs access to the "
                         + "report.");
             }
             LocalServer.serve(outDir, serveHost, servePort, () -> {
-                // Après une écriture, la page est reconstruite : l'annotation devient celle
-                // du rapport, et pas seulement celle de ce navigateur.
+                // After a write the page is rebuilt: the annotation becomes the report's,
+                // and not merely this browser's.
                 Dashboard.build(outDir, sourceRoots(served), served.watchCount, served.hidden(),
                         launch(served, tools, sourceRoots(served)));
                 return null;
@@ -296,10 +295,10 @@ public final class Main {
     }
 
     /**
-     * Détermine le bytecode à analyser, en interrogeant l'exécution plutôt que l'opérateur.
+     * Works out the bytecode to analyse by questioning the run rather than the operator.
      *
-     * <p>Un chemin explicite l'emporte toujours : il exprime une intention que rien ne doit
-     * écraser — analyser une dépendance en plus, ou restreindre à un module.
+     * <p>An explicit path always wins: it expresses an intent nothing must override —
+     * analysing one more dependency, or restricting to one module.
      */
     private static void resolveClasses(Config config, RunSession session) {
         if (!config.classesDir.isBlank()) {
@@ -320,15 +319,15 @@ public final class Main {
     }
 
     /**
-     * Produit les pages que <b>async-profiler rend lui-même</b> depuis les piles repliées.
+     * Produces the pages <b>async-profiler renders itself</b> from the folded stacks.
      *
-     * <p>Elles font doublon avec l'arbre de cette page, et c'est voulu : celui-ci est une
-     * synthèse, avec ses partis pris (repli du JDK et des paquets masqués, agrégation par
-     * méthode). Celles-là sont la sortie brute, sans traitement. Deux usages : vérifier la
-     * synthèse quand elle surprend, et garder une vue exploitable si elle se casse.
+     * <p>They duplicate this page's tree, and deliberately: ours is a summary, with its
+     * choices (folding the JDK and the hidden packages, aggregating per method). Theirs is
+     * the raw output, without processing. Two uses: checking the summary when it surprises,
+     * and keeping a usable view if it breaks.
      *
-     * <p>Un échec de conversion n'interrompt rien — c'est une vue de confort, pas une
-     * mesure ; la mesure, elle, est déjà sur le disque en {@code .collapsed}.
+     * <p>A conversion failure interrupts nothing — it is a comfort view, not a measurement;
+     * the measurement is already on disk as {@code .collapsed}.
      */
     private static void renderProfileViews(Toolbox tools, Path runDir) {
         Path collapsed = runDir.resolve("async-profiler/profil.collapsed");
@@ -337,9 +336,9 @@ public final class Main {
         }
         try {
             Path converter = tools.asyncProfilerConverter();
-            // Le graphe classique, puis son inverse : le premier répond « où passe le
-            // temps ? », le second « qui appelle cette méthode coûteuse ? ». Ce sont deux
-            // questions différentes, et l'inverse est la plus difficile à obtenir autrement.
+            // The classic graph, then its reverse: the first answers "where does the time
+            // go?", the second "who calls this costly method?". They are two different
+            // questions, and the reverse is the harder one to obtain otherwise.
             convert(converter, collapsed, runDir.resolve("async-profiler/flamegraph.html"),
                     List.of("--title", "Raw profile — async-profiler"));
             convert(converter, collapsed, runDir.resolve("async-profiler/flamegraph-inverse.html"),
@@ -361,21 +360,21 @@ public final class Main {
     }
 
     /**
-     * La couverture de toutes les exécutions réunies, telle que JaCoCo la calcule.
+     * The coverage of all the runs together, as JaCoCo computes it.
      *
-     * <p>JaCoCo sait fusionner : {@code merge} additionne plusieurs {@code .exec} en un
-     * seul, et le rapport qu'on en tire est celui de la campagne entière — une ligne y est
-     * couverte dès qu'une exécution l'a couverte. C'est exactement la question qu'on se pose
-     * après une recette en dix scénarios, et à laquelle dix rapports séparés ne répondent
-     * pas : il faudrait faire l'union de tête, classe par classe.
+     * <p>JaCoCo can merge: {@code merge} adds several {@code .exec} files into one, and the
+     * report drawn from it is the whole campaign's — a line is covered there as soon as one
+     * run covered it. That is exactly the question one asks after an acceptance campaign of
+     * ten scenarios, and the one ten separate reports do not answer: the union would have
+     * to be made in one's head, class by class.
      *
-     * <p>La page fait la même union de son côté, sur les exécutions cochées, et sait dire
-     * <i>laquelle</i> a couvert quoi — ce que la fusion JaCoCo, elle, ne peut plus dire une
-     * fois les mesures additionnées. Les deux se complètent : la page pour comprendre, le
-     * rapport JaCoCo pour le chiffre qui fait foi et qu'on transmet.
+     * <p>The page makes the same union on its side, over the ticked runs, and can say
+     * <i>which</i> covered what — which the JaCoCo merge can no longer say once the
+     * measurements are added up. The two complement each other: the page to understand, the
+     * JaCoCo report for the authoritative figure one passes on.
      *
-     * <p>Sans au moins deux exécutions, il n'y a rien à fusionner et on ne produit rien :
-     * un « rapport fusionné » identique au rapport simple ferait croire à une opération.
+     * <p>Without at least two runs there is nothing to merge and nothing is produced: a
+     * "merged report" identical to the plain one would suggest an operation took place.
      */
     private static void mergeCoverage(Config config, Toolbox tools, Path outDir) {
         try {
@@ -426,13 +425,13 @@ public final class Main {
             }
             exec(report);
         } catch (Exception e) {
-            // La fusion est un supplément : la vue sait déjà cumuler côté page. Son échec
-            // ne doit pas emporter le rapport, il doit se dire.
+            // The merge is a bonus: the view can already accumulate on the page side. Its
+            // failure must not take the report down, it must be said.
             System.out.println("   ⚠️ merged coverage not produced: " + e.getMessage());
         }
     }
 
-    /** Les répertoires d'exécution sous la sortie commune, au sens où la vue les entend. */
+    /** The run directories under the common output, in the sense the view means them. */
     private static List<Path> runDirectories(Path outDir) throws IOException {
         List<Path> found = new ArrayList<>();
         if (Files.isRegularFile(outDir.resolve("jacoco/jacoco.exec"))) found.add(outDir);
@@ -449,9 +448,9 @@ public final class Main {
     }
 
     /**
-     * Deux rendus depuis la même mesure : le rapport complet, et un rapport <b>ciblé</b>
-     * restreint aux classes qui ont réellement tourné. Sur un vrai projet, le second est
-     * souvent le seul lisible — le premier liste des milliers de classes hors sujet.
+     * Two renderings from the same measurement: the complete report, and a <b>focused</b>
+     * report restricted to the classes that actually ran. On a real project the second is
+     * often the only readable one — the first lists thousands of irrelevant classes.
      */
     private static void renderCoverage(Config config, Toolbox tools, Path runDir) throws Exception {
         Path exec = runDir.resolve("jacoco/jacoco.exec");
@@ -469,8 +468,8 @@ public final class Main {
                 "--xml", html.resolve("jacoco.xml").toString(),
                 "--csv", html.resolve("jacoco.csv").toString(),
                 "--name", "Runtime X-Ray", "--quiet"));
-        // Une entrée --classfiles par répertoire ou jar : l'option est répétable, c'est le
-        // mécanisme prévu par l'outil pour analyser plusieurs sources de bytecode.
+        // One --classfiles entry per directory or jar: the option is repeatable, and that
+        // is the tool's intended mechanism for analysing several bytecode sources.
         for (Path entry : config.classesPaths()) {
             cmd.add("--classfiles");
             cmd.add(entry.toString());
@@ -481,8 +480,9 @@ public final class Main {
         }
         exec(cmd);
 
-        // Rapport ciblé : on ne présente à la CLI que les classes ayant au moins une
-        // instruction couverte. C'est le mécanisme natif de l'outil, pas un filtre maison.
+        // Focused report: only the classes with at least one covered instruction are
+        // presented to the CLI. That is the tool's native mechanism, not a home-made
+        // filter.
         Coverage coverage = Coverage.parse(html.resolve("jacoco.xml"), config.hidden());
         Path staging = runDir.resolve("classes-executees");
         int kept = stageExecutedClasses(coverage, config.classesPaths(), staging);
@@ -528,10 +528,11 @@ public final class Main {
     }
 
     /**
-     * Recopie une classe depuis la première entrée qui la contient, répertoire ou jar.
+     * Copies a class from the first entry that contains it, directory or jar.
      *
-     * <p>L'ordre des entrées fait foi, comme un chemin de classe : si la même classe existe
-     * à deux endroits, c'est la première qui gagne — la JVM aurait chargé celle-là.
+     * <p>The order of the entries is authoritative, as on a classpath: if the same class
+     * exists in two places, the first one wins — that is the one the JVM would have
+     * loaded.
      */
     static boolean copyClassBytes(List<Path> classesPaths, String name, Path target)
             throws IOException {
@@ -551,16 +552,16 @@ public final class Main {
     }
 
     /**
-     * Cherche une classe dans une archive, <b>y compris dans les archives qu'elle contient</b>.
+     * Looks for a class inside an archive, <b>including inside the archives it contains</b>.
      *
-     * <p>Un jar applicatif moderne n'est pas un sac de classes : Spring Boot range le code
-     * sous {@code BOOT-INF/classes/} et ses dépendances en jar sous {@code BOOT-INF/lib/}.
-     * Ne regarder qu'au premier niveau reviendrait à ne rien trouver dans le cas le plus
-     * courant. L'outil de couverture, lui, descend — le rapport ciblé doit faire pareil,
-     * sinon les deux rapports ne parlent pas du même code.
+     * <p>A modern application jar is not a bag of classes: Spring Boot files the code under
+     * {@code BOOT-INF/classes/} and its dependencies as jars under {@code BOOT-INF/lib/}.
+     * Looking only at the first level would amount to finding nothing in the most common
+     * case. The coverage tool goes down — the focused report must do the same, otherwise
+     * the two reports are not talking about the same code.
      *
-     * <p>Une seule descente : au-delà, on ne connaît pas de format réel qui l'exige, et une
-     * récursion sans borne sur des archives est un bon moyen de ne jamais s'arrêter.
+     * <p>One level down only: beyond that, we know of no real format that requires it, and
+     * unbounded recursion over archives is a fine way never to stop.
      */
     private static boolean copyFromArchive(Path archive, String name, Path target) {
         try (ZipFile zip = new ZipFile(archive.toFile())) {
@@ -589,13 +590,13 @@ public final class Main {
                 }
             }
         } catch (IOException e) {
-            // Une archive illisible ne doit pas faire tomber l'analyse : les autres entrées
-            // sont essayées, et la classe manquera simplement au rapport ciblé.
+            // An unreadable archive must not bring the analysis down: the other entries
+            // are tried, and the class will simply be missing from the focused report.
         }
         return false;
     }
 
-    /** Le niveau du dessous : on y cherche la classe, sans redescendre plus loin. */
+    /** The level below: the class is looked for there, without going down any further. */
     private static boolean copyFromArchiveFlat(Path archive, String name, Path target) {
         try (ZipFile zip = new ZipFile(archive.toFile())) {
             ZipEntry ze = zip.getEntry(name);
@@ -614,10 +615,10 @@ public final class Main {
                                      RunSession session) throws IOException {
         Map<String, Object> ctx = new LinkedHashMap<>();
         ctx.put("uuid", uuid);
-        // Le nom n'est enregistré que s'il a été DONNÉ. Écrire ici le libellé de repli
-        // — « exécution du 21/08 à 00:41 » — reviendrait à faire passer une commodité
-        // d'affichage pour une intention de l'opérateur, et la vue ne pourrait plus dire
-        // laquelle des deux elle montre.
+        // The name is only recorded when it was GIVEN. Writing the fallback label here —
+        // "run of 2026-08-21 00:41" — would amount to passing a display convenience off as
+        // the operator's intent, and the view could no longer say which of the two it is
+        // showing.
         ctx.put("nomOrigine", config.runName.isBlank() ? null : config.runName);
         ctx.putAll(config.describe());
         ctx.put("debut", session.startedAt);
@@ -632,18 +633,18 @@ public final class Main {
         ctx.put("java", System.getProperty("java.vendor") + " " + System.getProperty("java.version"));
         ctx.put("javaHome", System.getProperty("java.home", ""));
         ctx.put("repertoireTravail", Path.of("").toAbsolutePath().toString());
-        // La capture annonce sa forme : c'est ce qui permet à une version ultérieure
-        // de l'outil de la relire sans rejouer la campagne. Voir Capture.
+        // The capture announces its shape: that is what lets a later version of the tool
+        // read it back without replaying the campaign. See Capture.
         ctx.put(lab.xray.report.Capture.FIELD, lab.xray.report.Capture.CURRENT);
         Files.writeString(runDir.resolve("run-context.json"), Json.write(ctx), StandardCharsets.UTF_8);
     }
 
     /**
-     * Réécrit chaque exécution dans les formats demandés, pour qu'un autre outil la lise.
+     * Rewrites each run in the requested formats, so that another tool can read it.
      *
-     * <p>L'export porte sur <b>toutes</b> les exécutions présentes, y compris celles d'hier :
-     * c'est le même geste que l'assemblage de la vue, et rien ne justifierait de servir un
-     * format à une exécution et pas à sa voisine.
+     * <p>The export covers <b>every</b> run present, including yesterday's: it is the same
+     * gesture as assembling the view, and nothing would justify serving a format to one run
+     * and not to its neighbour.
      */
     private static void exportRuns(Config config, Path outDir) throws Exception {
         Set<Exports.Format> formats = Exports.Format.parse(config.exportFormats);
@@ -694,7 +695,7 @@ public final class Main {
         System.out.println("     java -jar runtime-xray.jar " + relaunch);
     }
 
-    /** Les options de la ligne de commande l'emportent sur le fichier. */
+    /** The command line's options win over the file. */
     private static void merge(Config base, Config overrides) {
         if (!overrides.javaCommand.isBlank()) base.javaCommand = overrides.javaCommand;
         if (!overrides.rootMethod.isBlank()) base.rootMethod = overrides.rootMethod;
@@ -708,14 +709,14 @@ public final class Main {
     }
 
     /**
-     * Ce que seul le lancement sait, et que le diagnostic doit porter.
+     * What only the launch knows, and the diagnostic must carry.
      *
-     * <p>La vue se réassemble depuis le seul répertoire de sortie : elle ignore par
-     * construction avec quelle commande, quelles options et quels componentsDir la mesure a
-     * été faite. Or c'est souvent là qu'est la cause. On le lui donne.
+     * <p>The view reassembles from the output directory alone: by construction it does not
+     * know with which command, which options and which components the measurement was made.
+     * Yet that is often where the cause lies. So we give it to it.
      *
-     * <p><b>Le jeton du serveur partagé n'y figure pas</b> : ce fichier est fait pour être
-     * transmis, et un secret transmis n'en est plus un.
+     * <p><b>The shared server's token is not there</b>: this file is made to be passed on,
+     * and a secret passed on is no longer one.
      */
     private static Map<String, Object> launch(Config config, Toolbox tools,
                                                  List<Path> sourceRoots) {
@@ -742,10 +743,10 @@ public final class Main {
     }
 
     /**
-     * Le constat, sur la console, au moment où il peut encore servir.
+     * The finding, on the console, at the moment it can still be of use.
      *
-     * <p>Le fichier de diagnostic est complet, mais on ne va le chercher que si l'on sait
-     * qu'il existe. Deux lignes ici valent mieux qu'une découverte plus tard.
+     * <p>The diagnostic file is complete, but one only goes looking for it knowing that it
+     * exists. Two lines here are worth more than a discovery later.
      */
     private static void sayWhatWasFound(Path outDir) {
         Path file = outDir.resolve("diagnostic.json");
@@ -753,8 +754,8 @@ public final class Main {
             Object read = lab.xray.json.Json.read(Files.readString(file, StandardCharsets.UTF_8));
             if (read instanceof Map<?, ?> d && d.get("rapprochement") instanceof Map<?, ?> r) {
                 Object sans = r.get("fichiersSansSource");
-                // Le lecteur JSON rend des Double : « 0.0/27.0 » se lit comme un défaut de
-                // l'outil avant de se lire comme un compte.
+                // The JSON reader returns Doubles: "0.0/27.0" reads as a defect of the
+                // tool before it reads as a count.
                 System.out.println("   sources: " + toInt(r.get("fichiersAvecSource"))
                         + "/" + toInt(r.get("fichiersMesures"))
                         + " measured class(es) have their source");
@@ -764,18 +765,18 @@ public final class Main {
                 }
             }
         } catch (Exception e) {
-            // Le diagnostic est un confort : son absence ne doit rien empêcher.
+            // The diagnostic is a comfort: its absence must prevent nothing.
         }
         System.out.println("   diagnostic: " + file);
     }
 
     /**
-     * Le poids de la page, dit au moment où il se décide.
+     * The page's weight, said at the moment it is decided.
      *
-     * <p>Une page qui grossit ne se signale nulle part : elle s'écrit, l'outil dit
-     * « Terminé », et le défaut n'apparaît que le jour où le navigateur renonce à
-     * l'afficher — sur le poste de quelqu'un d'autre, sans rien pour l'expliquer. C'est
-     * arrivé à 217 Mo. Deux lignes ici valent la découverte.
+     * <p>A page that grows announces itself nowhere: it is written, the tool says "Done",
+     * and the defect only appears the day the browser gives up on displaying it — on
+     * somebody else's machine, with nothing to explain it. It happened at 217 MB. Two lines
+     * here are worth the discovery.
      */
     private static void sayTheWeight(Path page) {
         try {
@@ -792,19 +793,19 @@ public final class Main {
                 System.out.println("      See sources.racines and executions in diagnostic.json.");
             }
         } catch (IOException e) {
-            // Le poids est un confort : son absence ne doit rien empêcher.
+            // The weight is a comfort: its absence must prevent nothing.
         }
     }
 
-    /** Au-delà, un navigateur commence à peiner — et il faut le dire avant qu'il renonce. */
+    /** Beyond that a browser starts to struggle — and it must be said before it gives up. */
     private static final long PAGE_THRESHOLD = 64L << 20;
 
     /**
-     * Les racines trouvées, avec ce qu'elles résoudraient.
+     * The roots found, with what they would resolve.
      *
-     * <p>Un diagnostic qui s'arrête à « il manque des sources » laisse le lecteur devant la
-     * même question qu'avant. Celui-ci propose un chemin et le justifie d'un compte : la
-     * ligne se recopie, et le compte dit s'il faut la croire.
+     * <p>A diagnostic that stops at "sources are missing" leaves the reader with the same
+     * question as before. This one proposes a path and justifies it with a count: the line
+     * is copied out, and the count says whether to believe it.
      */
     private static void proposeRoots(Object leads) {
         if (!(leads instanceof List<?> list) || list.isEmpty()) {
@@ -826,8 +827,8 @@ public final class Main {
     }
 
     private static List<Path> sourceRoots(Config config) {
-        // Le découpage vit dans Config : sources et classes s'écrivent de la même façon, et
-        // se trompaient de la même façon sur un chemin Windows absolu.
+        // The splitting lives in Config: sources and classes are written the same way, and
+        // used to go wrong the same way on an absolute Windows path.
         return Config.paths(config.sourceDirs);
     }
 
@@ -866,7 +867,7 @@ public final class Main {
                 try {
                     Files.deleteIfExists(p);
                 } catch (IOException ignored) {
-                    // Un reliquat ne justifie pas d'interrompre l'analyse.
+                    // A leftover does not justify interrupting the analysis.
                 }
             });
         }
