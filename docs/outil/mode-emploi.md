@@ -1,440 +1,436 @@
-# L'outil intégré — l'utiliser sur n'importe quel projet Java
+# The integrated tool — using it on any Java project
 
-> `runtime-xray.jar` produit, à partir d'une exécution réelle, **une page unique** montrant
-> tout le code qui a tourné, son arbre d'appel et les valeurs passées à une méthode.
-> Aucune licence, aucune connexion pendant l'exécution.
+> `runtime-xray.jar` produces, from a real run, **a single page** showing all the code that
+> ran, its call tree, and the values passed to one method.
+> No licence, no connection while it runs.
 
-**[→ Exemple de sortie](https://beennnn.github.io/runtime-xray/multi/)**
+**[→ Example output](https://beennnn.github.io/runtime-xray/multi/)**
 
-## Ce qu'il faut avoir
+## What is needed
 
-**Java, et rien d'autre.** L'outil est un jar sans aucune dépendance : ni Python, ni shell,
-ni Maven, ni rien à installer au préalable.
+**Java, and nothing else.** The tool is a jar with no dependency at all: no Python, no
+shell, no Maven, nothing to install beforehand.
 
 ```bash
 curl -LO https://github.com/Beennnn/runtime-xray/releases/download/v1.2.2/runtime-xray-cli-1.2.2.jar
 ```
 
-Un jar déjà construit, à télécharger et lancer. Aucun clone n'est nécessaire. Préparation
-d'une machine sans réseau : [Se procurer l'outil](../../README.md#se-procurer-loutil).
+An already-built jar, to download and run. No clone is needed. Preparing a machine with no
+network: [Getting the tool](../../README.md#se-procurer-loutil).
 
-Les trois outils d'observation (JaCoCo, async-profiler, Arthas) sont cherchés **d'abord sur
-la machine** : le cache `~/.runtime-xray`, un répertoire désigné par `--composants`, le
-voisinage du jar, puis le dépôt Maven local — celui que le moindre `mvn` d'entreprise a déjà
-rempli. Le téléchargement depuis un dépôt Maven, celui de l'éditeur ou le miroir interne via
-`MAVEN_REPO`, n'intervient qu'en dernier recours, et ce qui en vient est mis en cache.
+The three observation tools (JaCoCo, async-profiler, Arthas) are looked for **on the machine
+first**: the `~/.runtime-xray` cache, a directory named by `--components`, the jar's
+neighbourhood, then the local Maven repository — the one that any company `mvn` has already
+filled. Downloading from a Maven repository, the publisher's or an internal mirror through
+`MAVEN_REPO`, only happens as a last resort, and what comes from it is cached.
 
-**Au deuxième lancement, plus rien ne sort sur le réseau.** C'est ce qui rend l'outil
-utilisable en environnement déconnecté. Trois façons d'y arriver, selon ce dont on dispose :
-préparer le cache d'avance, poser les fichiers à côté du jar, ou emporter une édition qui
-porte ses composants — voir [Préparer une machine sans
-réseau](../../README.md#préparer-une-machine-sans-réseau).
+**On the second launch, nothing goes out on the network any more.** That is what makes the
+tool usable in a disconnected environment. Three ways of getting there, depending on what
+one has: fill the cache in advance, put the files beside the jar, or carry an edition that
+bundles its components — see [Preparing a machine with no
+network](../../README.md#préparer-une-machine-sans-réseau).
 
-Quand un composant manque vraiment, le message d'erreur liste tous les chemins essayés : sur
-une machine fermée, il est fait pour suffire.
+When a component really is missing, the error message lists every path tried: on a closed
+machine, it is meant to be enough.
 
-## Le lancer
+## Running it
 
-### En une ligne
+### In one line
 
 ```bash
 java -jar runtime-xray.jar \
-  --java "java -jar target/mon-appli.jar" \
-  --root "com.example.moteur.Calculateur::calculer" \
-  --classes target/mon-appli.jar \
+  --java "java -jar target/my-app.jar" \
+  --root "com.example.engine.Calculator::compute" \
+  --classes target/my-app.jar \
   --sources src/main/java
 ```
 
-Quatre paramètres, et un seul est vraiment obligatoire (`--java`). Les autres se
-comprennent mieux avec leur raison d'être :
+Four settings, and only one is really required (`--java`). The others are best understood
+through their reason for being:
 
-| Paramètre | Ce qu'il désigne | Pourquoi il existe |
+| Setting | What it names | Why it exists |
 |---|---|---|
-| `--java` | la commande à exécuter, **telle quelle** | l'outil ne lance pas votre application à sa façon : il lance la vôtre |
-| `--root` | la méthode dont on veut les valeurs et le chemin d'appel | capturer les valeurs de *toutes* les méthodes produirait un volume ingérable ; on en désigne une |
-| `--classes` | où trouver le bytecode analysé | sans lui, pas de couverture — voir juste en dessous, ce n'est pas forcément `target/classes` |
-| `--sources` | les racines des sources | pour afficher le code annoté ligne à ligne plutôt que des noms de méthodes |
+| `--java` | the command to execute, **as it is** | the tool does not launch your application its own way: it launches yours |
+| `--root` | the method whose values and call path one wants | capturing the values of *every* method would produce an unmanageable volume; one method is named |
+| `--classes` | where to find the analysed bytecode | without it, no coverage — see just below, it is not necessarily `target/classes` |
+| `--sources` | the source roots | to display the code annotated line by line rather than method names |
 
-### `--classes` : normalement inutile
+### `--classes`: normally unnecessary
 
-Le bytecode à analyser est déterminé automatiquement. Trois sources sont consultées dans
-l'ordre, et **chacune est vérifiée avant d'être retenue** — un chemin deviné mais faux
-serait pire que pas de devinette, puisque l'erreur ne se verrait qu'au rapport :
+The bytecode to analyse is determined automatically. Three sources are consulted in order,
+and **each is checked before being kept** — a guessed but wrong path would be worse than no
+guess, since the mistake would only show up in the report:
 
-| Source | Ce qu'elle donne | Cas couverts |
+| Source | What it gives | Cases covered |
 |---|---|---|
-| Les **arguments réels de la JVM observée**, lus sur le système | le `-jar` lancé, ou les **répertoires** du `-cp` | `java -jar`, `java -cp`, et tout script ou lanceur qui finit par appeler `java` |
-| La **commande configurée**, si la précédente est illisible | idem | JVM trop brève pour être observée |
-| La **convention du projet**, si le répertoire existe | `target/classes`, `build/classes/java/main`, `out/production/classes`, `bin` | `mvn exec:java`, `./gradlew run` — où le classpath applicatif n'apparaît sur aucune ligne de commande |
+| The **observed JVM's real arguments**, read from the system | the `-jar` launched, or the **directories** of the `-cp` | `java -jar`, `java -cp`, and any script or launcher that ends up calling `java` |
+| The **configured command**, if the previous one is unreadable | the same | a JVM too brief to be observed |
+| The **project's convention**, if the directory exists | `target/classes`, `build/classes/java/main`, `out/production/classes`, `bin` | `mvn exec:java`, `./gradlew run` — where the application classpath appears on no command line |
 
-Les trois cas ont été vérifiés de bout en bout sur le programme de démonstration, sans
-jamais passer `--classes`.
+All three cases were checked end to end on the demonstration program, without ever passing
+`--classes`.
 
-**Les jar de dépendances sont volontairement écartés.** Un classpath réel en compte des
-dizaines ; les analyser tous produirait un rapport où le code du projet pèse un pour cent
-du total, et où « qu'est-ce qui a tourné ? » n'a plus de réponse lisible. Le code que l'on
-possède est un répertoire de classes, ou le jar que l'on a soi-même lancé.
+**Dependency jars are deliberately left out.** A real classpath holds dozens of them;
+analysing them all would produce a report where the project's code weighs one per cent of
+the total, and where "what ran?" no longer has a readable answer. The code one owns is a
+directory of classes, or the jar one launched oneself.
 
-**Quand le préciser quand même** — c'est le seul cas où il reste utile :
+**When to set it anyway** — this is the only case where it stays useful:
 
 ```bash
---classes target/classes:libs/noyau-1.4.jar   # analyser une dépendance interne EN PLUS
---classes target/mon-appli-boot.jar           # un jar « gras » : BOOT-INF/classes et les
-                                              # jar de BOOT-INF/lib sont parcourus
---classes modules/facturation/target/classes  # restreindre à un module précis
+--classes target/classes:libs/core-1.4.jar    # analyse an internal dependency AS WELL
+--classes target/my-app-boot.jar              # a "fat" jar: BOOT-INF/classes and the
+                                              # jars of BOOT-INF/lib are walked
+--classes modules/billing/target/classes      # restrict to one precise module
 ```
 
-Le premier cas est le plus intéressant en reprise de code : la bibliothèque maison livrée
-compilée est justement celle dont personne n'a le modèle mental, et rien n'oblige à en avoir
-les sources pour voir qu'elle a tourné.
+The first case is the most interesting when taking over code: the in-house library delivered
+compiled is precisely the one nobody has a mental model of, and nothing requires having its
+sources to see that it ran.
 
-### `--hide` : ne pas voir ce qui n'est pas votre code
+### `--hide`: not seeing what is not your code
 
-Le JDK est toujours replié — personne n'ouvre `java.util.ArrayList` pour comprendre son
-application. La même chose vaut pour des bibliothèques qui n'en font pas partie mais que
-l'on considère comme de l'infrastructure : un journal, un client HTTP, un cadriciel.
+The JDK is always folded away — nobody opens `java.util.ArrayList` to understand their
+application. The same holds for libraries that are not part of it but that one treats as
+infrastructure: a logger, an HTTP client, a framework.
 
 ```bash
 --hide "org.slf4j, ch.qos.logback"
 ```
 
-Où passe cette frontière n'est pas une question technique : elle dépend de ce que l'équipe
-possède et de ce qu'elle subit. D'où un réglage plutôt qu'une liste codée en dur.
+Where that boundary lies is not a technical question: it depends on what the team owns and
+what it merely puts up with. Hence a setting rather than a hard-coded list.
 
-Le temps des paquets masqués **n'est pas perdu** : il est attribué à la méthode applicative
-qui les a appelés, exactement comme pour le JDK. Masquer déplace l'information, ça ne la
-supprime pas.
+The hidden packages' time is **not lost**: it is attributed to the application method that
+called them, exactly as for the JDK. Hiding moves the information, it does not remove it.
 
-**On peut aussi l'apprendre en lisant le rapport.** Dans l'onglet **Code**, chaque classe
-et chaque paquet portent un bouton **filtrer** au survol ; le chemin affiché au-dessus du
-source rend chaque niveau de paquet cliquable de la même façon. La liste s'accumule dans la
-page et y **reste** — le navigateur la retient d'un chargement à l'autre, il n'y a rien à
-enregistrer.
+**One can also learn it by reading the report.** In the **Code** tab, every class and every
+package carries a **filter** button on hover; the path shown above the source makes each
+package level clickable the same way. The list accumulates in the page and **stays** there —
+the browser remembers it from one load to the next, there is nothing to save.
 
-Le bouton *« Ne plus le mesurer non plus »* est un second geste, facultatif : il copie la
-ligne `HIDDEN_PACKAGES="…"` à coller dans la configuration, pour que les prochaines
-exécutions ne **mesurent** même plus ce code — collecte plus courte, rapport plus léger. Une
-page statique ne peut pas écrire dans votre fichier de configuration ; c'est aussi ce qui
-lui permet d'être publiée telle quelle.
+The *"Stop measuring it too"* button is a second, optional gesture: it copies the
+`HIDDEN_PACKAGES="…"` line to paste into the configuration, so that the next runs no longer
+even **measure** that code — shorter collection, lighter report. A static page cannot write
+into your configuration file; that is also what lets it be published as it is.
 
-### Avec un fichier de configuration
+### With a configuration file
 
-Il n'y a rien à copier : **le fichier est généré s'il n'existe pas**, avec les valeurs par
-défaut, des commentaires et des exemples pour chaque clé.
+There is nothing to copy: **the file is generated if it does not exist**, with the default
+values, comments and examples for every key.
 
 ```bash
-java -jar runtime-xray.jar --config mon-projet.conf
-# ✅ Fichier de configuration généré : mon-projet.conf
-#    Renseigner au minimum JAVA_CMD, puis relancer.
+java -jar runtime-xray.jar --config my-project.conf
+# ✅ Configuration file generated: my-project.conf
+#    Fill in JAVA_CMD at least, then run again.
 
-java -jar runtime-xray.jar --config mon-projet.conf
+java -jar runtime-xray.jar --config my-project.conf
 ```
 
-Sans aucun argument, l'outil cherche `runtime-xray.conf` dans le répertoire courant et le
-crée s'il manque — on peut donc démarrer en tapant simplement
+With no argument at all, the tool looks for `runtime-xray.conf` in the current directory and
+creates it if it is missing — so one can start by simply typing
 `java -jar runtime-xray.jar`.
 
-## Comment il s'accroche à l'application
+## How it hooks onto the application
 
-C'est le point qui conditionne tout : **rien n'est imposé sur la façon de lancer Java.**
-La commande fournie est exécutée telle quelle, et les agents d'analyse sont injectés par
-la variable d'environnement **`JAVA_TOOL_OPTIONS`**, que toute JVM lit à son démarrage.
+This is the point everything hangs on: **nothing is imposed on the way Java is launched.**
+The command supplied is executed as it is, and the analysis agents are injected through the
+**`JAVA_TOOL_OPTIONS`** environment variable, which every JVM reads at start-up.
 
-Fonctionne donc avec :
+So it works with:
 
 ```bash
 --java "java -jar app.jar"
 --java "mvn -q exec:java -Dexec.mainClass=com.example.Main"
 --java "./gradlew run"
---java "./scripts/demarrer-en-recette.sh"
+--java "./scripts/start-acceptance.sh"
 ```
 
-Aucune modification du code analysé, aucun changement dans le build.
+No change to the analysed code, no change to the build.
 
-## Les paramètres
+## The settings
 
-### Ce qu'on lui donne
+### What one gives it
 
-| Paramètre | Obligatoire | À quoi il sert |
+| Setting | Required | What it is for |
 |---|:--:|---|
-| `JAVA_CMD` / `--java` | ✅ | La commande qui lance l'application, exécutée telle quelle |
-| `CLASSES_DIR` / `--classes` | non | Le bytecode analysé. **Déterminé tout seul** dans les cas usuels — voir ci-dessous. On ne l'écrit que pour analyser autre chose |
-| `ROOT_METHOD` / `--root` | — | `paquet.Classe::methode` : la fonction racine, la seule dont les valeurs de paramètres seront capturées |
-| `SOURCE_DIRS` / `--sources` | — | Les sources, pour afficher le code annoté. Plusieurs racines : séparées par `:` |
-| `HIDDEN_PACKAGES` / `--hide` | — | Paquets à taire comme le JDK, ex. `org.slf4j`. Leur temps revient à l'appelant |
-| `CLASS_FILTER` / `--filter` | — | Restreint les mesures de temps au code applicatif, ex. `com/example/*`. Déduit du paquet de `ROOT_METHOD` si absent |
-| `OUT_DIR` / `--out` | — | Répertoire de sortie (défaut `runtime-xray-out`) |
-| `RUN_NAME` / `--name` | — | Nom lisible de *cette* exécution. Elles s'accumulent, et la vue permet de passer de l'une à l'autre |
+| `JAVA_CMD` / `--java` | ✅ | The command that launches the application, executed as it is |
+| `CLASSES_DIR` / `--classes` | no | The analysed bytecode. **Determined on its own** in the usual cases — see above. One writes it only to analyse something else |
+| `ROOT_METHOD` / `--root` | — | `package.Class::method`: the root function, the only one whose argument values will be captured |
+| `SOURCE_DIRS` / `--sources` | — | The sources, to display the annotated code. Several roots: separated by `:` |
+| `HIDDEN_PACKAGES` / `--hide` | — | Packages to keep quiet like the JDK, e.g. `org.slf4j`. Their time goes back to the caller |
+| `CLASS_FILTER` / `--filter` | — | Restricts the time measurements to application code, e.g. `com/example/*`. Derived from `ROOT_METHOD`'s package when absent |
+| `OUT_DIR` / `--out` | — | Output directory (default `runtime-xray-out`) |
+| `RUN_NAME` / `--name` | — | Readable name for *this* run. Runs accumulate, and the view lets you move from one to the next |
 
-### Les réglages de collecte
+### The collection settings
 
-| Paramètre | Défaut | À quoi il sert |
+| Setting | Default | What it is for |
 |---|---|---|
-| `ATTACH_AFTER` / `--attach-after` | 8 s | Délai avant d'inspecter les valeurs. L'application doit avoir démarré **et** être encore en train de travailler |
-| `MAX_SECONDS` / `--max-seconds` | 600 s | Garde-fou : au-delà, l'exécution est interrompue et les rapports sont produits quand même |
-| `WATCH_COUNT` | 10 | Nombre d'appels dont on capture les valeurs |
-| `TRACE_COUNT` | 10 | Nombre d'invocations dont on trace le chemin d'appel. Plus il y en a, plus de lignes portent l'annotation « appelle … » |
-| `MAVEN_REPO` / `--repo` | Maven Central | D'où récupérer les composants d'analyse, une seule fois. Sur un réseau fermé, y mettre le miroir interne |
-| `COMPOSANTS` / `--composants` | — | Répertoire où les composants sont **déjà** présents. Ce qu'il contient prime sur tout téléchargement. Les noms de Maven (`org.jacoco.agent-0.8.13-runtime.jar`) comme ceux des distributions officielles (`jacocoagent.jar`) sont acceptés |
-| `--no-values` | — | Ne capture pas les valeurs. Les pourcentages de temps deviennent exacts, puisque plus rien n'instrumente |
+| `ATTACH_AFTER` / `--attach-after` | 8 s | Delay before inspecting the values. The application must have started **and** still be working |
+| `MAX_SECONDS` / `--max-seconds` | 600 s | Guard rail: beyond it the run is stopped and the reports are produced all the same |
+| `WATCH_COUNT` | 10 | How many calls have their values captured |
+| `TRACE_COUNT` | 10 | How many invocations have their call path traced. The more there are, the more lines carry the "calls …" annotation |
+| `MAVEN_REPO` / `--repo` | Maven Central | Where to fetch the analysis components from, once. On a closed network, put the internal mirror here |
+| `COMPONENTS` / `--components` | — | Directory where the components are **already** present. What it holds takes priority over any download. Maven's names (`org.jacoco.agent-0.8.13-runtime.jar`) are accepted, as are the official distributions' (`jacocoagent.jar`) |
+| `--no-values` | — | Does not capture the values. The time percentages become exact, since nothing instruments any more |
 
-### Ce qu'on accepte de payer
+### What one agrees to pay
 
-Trois informations, trois coûts. Sur un gros code, on ne les prend pas toutes du premier
-coup — **[Réduire l'empreinte sur un gros code](empreinte.md)** détaille la marche à suivre.
+Three pieces of information, three costs. On a large codebase one does not take them all on
+the first go — **[Reducing the footprint on a large codebase](empreinte.md)** sets out how.
 
-| Paramètre | Défaut | À quoi il sert |
+| Setting | Default | What it is for |
 |---|---|---|
-| `NIVEAU` / `--niveau` | `complet` | Jusqu'où observer : `couverture` (JaCoCo seul), `arbre` (+ échantillonnage), `complet` (+ valeurs). Le premier réglage à baisser quand la mesure coûte trop cher |
-| `COVER_INCLUDES` / `--cover` | tout | Classes que JaCoCo instrumente, ex. `com.example.*`. **Sans lui, toute classe chargée est instrumentée**, dépendances comprises : c'est le poste de coût principal |
-| `SAMPLE_INTERVAL_MS` / `--interval` | 1 ms | Intervalle d'échantillonnage des piles. À 10 ms, dix fois moins de relevés |
-| `SUIVI_PORT` / `--suivi` | — | Port de la page de suivi. Sans lui, rien n'est servi — mais `progression.jsonl` est écrit quand même |
-| `EXPORT` / `--export` | — | Réécrit les mesures pour d'autres outils : `perf`, `cpuprofile`, `lcov`, `valeurs`, ou `tout` — voir [les exports](exports.md) |
+| `LEVEL` / `--level` | `full` | How far to observe: `coverage` (JaCoCo alone), `tree` (+ sampling), `full` (+ values). The first knob to turn down when the measurement costs too much |
+| `COVER_INCLUDES` / `--cover` | everything | Classes JaCoCo instruments, e.g. `com.example.*`. **Without it, every class loaded is instrumented**, dependencies included: it is the main cost centre |
+| `SAMPLE_INTERVAL_MS` / `--interval` | 1 ms | Stack sampling interval. At 10 ms, ten times fewer samples |
+| `JACOCO_REPORTS` / `--jacoco-reports` | `full` | How much of JaCoCo's own rendering to write per run — see [When the number of files costs](#when-the-number-of-files-costs) |
+| `FOLLOW_PORT` / `--follow` | — | Port of the follow page. Without it nothing is served — but `progression.jsonl` is written all the same |
+| `EXPORT` / `--export` | — | Rewrites the measurements for other tools: `perf`, `cpuprofile`, `lcov`, `values`, or `all` — see [the exports](exports.md) |
 
-### Les modes qui ne mesurent rien
+### The modes that measure nothing
 
-| Option | Ce qu'elle fait |
+| Option | What it does |
 |---|---|
-| `--print-options` | Affiche la ligne d'agents à coller dans une commande Java **qu'on ne contrôle pas** — un service systemd, un conteneur, un serveur d'application. L'outil ne lance rien : il vous rend le texte |
-| `--report-only` | Réassemble la page depuis des exécutions déjà sur le disque, sans rien relancer. Utile après avoir annoté une exécution, ou changé les paquets masqués |
-| `--serve [port]` | Sert le rapport (défaut : 8787) et laisse la page **écrire ses annotations** à côté des exécutions, puis la régénère. Plusieurs personnes peuvent annoter à la fois — voir [Annoter les exécutions](annotations.md) |
-| `--suivi [port]` | Sert **une page qui montre l'exécution en cours** (défaut : 8788, boucle locale) : bande d'activité, cœurs occupés, sortie produite, fin du journal. Le fichier `progression.jsonl`, lui, s'écrit **toujours** : `tail -f <out>/progression.jsonl` suit l'exécution sans navigateur ni port ouvert |
-| `--contexte ["question"]` | Écrit sur la sortie standard **un extrait borné du rapport, prêt à donner à lire à un modèle de langage** : les faits qui répondent à la question, leur vocabulaire, et en tête ce qui n'a *pas* été mesuré. N'envoie rien nulle part. Les familles retenues sont **annoncées sur la sortie d'erreur** ; `--help` donne la table des mots reconnus, **en anglais** — le français marche aussi, sans être documenté — voir [Faire lire le rapport par une IA](integration-ia.md) |
-| `--familles a,b` | Nomme les familles de faits à joindre **au lieu de les déduire de la question**. C'est le chemin des scripts : le résultat ne dépend plus des mots employés. Une famille inconnue s'arrête, avec la liste de celles qui existent |
-| `--serve-host <hôte>` | Interface d'écoute (défaut : `127.0.0.1`). `0.0.0.0` pour un serveur partagé |
-| `--serve-token [secret]` | Garde le rapport servi par un **secret partagé**, demandé une fois puis retenu douze heures. Sans valeur, un secret est tiré au sort et affiché. `XRAY_SERVE_TOKEN` fait de même sans l'exposer dans `ps`. Sans l'option, rien n'est demandé : à réserver à la boucle locale ou à un réseau déjà filtré — voir [ce que ce secret vaut](annotations.md#ce-que-ce-secret-vaut-et-ce-quil-ne-vaut-pas) |
+| `--print-options` | Shows the agent line to paste into a Java command **one does not control** — a systemd service, a container, an application server. The tool launches nothing: it hands you the text |
+| `--report-only` | Reassembles the page from runs already on disk, without running anything again. Useful after annotating a run, or after changing the hidden packages |
+| `--serve [port]` | Serves the report (default: 8787) and lets the page **write its annotations** beside the runs, then regenerates it. Several people can annotate at once — see [Annotating the runs](annotations.md) |
+| `--follow [port]` | Serves **a page showing the run in progress** (default: 8788, local loopback): activity band, busy cores, output produced, tail of the log. The `progression.jsonl` file, for its part, is **always** written: `tail -f <out>/progression.jsonl` follows the run with no browser and no open port |
+| `--context ["question"]` | Writes on standard output **a bounded extract of the report, ready to hand to a language model**: the facts that answer the question, their vocabulary, and at the top what was *not* measured. Sends nothing anywhere. The families picked up are **announced on standard error**; `--help` gives the table of recognised words, **in English** — French works too, undocumented — see [Having a report read by an AI](integration-ia.md) |
+| `--families a,b` | Names the fact families to attach **instead of deducing them from the question**. This is the path for scripts: the result no longer depends on the words used. An unknown family stops, with the list of those that exist |
+| `--serve-host <host>` | Listening interface (default: `127.0.0.1`). `0.0.0.0` for a shared server |
+| `--serve-token [secret]` | Guards the served report with a **shared secret**, asked once then remembered for twelve hours. With no value, a secret is drawn at random and shown. `XRAY_SERVE_TOKEN` does the same without exposing it in `ps`. Without the option, nothing is asked: to be kept for the local loopback or an already filtered network — see [what that secret is worth](annotations.md#ce-que-ce-secret-vaut-et-ce-quil-ne-vaut-pas) |
 
-Ces options se combinent : `--report-only --serve` sert des mesures déjà prises, sans rien
-relancer, et c'est le mode d'un serveur où l'on dépose des résultats venus d'ailleurs.
+These options combine: `--report-only --serve` serves measurements already taken, without
+running anything, and that is the mode of a server where results from elsewhere are dropped.
 
-### Choisir la fonction racine
+### Choosing the root function
 
-C'est le seul paramètre qui demande une décision. La fonction racine est **le point
-d'entrée métier** : celle dont on veut savoir avec quoi elle a été appelée, et ce qu'elle
-a déclenché. Un traitement, un calcul, une commande — pas un `main`, pas un accesseur.
+This is the only setting that takes a decision. The root function is **the business entry
+point**: the one whose arguments one wants to know, and what it set off. A processing step,
+a computation, a command — not a `main`, not an accessor.
 
-Capturer les valeurs de *toutes* les méthodes n'est pas envisageable : sur un chemin
-d'exécution fréquenté, la trace se compte en centaines de mégaoctets. D'où le choix d'une
-racine, et d'une seule.
+Capturing the values of *every* method is not an option: on a busy execution path, the trace
+runs to hundreds of megabytes. Hence one root, and one only.
 
-### Si l'application est trop rapide
+### If the application is too fast
 
-L'inspection des valeurs s'attache à une JVM **vivante**. Si le programme se termine en
-deux secondes, il n'y a rien à observer. Deux réponses : augmenter la charge de travail
-(le nombre d'itérations, la taille du jeu de données), ou réduire `ATTACH_AFTER`.
-Augmenter la charge est préférable — un profil sur deux secondes ne veut pas dire
-grand-chose de toute façon.
+Value inspection attaches to a **live** JVM. If the program ends in two seconds, there is
+nothing to observe. Two answers: increase the workload (the number of iterations, the size
+of the data set), or lower `ATTACH_AFTER`. Increasing the load is preferable — a profile
+over two seconds does not say much anyway.
 
-### Pendant que ça tourne
+### While it runs
 
-Une analyse dure ce que dure l'application observée. Tant qu'elle travaille, une bande
-d'activité se réécrit sur une seule ligne :
+An analysis lasts as long as the observed application. As long as it is working, an activity
+band rewrites itself on a single line:
 
 ```
    03:12  ··░▒▓███▓▒░··████▓▒·······    cpu 41.3 s | output 812.0 KB
 ```
 
-Chaque carré vaut une seconde, et sa densité le nombre de cœurs occupés pendant cette
-seconde-là : `·` rien, `█` plusieurs. On y lit ce qu'on veut savoir sans attendre la fin —
-que le programme travaille encore, qu'il s'est mis à attendre une saisie ou une socket,
-qu'une phase de calcul vient de commencer.
+Each square is one second, and its density the number of cores busy during that second: `·`
+nothing, `█` several. One reads off it what one wants to know without waiting for the end —
+that the program is still working, that it has started waiting on an input or a socket, that
+a computation phase has just begun.
 
-Cette bande **ne mesure rien**. Le temps processeur est celui que le système comptabilise
-de toute façon pour les processus lancés, la taille de sortie celle d'un fichier déjà
-écrit : aucune option n'est ajoutée à la JVM observée, rien n'est échantillonné en plus.
-Le rapport est identique, qu'elle s'affiche ou non.
+That band **measures nothing**. The processor time is the one the system accounts for
+anyway, the output size that of a file already written: no option is added to the observed
+JVM, nothing extra is sampled. The report is identical whether it shows or not.
 
-Elle ne s'affiche que devant un terminal. Redirigée dans un fichier ou lue par une chaîne
-d'intégration, une ligne qui se réécrit chaque seconde ne donnerait que du bruit : dans ce
-cas l'outil se tait, comme avant. `NO_COLOR` retire les couleurs sans retirer les carrés —
-c'est la densité qui porte l'information, la couleur ne fait que la redoubler.
+It only shows in front of a terminal. Redirected into a file or read by an integration
+pipeline, a line rewriting itself every second would be nothing but noise: in that case the
+tool keeps quiet, as before. `NO_COLOR` removes the colours without removing the squares —
+the density is what carries the information, the colour only doubles it.
 
-## Ce qu'on obtient
+## What one gets
 
 ```
 runtime-xray-out/
-├── index.html                   ← la vue intégrée : ouvrir le dossier suffit à la trouver
-├── rapport.md                   ← le même contenu, lisible dans une forge (voir plus bas)
-├── noms.json                    ← annotations de tout le rapport (facultatif, échangeable)
+├── index.html                   ← the integrated view: opening the folder is enough to find it
+├── rapport.md                   ← the same content, readable in a forge (see below)
+├── noms.json                    ← annotations for the whole report (optional, exchangeable)
 └── runs/
-    └── 20260821-004121-recette-v2/
-        ├── run-context.json     ← identifiant, nom, commande, heure, machine…
-        ├── config.json          ← annotations de CETTE exécution (facultatif, prioritaire)
-        ├── execution.log        ← la sortie de l'application
-        ├── jacoco/html/         ← la couverture détaillée, tout le code analysé
-        ├── jacoco-focused/html/ ← la même, restreinte aux classes qui ont tourné
-        ├── classes-executees.jar ← le bytecode retenu pour ce second rapport
-        ├── async-profiler/      ← les piles repliées, plus le profil rendu par l'outil
-        │                          lui-même (flamegraph.html et son inverse)
-        ├── arthas/              ← les valeurs capturées et la trace d'invocation
-        └── exports/             ← les mêmes mesures pour d'autres outils, si --export
+    └── 20260821-004121-acceptance-v2/
+        ├── run-context.json     ← identifier, name, command, time, machine…
+        ├── config.json          ← annotations for THIS run (optional, takes priority)
+        ├── execution.log        ← the application's output
+        ├── jacoco/html/         ← the detailed coverage, all the analysed code
+        ├── jacoco-focused/html/ ← the same, restricted to the classes that ran
+        ├── classes-executees.jar ← the bytecode kept for that second report
+        ├── async-profiler/      ← the folded stacks, plus the profile rendered by the tool
+        │                          itself (flamegraph.html and its inverse)
+        ├── arthas/              ← the captured values and the invocation trace
+        └── exports/             ← the same measurements for other tools, if --export
 ```
 
-Tout ce que les outils ont écrit reste ainsi atteignable. La page en donne la liste, groupée
-par outil : c'est ce qui permet de vérifier la synthèse quand elle surprend — et de rester
-exploitable si elle ne s'ouvre plus.
+Everything the tools wrote stays reachable this way. The page gives the list, grouped by
+tool: that is what allows checking the summary when it surprises — and staying usable if it
+no longer opens.
 
-### Quand le nombre de fichiers coûte
+### When the number of files costs
 
-Les deux répertoires `jacoco*/html/` sont le gros du compte : JaCoCo écrit **deux fichiers
-par classe**, et l'outil lui demande **deux sites par exécution**. Le compte croît donc avec
-la taille du code analysé, pas avec la mesure. Sur un poste où chaque ouverture de fichier
-traverse une pile de filtres — antivirus, EDR, DLP — c'est ce compte-là qu'une campagne
-paie, à l'écriture, à chaque parcours ultérieur, et à la mise en archive pour transmettre.
+The two `jacoco*/html/` directories are the bulk of the count: JaCoCo writes **two files per
+class**, and the tool asks it for **two sites per run**. The count therefore grows with the
+size of the analysed code, not with the measurement. On a machine where every file open
+crosses a stack of filters — antivirus, EDR, DLP — that count is what a campaign pays for:
+at write time, at every later walk, and when archiving it to pass it on.
 
-`JACOCO_REPORTS` (ou `--jacoco-reports`) décide de ce qu'on en écrit :
+`JACOCO_REPORTS` (or `--jacoco-reports`) decides how much of it is written:
 
-| Valeur | Ce qui est écrit | Ce qu'on perd |
+| Value | What is written | What is lost |
 |---|---|---|
-| `full` *(défaut)* | les deux sites | rien |
-| `detailed` | le site complet seul | un cadrage : le rapport ciblé ne porte **aucune donnée** que le complet n'ait déjà |
-| `data` | `jacoco.xml` et `jacoco.csv` seuls | le rendu JaCoCo **par exécution** ; celui de la campagne (`jacoco-fusion/`) reste |
+| `full` *(default)* | both sites | nothing |
+| `detailed` | the complete site alone | a framing: the focused report holds **no datum** the complete one lacks |
+| `data` | `jacoco.xml` and `jacoco.csv` only | JaCoCo's rendering **per run**; the campaign's (`jacoco-fusion/`) stays |
 
-Ce réglage ne touche **ni la mesure, ni ce que la page affiche** : la couverture rendue ligne
-à ligne vient de `jacoco.xml`, écrit dans tous les cas. Et un rapport absent n'est jamais
-silencieux — la page continue de le nommer, en grisé, et le clic donne la commande qui le
-produit.
+This setting touches **neither the measurement nor what the page shows**: the coverage
+rendered line by line comes from `jacoco.xml`, written in every case. And an absent report is
+never silent — the page keeps naming it, greyed out, and clicking gives the command that
+produces it.
 
-`runs/` est par ailleurs le bon candidat à une exclusion antivirus : un répertoire unique,
-qui ne contient que des artefacts engendrés, dont rien n'est exécuté et tout est
-reproductible.
+`runs/` is, moreover, the right candidate for an antivirus exclusion: a single directory,
+holding only generated artefacts, of which nothing is executed and everything is
+reproducible.
 
-### `rapport.md` — pour une forge
+### `rapport.md` — for a forge
 
-À côté de la page, l'outil écrit un **`rapport.md`** : le même contenu, réduit à ce qui se
-lit sans interaction. Il existe parce qu'une forge affiche un fichier `.html` comme du
-**code source**, pas comme une page ; le Markdown, lui, est rendu nativement par GitHub
-comme par GitLab, dépôt privé compris, sans Pages ni service tiers.
+Beside the page, the tool writes a **`rapport.md`**: the same content, reduced to what reads
+without interaction. It exists because a forge shows a `.html` file as **source code**, not
+as a page; Markdown, on the other hand, is rendered natively by GitHub as by GitLab, private
+repositories included, with no Pages and no third-party service.
 
-## Plusieurs exécutions dans un même rapport
+## Several runs in one report
 
-Chaque lancement crée une exécution dans `runs/`, et la vue affiche un **sélecteur** en
-haut : on passe de l'une à l'autre sans changer de page. Dans la liste des méthodes, un
-repère indique celles qui ont **aussi** tourné ailleurs (`+2`) et celles qui sont
-**propres à cette exécution** (`seule ici`) — c'est ce qui rend la comparaison lisible.
+Each launch creates a run under `runs/`, and the view shows a **selector** at the top: one
+moves from one to the next without changing page. In the list of methods, a marker shows
+those that **also** ran elsewhere (`+2`) and those that are **specific to this run** (`only
+here`) — that is what makes the comparison readable.
 
-**[→ Exemple à trois exécutions](https://beennnn.github.io/runtime-xray/multi/)**
+**[→ Example with three runs](https://beennnn.github.io/runtime-xray/multi/)**
 
-### Nommer, décrire, étiqueter, élaguer
+### Naming, describing, labelling, pruning
 
-Une exécution porte trois identités qu'il ne faut pas confondre — l'**identifiant**, qui ne
-change jamais ; le **nom donné au lancement** par `--name`, qui dit ce qu'on croyait
-mesurer ; le **nom posé après coup**, qui dit ce qu'on a compris. À défaut de nom, c'est
-l'identifiant qui désigne l'exécution : rien n'est inventé.
+A run carries three identities that must not be confused — the **identifier**, which never
+changes; the **name given at launch** by `--name`, which says what one thought one was
+measuring; the **name put on afterwards**, which says what one understood. Failing a name,
+the identifier names the run: nothing is invented.
 
-S'y ajoutent une description libre, des étiquettes clé/valeur, et l'élagage de l'arbre
-d'appel — couper une branche, ou repartir d'un nœud. Tout cela se saisit dans la fiche
-**bandeau d'identité** posé sous le nom de l'exécution, et s'écrit dans un fichier à côté
-des mesures. Les gestes — enregistrer, exporter, importer — vivent dans la barre du haut :
-le rapport se lit, il ne se remplit pas.
+To that are added a free description, key/value labels, and the pruning of the call tree —
+cutting a branch, or starting again from a node. All of it is typed into the **identity
+band** placed under the run's name, and written to a file beside the measurements. The
+gestures — save, export, import — live in the top bar: the report is read, it is not filled
+in.
 
-Trois façons de faire vivre ces annotations, qui coexistent :
+Three ways of keeping these annotations alive, which coexist:
 
-| Mode | Comment | Ce que ça donne |
+| Mode | How | What it gives |
 |---|---|---|
-| **Dans le navigateur** | ouvrir la page | immédiat ; **exporter** rend le fichier, **importer** reprend celui d'un collègue |
-| **Sur son poste** | `--serve` | la page écrit à côté des exécutions et le rapport est régénéré |
-| **Serveur partagé** | `--serve --serve-host 0.0.0.0` | on y dépose les résultats, tout le monde lit et **annote en parallèle** |
-| **… fermé par un secret** | `--serve-token` en plus | une page d'entrée, une session de douze heures ; complète un filtrage réseau, ne le remplace pas |
+| **In the browser** | open the page | immediate; **export** hands over the file, **import** takes in a colleague's |
+| **On your own machine** | `--serve` | the page writes beside the runs and the report is regenerated |
+| **Shared server** | `--serve --serve-host 0.0.0.0` | results are dropped there, everyone reads and **annotates in parallel** |
+| **… closed by a secret** | `--serve-token` as well | an entry page, a twelve-hour session; it complements network filtering, it does not replace it |
 
 ```bash
 java -jar runtime-xray.jar --report-only --out runtime-xray-out --serve
 ```
 
-L'annotation d'une exécution s'écrit dans **son répertoire** (`config.json`), ce qui la
-fait voyager avec la mesure ; un `<exécution>-config.json` posé à côté, ou le `noms.json`
-commun, restent lus — dans cet ordre de priorité.
+A run's annotation is written in **its own directory** (`config.json`), which makes it travel
+with the measurement; a `<run>-config.json` placed beside it, or the shared `noms.json`, are
+still read — in that order of priority.
 
-**Tout le détail — les trois modes, l'écriture concurrente, les emplacements de fichier,
-les formats et les réserves : [Annoter les exécutions](annotations.md).**
+**All the detail — the three modes, concurrent writing, the file locations, the formats and
+the caveats: [Annotating the runs](annotations.md).**
 
-### Rassembler des exécutions venues d'ailleurs
+### Gathering runs from elsewhere
 
-La vue accepte **n'importe quelle arborescence** : elle considère comme exécution tout
-répertoire contenant un `run-context.json`. Rassembler des répertoires de sortie produits
-sur des machines différentes dans un même dossier, puis :
+The view accepts **any tree**: it treats as a run any directory holding a
+`run-context.json`. Gather output directories produced on different machines into one
+folder, then:
 
 ```bash
-java -jar runtime-xray.jar --report-only --out dossier-commun --sources src/main/java
+java -jar runtime-xray.jar --report-only --out shared-folder --sources src/main/java
 ```
 
-### Lire la vue
+### Reading the view
 
-Deux onglets à gauche mènent au même code : **Code** (par paquet et par classe) et
-**Exécutions** (l'arbre d'appel, avec les exécutions pour racines). Les cases à cocher
-choisissent les exécutions affichées.
+Two tabs on the left lead to the same code: **Code** (by package and by class) and **Runs**
+(the call tree, with the runs as roots). The checkboxes choose which runs are shown.
 
-Ce que la page montre exactement, ce qu'elle replie et pourquoi, comment filtrer un paquet
-d'un clic et comment déplier une boucle passage par passage : **[Lire le
-rapport](lire-le-rapport.md)**.
+What the page shows exactly, what it folds away and why, how to filter a package in one
+click and how to unfold a loop iteration by iteration: **[Reading the
+report](lire-le-rapport.md)**.
 
-**La page s'ouvre en anglais**, et le sélecteur `EN | FR` de l'en-tête bascule tout ce
-qu'elle affiche — sans rien recharger, sans rien perdre. Un navigateur qui annonce le
-français l'obtient d'emblée ; tout autre lit l'anglais. Le choix est gardé pour les
-ouvertures suivantes. Le code source affiché, lui, n'est jamais traduit : c'est celui de
-l'application observée.
+**The page opens in English**, and the `EN | FR` selector in the header switches everything
+it shows — without reloading anything, without losing anything. A browser that announces
+French gets it straight away; every other reads English. The choice is kept for the next
+openings. The source code displayed is never translated: it is the observed application's.
 
-### Le contexte est écrit dans le rapport
+### The context is written into the report
 
-Programme lancé et ses arguments, méthode racine, heure de début et de fin, durée,
-machine, utilisateur, système, nombre de cœurs, version de Java, répertoire de travail,
-versions des outils. Un rapport retrouvé trois mois plus tard dit de quoi il parle.
+Program launched and its arguments, root method, start and end times, duration, machine,
+user, system, number of cores, Java version, working directory, tool versions. A report found
+again three months later says what it is about.
 
-## Publier le résultat
+## Publishing the result
 
-La sortie est un **ensemble de fichiers statiques**, et `index.html` est **autonome** :
-toutes ses données sont embarquées dans le fichier. C'est ce qui rend la diffusion simple.
+The output is **a set of static files**, and `index.html` is **self-contained**: all its data
+is embedded in the file. That is what makes distribution simple.
 
-### En environnement professionnel
+### In a professional environment
 
-| Support | Comment | Remarques |
+| Medium | How | Remarks |
 |---|---|---|
-| **GitLab Pages** | Un job CI publie `runtime-xray-out/` comme artefact de pages | Le plus propre si la forge est un GitLab auto-hébergé. Gratuit, intégré, hors ligne |
-| **GitLab — artefact de job** | `artifacts: paths: [runtime-xray-out/]` + `expose_as: "Rapport d'exécution"` | Un lien apparaît **directement dans la merge request**. Consultable en ligne sans télécharger |
-| **Confluence** | Joindre `index.html` à une page, ou utiliser la macro *HTML* | ⚠️ La macro HTML est souvent désactivée par les administrateurs. La pièce jointe, elle, marche toujours : le fichier étant autonome, un clic l'ouvre |
-| **SharePoint / Teams** | Déposer le dossier ; ouvrir `index.html` | SharePoint peut forcer le téléchargement selon la configuration |
-| **Un partage réseau** | Copier le dossier | Le plus simple, et le seul qui marche vraiment partout |
-| **Nexus / Artifactory** | Publier le dossier comme artefact *raw* | Souvent déjà présents, souvent oubliés pour cet usage |
-| **Serveur web interne** | `python3 -m http.server` ou n'importe quel Apache | Suffisant pour une démonstration |
+| **GitLab Pages** | A CI job publishes `runtime-xray-out/` as a pages artefact | The cleanest if the forge is a self-hosted GitLab. Free, integrated, offline |
+| **GitLab — job artefact** | `artifacts: paths: [runtime-xray-out/]` + `expose_as: "Run report"` | A link appears **directly in the merge request**. Viewable online without downloading |
+| **Confluence** | Attach `index.html` to a page, or use the *HTML* macro | ⚠️ The HTML macro is often disabled by administrators. The attachment, on the other hand, always works: the file being self-contained, one click opens it |
+| **SharePoint / Teams** | Drop the folder; open `index.html` | SharePoint may force a download depending on the configuration |
+| **A network share** | Copy the folder | The simplest, and the only one that really works everywhere |
+| **Nexus / Artifactory** | Publish the folder as a *raw* artefact | Often already there, often forgotten for this use |
+| **Internal web server** | `python3 -m http.server` or any Apache | Enough for a demonstration |
 
-**Recommandation** : si la forge est un **GitLab**, l'artefact de job avec `expose_as` est
-la meilleure option — le rapport devient un lien dans la merge request, sans hébergement
-supplémentaire ni téléchargement. Sinon, la **pièce jointe Confluence** est la voie la plus
-sûre, parce qu'elle ne dépend d'aucune permission d'administration.
+**Recommendation**: if the forge is a **GitLab**, the job artefact with `expose_as` is the
+best option — the report becomes a link in the merge request, with no extra hosting and no
+download. Otherwise, the **Confluence attachment** is the safest route, because it depends on
+no administration permission.
 
-### Un clic depuis GitHub, sans hébergement ni téléchargement
+### One click from GitHub, with no hosting and no download
 
-Quatre voies, selon que le dépôt est public ou privé :
+Four routes, depending on whether the repository is public or private:
 
-| Voie | Dépôt public | Dépôt privé | Coût |
+| Route | Public repo | Private repo | Cost |
 |---|:--:|:--:|---|
-| **GitHub Pages** | ✅ un clic | ⚠️ exige une offre payante | gratuit en public |
-| **raw.githack.com** | ✅ un clic | ⚠️ URL avec jeton, déconseillé | gratuit |
-| **htmlpreview.github.io** | ✅ un clic | ❌ | gratuit |
-| Artefact d'un workflow | ⚠️ téléchargement | ⚠️ téléchargement | minutes facturées en privé |
+| **GitHub Pages** | ✅ one click | ⚠️ requires a paid plan | free in public |
+| **raw.githack.com** | ✅ one click | ⚠️ URL with a token, not advised | free |
+| **htmlpreview.github.io** | ✅ one click | ❌ | free |
+| A workflow artefact | ⚠️ download | ⚠️ download | minutes billed in private |
 
-**Sur un dépôt public, GitHub Pages est la réponse** : c'est gratuit, c'est un lien, rien à
-installer. C'est ce qu'utilise ce dépôt.
+**On a public repository, GitHub Pages is the answer**: it is free, it is a link, there is
+nothing to install. It is what this repository uses.
 
-**Sans activer Pages**, l'astuce tient au fait que `index.html` est autonome : des services
-comme `raw.githack.com` ou `htmlpreview.github.io` servent un fichier brut de GitHub avec
-le bon type MIME, ce qui suffit à l'afficher. Il suffit de préfixer l'URL du fichier :
+**Without enabling Pages**, the trick rests on `index.html` being self-contained: services
+such as `raw.githack.com` or `htmlpreview.github.io` serve a raw file from GitHub with the
+right MIME type, which is enough to display it. One only prefixes the file's URL:
 
 ```
-https://raw.githack.com/<compte>/<dépôt>/main/runtime-xray-out/index.html
+https://raw.githack.com/<account>/<repo>/main/runtime-xray-out/index.html
 ```
 
-⚠️ Ce sont des **services tiers**, donc hors du périmètre d'un environnement déconnecté, et
-ils ne conviennent pas à du code confidentiel. Pour un usage interne, GitLab Pages ou un
-partage réseau restent les bonnes réponses.
+⚠️ These are **third-party services**, hence outside the perimeter of a disconnected
+environment, and they are not suitable for confidential code. For internal use, GitLab Pages
+or a network share remain the right answers.
 
-## Ses limites
+## Its limits
 
-- **Les valeurs ne sont capturées que sur la méthode racine** — c'est un choix de volume,
-  pas une limite technique.
-- **Les pourcentages de temps sont surestimés sur cette méthode racine** : l'inspection des
-  valeurs s'intercale à chaque appel. La vue le signale et replie les frames concernées.
-  Lancer avec `--no-values` donne des temps exacts, sans les valeurs.
-- **Les mesures de temps échantillonnent** : une méthode très brève peut n'y pas figurer.
-  La liste du code exécuté, elle, est exhaustive — c'est la couverture qui fait foi.
-- **Une exécution, un rapport** : rien n'agrège plusieurs exécutions.
+- **Values are captured on the root method only** — that is a choice about volume, not a
+  technical limit.
+- **The time percentages are overestimated on that root method**: value inspection steps in
+  at every call. The view says so and folds the frames concerned away. Running with
+  `--no-values` gives exact times, without the values.
+- **Time measurements sample**: a very brief method may not appear in them. The list of
+  executed code, on the other hand, is exhaustive — coverage is what counts there.
+- **A report holds several runs, but each measurement stands on its own**: the page
+  accumulates the coverage of the ticked runs, and `jacoco-fusion/` merges them for JaCoCo's
+  own figure — but nothing merges two runs' *time* measurements, which were taken under
+  different conditions.
