@@ -1,0 +1,131 @@
+Picked up JAVA_TOOL_OPTIONS: -Djavax.net.ssl.trustStore=/root/.ccr/java-truststore.p12 -Djavax.net.ssl.trustStorePassword=changeit -Djavax.net.ssl.trustStoreType=PKCS12 -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=42897 -Dhttp.nonProxyHosts=localhost|127.0.0.1|::1|127.*|0.*|::|169.254.*|api.anthropic.com|api-staging.anthropic.com|api-pr-preview.anthropic.com|mcp-proxy.anthropic.com|mcp-proxy-staging.anthropic.com|registry.npmjs.org|jsr.io|npm.jsr.io|pypi.org|files.pythonhosted.org|index.crates.io|proxy.golang.org|host.docker.internal|10.*|172.16.*|172.17.*|172.18.*|172.19.*|172.20.*|172.21.*|172.22.*|172.23.*|172.24.*|172.25.*|172.26.*|172.27.*|172.28.*|172.29.*|172.30.*|172.31.*|192.168.*|100.64.0.0/10|*.svc.cluster.local|*.svc.cluster.local -Djdk.http.auth.tunneling.disabledSchemes= -Djdk.http.auth.proxying.disabledSchemes=
+[INFO] JAVA_HOME: /usr/lib/jvm/java-21-openjdk-amd64
+[INFO] arthas-boot version: 4.3.4
+[INFO] JAVA_TOOL_OPTIONS: -Djavax.net.ssl.trustStore=/root/.ccr/java-truststore.p12 -Djavax.net.ssl.trustStorePassword=changeit -Djavax.net.ssl.trustStoreType=PKCS12 -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=42897 -Dhttp.nonProxyHosts=localhost|127.0.0.1|::1|127.*|0.*|::|169.254.*|api.anthropic.com|api-staging.anthropic.com|api-pr-preview.anthropic.com|mcp-proxy.anthropic.com|mcp-proxy-staging.anthropic.com|registry.npmjs.org|jsr.io|npm.jsr.io|pypi.org|files.pythonhosted.org|index.crates.io|proxy.golang.org|host.docker.internal|10.*|172.16.*|172.17.*|172.18.*|172.19.*|172.20.*|172.21.*|172.22.*|172.23.*|172.24.*|172.25.*|172.26.*|172.27.*|172.28.*|172.29.*|172.30.*|172.31.*|192.168.*|100.64.0.0/10|*.svc.cluster.local|*.svc.cluster.local -Djdk.http.auth.tunneling.disabledSchemes= -Djdk.http.auth.proxying.disabledSchemes=
+[INFO] arthas home: /root/.runtime-xray/arthas-4.3.4
+[INFO] Try to attach process 5561
+Picked up JAVA_TOOL_OPTIONS: 
+[INFO] Attach process 5561 success.
+[INFO] arthas-client connect 127.0.0.1 3658
+[1;31m  ,---.  [1;33m,------. [1;36m,--------.[1;35m,--.  ,--.[1;32m  ,---.  [1;34m ,---.  [0m                         
+[1;31m /  O  \ [1;33m|  .--. '[1;36m'--.  .--'[1;35m|  '--'  |[1;32m /  O  \ [1;34m'   .-' [0m                         
+[1;31m|  .-.  |[1;33m|  '--'.'[1;36m   |  |   [1;35m|  .--.  |[1;32m|  .-.  |[1;34m`.  `-. [0m                         
+[1;31m|  | |  |[1;33m|  |\  \ [1;36m   |  |   [1;35m|  |  |  |[1;32m|  | |  |[1;34m.-'    |[0m                         
+[1;31m`--' `--'[1;33m`--' '--'[1;36m   `--'   [1;35m`--'  `--'[1;32m`--' `--'[1;34m`-----' [0m                         
+
+wiki         https://arthas.aliyun.com/doc                                      
+tutorials    https://arthas.aliyun.com/doc/arthas-tutorials.html                
+version      4.3.4                                                              
+main_class   /home/user/runtime-xray/sample-app/target/sample-app.jar           
+pid          5561                                                               
+start_time   2026-08-29 06:02:49.180                                            
+current_time 2026-08-29 06:02:59.458                                            
+
+[arthas@5561]$ watch lab.sample.terrain.Terrain * '{params, returnObj}' -n 10 -x  2 | plaintext
+Press Q or Ctrl+C to abort.
+Affect(class count: 1 , method count: 5) cost in 127 ms, listenerId: 1
+method=lab.sample.terrain.Terrain.$jacocoInit location=AtExit
+ts=2026-08-29 06:03:00.867; [cost=2.94635ms] result=@ArrayList[
+    @Object[][
+        @Lookup[lab.sample.terrain.Terrain],
+        @String[$jacocoData],
+        @Class[class java.lang.Object],
+    ],
+    @boolean[][
+        @Boolean[false],
+        @Boolean[true],
+        @Boolean[true],
+        @Boolean[true],
+        @Boolean[true],
+        @Boolean[true],
+        @Boolean[true],
+        @Boolean[true],
+        @Boolean[true],
+        @Boolean[false],
+        @Boolean[true],
+        @Boolean[true],
+        @Boolean[true],
+        @Boolean[false],
+        @Boolean[false],
+        @Boolean[true],
+        @Boolean[true],
+    ],
+]
+method=lab.sample.terrain.Terrain.applies location=AtExit
+ts=2026-08-29 06:03:00.871; [cost=57.473556ms] result=@ArrayList[
+    @Object[][
+        @Mode[CAR],
+    ],
+    @Boolean[true],
+]
+method=lab.sample.terrain.Terrain.penaltyFor location=AtExit
+ts=2026-08-29 06:03:00.872; [cost=0.013521ms] result=@ArrayList[
+    @Object[][
+        @Double[1.4720000000000002],
+        @Mode[CAR],
+    ],
+    @Double[1.01472],
+]
+method=lab.sample.terrain.Terrain.penaltyFor location=AtExit
+ts=2026-08-29 06:03:00.872; [cost=0.019429ms] result=@ArrayList[
+    @Object[][
+        @Double[-2.112],
+        @Mode[CAR],
+    ],
+    @Double[0.993664],
+]
+method=lab.sample.terrain.Terrain.penaltyFor location=AtExit
+ts=2026-08-29 06:03:00.873; [cost=0.011192ms] result=@ArrayList[
+    @Object[][
+        @Double[-4.351999999999999],
+        @Mode[CAR],
+    ],
+    @Double[0.986944],
+]
+method=lab.sample.terrain.Terrain.penaltyFor location=AtExit
+ts=2026-08-29 06:03:00.873; [cost=0.011011ms] result=@ArrayList[
+    @Object[][
+        @Double[4.351999999999999],
+        @Mode[CAR],
+    ],
+    @Double[1.04352],
+]
+method=lab.sample.terrain.Terrain.penaltyFor location=AtExit
+ts=2026-08-29 06:03:00.874; [cost=0.010959ms] result=@ArrayList[
+    @Object[][
+        @Double[2.112],
+        @Mode[CAR],
+    ],
+    @Double[1.02112],
+]
+method=lab.sample.terrain.Terrain.penaltyFor location=AtExit
+ts=2026-08-29 06:03:00.874; [cost=0.011189ms] result=@ArrayList[
+    @Object[][
+        @Double[-1.4720000000000002],
+        @Mode[CAR],
+    ],
+    @Double[0.995584],
+]
+method=lab.sample.terrain.Terrain.penaltyFor location=AtExit
+ts=2026-08-29 06:03:00.875; [cost=0.011958ms] result=@ArrayList[
+    @Object[][
+        @Double[-4.032],
+        @Mode[CAR],
+    ],
+    @Double[0.987904],
+]
+method=lab.sample.terrain.Terrain.penaltyFor location=AtExit
+ts=2026-08-29 06:03:00.875; [cost=0.011206ms] result=@ArrayList[
+    @Object[][
+        @Double[4.608],
+        @Mode[CAR],
+    ],
+    @Double[1.04608],
+]
+Command execution times exceed limit: 10, so command will exit. You can set it with -n option.
+[arthas@5561]$ stop | plaintext
+Resetting all enhanced classes ...
+Affect(class count: 1 , method count: 0) cost in 15 ms, listenerId: 0
+Arthas Server is going to shutdown...
+[arthas
+@5561]$ 

@@ -1,0 +1,142 @@
+Picked up JAVA_TOOL_OPTIONS: -Djavax.net.ssl.trustStore=/root/.ccr/java-truststore.p12 -Djavax.net.ssl.trustStorePassword=changeit -Djavax.net.ssl.trustStoreType=PKCS12 -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=42897 -Dhttp.nonProxyHosts=localhost|127.0.0.1|::1|127.*|0.*|::|169.254.*|api.anthropic.com|api-staging.anthropic.com|api-pr-preview.anthropic.com|mcp-proxy.anthropic.com|mcp-proxy-staging.anthropic.com|registry.npmjs.org|jsr.io|npm.jsr.io|pypi.org|files.pythonhosted.org|index.crates.io|proxy.golang.org|host.docker.internal|10.*|172.16.*|172.17.*|172.18.*|172.19.*|172.20.*|172.21.*|172.22.*|172.23.*|172.24.*|172.25.*|172.26.*|172.27.*|172.28.*|172.29.*|172.30.*|172.31.*|192.168.*|100.64.0.0/10|*.svc.cluster.local|*.svc.cluster.local -Djdk.http.auth.tunneling.disabledSchemes= -Djdk.http.auth.proxying.disabledSchemes=
+[INFO] JAVA_HOME: /usr/lib/jvm/java-21-openjdk-amd64
+[INFO] arthas-boot version: 4.3.4
+[INFO] JAVA_TOOL_OPTIONS: -Djavax.net.ssl.trustStore=/root/.ccr/java-truststore.p12 -Djavax.net.ssl.trustStorePassword=changeit -Djavax.net.ssl.trustStoreType=PKCS12 -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=42897 -Dhttp.nonProxyHosts=localhost|127.0.0.1|::1|127.*|0.*|::|169.254.*|api.anthropic.com|api-staging.anthropic.com|api-pr-preview.anthropic.com|mcp-proxy.anthropic.com|mcp-proxy-staging.anthropic.com|registry.npmjs.org|jsr.io|npm.jsr.io|pypi.org|files.pythonhosted.org|index.crates.io|proxy.golang.org|host.docker.internal|10.*|172.16.*|172.17.*|172.18.*|172.19.*|172.20.*|172.21.*|172.22.*|172.23.*|172.24.*|172.25.*|172.26.*|172.27.*|172.28.*|172.29.*|172.30.*|172.31.*|192.168.*|100.64.0.0/10|*.svc.cluster.local|*.svc.cluster.local -Djdk.http.auth.tunneling.disabledSchemes= -Djdk.http.auth.proxying.disabledSchemes=
+[INFO] arthas home: /root/.runtime-xray/arthas-4.3.4
+[INFO] Try to attach process 6555
+Picked up JAVA_TOOL_OPTIONS: 
+[INFO] Attach process 6555 success.
+[INFO] arthas-client connect 127.0.0.1 3658
+[1;31m  ,---.  [1;33m,------. [1;36m,--------.[1;35m,--.  ,--.[1;32m  ,---.  [1;34m ,---.  [0m                         
+[1;31m /  O  \ [1;33m|  .--. '[1;36m'--.  .--'[1;35m|  '--'  |[1;32m /  O  \ [1;34m'   .-' [0m                         
+[1;31m|  .-.  |[1;33m|  '--'.'[1;36m   |  |   [1;35m|  .--.  |[1;32m|  .-.  |[1;34m`.  `-. [0m                         
+[1;31m|  | |  |[1;33m|  |\  \ [1;36m   |  |   [1;35m|  |  |  |[1;32m|  | |  |[1;34m.-'    |[0m                         
+[1;31m`--' `--'[1;33m`--' '--'[1;36m   `--'   [1;35m`--'  `--'[1;32m`--' `--'[1;34m`-----' [0m                         
+
+wiki         https://arthas.aliyun.com/doc                                      
+tutorials    https://arthas.aliyun.com/doc/arthas-tutorials.html                
+version      4.3.4                                                              
+main_class   /home/user/runtime-xray/sample-app/target/sample-app.jar           
+pid          6555                                                               
+start_time   2026-08-29 06:11:11.465                                            
+current_time 2026-08-29 06:11:21.847                                            
+
+[arthas@6555]$ watch lab.sample.RoutePlanner * '{params, returnObj}' -n 10 -x 2  | plaintext
+Press Q or Ctrl+C to abort.
+Affect(class count: 1 , method count: 4) cost in 157 ms, listenerId: 1
+method=lab.sample.RoutePlanner.$jacocoInit location=AtExit
+ts=2026-08-29 06:11:23.276; [cost=2.06519ms] result=@ArrayList[
+    @Object[][
+        @Lookup[lab.sample.RoutePlanner],
+        @String[$jacocoData],
+        @Class[class java.lang.Object],
+    ],
+    @boolean[][
+        @Boolean[false],
+        @Boolean[true],
+        @Boolean[true],
+        @Boolean[true],
+        @Boolean[true],
+        @Boolean[true],
+        @Boolean[true],
+        @Boolean[true],
+        @Boolean[true],
+        @Boolean[true],
+        @Boolean[true],
+        @Boolean[true],
+        @Boolean[true],
+        @Boolean[true],
+        @Boolean[true],
+        @Boolean[true],
+        @Boolean[true],
+        @Boolean[true],
+        @Boolean[true],
+        @Boolean[true],
+        @Boolean[true],
+        @Boolean[true],
+        @Boolean[true],
+    ],
+]
+method=lab.sample.RoutePlanner.legMinutes location=AtExit
+ts=2026-08-29 06:11:23.280; [cost=54.41399ms] result=@ArrayList[
+    @Object[][
+        @Leg[Leg[from=Auch, to=Foix, distanceKm=54.0]],
+        @BikeSpeed[lab.sample.speed.BikeSpeed@253d9f73],
+        @Mode[BIKE],
+    ],
+    @Double[233.58412800000008],
+]
+method=lab.sample.RoutePlanner.legMinutes location=AtExit
+ts=2026-08-29 06:11:23.292; [cost=0.020593ms] result=@ArrayList[
+    @Object[][
+        @Leg[Leg[from=Castres, to=Auch, distanceKm=41.0]],
+        @WalkSpeed[lab.sample.speed.WalkSpeed@142269f2],
+        @Mode[WALK],
+    ],
+    @Double[519.7225599999999],
+]
+method=lab.sample.RoutePlanner.legMinutes location=AtExit
+ts=2026-08-29 06:11:23.293; [cost=0.013858ms] result=@ArrayList[
+    @Object[][
+        @Leg[Leg[from=Auch, to=Foix, distanceKm=48.0]],
+        @WalkSpeed[lab.sample.speed.WalkSpeed@142269f2],
+        @Mode[WALK],
+    ],
+    @Double[602.0505599999999],
+]
+method=lab.sample.RoutePlanner.legMinutes location=AtExit
+ts=2026-08-29 06:11:23.293; [cost=0.013013ms] result=@ArrayList[
+    @Object[][
+        @Leg[Leg[from=Foix, to=Toulouse, distanceKm=55.0]],
+        @WalkSpeed[lab.sample.speed.WalkSpeed@142269f2],
+        @Mode[WALK],
+    ],
+    @Double[688.5383999999998],
+]
+method=lab.sample.RoutePlanner.legMinutes location=AtExit
+ts=2026-08-29 06:11:23.294; [cost=0.013316ms] result=@ArrayList[
+    @Object[][
+        @Leg[Leg[from=Toulouse, to=Albi, distanceKm=2.0]],
+        @WalkSpeed[lab.sample.speed.WalkSpeed@142269f2],
+        @Mode[WALK],
+    ],
+    @Double[25.257599999999996],
+]
+method=lab.sample.RoutePlanner.travelTimeMinutes location=AtExit
+ts=2026-08-29 06:11:23.295; [cost=2.789746ms] result=@ArrayList[
+    @Object[][
+        @Trip[Trip[id=TRIP-219, mode=WALK, weather=SUNNY, timeOfDay=QUIET, withLuggage=false, legs=[Leg[from=Castres, to=Auch, distanceKm=41.0], Leg[from=Auch, to=Foix, distanceKm=48.0], Leg[from=Foix, to=Toulouse, distanceKm=55.0], Leg[from=Toulouse, to=Albi, distanceKm=2.0]]]],
+    ],
+    @Double[1925.5691199999997],
+]
+method=lab.sample.RoutePlanner.legMinutes location=AtExit
+ts=2026-08-29 06:11:23.307; [cost=0.018413ms] result=@ArrayList[
+    @Object[][
+        @Leg[Leg[from=Auch, to=Foix, distanceKm=42.0]],
+        @CarSpeed[lab.sample.speed.CarSpeed@55322aab],
+        @Mode[CAR],
+    ],
+    @Double[23.116311272727273],
+]
+method=lab.sample.RoutePlanner.travelTimeMinutes location=AtExit
+ts=2026-08-29 06:11:23.308; [cost=0.654212ms] result=@ArrayList[
+    @Object[][
+        @Trip[Trip[id=TRIP-220, mode=CAR, weather=RAIN, timeOfDay=QUIET, withLuggage=true, legs=[Leg[from=Auch, to=Foix, distanceKm=42.0]]]],
+    ],
+    @Double[23.116311272727273],
+]
+method=lab.sample.RoutePlanner.legMinutes location=AtExit
+ts=2026-08-29 06:11:23.308; [cost=0.011157ms] result=@ArrayList[
+    @Object[][
+        @Leg[Leg[from=Foix, to=Toulouse, distanceKm=43.0]],
+        @TrainSpeed[lab.sample.speed.TrainSpeed@2b4c1d96],
+        @Mode[TRAIN],
+    ],
+    @Double[28.666666666666668],
+]
+Command execution times exceed limit: 10, so command will exit. You can set it with -n option.
+[arthas@6555]$ stop | plaintext
+Resetting all enhanced classes ...
+Affect(class count: 1 , method count: 0) cost in 25 ms, listenerId: 0
+Arthas Server is going to shutdown...
+[arthas@6555]$ 

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PlaneSpeed.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Cumulative coverage ? 3 runs</a> &gt; <a href="index.source.html" class="el_package">lab.sample.speed</a> &gt; <span class="el_source">PlaneSpeed.java</span></div><h1>PlaneSpeed.java</h1><pre class="source lang-java linenums">package lab.sample.speed;
+
+import lab.sample.model.Leg;
+
+/** By plane. &lt;b&gt;Never instantiated by the scenarios&lt;/b&gt;: this whole class must appear at
+ *  0 % in a coverage report. It is the most visual test of the criterion &quot;do we know where
+ *  the code did NOT go?&quot; — a sampling profiler will never say anything about this code. */
+<span class="nc" id="L8">public final class PlaneSpeed implements SpeedModel {</span>
+
+    @Override
+    public double kmPerHour(Leg leg) {
+<span class="nc bnc" id="L12" title="All 2 branches missed.">        return leg.distanceKm() &gt; 1000 ? 850 : 600;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

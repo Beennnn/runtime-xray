@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RushHourDelay.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Runtime X-Ray</a> &gt; <a href="index.source.html" class="el_package">lab.sample.traffic</a> &gt; <span class="el_source">RushHourDelay.java</span></div><h1>RushHourDelay.java</h1><pre class="source lang-java linenums">package lab.sample.traffic;
+
+import lab.sample.model.Leg;
+
+/** Delay caused by rush-hour traffic jams. */
+public final class RushHourDelay {
+
+    private RushHourDelay() {}
+
+    static double minutesFor(Leg leg) {
+        // Traffic jams mostly penalise entering and leaving built-up areas, hence short
+        // legs: which is why the delay does not follow the distance.
+<span class="fc bfc" id="L13" title="All 2 branches covered.">        if (leg.distanceKm() &lt; 5) {</span>
+<span class="fc" id="L14">            return 8;</span>
+        }
+<span class="fc bfc" id="L16" title="All 2 branches covered.">        return leg.distanceKm() &lt; 40 ? 15 : 20;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>
