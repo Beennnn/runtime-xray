@@ -461,7 +461,7 @@ class DashboardTest {
         String page = Files.readString(Dashboard.build(out, List.of(sources(dir)), 8),
                 StandardCharsets.UTF_8);
 
-        assertTrue(page.contains("sectionPliable(\"dead\", \"Never executed\""),
+        assertTrue(page.contains("foldableSection(\"dead\", \"Never executed\""),
                 "the \"never executed\" section must be the one that folds");
         assertTrue(page.contains("class=\"plicnt\""),
                 "the count must stay readable when folded, otherwise folding loses what decides to open");
@@ -681,11 +681,11 @@ class DashboardTest {
                 "the classes found are what allows answering \"where is it?\"");
 
         String html = Files.readString(page, StandardCharsets.UTF_8);
-        assertTrue(html.contains("function verdictRecherche("),
+        assertTrue(html.contains("function searchVerdict("),
                 "the search must say whether a class was found, and where");
-        assertTrue(html.contains("function arbreSources("),
+        assertTrue(html.contains("function sourceTree("),
                 "the tree must exist, coloured by what each class is missing");
-        assertTrue(html.contains("function piegesConfig("),
+        assertTrue(html.contains("function configTraps("),
                 "the settings table is what avoids widening the wrong filter");
         assertTrue(html.contains("restricts NEITHER the coverage, NOR the displayed classes"),
                 "--root must no longer be suspectable of a report without sources");
@@ -702,7 +702,7 @@ class DashboardTest {
         String page = Files.readString(Dashboard.build(out, List.of(sources(dir)), 8),
                 StandardCharsets.UTF_8);
 
-        assertTrue(page.contains("function diagSources(){ return (D.diagnostic || {}).sources || {}; }"),
+        assertTrue(page.contains("function sourceDiag(){ return (D.diagnostic || {}).sources || {}; }"),
                 "a single named accessor, so the three inventories do not get confused");
         assertFalse(page.contains("(D.diagnostic || {}).racines"),
                 "the roots do not live at the diagnostic's root");
@@ -756,9 +756,9 @@ class DashboardTest {
         String page = Files.readString(Dashboard.build(out, List.of(sources(dir)), 8),
                 StandardCharsets.UTF_8);
 
-        assertTrue(page.contains("function covPourVue("),
+        assertTrue(page.contains("function coverageForView("),
                 "the code view must be able to read a unified coverage");
-        assertTrue(page.contains("function pastillesRuns("),
+        assertTrue(page.contains("function runPips("),
                 "unifying without saying WHO covered would lose the information the JaCoCo "
                 + "merge already loses");
         assertTrue(page.contains("runtime-xray.cumul"),
