@@ -449,9 +449,12 @@
      number and the tooltip remain the truth, the colour is only a landmark. They are
      deliberately discreet — the code stays the subject. */
   .quiruns{display:inline-flex;gap:2px;margin-right:8px;vertical-align:1px}
-  .runbadge{display:inline-block;min-width:14px;padding:0 3px;border-radius:3px;
+  /* Scoped to the pips, and that matters: the tree's own “RUN” badge carries the same class
+     with no tint, so an unqualified rule here painted it white on the row's grey — legible
+     nowhere. A pip always has its colour class; the badge never does. */
+  .quiruns .runbadge{display:inline-block;min-width:14px;padding:0 3px;border-radius:3px;
             font-size:9.5px;line-height:14px;text-align:center;font-weight:700;
-            color:#fff;opacity:.85}
+            border:0;color:#fff;opacity:.85}
   .runbadge.r0{background:#1a7f37} .runbadge.r1{background:#0969da}
   .runbadge.r2{background:#8250df} .runbadge.r3{background:#bf3989}
   .runbadge.r4{background:#9a6700} .runbadge.r5{background:#0f766e}
@@ -5445,6 +5448,11 @@ setOption("clean",    {icon: OPT.cible});
     [/^▾ argument values \((\d+)\)$/, (m) => "▾ valeurs des paramètres (" + m[1] + ")"],
     [/^✓ (\d+) \.java file\(s\)$/, (m) => "✓ " + m[1] + " fichier(s) .java"],
     [/^(\d+) file\(s\)$/, (m) => m[1] + " fichier(s)"],
+    // The run's status: the tool's own sentence, and the only one of run-context.json's
+    // values it composes. Java says it in English; here it says it in French like the rest.
+    [/^ended normally \(code (\d+)\)$/, (m) => "terminée normalement (code " + m[1] + ")"],
+    [/^stopped after (\d+) s \(safety limit\)$/,
+      (m) => "interrompue après " + m[1] + " s (garde-fou)"],
     [/^(.+) — (\d+) cores?$/, (m) => m[1] + " — " + m[2] + " cœur" + s(m[2])],
     [/^Open (.+) in the code list$/, (m) => "Ouvrir " + m[1] + " dans la liste du code"],
     [/^Open (.+) and its recorded calls$/, (m) => "Ouvrir " + m[1] + " et ses appels relevés"],

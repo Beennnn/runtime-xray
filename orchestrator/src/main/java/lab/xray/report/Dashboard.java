@@ -12,6 +12,8 @@ import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Assembles the single page out of the tools' outputs.
@@ -316,11 +318,45 @@ public final class Dashboard {
             return new LinkedHashMap<>();
         }
         try {
-            return (Map<String, Object>) Json.read(Files.readString(file, StandardCharsets.UTF_8));
+            Map<String, Object> context =
+                    (Map<String, Object>) Json.read(Files.readString(file, StandardCharsets.UTF_8));
+            return englishStatus(context);
         } catch (Exception e) {
             System.err.println("   run context unreadable: " + file + " (" + e.getMessage() + ")");
             return new LinkedHashMap<>();
         }
+    }
+
+    /**
+     * The run's status, said in English even when an older tool wrote it in French.
+     *
+     * <p>Everything else in {@code run-context.json} is either a key — frozen for life — or a
+     * value that belongs to whoever measured: the command, the machine, the name given at
+     * launch. Those are never translated, and a run called "Scénario 1" stays so. The status
+     * is the one field the <b>tool</b> composes, and it went to English in August 2026.
+     *
+     * <p>Before the view was turned round, its dictionary went from French to English, so an
+     * old status was translated on the way to the screen. Now the dictionary goes the other
+     * way and English costs no walk at all — which is the point — so nothing translates it
+     * any more. A campaign from before the switch, reassembled today with
+     * {@code --report-only}, would show one French line inside an English report.
+     *
+     * <p>It is fixed here, where the old file is read, rather than in the page: the view has
+     * one direction and should keep it. Two shapes ever existed, both closed.
+     */
+    static Map<String, Object> englishStatus(Map<String, Object> context) {
+        Object status = context.get("statut");
+        if (!(status instanceof String text)) return context;
+        Matcher ended = Pattern.compile("^terminée normalement \\(code (\\d+)\\)$").matcher(text);
+        if (ended.matches()) {
+            context.put("statut", "ended normally (code " + ended.group(1) + ")");
+            return context;
+        }
+        Matcher stopped = Pattern.compile("^interrompue après (\\d+) s \\(garde-fou\\)$").matcher(text);
+        if (stopped.matches()) {
+            context.put("statut", "stopped after " + stopped.group(1) + " s (safety limit)");
+        }
+        return context;
     }
 
     /** Failing a name, the shortened id: short enough to fit, long enough to sort by. */
