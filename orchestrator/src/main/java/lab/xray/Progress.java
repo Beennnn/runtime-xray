@@ -158,12 +158,21 @@ public final class Progress {
      * the platform and the permissions — the application's output stands in as the
      * witness: it does not say <i>how much</i> the program is working, but it says that it
      * is still alive, which is precisely the question.
+     *
+     * <p><b>The first reading of the processor time fixes the origin, it is not a rate.</b>
+     * A rate needs two readings, and the first one carries everything consumed before the
+     * band existed — the JVM starting, the classes loading, the JIT compiler's own threads,
+     * all of it on several cores at once. Divided by one interval, that gave <i>26.71 busy
+     * cores on a four-core machine</i>: an impossible figure, which set the scale of the
+     * {@code --follow} curve and flattened every honest reading after it. Until the second
+     * reading, the output stands witness, exactly as on a platform that publishes nothing.
      */
     private double load(Duration elapsed, Duration cpuTotal, long bytes) {
+        boolean origin = !cpuKnown && !cpuTotal.isZero();
         if (!cpuTotal.isZero()) cpuKnown = true;
         long interval = elapsed.toMillis() - previousElapsed.toMillis();
         if (interval <= 0) return 0;
-        if (cpuKnown) {
+        if (cpuKnown && !origin) {
             long cpu = Math.max(0, cpuTotal.toMillis() - previousCpu.toMillis());
             return cpu / (double) interval;
         }

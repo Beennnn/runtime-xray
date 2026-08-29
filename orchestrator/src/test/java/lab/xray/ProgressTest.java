@@ -100,6 +100,35 @@ class ProgressTest {
     }
 
     @Test
+    @DisplayName("The first processor reading fixes the origin, it does not become a rate")
+    void theFirstCpuReadingIsNotARate() {
+        // What the observed JVM has already burnt when the band opens — start-up, class
+        // loading, the JIT compiler's threads, several cores at once — is not the load of
+        // the first interval. Divided by it, a real run announced 26.71 busy cores on a
+        // four-core machine, and that impossible figure set the scale of the --follow curve.
+        Progress p = new Progress(new StringBuilder(), true, false);
+        double first = p.tick(Duration.ofSeconds(1), Duration.ofSeconds(28), 100);
+        assertTrue(first <= 1.0,
+                "28 s of processor time consumed before the band existed is not 28 busy cores");
+
+        double steady = p.tick(Duration.ofSeconds(2), Duration.ofSeconds(29), 100);
+        assertEquals(1.0, steady, 0.01,
+                "from the second reading on, the rate is the one really observed");
+    }
+
+    @Test
+    @DisplayName("The origin is fixed by the first reading that carries a figure")
+    void theOriginWaitsForTheFirstFigure() {
+        // A platform may publish nothing for a while and then start. The reading that
+        // arrives is still a first one: it carries everything since launch, not one interval.
+        Progress p = new Progress(new StringBuilder(), true, false);
+        p.tick(Duration.ofSeconds(1), NOTHING, 100);
+        double appears = p.tick(Duration.ofSeconds(2), Duration.ofSeconds(30), 100);
+        assertTrue(appears <= 1.0, "a late first reading is an origin like any other");
+        assertEquals(2.0, p.tick(Duration.ofSeconds(3), Duration.ofSeconds(32), 100), 0.01);
+    }
+
+    @Test
     @DisplayName("The band's characters exist in CP850 as well")
     void glyphsSurviveAWindowsTerminal() {
         // A Windows machine in cp850 is the default, not the exception: see CLAUDE.md.

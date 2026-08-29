@@ -88,6 +88,14 @@ All the analytical value comes from those three projects. This repository brings
 glue: reading three heterogeneous formats, matching them up by class and by line, and making
 a page out of it that reads at a glance. It is presentation work, not measurement.
 
+![Overall architecture: an orchestrator launches a Java virtual machine observed by three tools, which write their measurements to disk; the orchestrator reads them back and assembles a self-contained page](docs/assets/architecture.svg)
+
+*Drawn with the grammar of [logo-libres](https://github.com/Beennnn/logo-libres) — shapes,
+layer colours and arrow conventions. The same diagram, and the one of [the reference use
+case](docs/assets/architecture-reference.svg), are editable in
+[`architecture.drawio`](docs/assets/architecture.drawio); how they are regenerated is in
+[`tools/schemas/`](tools/schemas/README.md).*
+
 ## The second test bench: the assistant
 
 The repository has a second reason for being, as owned as the first. The instruction — *survey

@@ -9,7 +9,7 @@ progress. The [README](README.md) explains the tool; here, we explain the reposi
 ## Building and exercising
 
 ```bash
-mvn test                            # 255 tests, none of them touches the network
+mvn test                            # 257 tests, none of them touches the network
 mvn -DskipTests package             # orchestrator/target/runtime-xray.jar   (175 KB)
 mvn -Pjacoco  -DskipTests package   # runtime-xray-jacoco.jar               (950 KB)
 mvn -Pcomplet -DskipTests package   # runtime-xray-complet.jar               (19 MB)
@@ -170,6 +170,14 @@ decisions hold it, and they are linked:
 - **The count is in busy cores**, not in a percentage of the machine. On a thirty-two-core
   server, an application that saturates one of them is working flat out: brought back to
   3 %, it would show as asleep.
+- **The first processor reading fixes the origin, it is not a rate.** A rate needs two
+  readings, and the first one carries everything consumed before the band existed — the JVM
+  starting, the classes loading, the JIT compiler's own threads, all of it on several cores
+  at once. Divided by one interval it announced *26.71 busy cores on a four-core machine*,
+  which set the scale of the `--follow` curve and flattened every honest reading after it.
+  Until the second reading, the output stands witness, exactly as on a platform that
+  publishes no processor time. Two tests hold it, including the case of a reading that
+  arrives late.
 
 The band, the `--follow` page and the console messages are **in English**, like the rest of
 what the user sees. The numbers follow: `41.3 s`, `812.0 KB`, a timestamp in

@@ -26,3 +26,7 @@ license*.sh
 # The demonstration runs kept as evidence for the study are in reports-demo/executions/,
 # outside this path.
 runtime-xray-out/
+
+# Python bytecode from the diagram generators.
+__pycache__/
+*.pyc
