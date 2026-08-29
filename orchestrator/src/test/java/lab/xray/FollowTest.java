@@ -66,7 +66,7 @@ class FollowTest {
             // Without the run's name on every line, a trail that accumulates several runs
             // — which it does — becomes impossible to read back.
             assertEquals("recette 1", l.get("run"));
-            assertTrue(l.containsKey("date"), "une ligne sans horodatage ne se recoupe pas");
+            assertTrue(l.containsKey("date"), "a line with no timestamp cannot be cross-checked");
         }
         assertEquals("java -jar app.jar", lines.get(0).get("command"),
                 "without the command, a run that is moving does not say which one is");
@@ -150,7 +150,7 @@ class FollowTest {
         String rendered = new String(Follow.asUtf8(latin1), StandardCharsets.UTF_8);
         assertTrue(rendered.contains("démarrage terminé"), "the accents must come back");
         assertTrue(rendered.contains("ISO-8859-1"),
-                "deviner est acceptable ici, le taire ne l'est pas : un lecteur qui voit un "
+                "guessing is acceptable here, keeping quiet about it is not: a reader who sees a "
                 + "doubtful character must know it is an interpretation");
 
         // Valid UTF-8 is never touched — no fallback, no warning.

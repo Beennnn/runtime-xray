@@ -148,7 +148,7 @@ class InspectionTest {
         List<Object> line50 = (List<Object>) in.trace.get("50");
         Map<?, ?> call = (Map<?, ?>) line50.get(0);
         assertEquals("RoutePlanner.legMinutes()", call.get("callee"));
-        assertEquals(1, call.get("n"), "une seule observation ici");
+        assertEquals(1, call.get("n"), "a single observation here");
         assertEquals(0.055583, (Double) call.get("minMs"), 1e-9);
         assertEquals(0.055583, (Double) call.get("maxMs"), 1e-9);
         assertEquals("lab/sample/RoutePlanner.legMinutes", call.get("frame"),

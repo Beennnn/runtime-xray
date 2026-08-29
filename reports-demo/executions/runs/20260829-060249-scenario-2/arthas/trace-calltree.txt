@@ -1,0 +1,78 @@
+Picked up JAVA_TOOL_OPTIONS: -Djavax.net.ssl.trustStore=/root/.ccr/java-truststore.p12 -Djavax.net.ssl.trustStorePassword=changeit -Djavax.net.ssl.trustStoreType=PKCS12 -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=42897 -Dhttp.nonProxyHosts=localhost|127.0.0.1|::1|127.*|0.*|::|169.254.*|api.anthropic.com|api-staging.anthropic.com|api-pr-preview.anthropic.com|mcp-proxy.anthropic.com|mcp-proxy-staging.anthropic.com|registry.npmjs.org|jsr.io|npm.jsr.io|pypi.org|files.pythonhosted.org|index.crates.io|proxy.golang.org|host.docker.internal|10.*|172.16.*|172.17.*|172.18.*|172.19.*|172.20.*|172.21.*|172.22.*|172.23.*|172.24.*|172.25.*|172.26.*|172.27.*|172.28.*|172.29.*|172.30.*|172.31.*|192.168.*|100.64.0.0/10|*.svc.cluster.local|*.svc.cluster.local -Djdk.http.auth.tunneling.disabledSchemes= -Djdk.http.auth.proxying.disabledSchemes=
+[INFO] JAVA_HOME: /usr/lib/jvm/java-21-openjdk-amd64
+[INFO] arthas-boot version: 4.3.4
+[INFO] JAVA_TOOL_OPTIONS: -Djavax.net.ssl.trustStore=/root/.ccr/java-truststore.p12 -Djavax.net.ssl.trustStorePassword=changeit -Djavax.net.ssl.trustStoreType=PKCS12 -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=42897 -Dhttp.nonProxyHosts=localhost|127.0.0.1|::1|127.*|0.*|::|169.254.*|api.anthropic.com|api-staging.anthropic.com|api-pr-preview.anthropic.com|mcp-proxy.anthropic.com|mcp-proxy-staging.anthropic.com|registry.npmjs.org|jsr.io|npm.jsr.io|pypi.org|files.pythonhosted.org|index.crates.io|proxy.golang.org|host.docker.internal|10.*|172.16.*|172.17.*|172.18.*|172.19.*|172.20.*|172.21.*|172.22.*|172.23.*|172.24.*|172.25.*|172.26.*|172.27.*|172.28.*|172.29.*|172.30.*|172.31.*|192.168.*|100.64.0.0/10|*.svc.cluster.local|*.svc.cluster.local -Djdk.http.auth.tunneling.disabledSchemes= -Djdk.http.auth.proxying.disabledSchemes=
+[INFO] arthas home: /root/.runtime-xray/arthas-4.3.4
+[INFO] Try to attach process 5561
+Picked up JAVA_TOOL_OPTIONS: 
+[INFO] Attach process 5561 success.
+[INFO] arthas-client connect 127.0.0.1 3658
+[1;31m  ,---.  [1;33m,------. [1;36m,--------.[1;35m,--.  ,--.[1;32m  ,---.  [1;34m ,---.  [0m                         
+[1;31m /  O  \ [1;33m|  .--. '[1;36m'--.  .--'[1;35m|  '--'  |[1;32m /  O  \ [1;34m'   .-' [0m                         
+[1;31m|  .-.  |[1;33m|  '--'.'[1;36m   |  |   [1;35m|  .--.  |[1;32m|  .-.  |[1;34m`.  `-. [0m                         
+[1;31m|  | |  |[1;33m|  |\  \ [1;36m   |  |   [1;35m|  |  |  |[1;32m|  | |  |[1;34m.-'    |[0m                         
+[1;31m`--' `--'[1;33m`--' '--'[1;36m   `--'   [1;35m`--'  `--'[1;32m`--' `--'[1;34m`-----' [0m                         
+
+wiki         https://arthas.aliyun.com/doc                                      
+tutorials    https://arthas.aliyun.com/doc/arthas-tutorials.html                
+version      4.3.4                                                              
+main_class   /home/user/runtime-xray/sample-app/target/sample-app.jar           
+pid          5561                                                               
+start_time   2026-08-29 06:02:49.180                                            
+current_time 2026-08-29 06:03:01.905                                            
+
+[arthas@5561]$ trace lab.sample.terrain.Terrain slowdownFactor -n 10 | plaintext 
+Press Q or Ctrl+C to abort.
+Affect(class count: 1 , method count: 1) cost in 137 ms, listenerId: 1
+`---ts=2026-08-29 06:03:02.914;thread_name=main;id=1;is_daemon=false;priority=5;TCCL=jdk.internal.loader.ClassLoaders$AppClassLoader@5a07e868
+    `---[0.740845ms] lab.sample.terrain.Terrain:slowdownFactor()
+        +---[22.10% min=0.003223ms,max=0.063945ms,total=0.16376ms,count=24] lab.sample.terrain.Elevation:gradePercentAt() #31
+        `---[15.89% min=0.003332ms,max=0.012482ms,total=0.117731ms,count=24] lab.sample.terrain.Terrain:penaltyFor() #32
+
+`---ts=2026-08-29 06:03:02.918;thread_name=main;id=1;is_daemon=false;priority=5;TCCL=jdk.internal.loader.ClassLoaders$AppClassLoader@5a07e868
+    `---[0.441181ms] lab.sample.terrain.Terrain:slowdownFactor()
+        +---[20.10% min=0.003291ms,max=0.007053ms,total=0.088677ms,count=24] lab.sample.terrain.Elevation:gradePercentAt() #31
+        `---[20.57% min=0.003415ms,max=0.005344ms,total=0.090735ms,count=24] lab.sample.terrain.Terrain:penaltyFor() #32
+
+`---ts=2026-08-29 06:03:02.919;thread_name=main;id=1;is_daemon=false;priority=5;TCCL=jdk.internal.loader.ClassLoaders$AppClassLoader@5a07e868
+    `---[0.537686ms] lab.sample.terrain.Terrain:slowdownFactor()
+        +---[18.26% min=0.003354ms,max=0.008298ms,total=0.098191ms,count=24] lab.sample.terrain.Elevation:gradePercentAt() #31
+        `---[27.99% min=0.003479ms,max=0.048948ms,total=0.150518ms,count=24] lab.sample.terrain.Terrain:penaltyFor() #32
+
+`---ts=2026-08-29 06:03:02.920;thread_name=main;id=1;is_daemon=false;priority=5;TCCL=jdk.internal.loader.ClassLoaders$AppClassLoader@5a07e868
+    `---[3.423093ms] lab.sample.terrain.Terrain:slowdownFactor()
+        +---[2.99% min=0.003466ms,max=0.009345ms,total=0.102474ms,count=24] lab.sample.terrain.Elevation:gradePercentAt() #31
+        `---[4.20% min=0.00356ms,max=0.046388ms,total=0.143906ms,count=24] lab.sample.terrain.Terrain:penaltyFor() #32
+
+`---ts=2026-08-29 06:03:02.924;thread_name=main;id=1;is_daemon=false;priority=5;TCCL=jdk.internal.loader.ClassLoaders$AppClassLoader@5a07e868
+    `---[0.471586ms] lab.sample.terrain.Terrain:slowdownFactor()
+        +---[19.86% min=0.003444ms,max=0.006595ms,total=0.093667ms,count=24] lab.sample.terrain.Elevation:gradePercentAt() #31
+        `---[19.81% min=0.00348ms,max=0.005855ms,total=0.093423ms,count=24] lab.sample.terrain.Terrain:penaltyFor() #32
+
+`---ts=2026-08-29 06:03:02.925;thread_name=main;id=1;is_daemon=false;priority=5;TCCL=jdk.internal.loader.ClassLoaders$AppClassLoader@5a07e868
+    `---[0.596207ms] lab.sample.terrain.Terrain:slowdownFactor()
+        +---[31.78% min=0.003349ms,max=0.054654ms,total=0.189462ms,count=24] lab.sample.terrain.Elevation:gradePercentAt() #31
+        `---[19.21% min=0.003498ms,max=0.01604ms,total=0.114508ms,count=24] lab.sample.terrain.Terrain:penaltyFor() #32
+
+`---ts=2026-08-29 06:03:02.926;thread_name=main;id=1;is_daemon=false;priority=5;TCCL=jdk.internal.loader.ClassLoaders$AppClassLoader@5a07e868
+    `---[0.60293ms] lab.sample.terrain.Terrain:slowdownFactor()
+        +---[17.99% min=0.003149ms,max=0.011992ms,total=0.108456ms,count=24] lab.sample.terrain.Elevation:gradePercentAt() #31
+        `---[16.93% min=0.003278ms,max=0.009173ms,total=0.102068ms,count=24] lab.sample.terrain.Terrain:penaltyFor() #32
+
+`---ts=2026-08-29 06:03:02.928;thread_name=main;id=1;is_daemon=false;priority=5;TCCL=jdk.internal.loader.ClassLoaders$AppClassLoader@5a07e868
+    `---[0.952821ms] lab.sample.terrain.Terrain:slowdownFactor()
+        +---[23.59% min=0.002949ms,max=0.055015ms,total=0.224779ms,count=24] lab.sample.terrain.Elevation:gradePercentAt() #31
+        `---[27.96% min=0.003073ms,max=0.061566ms,total=0.266372ms,count=24] lab.sample.terrain.Terrain:penaltyFor() #32
+
+`---ts=2026-08-29 06:03:02.930;thread_name=main;id=1;is_daemon=false;priority=5;TCCL=jdk.internal.loader.ClassLoaders$AppClassLoader@5a07e868
+    `---[0.425524ms] lab.sample.terrain.Terrain:slowdownFactor()
+        +---[16.59% min=0.002529ms,max=0.005796ms,total=0.070608ms,count=24] lab.sample.terrain.Elevation:gradePercentAt() #31
+        `---[22.54% min=0.002639ms,max=0.021316ms,total=0.095901ms,count=24] lab.sample.terrain.Terrain:penaltyFor() #32
+
+`---ts=2026-08-29 06:03:02.931;thread_name=main;id=1;is_daemon=false;priority=5;TCCL=jdk.internal.loader.ClassLoaders$AppClassLoader@5a07e868
+    `---[2.77672ms] lab.sample.terrain.Terrain:slowdownFactor()
+        +---[87.49% min=0.001706ms,max=2.382186ms,total=2.429467ms,count=24] lab.sample.terrain.Elevation:gradePercentAt() #31
+        `---[3.34% min=0.001762ms,max=0.041245ms,total=0.092631ms,count=24] lab.sample.terrain.Terrain:penaltyFor() #32
+
+Command execution times exceed limit: 10, so command will exit. You can set it with -n option.
+[arthas@5561]$ 

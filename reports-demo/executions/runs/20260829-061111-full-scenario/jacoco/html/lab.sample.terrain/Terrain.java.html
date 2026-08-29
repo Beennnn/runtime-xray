@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Terrain.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Runtime X-Ray</a> &gt; <a href="index.source.html" class="el_package">lab.sample.terrain</a> &gt; <span class="el_source">Terrain.java</span></div><h1>Terrain.java</h1><pre class="source lang-java linenums">package lab.sample.terrain;
+
+import lab.sample.model.Leg;
+import lab.sample.model.Mode;
+
+/**
+ * Slowdown caused by the terrain, averaged over a leg's sub-segments.
+ *
+ * &lt;p&gt;Two reasons to exist:
+ * &lt;ul&gt;
+ *   &lt;li&gt;it is the program's &lt;b&gt;computational core&lt;/b&gt; — without it, the application spends
+ *       its time in the JDK's iterators and a profiler shows nothing of the business;&lt;/li&gt;
+ *   &lt;li&gt;it is called only for the modes sensitive to terrain: the train follows a track
+ *       whose gradient is negligible, so it skips this whole sub-tree.&lt;/li&gt;
+ * &lt;/ul&gt;
+ */
+public final class Terrain {
+
+    /** Number of sub-segments analysed per leg. */
+    private static final int STEPS = 24;
+
+    private Terrain() {}
+
+    public static boolean applies(Mode mode) {
+<span class="fc bfc" id="L25" title="All 2 branches covered.">        return mode != Mode.TRAIN;</span>
+    }
+
+    public static double slowdownFactor(Leg leg, Mode mode) {
+<span class="fc" id="L29">        double sum = 0;</span>
+<span class="fc bfc" id="L30" title="All 2 branches covered.">        for (int step = 0; step &lt; STEPS; step++) {</span>
+<span class="fc" id="L31">            double grade = Elevation.gradePercentAt(leg, step);</span>
+<span class="fc" id="L32">            sum += penaltyFor(grade, mode);</span>
+        }
+<span class="fc" id="L34">        return sum / STEPS;</span>
+    }
+
+    /** A climb costs more than a descent gives back, all the more so under one's own
+     *  muscle power. */
+    private static double penaltyFor(double gradePercent, Mode mode) {
+<span class="pc bpc" id="L40" title="2 of 5 branches missed.">        double sensitivity = switch (mode) {</span>
+<span class="fc" id="L41">            case BIKE -&gt; 0.09;</span>
+<span class="fc" id="L42">            case WALK -&gt; 0.05;</span>
+<span class="fc" id="L43">            case CAR -&gt; 0.01;</span>
+<span class="nc" id="L44">            case TRAIN -&gt; 0.00;</span>
+<span class="pc" id="L45">            case PLANE -&gt; 0.00;</span>
+        };
+<span class="fc bfc" id="L47" title="All 2 branches covered.">        if (gradePercent &gt; 0) {</span>
+<span class="fc" id="L48">            return 1.0 + gradePercent * sensitivity;</span>
+        }
+<span class="fc" id="L50">        return 1.0 + gradePercent * sensitivity * 0.3; // going down only partly makes up for it</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

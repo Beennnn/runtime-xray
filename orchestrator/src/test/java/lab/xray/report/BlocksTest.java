@@ -27,7 +27,7 @@ class BlocksTest {
         r.put("uuid", uuid);
         r.put("nom", "essai");
         r.put("chemin", "runs/" + uuid + "/");
-        r.put("nom", "scénario " + uuid);
+        r.put("nom", "scenario " + uuid);
         r.put("packages", Map.of("app", List.of(Map.of("name", "app/Moteur"))));
         r.put("coverage", Map.of("app/Moteur.java", Map.of("3", Map.of("s", "full"))));
         r.put("calltree", Map.of("name", "racine", "total", 40));
@@ -47,7 +47,7 @@ class BlocksTest {
         assertEquals(1, lines.size(), "une source, une ligne");
         assertTrue(lines.get(0).startsWith("XR.bloc(\"src\",\"app/Moteur.java\","),
                 "the key must come first, so that a grep finds it: " + lines.get(0));
-        assertTrue(lines.get(0).endsWith(");"), "et la ligne doit se refermer");
+        assertTrue(lines.get(0).endsWith(");"), "and the line must close itself again");
 
         // Stripping the wrapper must give pure JSON — that is what gives jq for free.
         String json = lines.get(0).replaceFirst("^XR\\.bloc\\(", "[").replaceFirst("\\);$", "]");
@@ -63,7 +63,7 @@ class BlocksTest {
 
         Map<String, Object> light = (Map<String, Object>) ((List<Object>) summary.get("runs")).get(0);
         assertTrue(light.containsKey("nom"), "the run's identity stays: it is displayed");
-        assertTrue(light.containsKey("packages"), "l'arbre des classes aussi");
+        assertTrue(light.containsKey("packages"), "the class tree too");
         // A run's blocks live UNDER it: copying its directory takes with it everything
         // that concerns it, and removing one leaves no orphan elsewhere.
         assertEquals(List.of("runs/UUID-2/vue/couverture.js", "runs/UUID-2/vue/arbre.js",
@@ -97,7 +97,7 @@ class BlocksTest {
         Path sources = dir.resolve("vue/sources");
         try (var f = Files.list(sources)) {
             assertTrue(f.allMatch(p -> p.getParent().equals(sources)),
-                    "tout doit rester sous vue/sources/");
+                    "everything must stay under vue/sources/");
         }
     }
 
@@ -116,11 +116,11 @@ class BlocksTest {
         Map<String, Object> light = Blocks.thin(withoutProfile, "runs/UUID-3/vue/");
 
         assertEquals(Map.of("name", "tout", "total", 0, "children", List.of()),
-                light.get("calltree"), "l'arbre absent doit se lire comme un arbre vide");
+                light.get("calltree"), "an absent tree must read as an empty tree");
         assertEquals(Map.of(), light.get("values"));
         assertEquals(0L, light.get("mesures"));
         assertFalse(String.valueOf(light.get("blocs")).contains("arbre.js"),
-                "pas de bloc pour un champ qui n'existe pas : on l'attendrait pour rien");
+                "no block for a field that does not exist: it would be awaited for nothing");
     }
 
     @Test

@@ -28,7 +28,7 @@ class CoverageTest {
             <!DOCTYPE report PUBLIC "-//JACOCO//DTD Report 1.1//EN" "report.dtd">
             <report name="test">
               <package name="app/moteur">
-                <class name="app/moteur/Calcul" sourcefilename="Calcul.java">
+                <class name="app/moteur/Compute" sourcefilename="Compute.java">
                   <method name="calculer" desc="(I)I" line="10">
                     <counter type="INSTRUCTION" missed="0" covered="12"/>
                   </method>
@@ -43,7 +43,7 @@ class CoverageTest {
                   </method>
                   <counter type="INSTRUCTION" missed="3" covered="0"/>
                 </class>
-                <sourcefile name="Calcul.java">
+                <sourcefile name="Compute.java">
                   <line nr="10" mi="0" ci="4" mb="0" cb="0"/>
                   <line nr="11" mi="0" ci="4" mb="1" cb="1"/>
                   <line nr="20" mi="4" ci="0" mb="0" cb="0"/>
@@ -70,7 +70,7 @@ class CoverageTest {
     @DisplayName("Each line gets its state: executed, partial, never reached")
     void classifiesLines(@TempDir Path dir) throws Exception {
         Coverage c = Coverage.parse(xml(dir));
-        Map<String, Object> lines = c.lines.get("app/moteur/Calcul.java");
+        Map<String, Object> lines = c.lines.get("app/moteur/Compute.java");
         assertNotNull(lines, "the source file must be indexed under package/File.java");
         assertEquals("full", ((Map<?, ?>) lines.get("10")).get("s"));
         assertEquals("part", ((Map<?, ?>) lines.get("11")).get("s"));
@@ -81,7 +81,7 @@ class CoverageTest {
     @DisplayName("The branch count comes with the partly covered lines")
     void reportsBranchCounts(@TempDir Path dir) throws Exception {
         Coverage c = Coverage.parse(xml(dir));
-        Map<String, Object> lines = c.lines.get("app/moteur/Calcul.java");
+        Map<String, Object> lines = c.lines.get("app/moteur/Compute.java");
         assertEquals(List.of(1, 2), ((Map<?, ?>) lines.get("11")).get("b"));
         assertNull(((Map<?, ?>) lines.get("10")).get("b"), "no branch, no count");
     }
@@ -91,8 +91,8 @@ class CoverageTest {
     void listsMethodsPerClass(@TempDir Path dir) throws Exception {
         Coverage c = Coverage.parse(xml(dir));
         @SuppressWarnings("unchecked")
-        Map<String, Object> cls = (Map<String, Object>) c.methods.get("app/moteur/Calcul");
-        assertEquals("app/moteur/Calcul.java", cls.get("source"));
+        Map<String, Object> cls = (Map<String, Object>) c.methods.get("app/moteur/Compute");
+        assertEquals("app/moteur/Compute.java", cls.get("source"));
         @SuppressWarnings("unchecked")
         List<Object> methods = (List<Object>) cls.get("methods");
         assertEquals(2, methods.size());
@@ -124,7 +124,7 @@ class CoverageTest {
         Coverage c = Coverage.parse(xml(dir));
         @SuppressWarnings("unchecked")
         List<Object> classes = (List<Object>) c.packages.get("app/moteur");
-        assertEquals("Calcul", ((Map<?, ?>) classes.get(0)).get("simple"));
+        assertEquals("Compute", ((Map<?, ?>) classes.get(0)).get("simple"));
         assertEquals("Morte", ((Map<?, ?>) classes.get(1)).get("simple"));
     }
 
@@ -135,7 +135,7 @@ class CoverageTest {
         Files.writeString(f, """
                 <report name="t">
                   <package name="app/moteur">
-                    <class name="app/moteur/Calcul" sourcefilename="Calcul.java">
+                    <class name="app/moteur/Compute" sourcefilename="Compute.java">
                       <counter type="INSTRUCTION" missed="0" covered="9"/>
                     </class>
                   </package>

@@ -123,7 +123,7 @@ class ToolboxTest {
         Path obtained = tools(cache, List.of(), dir.resolve("m2")).asyncProfilerConverter();
 
         assertEquals(cache.resolve("jfr-converter-4.1.jar"), obtained,
-                "un -javaagent veut un fichier : le composant doit atterrir sur le disque");
+                "a -javaagent wants a file: the component must land on the disk");
         assertTrue(Files.isRegularFile(obtained));
         assertTrue(Files.list(cache).noneMatch(f -> f.getFileName().toString().startsWith("ex-")),
                 "no working file must be left behind");

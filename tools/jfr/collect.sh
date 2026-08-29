@@ -39,8 +39,8 @@ java "-XX:StartFlightRecording:${REC_OPTS},filename=$OUT/recording.jfr" \
 jfr summary "$OUT/recording.jfr"                      > "$OUT/summary.txt"
 if [ "${JAVA_MAJOR:-21}" -ge 25 ]; then
   jfr print --events jdk.MethodTiming "$OUT/recording.jfr" > "$OUT/method-timing.txt"
-  jfr print --events jdk.MethodTrace  "$OUT/recording.jfr" | head -120 > "$OUT/method-trace-extrait.txt"
+  jfr print --events jdk.MethodTrace  "$OUT/recording.jfr" | head -120 > "$OUT/method-trace-excerpt.txt"
 fi
-jfr print --events jdk.ExecutionSample "$OUT/recording.jfr" | head -200 > "$OUT/execution-sample-extrait.txt"
+jfr print --events jdk.ExecutionSample "$OUT/recording.jfr" | head -200 > "$OUT/execution-sample-excerpt.txt"
 
 echo "→ recording: $OUT/recording.jfr (to be opened in JDK Mission Control)"

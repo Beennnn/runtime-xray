@@ -43,7 +43,7 @@ class MarkdownTest {
 
     private static Map<String, Object> run() {
         Map<String, Object> packages = new LinkedHashMap<>();
-        packages.put("app/moteur", List.of(clazz("app/moteur/Calcul", 90, 10)));
+        packages.put("app/moteur", List.of(clazz("app/moteur/Compute", 90, 10)));
         packages.put("app/mort", List.of(clazz("app/mort/JamaisAppele", 0, 40)));
 
         Map<String, Object> call = new LinkedHashMap<>();
@@ -55,8 +55,8 @@ class MarkdownTest {
         run.put("context", new LinkedHashMap<>(Map.of("commande", "java -jar app.jar",
                 "java", "Temurin 25")));
         run.put("packages", packages);
-        run.put("calltree", node("tout", 100, node("app/moteur/Calcul.calculer", 80)));
-        run.put("values", Map.of("app/moteur/Calcul.calculer", List.of(call)));
+        run.put("calltree", node("tout", 100, node("app/moteur/Compute.calculer", 80)));
+        run.put("values", Map.of("app/moteur/Compute.calculer", List.of(call)));
         return run;
     }
 

@@ -91,8 +91,8 @@ class SourcesTest {
         @SuppressWarnings("unchecked")
         Map<String, Object> root = (Map<String, Object>) index.roots().get(0);
         assertEquals(Boolean.FALSE, root.get("existe"));
-        assertNotNull(root.get("absolue"), "le chemin absolu est ce qui permet de comprendre");
-        assertNotNull(root.get("motif"), "et la raison est ce qui permet de corriger");
+        assertNotNull(root.get("absolue"), "the absolute path is what allows understanding");
+        assertNotNull(root.get("motif"), "and the reason is what allows fixing");
     }
 
     @Test
@@ -112,7 +112,7 @@ class SourcesTest {
         assertEquals("autre.paquet", where.get("paquet"));
         assertEquals("autre/paquet/Application.java", where.get("cle"));
         assertTrue(String.valueOf(where.get("chemin")).endsWith("Application.java"),
-                "le chemin absolu est ce qu'on recopie pour corriger la configuration");
+                "the absolute path is what one copies to fix the configuration");
     }
 
     @Test

@@ -42,11 +42,14 @@ while IFS=, read -r _group package class im ic _rest; do
   fi
 done < "$FULL/html/jacoco.csv"
 
+# The report's name stays ASCII: java encodes the arguments it hands to a child process with
+# sun.jnu.encoding, read from the locale. Under POSIX or C — the default in a good many
+# containers — that is pure ASCII, and an em dash leaves as a "?" in the report's title.
 java -jar "$CLI" report "$FULL/jacoco.exec" \
   --classfiles "$STAGE" \
   --sourcefiles sample-app/src/main/java \
   --html "$OUT/html" --csv "$OUT/jacoco.csv" \
-  --name "Runtime X-Ray — code actually executed" --quiet
+  --name "Runtime X-Ray: code actually executed" --quiet
 
 echo "→ $kept classes kept, $dropped dropped"
 echo "→ focused report: $OUT/html/index.html"

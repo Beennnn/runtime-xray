@@ -17,9 +17,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Ce que l'utilisateur lit est en anglais.
+ * What the user reads is in English.
  *
- * <h2>Pourquoi un test, et pas une relecture</h2>
+ * <h2>Why a test, and not a re-reading</h2>
  *
  * <p>The switch to English was made in steps, and each one left behind a repository where
  * <b>both languages legitimately coexist</b>: the code, the comments and the

@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Scenarios.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Cumulative coverage over 3 runs</a> &gt; <a href="index.source.html" class="el_package">lab.sample</a> &gt; <span class="el_source">Scenarios.java</span></div><h1>Scenarios.java</h1><pre class="source lang-java linenums">package lab.sample;
+
+import lab.sample.model.Leg;
+import lab.sample.model.Mode;
+import lab.sample.model.TimeOfDay;
+import lab.sample.model.Trip;
+import lab.sample.model.Weather;
+
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * The trips replayed identically by every tool.
+ *
+ * &lt;p&gt;The draw is &lt;b&gt;deterministic&lt;/b&gt;: no {@code Random}, no clock. Two runs produce exactly
+ * the same trace — otherwise comparing two reports would amount to comparing two different
+ * runs, and the gap observed would no longer say anything about the tool.
+ *
+ * &lt;p&gt;{@code Mode.PLANE} and {@code Weather.SNOW} are deliberately absent from the draw.
+ */
+final class Scenarios {
+
+    private Scenarios() {}
+
+<span class="fc" id="L25">    private static final Mode[] MODES = {Mode.CAR, Mode.TRAIN, Mode.BIKE, Mode.WALK};</span>
+<span class="fc" id="L26">    private static final Weather[] WEATHERS = {Weather.SUNNY, Weather.RAIN};</span>
+<span class="fc" id="L27">    private static final TimeOfDay[] TIMES = {TimeOfDay.QUIET, TimeOfDay.RUSH_HOUR, TimeOfDay.NIGHT};</span>
+<span class="fc" id="L28">    private static final String[] PLACES = {&quot;Toulouse&quot;, &quot;Albi&quot;, &quot;Montauban&quot;, &quot;Castres&quot;, &quot;Auch&quot;, &quot;Foix&quot;};</span>
+
+    static Trip at(int i) {
+<span class="fc" id="L31">        Mode mode = MODES[i % MODES.length];</span>
+<span class="fc" id="L32">        Weather weather = WEATHERS[(i / 4) % WEATHERS.length];</span>
+<span class="fc" id="L33">        TimeOfDay time = TIMES[(i / 8) % TIMES.length];</span>
+<span class="fc bfc" id="L34" title="All 2 branches covered.">        boolean luggage = (i % 5) == 0;</span>
+
+<span class="fc" id="L36">        int legCount = 1 + (i % 4);</span>
+<span class="fc" id="L37">        List&lt;Leg&gt; legs = new ArrayList&lt;&gt;(legCount);</span>
+<span class="fc bfc" id="L38" title="All 2 branches covered.">        for (int l = 0; l &lt; legCount; l++) {</span>
+<span class="fc" id="L39">            String from = PLACES[(i + l) % PLACES.length];</span>
+<span class="fc" id="L40">            String to = PLACES[(i + l + 1) % PLACES.length];</span>
+<span class="fc" id="L41">            double km = 2 + ((i + l * 7) % 60);</span>
+<span class="fc" id="L42">            legs.add(new Leg(from, to, km));</span>
+        }
+        // Plain concatenation rather than &quot;TRIP-%05d&quot;.formatted(i): the formatting alone
+        // cost ~40 % of the CPU time and crushed the computation in the flame graph. The
+        // profile must show the logic being evaluated, not the making of the test set.
+<span class="fc" id="L47">        return new Trip(&quot;TRIP-&quot; + i, mode, weather, time, luggage, List.copyOf(legs));</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

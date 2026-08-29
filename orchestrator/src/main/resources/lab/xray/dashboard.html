@@ -897,8 +897,8 @@ const XR = {
   _recu: null,
 
   /** Called by every line of a block while it loads. */
-  bloc(type, cle, valeur){
-    if (XR._recu) XR._recu.push([type, cle, valeur]);
+  bloc(type, srcKey, val){
+    if (XR._recu) XR._recu.push([type, srcKey, val]);
   },
 
   /* Loads follow one another instead of overlapping, and that is not a detail: the
@@ -908,60 +908,60 @@ const XR = {
      time of a parse. */
   _file: Promise.resolve(),
 
-  charger(nom){
-    if (XR.cache.has(nom)) { XR.toucher(nom); return Promise.resolve(); }
-    if (XR.attente.has(nom)) return XR.attente.get(nom);
+  charger(blockName){
+    if (XR.cache.has(blockName)) { XR.toucher(blockName); return Promise.resolve(); }
+    if (XR.attente.has(blockName)) return XR.attente.get(blockName);
     const p = XR._file.then(() => new Promise((ok, ko) => {
-      if (XR.cache.has(nom)) { XR.toucher(nom); ok(); return; }
+      if (XR.cache.has(blockName)) { XR.toucher(blockName); ok(); return; }
       const recu = [];
       XR._recu = recu;
       const s = document.createElement("script");
-      s.src = nom;
+      s.src = blockName;
       s.onload = () => {
-        XR._recu = null; XR.attente.delete(nom); XR.ranger(nom, recu); ok();
+        XR._recu = null; XR.attente.delete(blockName); XR.ranger(blockName, recu); ok();
       };
       s.onerror = () => {
-        XR._recu = null; XR.attente.delete(nom); s.remove(); XR.scripts.delete(nom);
-        ko(new Error("block not found: " + nom));
+        XR._recu = null; XR.attente.delete(blockName); s.remove(); XR.scripts.delete(blockName);
+        ko(new Error("block not found: " + blockName));
       };
       document.head.appendChild(s);
-      XR.scripts.set(nom, s);
+      XR.scripts.set(blockName, s);
     }));
-    XR.attente.set(nom, p);
+    XR.attente.set(blockName, p);
     // The queue must not stop on a missing block: the next one has every right to be there.
     XR._file = p.catch(() => {});
     return p;
   },
 
   /** Files what a block brought where the view already reads it. */
-  ranger(nom, recu){
+  ranger(blockName, recu){
     const pose = [];
-    for (const [type, cle, valeur] of recu){
-      if (type === "src"){ D.sources[cle] = valeur; pose.push(["src", cle]); }
-      else if (type === "cumul"){ D.cumul[cle] = valeur; pose.push(["cumul", cle]); }
-      else if (type === "poids"){ D.poids[cle] = valeur; pose.push(["poids", cle]); }
-      else if (type === "presence"){ D.presence[cle] = valeur; pose.push(["presence", cle]); }
+    for (const [type, srcKey, val] of recu){
+      if (type === "src"){ D.sources[srcKey] = val; pose.push(["src", srcKey]); }
+      else if (type === "cumul"){ D.cumul[srcKey] = val; pose.push(["cumul", srcKey]); }
+      else if (type === "poids"){ D.poids[srcKey] = val; pose.push(["poids", srcKey]); }
+      else if (type === "presence"){ D.presence[srcKey] = val; pose.push(["presence", srcKey]); }
       else if (type === "run"){
-        const [uuid, champ] = cle.split("/");
+        const [uuid, champ] = srcKey.split("/");
         const run = D.runs.find(r => r.uuid === uuid);
-        if (run){ run[champ] = valeur; pose.push(["run", run, champ]); }
+        if (run){ run[champ] = val; pose.push(["run", run, champ]); }
       }
     }
-    XR.cache.set(nom, pose);
+    XR.cache.set(blockName, pose);
     // Global indexes do not age: they are small, they serve all the time, and
     // evicting them breaks accumulation as soon as a few more classes are opened — seen.
-    if (XR.permanent(nom)) return;
-    XR.toucher(nom);
+    if (XR.permanent(blockName)) return;
+    XR.toucher(blockName);
     XR.evincer();
   },
 
-  toucher(nom){
-    if (XR.permanent(nom)) return;
-    XR.ordre = XR.ordre.filter(x => x !== nom); XR.ordre.push(nom);
+  toucher(blockName){
+    if (XR.permanent(blockName)) return;
+    XR.ordre = XR.ordre.filter(x => x !== blockName); XR.ordre.push(blockName);
   },
 
   /** A global index: it crosses runs, it is small, it stays. */
-  permanent(nom){ return nom.startsWith((D.global || "vue/")) && !nom.includes("/sources/"); },
+  permanent(blockName){ return blockName.startsWith((D.global || "vue/")) && !blockName.includes("/sources/"); },
 
   /**
    * Forget the oldest blocks: the entry AND the script, without which the memory never
@@ -1002,16 +1002,16 @@ const XR = {
   },
 
   /** A global index: it crosses runs, so it lives above them. */
-  async global(nom){
-    const chemin = (D.global || "vue/") + nom;
-    if (XR.cache.has(chemin)) { XR.toucher(chemin); return; }
-    await XR.charger(chemin).catch(e => console.error(e));
+  async global(blockName){
+    const blockPath = (D.global || "vue/") + blockName;
+    if (XR.cache.has(blockPath)) { XR.toucher(blockPath); return; }
+    await XR.charger(blockPath).catch(e => console.error(e));
   },
 
   /** The block that carries this file's code, if there is one. */
-  async source(cle){
-    const bloc = D.sourcesDisponibles[cle];
-    if (bloc && !D.sources[cle]) await XR.charger(bloc);
+  async source(srcKey){
+    const bloc = D.sourcesDisponibles[srcKey];
+    if (bloc && !D.sources[srcKey]) await XR.charger(bloc);
   },
 
   async cumulIndex(){ await XR.global("cumul.js"); },
@@ -1070,7 +1070,7 @@ try { cumul = localStorage.getItem("runtime-xray.cumul") === "1"; } catch(e){}
 if (D.runs.length < 2) cumul = false;
 
 /** The ticked runs, in the page's order. */
-function runsCoches(){
+function tickedRuns(){
   return D.runs.map((r, i) => i).filter(i => shownRuns.has(i));
 }
 
@@ -1082,18 +1082,18 @@ function runsCoches(){
  * and partial as long as none covered it entirely. Branches keep the best reading — the
  * same rule JaCoCo applies when merging two {@code .exec} files.
  */
-function covPourVue(source){
+function coverageForView(source){
   if (!cumul) return (R.coverage && R.coverage[source]) || {};
   // The union is read from an index computed at assembly: per line, two bit masks — who
   // covered it entirely, who partially. Uniting a subset becomes a binary AND, one
   // operation per line, instead of a search per line AND per run.
   const index = D.cumul[source];
   if (!index) return (R.coverage && R.coverage[source]) || {};
-  let masque = 0;
-  for (const i of runsCoches()) masque |= (1 << i);
+  let maskBits = 0;
+  for (const i of tickedRuns()) maskBits |= (1 << i);
   const out = {};
   for (const [nr, plein, partiel] of index){
-    const p = plein & masque, q = partiel & masque;
+    const p = plein & maskBits, q = partiel & maskBits;
     if (!p && !q) continue;
     const bits = p | q, which = [];
     for (let i = 0; i < D.runs.length; i++) if (bits & (1 << i)) which.push(i);
@@ -1103,7 +1103,7 @@ function covPourVue(source){
 }
 
 /** The pips that say which runs covered a line. */
-function pastillesRuns(c){
+function runPips(c){
   if (!cumul || !c || !c.runs || !c.runs.length) return "";
   return '<span class="quiruns">' + c.runs.map(i =>
     '<span class="runbadge r' + (i % 8) + '" title="Covered in “' + esc(runLabel(D.runs[i]))
@@ -1206,7 +1206,7 @@ function formatWeight(samples, total){
  * sign for “negligible”, but next to “of time” it gave “· of time”, which says nothing.
  * And in milliseconds, “62ms of time” did not mean much more.
  */
-function partDuTemps(samples){
+function shareOfTime(samples){
   const t = formatWeight(samples, R.calltree.total);
   if (unit !== "pct") return t + " accumulated here";
   if (t === "·") return "less than 0.1% of time";
@@ -1264,9 +1264,9 @@ function annotationOf(run){
     elagage: local.elagage !== undefined ? local.elagage : base.elagage
   };
 }
-function annotationPatch(run, champ, valeur){
+function annotationPatch(run, champ, val){
   const a = annotations[run.uuid] || (annotations[run.uuid] = {});
-  if (valeur === null) delete a[champ]; else a[champ] = valeur;
+  if (val === null) delete a[champ]; else a[champ] = val;
   if (!Object.keys(a).length) delete annotations[run.uuid];
   saveAnnotations();
 }
@@ -1282,31 +1282,31 @@ function annotationPatch(run, champ, valeur){
  *   — and one IMPORTS an existing noms.json to find again, in this browser, what a
  *     colleague annotated.
  */
-let peutEnregistrer = false;
+let canSave = false;
 // What the shared server already carries: other people's annotations, and the fingerprint
 // of each. The fingerprint is what lets us say “somebody came by since”.
-let annotationsServeur = {};
-let empreintesServeur = {};
+let serverAnnotations = {};
+let serverFingerprints = {};
 // Is the server guarded by a shared secret? We say so in the bar: whoever annotates has
 // the right to know whether what they write goes to a server open to everyone.
-let serveurGarde = false;
+let serverGuarded = false;
 // The report's revision on the server: it changes when a run is dropped in or removed.
 // The page does not reload by itself — we do not make what somebody is reading disappear
 // somebody is reading — it offers.
-let revisionServeur = null;
+let serverRevision = null;
 
-function lireServeur(){
+function readServer(){
   return fetch("__xray/noms", {cache: "no-store"})
-    .then(r => { if (r.status === 401) { sessionExpiree(); return null; }
+    .then(r => { if (r.status === 401) { sessionExpired(); return null; }
                  return r.ok ? r.json() : null; })
     .then(j => {
       if (!j) return false;
-      const avant = JSON.stringify(empreintesServeur);
-      annotationsServeur = j.annotations || {};
-      empreintesServeur = j.empreintes || {};
-      if (revisionServeur === null) revisionServeur = j.revision || null;
-      else if (j.revision && j.revision !== revisionServeur) annoncerNouvelles(j.executions);
-      return JSON.stringify(empreintesServeur) !== avant;
+      const avant = JSON.stringify(serverFingerprints);
+      serverAnnotations = j.annotations || {};
+      serverFingerprints = j.empreintes || {};
+      if (serverRevision === null) serverRevision = j.revision || null;
+      else if (j.revision && j.revision !== serverRevision) announceNews(j.executions);
+      return JSON.stringify(serverFingerprints) !== avant;
     })
     .catch(() => false);
 }
@@ -1315,14 +1315,14 @@ fetch("__xray/ping", {cache: "no-store"})
   .then(r => r.ok ? r.json() : null)
   .then(j => {
     if (!j || !j.peutEcrire) return;
-    peutEnregistrer = true;
-    serveurGarde = !!j.garde;
-    return lireServeur().then(() => {
+    canSave = true;
+    serverGuarded = !!j.garde;
+    return readServer().then(() => {
       renderIdentity();
       refreshRunLabels();
       // Several people can annotate at once: we read back regularly, and we lay down the
       // names of the runs one is not editing oneself.
-      setInterval(() => lireServeur().then(change => {
+      setInterval(() => readServer().then(change => {
         if (!change) return;
         refreshRunLabels();
         if (!document.getElementById("annotName")
@@ -1340,17 +1340,17 @@ fetch("__xray/ping", {cache: "no-store"})
  * is enough. We say so, because without it “failed” looks like data lost.
  *
  */
-function sessionExpiree(){
-  peutEnregistrer = false;
+function sessionExpired(){
+  canSave = false;
   if (document.getElementById("nouvelles")) return;
-  const barre = document.createElement("div");
-  barre.id = "nouvelles";
-  barre.innerHTML = 'Session expired. What is not yet saved stays in this ' +
+  const strip = document.createElement("div");
+  strip.id = "nouvelles";
+  strip.innerHTML = 'Session expired. What is not yet saved stays in this ' +
     'browser. <button class="mini" id="nouvellesGo">reconnect</button>' +
     '<button class="mini" id="nouvellesNon" aria-label="Dismiss">✕</button>';
-  document.body.appendChild(barre);
+  document.body.appendChild(strip);
   document.getElementById("nouvellesGo").onclick = () => location.reload();
-  document.getElementById("nouvellesNon").onclick = () => barre.remove();
+  document.getElementById("nouvellesNon").onclick = () => strip.remove();
 }
 
 /**
@@ -1359,35 +1359,35 @@ function sessionExpiree(){
  * <p>We do not reload on their behalf: somebody may be reading a method, or writing a
  * description. We say so, and we let them decide.
  */
-function annoncerNouvelles(combien){
+function announceNews(howMany){
   if (document.getElementById("nouvelles")) return;
-  const barre = document.createElement("div");
-  barre.id = "nouvelles";
-  barre.innerHTML = 'The report has changed on the server' +
-    (combien ? ' — ' + combien + ' run' + (combien > 1 ? 's' : '') + ' now' : '') +
+  const strip = document.createElement("div");
+  strip.id = "nouvelles";
+  strip.innerHTML = 'The report has changed on the server' +
+    (howMany ? ' — ' + howMany + ' run' + (howMany > 1 ? 's' : '') + ' now' : '') +
     '. <button class="mini" id="nouvellesGo">reload</button>' +
     '<button class="mini" id="nouvellesNon" aria-label="Dismiss">✕</button>';
-  document.body.appendChild(barre);
+  document.body.appendChild(strip);
   document.getElementById("nouvellesGo").onclick = () => location.reload();
-  document.getElementById("nouvellesNon").onclick = () => barre.remove();
+  document.getElementById("nouvellesNon").onclick = () => strip.remove();
 }
 
 /** A run's annotation as it is saved: the server first, otherwise the one the page
  *  carried when it was built. */
 function annotationEnregistree(run){
-  const distante = annotationsServeur[run.uuid];
-  if (distante !== undefined) {
-    return typeof distante === "string"
-      ? {nom: distante, description: "", etiquettes: {}, elagage: null}
-      : {nom: distante.nom || "", description: distante.description || "",
-         etiquettes: distante.etiquettes || {}, elagage: distante.elagage || null};
+  const remote = serverAnnotations[run.uuid];
+  if (remote !== undefined) {
+    return typeof remote === "string"
+      ? {nom: remote, description: "", etiquettes: {}, elagage: null}
+      : {nom: remote.nom || "", description: remote.description || "",
+         etiquettes: remote.etiquettes || {}, elagage: remote.elagage || null};
   }
   return {nom: run.nomOutil || "", description: run.description || "",
           etiquettes: run.etiquettes || {}, elagage: run.elagage || null};
 }
 
 /** True if this browser carries, for this run, something other than what is saved. */
-function annotationModifiee(run){
+function annotationChanged(run){
   const local = annotations[run.uuid];
   if (!local) return false;
   const a = annotationOf(run), e = annotationEnregistree(run);
@@ -1404,49 +1404,49 @@ function annotationModifiee(run){
  */
 function enregistrerAnnotations(bouton){
   const run = R;
-  const dire = t => { bouton.textContent = t; };
+  const say = t => { bouton.textContent = t; };
   const a = annotationOf(run);
   const tags = a.etiquettes && Object.keys(a.etiquettes).length ? a.etiquettes : undefined;
-  const el = elagageActif(run) ? elagageOf(run) : undefined;
-  const valeur = (!a.nom && !a.description && !tags && !el)
+  const el = pruningActive(run) ? pruningOf(run) : undefined;
+  const val = (!a.nom && !a.description && !tags && !el)
     ? {}
     : {nom: a.nom || undefined, description: a.description || undefined,
        etiquettes: tags, elagage: el};
-  const rendre = () => setTimeout(renderIdentity, 2500);
+  const refresh = () => setTimeout(renderIdentity, 2500);
 
-  dire("enregistrement…");
+  say("enregistrement…");
   fetch("__xray/noms/" + encodeURIComponent(run.uuid), {
     method: "POST",
     headers: {"Content-Type": "application/json"},
     // No known fingerprint — a page opened before the server answered — counts as “no
     // check”: better than a blanket refusal on a run that was never annotated.
-    body: JSON.stringify({base: empreintesServeur[run.uuid] !== undefined
-                                ? empreintesServeur[run.uuid] : null,
-                          valeur: valeur})
+    body: JSON.stringify({base: serverFingerprints[run.uuid] !== undefined
+                                ? serverFingerprints[run.uuid] : null,
+                          valeur: val})
   }).then(r => r.json().then(j => ({status: r.status, body: j})).catch(() => ({status: r.status, body: {}})))
     .then(({status, body}) => {
       if (status === 409){
         // Somebody else came by: we show what is saved, and we let them decide —
         // overwriting silently would make their work disappear.
-        annotationsServeur[run.uuid] = body.valeur;
-        empreintesServeur[run.uuid] = body.empreinte;
-        dire("changed meanwhile");
-        montrer("This run's record was changed by somebody else while you were editing "
+        serverAnnotations[run.uuid] = body.valeur;
+        serverFingerprints[run.uuid] = body.empreinte;
+        say("changed meanwhile");
+        showPanel("This run's record was changed by somebody else while you were editing "
           + "it. Saved version:\n\n"
           + JSON.stringify(body.valeur, null, 2)
           + "\n\nClicking “save” again will replace theirs with yours; reloading the page "
           + "will take theirs back and abandon your changes.",
           "Record changed meanwhile");
-        rendre();
+        refresh();
         return;
       }
       if (status === 401){
         // The worst moment to lose access: somebody has just written a description.
         // It is not lost — it stays in this browser as long as the server has
         // not taken — and that is exactly what to say, rather than a “failure”.
-        dire("session expired");
-        sessionExpiree();
-        rendre();
+        say("session expired");
+        sessionExpired();
+        refresh();
         return;
       }
       if (status !== 200) throw new Error("server refusal (" + status + ")");
@@ -1454,16 +1454,16 @@ function enregistrerAnnotations(bouton){
       // “changed” designates only what has not yet gone out.
       delete annotations[run.uuid];
       saveAnnotations();
-      annotationsServeur[run.uuid] = valeur && Object.keys(valeur).length ? valeur : undefined;
-      empreintesServeur[run.uuid] = body.empreinte;
-      dire("saved ✓");
-      rendre();
+      serverAnnotations[run.uuid] = val && Object.keys(val).length ? valeur : undefined;
+      serverFingerprints[run.uuid] = body.empreinte;
+      say("saved ✓");
+      refresh();
     })
-    .catch(e => { dire("failed: " + e.message); rendre(); });
+    .catch(e => { say("failed: " + e.message); refresh(); });
 }
 
 /** Drops a run's local changes and takes back what is saved. */
-function reprendreEnregistree(run){
+function takeBackSaved(run){
   delete annotations[run.uuid];
   saveAnnotations();
   renderIdentity();
@@ -1472,7 +1472,7 @@ function reprendreEnregistree(run){
   drawHome();
 }
 
-function exporterAnnotations(){
+function exportAnnotations(){
   const blob = new Blob([JSON.stringify(annotationsFile(), null, 2)],
                         {type: "application/json"});
   const a = document.createElement("a");
@@ -1486,26 +1486,26 @@ function exporterAnnotations(){
 
 /** Takes up a noms.json: the runs it names overwrite what we had, the others stay —
  *  importing is not starting over. */
-function importerAnnotations(texte){
-  const lu = JSON.parse(texte);
-  if (!lu || typeof lu !== "object" || Array.isArray(lu)) {
+function importAnnotations(texte){
+  const parsed = JSON.parse(texte);
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
     throw new Error("this file carries no run record");
   }
   // A single-run file — name, description, tags — is not indexed by identifier: it holds
   // for the run being looked at, and that is the only possible reading.
-  if (lu.nom !== undefined || lu.description !== undefined
-      || lu.etiquettes !== undefined || lu.elagage !== undefined) {
-    annotations[R.uuid] = {nom: lu.nom || "", description: lu.description || "",
-                           etiquettes: lu.etiquettes || {}, elagage: lu.elagage || null};
+  if (parsed.nom !== undefined || parsed.description !== undefined
+      || parsed.etiquettes !== undefined || parsed.elagage !== undefined) {
+    annotations[R.uuid] = {nom: parsed.nom || "", description: parsed.description || "",
+                           etiquettes: parsed.etiquettes || {}, elagage: parsed.elagage || null};
     saveAnnotations();
     return 1;
   }
   let reprises = 0;
-  for (const [uuid, valeur] of Object.entries(lu)){
-    annotations[uuid] = (typeof valeur === "string")
-      ? {nom: valeur}
-      : {nom: valeur.nom || "", description: valeur.description || "",
-         etiquettes: valeur.etiquettes || {}, elagage: valeur.elagage || null};
+  for (const [uuid, val] of Object.entries(parsed)){
+    annotations[uuid] = (typeof val === "string")
+      ? {nom: val}
+      : {nom: val.nom || "", description: val.description || "",
+         etiquettes: val.etiquettes || {}, elagage: val.elagage || null};
     reprises++;
   }
   saveAnnotations();
@@ -1527,15 +1527,15 @@ function shortId(run){ return (run.uuid || "").slice(0, 8); }
  * separated by “;”. Two methods of the same name called from two places are therefore two
  * distinct paths, which is exactly what one wants to cut.
  */
-function elagageOf(run){
+function pruningOf(run){
   const a = annotationOf(run).elagage || {};
   return {
     racine: typeof a.racine === "string" ? a.racine : "",
     coupes: Array.isArray(a.coupes) ? a.coupes : []
   };
 }
-function elagageActif(run){
-  const e = elagageOf(run);
+function pruningActive(run){
+  const e = pruningOf(run);
   return !!(e.racine || e.coupes.length);
 }
 function poseElagage(run, e){
@@ -1567,15 +1567,15 @@ function copyPruned(node, path, coupes){
  * is ignored rather than applied wrongly: better to show too much than to show something else.
  */
 function prunedTree(run){
-  const e = elagageOf(run);
+  const e = pruningOf(run);
   // The copy also serves to lay down each node's path, which the display needs even
   // without pruning: it is therefore always made, but kept as long as nothing changes.
-  const cle = e.racine + "|" + e.coupes.join("|");
-  if (run.__prunedKey === cle) return run.__pruned;
+  const srcKey = e.racine + "|" + e.coupes.join("|");
+  if (run.__prunedKey === srcKey) return run.__pruned;
   let base = run.calltree, basePath = "";
   if (e.racine){
-    const trouve = nodeAtPath(run.calltree, e.racine);
-    if (trouve){ base = trouve; basePath = e.racine; }
+    const hit = nodeAtPath(run.calltree, e.racine);
+    if (hit){ base = hit; basePath = e.racine; }
   }
   const pruned = copyPruned(base, basePath, e.coupes);
   // Root brought down: we reintroduce a mute parent so the chosen node displays itself,
@@ -1583,7 +1583,7 @@ function prunedTree(run){
   const arbre = basePath
     ? {name: "all", total: run.calltree.total, children: [pruned], __path: ""}
     : pruned;
-  run.__prunedKey = cle;
+  run.__prunedKey = srcKey;
   run.__pruned = arbre;
   return arbre;
 }
@@ -1597,14 +1597,14 @@ function runLabel(run){
 /** Lays the labels down again wherever they show, without rebuilding the view. */
 function refreshRunLabels(){
   document.querySelectorAll("[data-runname]").forEach(el => {
-    const nom = runLabel(D.runs[+el.dataset.runname]);
-    el.textContent = nom;
-    if (el.title) el.title = nom;
+    const blockName = runLabel(D.runs[+el.dataset.runname]);
+    el.textContent = blockName;
+    if (el.title) el.title = blockName;
   });
   const c = document.getElementById("crumbname");
   if (c) c.textContent = runLabel(R);
-  const titre = document.getElementById("identNom");
-  if (titre && document.activeElement !== titre) titre.value = annotationOf(R).nom;
+  const heading = document.getElementById("identNom");
+  if (heading && document.activeElement !== heading) heading.value = annotationOf(R).nom;
 }
 
 (function initRuns(){
@@ -1625,7 +1625,7 @@ function refreshRunLabels(){
     cb.checked ? shownRuns.add(i) : shownRuns.delete(i);
     if (!shownRuns.size){ shownRuns.add(i); cb.checked = true; return; }  // never nothing to see
     // A run one ticks must have its block: the list reads its covered methods.
-    await XR.runs(runsCoches()).catch(e => console.error(e));
+    await XR.runs(tickedRuns()).catch(e => console.error(e));
     const open = captureExpanded();
     mode === "cls" ? renderClasses() : renderTree();
     restoreExpanded(open);
@@ -1737,7 +1737,7 @@ const ICONE_EXPORT =
  * capability that lives only in a command-line option does not exist for whoever reads the
  * page. Greyed out, they stay clickable, and the click gives the command that produces them.
  */
-function fichiersDuRun(){
+function runFiles(){
   const b = R.chemin || "", a = R.rapports || {}, F = D.fusion || {};
   return [
     {mark: "jacoco", nom: "JaCoCo", toujours: true,
@@ -1807,23 +1807,23 @@ function fichiersDuRun(){
 }
 
 /** The number of files actually present: that is what the button announces. */
-function combienDeFichiers(){
-  return fichiersDuRun().reduce((n, g) => n + g.items.filter(i => i[0]).length, 0);
+function howManyFiles(){
+  return runFiles().reduce((n, g) => n + g.items.filter(i => i[0]).length, 0);
 }
 
 function refreshLinks(){
-  const groupes = fichiersDuRun().filter(g => g.toujours || g.items.some(i => i[0]));
-  const entree = (g, it) => {
-    const [ok, href, titre] = it;
+  const shownGroups = runFiles().filter(g => g.toujours || g.items.some(i => i[0]));
+  const entryOf = (g, it) => {
+    const [ok, href, heading] = it;
     const court = g.toujours ? it[3] : null;
-    const quoi = g.toujours ? it[4] : it[3];
+    const what = g.toujours ? it[4] : it[3];
     return ok
       ? '<a role="menuitem" href="' + href + '" target="_blank" rel="noopener">' +
-        '<span class="t">' + esc(titre) + '</span><span class="d">' + esc(quoi) + '</span></a>'
-      : '<a role="menuitem" class="off" href="#" data-export="' + esc(court || titre) + '"' +
+        '<span class="t">' + esc(heading) + '</span><span class="d">' + esc(what) + '</span></a>'
+      : '<a role="menuitem" class="off" href="#" data-export="' + esc(court || heading) + '"' +
         (g.cmd ? ' data-cmd="' + esc(g.cmd) + '"' : "") + '>' +
-        '<span class="t">' + esc(titre) + '</span>' +
-        '<span class="d">' + esc(quoi) + ' — not produced for this report yet.</span></a>';
+        '<span class="t">' + esc(heading) + '</span>' +
+        '<span class="d">' + esc(what) + ' — not produced for this report yet.</span></a>';
   };
   document.getElementById("links").innerHTML =
     '<span class="dl">' +
@@ -1832,12 +1832,12 @@ function refreshLinks(){
     '<span class="ic">' + ICONE_EXPORT + '</span><span class="lab">Exports</span>' +
     '<span aria-hidden="true" style="opacity:.7">▾</span></button>' +
     '<div class="dlmenu" id="dlmenu" hidden role="menu" aria-label="Files of this run">' +
-    groupes.map(g =>
+    shownGroups.map(g =>
       '<h4>' + (TOOLMARK[g.mark] || "") + esc(g.nom) + '</h4>' +
       (g.note ? '<p class="note">' + esc(g.note) + '</p>' : '') +
-      g.items.filter(it => g.toujours || it[0]).map(it => entree(g, it)).join("")).join("") +
+      g.items.filter(it => g.toujours || it[0]).map(it => entryOf(g, it)).join("")).join("") +
     '</div></span>';
-  poserMenuExports();
+  wireExportsMenu();
 }
 
 /**
@@ -1846,36 +1846,36 @@ function refreshLinks(){
  * <p>A menu that closes only by clicking its own button traps the mouse, and a menu one
  * cannot walk with the arrow keys is no menu for whoever uses no mouse.
  */
-function poserMenuExports(){
+function wireExportsMenu(){
   const bouton = document.getElementById("dlbtn");
   const menu = document.getElementById("dlmenu");
   if (!bouton || !menu) return;
   const items = () => [...menu.querySelectorAll("a")];
-  const fermer = (rendreLeFocus) => {
+  const closeIt = (rendreLeFocus) => {
     menu.hidden = true;
     bouton.setAttribute("aria-expanded", "false");
     if (rendreLeFocus) bouton.focus();
   };
   bouton.onclick = e => {
     e.preventDefault();
-    const ouvert = menu.hidden;
-    menu.hidden = !ouvert;
-    bouton.setAttribute("aria-expanded", String(ouvert));
-    if (ouvert) { const l = items()[0]; if (l) l.focus(); }
+    const isOpen = menu.hidden;
+    menu.hidden = !isOpen;
+    bouton.setAttribute("aria-expanded", String(isOpen));
+    if (isOpen) { const l = items()[0]; if (l) l.focus(); }
   };
   menu.onkeydown = e => {
     const l = items(), i = l.indexOf(document.activeElement);
-    if (e.key === "Escape") { e.preventDefault(); fermer(true); }
+    if (e.key === "Escape") { e.preventDefault(); closeIt(true); }
     else if (e.key === "ArrowDown") { e.preventDefault(); l[Math.min(l.length - 1, i + 1)].focus(); }
     else if (e.key === "ArrowUp") { e.preventDefault(); (i <= 0 ? bouton : l[i - 1]).focus(); }
   };
-  bouton.onkeydown = e => { if (e.key === "Escape" && !menu.hidden) fermer(true); };
+  bouton.onkeydown = e => { if (e.key === "Escape" && !menu.hidden) closeIt(true); };
   // A click elsewhere closes: that is what every menu does, and not doing it gives
   // the impression that the page is stuck. Laid ONCE on the document: the bar rebuilds at
   // every change of run, and one listener per rebuild
   // would accumulate with nothing to show it.
-  if (!poserMenuExports.pose) {
-    poserMenuExports.pose = true;
+  if (!wireExportsMenu.pose) {
+    wireExportsMenu.pose = true;
     document.addEventListener("click", e => {
       const m = document.getElementById("dlmenu"), b = document.getElementById("dlbtn");
       if (m && !m.hidden && !m.contains(e.target) && b && !b.contains(e.target)) {
@@ -1886,13 +1886,13 @@ function poserMenuExports(){
   }
   menu.addEventListener("click", e => {
     const a = e.target.closest("a.off");
-    if (!a) { if (e.target.closest("a")) fermer(false); return; }
+    if (!a) { if (e.target.closest("a")) closeIt(false); return; }
     e.preventDefault();
-    fermer(false);
+    closeIt(false);
     // Each group says how to get back WHAT it carries: the open formats
     // rewrite measurements already there, the JaCoCo sites demand another setting. One
     // command for both would have sent one of the two into a wall.
-    montrer(a.dataset.cmd
+    showPanel(a.dataset.cmd
       ? "“" + a.dataset.export + "” was not produced for this report.\n\n"
         + a.dataset.cmd
       : "“" + a.dataset.export + "” was not produced for this report.\n\n"
@@ -2233,16 +2233,16 @@ function renderMaskBar(){
  */
 function openPrunePicker(run, path, anchor){
   closeMaskPicker();
-  const e = elagageOf(run);
-  const nom = dot(path.split(";").pop());
+  const e = pruningOf(run);
+  const blockName = dot(path.split(";").pop());
   const pop = document.createElement("div");
   pop.id = "maskpop";
   pop.innerHTML = '<h4>Prune the tree</h4>' +
     '<button data-a="couper">Cut this branch' +
-    '<span class="q">removes ' + esc(nom) + ' and everything that leaves it, on this path only</span></button>' +
+    '<span class="q">removes ' + esc(blockName) + ' and everything that leaves it, on this path only</span></button>' +
     '<button data-a="racine">Restart from here' +
-    '<span class="q">hides the levels above: the tree begins at ' + esc(nom) + '</span></button>' +
-    (elagageActif(run)
+    '<span class="q">hides the levels above: the tree begins at ' + esc(blockName) + '</span></button>' +
+    (pruningActive(run)
       ? '<button data-a="reset">Restore everything<span class="q">back to the measured tree</span></button>'
       : "");
   document.body.appendChild(pop);
@@ -2258,9 +2258,9 @@ function openPrunePicker(run, path, anchor){
     closeMaskPicker();
     // Pruning must not close the tree: we reopen what was open, otherwise every cut costs
     // finding one's way again.
-    const ouvert = captureExpanded();
+    const isOpen = captureExpanded();
     renderTree();
-    restoreExpanded(ouvert);
+    restoreExpanded(isOpen);
     if (!selected) drawHome();
   });
   setTimeout(() => document.addEventListener("click", closeMaskPicker, { once: true }), 0);
@@ -2276,14 +2276,14 @@ function renderPruneBar(){
   const bar = document.getElementById("prunebar");
   if (!bar) return;
   const run = R;
-  const e = elagageOf(run);
+  const e = pruningOf(run);
   // The band stays visible in both tabs: the time graph of the
   // overview follows the pruning too, and a framing visible on one side only is
   // forgotten on the other.
-  if (!elagageActif(run)){ bar.hidden = true; bar.innerHTML = ""; return; }
+  if (!pruningActive(run)){ bar.hidden = true; bar.innerHTML = ""; return; }
   bar.hidden = false;
-  const chip = (label, titre, action) =>
-    '<span class="chip" title="' + esc(titre) + '"><span>' + esc(label) + '</span>' +
+  const chip = (label, heading, action) =>
+    '<span class="chip" title="' + esc(heading) + '"><span>' + esc(label) + '</span>' +
     '<button data-a="' + action + '" title="Restore">✕</button></span>';
   bar.innerHTML = '<b>Pruned tree</b>' +
     (e.racine ? chip("root: " + dot(e.racine.split(";").pop()), dot(e.racine), "racine") : "") +
@@ -2298,9 +2298,9 @@ function renderPruneBar(){
     else if (a === "reset"){ e.racine = ""; e.coupes = []; }
     else if (a.startsWith("coupe:")) e.coupes = e.coupes.filter((_, i) => i !== +a.slice(6));
     poseElagage(run, e);
-    const ouvert = captureExpanded();
+    const isOpen = captureExpanded();
     renderTree();
-    restoreExpanded(ouvert);
+    restoreExpanded(isOpen);
     if (!selected) drawHome();
   });
 }
@@ -2659,8 +2659,8 @@ function pathsTo(frame, max = 4){
  */
 function occurrencesOf(run, frame){
   const rang = D.runs.indexOf(run);
-  const compte = D.presence[frame];
-  if (compte) return compte[rang] || 0;
+  const tally = D.presence[frame];
+  if (tally) return tally[rang] || 0;
   if (!run.calltree) return 0;      // index absent and block not loaded: we do not invent
   let n = 0;
   (function walk(node){
@@ -2676,29 +2676,29 @@ function renderContexts(info){
   // The last link of each path IS the open method: it is already written in the
   // breadcrumb just above, and it is identical on every row. What tells one context
   // from another is who calls — only that is shown.
-  const chaines = chemins.map(c => ({
+  const chains = chemins.map(c => ({
     part: 100 * c.total / total,
     appelants: c.path.filter(f => frameInfo(f) && f !== info.frame)
   })).filter(c => c.appelants.length);
   // A method called from nowhere — a run's root — has no context to show. The band was
   // already silent when no path was known; it is silent too when the only known path
   // holds nothing but itself.
-  if (!chaines.length){ box.innerHTML = ""; box.style.display = "none"; return; }
+  if (!chains.length){ box.innerHTML = ""; box.style.display = "none"; return; }
 
   box.style.display = "block";
   // With a single context, “100 %” is true and says nothing: 100 % of a single path.
   // We show it only where it tells things apart.
-  const seul = chaines.length === 1;
-  const label = seul ? "Called from:"
+  const lone = chains.length === 1;
+  const label = lone ? "Called from:"
                      : "Called from " + nb + " contexts — choose which one to look at:";
   box.innerHTML = '<span class="ctxlabel">' + label + '</span>' +
-    chaines.map((c, i) => {
+    chains.map((c, i) => {
       const short = c.appelants.map(f =>
         '<a href="#" data-f="'+esc(f)+'">'+esc(f.split("/").pop())+'</a>')
         .join('<span class="sep"> › </span>');
-      return '<div class="ctxpath'+(seul ? " seul" : (i === ctxIndex ? " on" : ""))+'"'+
+      return '<div class="ctxpath'+(lone ? " seul" : (i === ctxIndex ? " on" : ""))+'"'+
              ' data-i="'+i+'">'+
-             (seul ? "" : '<span class="share">'
+             (lone ? "" : '<span class="share">'
                 + (c.part < 1 && c.part > 0 ? "&lt;1" : c.part.toFixed(0)) + ' %</span>')
              + short + '</div>';
     }).join("");
@@ -2709,12 +2709,12 @@ function renderContexts(info){
   });
   // The same method may have run in other runs: we say so, and we go there.
   if (D.runs.length > 1){
-    const ailleurs = D.runs
+    const elsewhere = D.runs
       .map((run, i) => ({ i, run, n: occurrencesOf(run, info.frame) }))
       .filter(o => o.i !== runIndex && o.n > 0);
-    if (ailleurs.length){
+    if (elsewhere.length){
       box.innerHTML += '<div class="ctxelse" title="This method also ran in other runs of this report: clicking switches to it">Also called in: ' +
-        ailleurs.map(o => '<a href="#" data-run="'+o.i+'" title="See '+esc(dot(info.frame))
+        elsewhere.map(o => '<a href="#" data-run="'+o.i+'" title="See '+esc(dot(info.frame))
           + ' in “'+esc(runLabel(o.run))+'”">'+esc(runLabel(o.run)) +
           ' <span class="share">— '+o.n+' call path'+(o.n > 1 ? 's' : '')+'</span></a>')
           .join(" · ") + '</div>';
@@ -2846,7 +2846,7 @@ let histoire = [], histoirePos = -1, rejoue = false;
  * would at once stack the view one came from, and the "next" button would never
  * serve. Setting off again from an old view cuts the rest, as a browser does.
  */
-function noterVue(){
+function recordView(){
   if (rejoue) return;
   const v = vueCourante();
   if (memeVue(histoire[histoirePos], v)) { histoire[histoirePos] = v; return; }
@@ -2868,7 +2868,7 @@ function allerA(pos){
     if (v.mode === "tree") renderTree(); else renderClasses();
     if (v.frame){
       const t = frameInfo(v.frame);
-      if (t){ select(t, null, v.call === null ? undefined : v.call); devoiler(v.frame); }
+      if (t){ select(t, null, v.call === null ? undefined : v.call); reveal(v.frame); }
     } else goHome();
   } finally { rejoue = false; }
   majNav();
@@ -2891,12 +2891,12 @@ function majNav(){
  * not exist yet. So the path is replayed, clicking the parents one after another —
  * exactly what the hand would have done.
  */
-function devoiler(frame){
-  const trouve = mode === "tree" ? devoilerDansArbre(frame) : devoilerDansCode(frame);
-  return trouve;
+function reveal(frame){
+  const hit = mode === "tree" ? revealInTree(frame) : revealInCode(frame);
+  return hit;
 }
 
-function devoilerDansCode(frame){
+function revealInCode(frame){
   const info = frameInfo(frame);
   if (!info) return false;
   const paquet = dot(info.cls).split(".").slice(0, -1).join(".");
@@ -2905,14 +2905,14 @@ function devoilerDansCode(frame){
     const noeuds = [...conteneur.querySelectorAll(":scope > .node")];
     const classe = noeuds.find(n => n.dataset.path === "cls:" + info.cls);
     if (classe){
-      if (deplier(classe)) { /* the class opens and selects itself */ }
+      if (unfold(classe)) { /* the class opens and selects itself */ }
       const dedans = classe.nextElementSibling;
       const meth = info.name && dedans
         ? [...dedans.querySelectorAll(":scope > .node")].find(n => n.dataset.frame === frame)
         : null;
-      const cible = meth || classe;
-      cible.click();
-      cible.scrollIntoView({block: "center", behavior: "smooth"});
+      const aim = meth || classe;
+      aim.click();
+      aim.scrollIntoView({block: "center", behavior: "smooth"});
       return true;
     }
     // Packages are compacted — "lab.sample" may fit in a single node: we look for the
@@ -2920,7 +2920,7 @@ function devoilerDansCode(frame){
     const pkg = noeuds.find(n => (n.dataset.path || "").startsWith("pkg:")
       && (paquet + ".").startsWith(n.dataset.path.slice(4) + "."));
     if (!pkg) return false;
-    deplier(pkg);
+    unfold(pkg);
     conteneur = pkg.nextElementSibling;
     if (!conteneur) return false;
   }
@@ -2928,7 +2928,7 @@ function devoilerDansCode(frame){
 }
 
 /** Opens a node if it is closed, and says whether that was needed. */
-function deplier(el){
+function unfold(el){
   const tw = el.querySelector(".tw");
   if (tw && tw.textContent === "▸"){ el.click(); return true; }
   return false;
@@ -2938,9 +2938,9 @@ function deplier(el){
 function cheminVers(arbre, frame){
   const file = [{node: arbre, chemin: []}];
   while (file.length){
-    const {node, chemin} = file.shift();
+    const {node, blockPath} = file.shift();
     for (const kid of node.children || []){
-      const suite = chemin.concat([pathOf(kid)]);
+      const suite = blockPath.concat([pathOf(kid)]);
       if (kid.name === frame) return suite;
       file.push({node: kid, chemin: suite});
     }
@@ -2948,7 +2948,7 @@ function cheminVers(arbre, frame){
   return null;
 }
 
-function devoilerDansArbre(frame){
+function revealInTree(frame){
   // We look at the open run first; otherwise the first one where the method appears,
   // in the report's order.
   const ordre = [runIndex].concat(D.runs.map((_, i) => i).filter(i => i !== runIndex));
@@ -2956,46 +2956,46 @@ function devoilerDansArbre(frame){
     // Only runs already loaded yield a path: the others make do with the count, which the
     // presence index gives without loading anything.
     if (!D.runs[idx].calltree) continue;
-    const chemin = cheminVers(prunedTree(D.runs[idx]), frame);
-    if (!chemin) continue;
+    const blockPath = cheminVers(prunedTree(D.runs[idx]), frame);
+    if (!blockPath) continue;
     if (idx !== runIndex){
       // Changing run rebuilds the tree: the intent is laid down again, and it is the
       // re-render that consumes it.
-      aDevoiler = frame;
+      toReveal = frame;
       switchRun(idx, true);
       return true;
     }
-    return poserDansArbre(chemin);
+    return poserDansArbre(blockPath);
   }
   return false;
 }
 
-function poserDansArbre(chemin){
+function poserDansArbre(blockPath){
   const box = document.getElementById("list");
-  const racine = [...box.querySelectorAll(":scope > .node.runroot")][runIndex];
-  if (!racine) return false;
-  deplier(racine);
-  let conteneur = racine.nextElementSibling;
-  for (let i = 0; i < chemin.length; i++){
+  const rootFrame = [...box.querySelectorAll(":scope > .node.runroot")][runIndex];
+  if (!rootFrame) return false;
+  unfold(rootFrame);
+  let conteneur = rootFrame.nextElementSibling;
+  for (let i = 0; i < blockPath.length; i++){
     if (!conteneur) return false;
     const el = [...conteneur.querySelectorAll(":scope > .node")]
-      .find(n => n.dataset.path === chemin[i]);
+      .find(n => n.dataset.path === blockPath[i]);
     if (!el) return false;
-    if (i === chemin.length - 1){
+    if (i === blockPath.length - 1){
       el.click();
       el.scrollIntoView({block: "center", behavior: "smooth"});
       return true;
     }
-    deplier(el);
+    unfold(el);
     conteneur = el.nextElementSibling;
   }
   return false;
 }
 
 /** Opens a package in the Code view — what a click on the breadcrumb does. */
-function ouvrirPaquet(chemin){
-  const vise = dot(chemin);
-  aDevoiler = null;
+function ouvrirPaquet(blockPath){
+  const vise = dot(blockPath);
+  toReveal = null;
   if (mode !== "cls") renderClasses();
   let conteneur = document.getElementById("list");
   for (let garde = 0; garde < 40; garde++){
@@ -3003,7 +3003,7 @@ function ouvrirPaquet(chemin){
     const pkg = noeuds.find(n => (n.dataset.path || "").startsWith("pkg:")
       && (vise + ".").startsWith(n.dataset.path.slice(4) + "."));
     if (!pkg) return;
-    deplier(pkg);
+    unfold(pkg);
     pkg.scrollIntoView({block: "center", behavior: "smooth"});
     if (pkg.dataset.path.slice(4) === vise) return;
     conteneur = pkg.nextElementSibling;
@@ -3012,7 +3012,7 @@ function ouvrirPaquet(chemin){
 }
 
 /** The intent laid down before a render, consumed at the end of it. */
-let aDevoiler = null;
+let toReveal = null;
 
 /**
  * Takes the selection up again after a change of view.
@@ -3022,19 +3022,19 @@ let aDevoiler = null;
  * normally, and it is said rather than pretended.
  */
 function reprendreSelection(){
-  const frame = aDevoiler;
-  aDevoiler = null;
+  const frame = toReveal;
+  toReveal = null;
   if (!frame) return;
   rejoue = true;
   try {
-    if (!devoiler(frame)) montrerBref(dot(frame).split(".").pop()
+    if (!reveal(frame)) flash(dot(frame).split(".").pop()
       + " does not appear in this view.");
   } finally { rejoue = false; }
-  noterVue();
+  recordView();
 }
 
 /** A word at the bottom right, which fades away by itself. */
-function montrerBref(texte){
+function flash(texte){
   let b = document.getElementById("bref");
   if (!b){
     b = document.createElement("div");
@@ -3043,8 +3043,8 @@ function montrerBref(texte){
   }
   b.textContent = texte;
   b.hidden = false;
-  clearTimeout(montrerBref.t);
-  montrerBref.t = setTimeout(() => { b.hidden = true; }, 3200);
+  clearTimeout(flash.t);
+  flash.t = setTimeout(() => { b.hidden = true; }, 3200);
 }
 
 /* ------------------------------------------------------------- code view */
@@ -3062,7 +3062,7 @@ function select(info, el, call){
   // This class's code lives in a block: we wait for it, then we draw. It is the only
   // place that needs it — the tree, for its part, makes do with the keys.
   XR.source(info && info.source).then(draw, draw);
-  noterVue();
+  recordView();
 }
 /**
  * The open file's package, split level by level, each one hideable.
@@ -3084,29 +3084,29 @@ function select(info, el, call){
  * of the tool.
  */
 function constatSourceAbsente(info){
-  const d = diagSources(), racines = d.racines || [];
-  const cle = info.source || "(unknown)";
-  const nom = cle.split("/").pop();
-  const ailleurs = ((d.parNom || {})[nom]) || [];
+  const d = sourceDiag(), roots = d.racines || [];
+  const srcKey = info.source || "(unknown)";
+  const blockName = srcKey.split("/").pop();
+  const elsewhere = ((d.parNom || {})[blockName]) || [];
   let h = '<div class="constat">';
   h += '<h3>This class\'s code was not found</h3>';
-  const paquet = cle.lastIndexOf("/") > 0 ? dot(cle.slice(0, cle.lastIndexOf("/")))
+  const paquet = srcKey.lastIndexOf("/") > 0 ? dot(srcKey.slice(0, srcKey.lastIndexOf("/")))
                                           : "(default package)";
-  h += '<p>The coverage reports this file under the key <code>'+esc(cle)+'</code> — '
+  h += '<p>The coverage reports this file under the key <code>'+esc(srcKey)+'</code> — '
      + 'that is to say the package <code>'+esc(paquet)
-     + '</code> and the file <code>'+esc(nom)+'</code>. It is that file that is missing.</p>';
+     + '</code> and the file <code>'+esc(blockName)+'</code>. It is that file that is missing.</p>';
 
-  if (!racines.length){
+  if (!roots.length){
     h += '<p class="cause"><b>No source directory was given to the tool.</b> '
        + 'The measurement does not need one, the display of annotated code does.</p>';
     h += '<p>Add to the configuration file:</p>'
-       + '<pre class="remede">SOURCE_DIRS="'+esc(racineProbable(cle))+'"</pre>'
-       + '<p>or re-run with <code>--sources '+esc(racineProbable(cle))+'</code>. '
+       + '<pre class="remede">SOURCE_DIRS="'+esc(racineProbable(srcKey))+'"</pre>'
+       + '<p>or re-run with <code>--sources '+esc(racineProbable(srcKey))+'</code>. '
        + 'Several roots are separated by <code>:</code>. The exact level matters little: '
        + 'the tool reads the package each file declares, not its path.</p>';
   } else {
-    h += '<p>Source directories consulted — '+racines.length+':</p><ul class="racines">';
-    racines.forEach(r => {
+    h += '<p>Source directories consulted — '+roots.length+':</p><ul class="racines">';
+    roots.forEach(r => {
       h += '<li><code>'+esc(r.demandee)+'</code>'
          + (r.absolue && r.absolue !== r.demandee ? ' <span class="abs">→ '+esc(r.absolue)+'</span>' : '')
          + '<br><span class="'+(r.existe ? 'ok' : 'ko')+'">'
@@ -3121,10 +3121,10 @@ function constatSourceAbsente(info){
        + (d.tronque ? ' <span class="ko">(walk truncated: the root given is very '
                     + 'wide, the index is incomplete)</span>' : '') + '.</p>';
 
-    if (ailleurs.length){
-      h += '<p class="cause">A file named <code>'+esc(nom)+'</code> was found nonetheless:</p>'
+    if (elsewhere.length){
+      h += '<p class="cause">A file named <code>'+esc(blockName)+'</code> was found nonetheless:</p>'
          + '<ul class="racines">';
-      ailleurs.forEach(o => {
+      elsewhere.forEach(o => {
         h += '<li><code>'+esc(o.chemin)+'</code><br><span class="abs">declared package: <b>'
            + esc(o.paquet || '(none)')+'</b> — indexed under <code>'+esc(o.cle)+'</code></span></li>';
       });
@@ -3137,7 +3137,7 @@ function constatSourceAbsente(info){
          + 'class\'s code comes from a library whose sources we do not have.</p>';
     }
   }
-  h += pistesSources();
+  h += sourceLeads();
   h += '<p class="apres">The full detail — configuration, runs, class-by-class matching '
      + '— is in <code>diagnostic.json</code>, beside this page.</p>';
   return h + '</div>';
@@ -3186,8 +3186,8 @@ function splitFields(value){
   }
   out.push(inner.slice(start));
   const pairs = [];
-  for (const part of out){
-    const t = part.trim();
+  for (const pctPart of out){
+    const t = pctPart.trim();
     if (!t) continue;
     const eq = t.indexOf("=");
     // With no '=' at the first level, this is not a field structure: nothing is forced.
@@ -3210,13 +3210,13 @@ let valueSplit = "champs";   // "champs" | "params"
 
 /** A call's values, one key/value line under the call's node. */
 function fillValueNodes(container, call, depth){
-  const add = (cle, valeur, kind) => {
+  const add = (srcKey, val, kind) => {
     const el = document.createElement("div");
     el.className = "node valnode" + (kind ? " " + kind : "");
     el.style.paddingLeft = (6 + depth * 11) + "px";
-    el.innerHTML = '<span class="tw"></span><span class="vkey">' + esc(cle) +
-                   '</span><span class="veq">=</span><span class="vval">' + esc(valeur) + '</span>';
-    el.title = cle + " = " + valeur;
+    el.innerHTML = '<span class="tw"></span><span class="vkey">' + esc(srcKey) +
+                   '</span><span class="veq">=</span><span class="vval">' + esc(val) + '</span>';
+    el.title = srcKey + " = " + val;
     container.appendChild(el);
   };
   (call.params || []).forEach((p, i) => {
@@ -3250,7 +3250,7 @@ function crumbPackage(cls){
 function draw(){
   const code = document.getElementById("code");
   if (!selected){ drawHome(); return; }
-  const info = selected, src = D.sources[info.source], cov = covPourVue(info.source);
+  const info = selected, src = D.sources[info.source], cov = coverageForView(info.source);
   const myCalls = R.values[info.frame] || [];
   const traced = info.cls === R.tracedClass;
   const samples = AGG.weights[info.frame] || 0;
@@ -3261,14 +3261,14 @@ function draw(){
         ? 'Coverage unified over the ticked runs — the values shown stay those of the run being looked at'
         : 'The run the displayed coverage and values come from')
         + '"' + (cumul ? ' style="color:var(--violet);border-color:var(--violet)"' : '') + '>'
-        + (cumul ? 'accumulated over ' + runsCoches().length + ' runs'
+        + (cumul ? 'accumulated over ' + tickedRuns().length + ' runs'
                  : '<span id="crumbname">' + esc(runLabel(R)) + '</span>')
         + '</span> <span>›</span> ' : '') +
     crumbPackage(info.cls) + ' <b>'+
     esc(info.cls.split("/").pop())+'.java</b>'+
     (info.name ? ' <span>›</span> <b>'+esc(info.name)+'()</b>' : '') +
     (samples ? ' <span class="pill" title="Share of the measured time spent in this method and in what it calls, all calls taken together">'
-        + partDuTemps(samples) + '</span>' : '') +
+        + shareOfTime(samples) + '</span>' : '') +
     (myCalls.length ? ' <span class="pill" id="pillValues" title="Invocations of this method whose arguments and return value Arthas recorded — clicking opens the bottom panel" style="color:var(--violet);border-color:var(--violet);cursor:pointer">'
         + myCalls.length + ' captured call(s) — see the values</span>' : '') +
     (mode==="exec" && info.name ? ' <span class="pill" style="cursor:pointer" id="scopeBtn"'
@@ -3322,7 +3322,7 @@ function draw(){
           ' <span class="dur">'+esc(durationRange(a))+'</span>').join(" · ")
           + (all.length > 2 ? ' <span style="opacity:.7">+'+(all.length-2)+'</span>' : ''); }
     html += '<tr class="'+cls+'" id="L'+nr+'"><td class="n">'+nr+'</td><td class="c">'+
-            linkifyCalls(esc(text), nr)+'</td><td class="ann">'+pastillesRuns(c)+ann+'</td></tr>';
+            linkifyCalls(esc(text), nr)+'</td><td class="ann">'+runPips(c)+ann+'</td></tr>';
   });
   if (fold) html += '<tr><td colspan="3" class="fold">… '+fold+' line(s) never executed</td></tr>';
   if (narrow && to < src.length)
@@ -3393,19 +3393,19 @@ function drawValues(info){
     const others = Object.keys(R.values);
     // Explain WHY there is nothing: without that, one believes in a defect of the tool
     // when it is a choice — value observation is targeted, and it must be.
-    const nom = esc(info.name || info.cls.split("/").pop());
+    const blockName = esc(info.name || info.cls.split("/").pop());
     // A class has no method to name: proposing "--root package.Class::" delivered a
     // command nobody can run. So we say what is missing.
-    const cible = info.name ? "<code>" + nom + "</code>" : "the class <code>" + nom + "</code>";
-    const commande = "--root " + esc(dot(info.cls)) + "::" +
+    const aim = info.name ? "<code>" + blockName + "</code>" : "the class <code>" + blockName + "</code>";
+    const commandLine = "--root " + esc(dot(info.cls)) + "::" +
                      (info.name ? esc(info.name) : "<i>method</i>");
-    const racine = R.context && R.context.methodeRacine ? R.context.methodeRacine : null;
+    const rootFrame = R.context && R.context.methodeRacine ? R.context.methodeRacine : null;
     box.innerHTML = others.length
       ? '<h3>Argument values</h3><div class="explain">' +
-        '<b>No value was captured for ' + cible + '</b> — which does not mean it did not run: the coverage and the timings show it plainly. The observation of values is <b>targeted</b> on one root method' +
-        (racine ? ' — here <code>' + esc(racine) + '</code>' : '') + ', because observing every method would produce an unmanageable volume and would skew the measurement.' +
-        '<br>To obtain the values of ' + cible + ', run again with ' +
-        '<code>' + commande + '</code>' +
+        '<b>No value was captured for ' + aim + '</b> — which does not mean it did not run: the coverage and the timings show it plainly. The observation of values is <b>targeted</b> on one root method' +
+        (rootFrame ? ' — here <code>' + esc(rootFrame) + '</code>' : '') + ', because observing every method would produce an unmanageable volume and would skew the measurement.' +
+        '<br>To obtain the values of ' + aim + ', run again with ' +
+        '<code>' + commandLine + '</code>' +
         (info.name ? '' : ' — naming the method to observe') + '.' +
         '<br>Methods observed in this run: ' + others.map(f =>
           '<a href="#" class="vlink" data-f="' + esc(f) + '">' + esc(f.split("/").pop()) + '</a>')
@@ -3526,30 +3526,30 @@ function valuesHelp(){
 function rawBlock(){
   // The same table as the top bar's menu: what is added there appears here without anyone
   // thinking about it, and the two can no longer contradict each other.
-  const groupes = fichiersDuRun();
+  const shownGroups = runFiles();
   const lien = (g, it) => {
-    const [ok, href, titre] = it;
-    const quoi = g.toujours ? it[4] : it[3];
+    const [ok, href, heading] = it;
+    const what = g.toujours ? it[4] : it[3];
     return ok ? '<a class="lk" href="' + href + '" target="_blank" rel="noopener">' +
-      '<span class="lkt">' + esc(titre) + '</span>' +
-      '<span class="lkd">' + esc(quoi) + '</span></a>' : "";
+      '<span class="lkt">' + esc(heading) + '</span>' +
+      '<span class="lkd">' + esc(what) + '</span></a>' : "";
   };
   return '<h2>The raw outputs of the tools</h2>' +
     '<p class="rawnote">What follows is not produced by this page: these are the files each tool wrote, as they are. To consult when the summary surprises — or if it no longer opens. They are also in the <b>Exports</b>, at the top.</p>' +
-    groupes.map(g => {
-      const corps = g.items.map(it => lien(g, it)).join("");
-      if (!corps) return "";
+    shownGroups.map(g => {
+      const bodyEl = g.items.map(it => lien(g, it)).join("");
+      if (!bodyEl) return "";
       return '<h3 class="rawh">' + (TOOLMARK[g.mark] || "") + ' ' + esc(g.nom) + '</h3>' +
         (g.note ? '<p class="rawnote">' + esc(g.note) + '</p>' : '') +
-        '<div class="links2">' + corps + '</div>';
+        '<div class="links2">' + bodyEl + '</div>';
     }).join("");
 }
 
 function linksBlock(){
   const repo = "https://github.com/Beennnn/runtime-xray";
-  const l = (href, titre, quoi) =>
+  const l = (href, heading, what) =>
     '<a class="lk" href="'+href+'" target="_blank" rel="noopener">' +
-    '<span class="lkt">'+titre+'</span><span class="lkd">'+quoi+'</span></a>';
+    '<span class="lkt">'+heading+'</span><span class="lkd">'+what+'</span></a>';
   return rawBlock() + '<h2>Going further</h2><div class="links2">' +
     l(repo, "The project repository \u2197",
       "The code, the collection scripts, and how to run this tool on another project.") +
@@ -3643,8 +3643,8 @@ const ICON = {
   valeurs:  '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5 5"/></svg>'
 };
 
-function card(cls, icon, value, label, quoi){
-  return '<div class="card ' + cls + '"' + (quoi ? ' title="' + esc(quoi) + '"' : '') +
+function card(cls, icon, value, label, what){
+  return '<div class="card ' + cls + '"' + (what ? ' title="' + esc(what) + '"' : '') +
          '><div class="ci">' + icon + '</div>' +
          '<div><div class="k">' + value + '</div><div class="l">' + label + '</div></div></div>';
 }
@@ -3779,28 +3779,28 @@ function pliOuvert(id, taille){
  * @param corps  the content, already escaped
  * @param taille the number of entries, which decides the default folding
  */
-function sectionPliable(id, titre, info, compte, corps, taille){
-  const ouvert = pliOuvert(id, taille);
+function foldableSection(id, heading, info, tally, bodyEl, taille){
+  const isOpen = pliOuvert(id, taille);
   return '<section class="pliable">'
     + '<h2 title="' + info + '">'
     + '<button type="button" class="plibtn" data-pli="' + id + '"'
-    + ' aria-expanded="' + ouvert + '" aria-controls="pli-' + id + '">'
+    + ' aria-expanded="' + isOpen + '" aria-controls="pli-' + id + '">'
     + '<span class="pliic" aria-hidden="true">&#9656;</span>'
-    + '<span>' + titre + '</span>'
-    + '<span class="plicnt">' + compte + '</span>'
+    + '<span>' + heading + '</span>'
+    + '<span class="plicnt">' + tally + '</span>'
     + '</button></h2>'
-    + '<p class="plicorps" id="pli-' + id + '"' + (ouvert ? '' : ' hidden') + '>'
-    + corps + '</p></section>';
+    + '<p class="plicorps" id="pli-' + id + '"' + (isOpen ? '' : ' hidden') + '>'
+    + bodyEl + '</p></section>';
 }
 /** Wires the foldable titles of the fragment just written. */
 function cablerPlis(){
   document.querySelectorAll(".plibtn").forEach(b => {
     b.onclick = () => {
-      const corps = document.getElementById(b.getAttribute("aria-controls"));
-      const ouvert = b.getAttribute("aria-expanded") !== "true";
-      b.setAttribute("aria-expanded", String(ouvert));
-      corps.hidden = !ouvert;
-      plis[b.dataset.pli] = ouvert;
+      const bodyEl = document.getElementById(b.getAttribute("aria-controls"));
+      const isOpen = b.getAttribute("aria-expanded") !== "true";
+      b.setAttribute("aria-expanded", String(isOpen));
+      bodyEl.hidden = !isOpen;
+      plis[b.dataset.pli] = isOpen;
       savePlis();
     };
   });
@@ -3830,10 +3830,10 @@ function cablerPlis(){
  * A root that resolves 27 classes out of 27 is not a guess; one that resolves 3 out of 447
  * designates another module, and reads as such.
  */
-function pistesSources(){
-  const pistes = ((D.diagnostic || {}).rapprochement || {}).pistes;
-  if (!pistes) return "";
-  if (!pistes.length){
+function sourceLeads(){
+  const leads = ((D.diagnostic || {}).rapprochement || {}).pistes;
+  if (!leads) return "";
+  if (!leads.length){
     return '<h4>Suggested roots</h4><p class="cause">The tool looked for the files '
          + '<code>.java</code> matching ones around the project and the analysed bytecode: '
          + '<b>none of them holds the expected packages</b>. The sources are not on this machine, or outside the directories explored — in which case the right one must be named by hand.</p>';
@@ -3842,11 +3842,11 @@ function pistesSources(){
     + '<p class="srcline">Looked for around the analysed bytecode and the launch directory, '
     + 'then kept on evidence: only a file whose <b>declared package</b> produces exactly '
     + 'one missing key counts.</p>'
-    + '<div class="pistes">' + pistes.map(p => {
-        const part = p.surTotal ? Math.round(100 * p.resout / p.surTotal) : 0;
-        const ton = part >= 80 ? "ok" : part >= 25 ? "moyen" : "faible";
+    + '<div class="pistes">' + leads.map(p => {
+        const pctPart = p.surTotal ? Math.round(100 * p.resout / p.surTotal) : 0;
+        const tone = pctPart >= 80 ? "ok" : pctPart >= 25 ? "moyen" : "faible";
         return '<div class="piste">'
-          + '<div class="tete"><span class="score ' + ton + '">' + p.resout + ' / '
+          + '<div class="tete"><span class="score ' + tone + '">' + p.resout + ' / '
           + p.surTotal + '</span> <span class="quoi">class(es) without source that this root '
           + 'would resolve</span></div>'
           + '<pre class="remede">SOURCE_DIRS="' + esc(p.racine) + '"</pre>'
@@ -3867,7 +3867,7 @@ function pistesSources(){
  * accessor avoids confusing them: looking for them one notch too high gave "0 roots", hence
  * a diagnostic that blamed the configuration when everything had been found.
  */
-function diagSources(){ return (D.diagnostic || {}).sources || {}; }
+function sourceDiag(){ return (D.diagnostic || {}).sources || {}; }
 
 /** A class's four states, and what each means for whoever has to fix things. */
 const ETATS_SOURCE = {
@@ -3885,10 +3885,10 @@ const ETATS_SOURCE = {
  * differences, that explain an incomplete report.
  */
 let MODELE_SOURCES = null;
-function modeleSources(){
+function sourceModel(){
   if (MODELE_SOURCES) return MODELE_SOURCES;
   const d = D.diagnostic || {};
-  const parNom = diagSources().parNom || {};
+  const parNom = sourceDiag().parNom || {};
   const noeuds = {};                       // "com/example/app/Application" -> what we know of it
   const prendre = n => noeuds[n] || (noeuds[n] = { nom: n, mesuree: false, source: null,
                                                   chemin: null, racines: [] });
@@ -3906,8 +3906,8 @@ function modeleSources(){
   // 3. what the sources supplied. The key "package/File.java" designates the file, not the
   //    class: it is attached to the class name it most probably carries.
   Object.values(parNom).forEach(endroits => endroits.forEach(o => {
-    const nom = o.cle.replace(/\.java$/, "");
-    const e = prendre(nom);
+    const blockName = o.cle.replace(/\.java$/, "");
+    const e = prendre(blockName);
     e.source = o.cle; e.chemin = o.chemin;
   }));
 
@@ -3927,9 +3927,9 @@ function modeleSources(){
 }
 
 /** The count by state, the one read before opening anything at all. */
-function comptesSources(){
+function sourceCounts(){
   const c = { ok:0, sansSrc:0, inerte:0, orphelin:0 };
-  modeleSources().liste.forEach(e => c[e.etat]++);
+  sourceModel().liste.forEach(e => c[e.etat]++);
   return c;
 }
 
@@ -3940,47 +3940,47 @@ function comptesSources(){
  * to the problem in a tree of several hundred classes, without unfolding everything.
  * Entirely healthy packages stay green and folded.
  */
-function arbreSources(filtre){
+function sourceTree(filtre){
   const f = (filtre || "").toLowerCase();
-  const paquets = {};
-  modeleSources().liste.forEach(e => {
+  const byPackage = {};
+  sourceModel().liste.forEach(e => {
     if (f && e.nom.toLowerCase().indexOf(f) < 0) return;
     const i = e.nom.lastIndexOf("/");
     const pkg = i < 0 ? "(default package)" : e.nom.slice(0, i);
-    (paquets[pkg] = paquets[pkg] || []).push(e);
+    (byPackage[pkg] = byPackage[pkg] || []).push(e);
   });
-  const noms = Object.keys(paquets).sort();
+  const noms = Object.keys(byPackage).sort();
   if (!noms.length) return '<p class="cause">No class matches.</p>';
 
-  const pire = liste => liste.some(e => e.etat === "sansSrc") ? "sansSrc"
-                      : liste.some(e => e.etat === "orphelin") ? "orphelin"
-                      : liste.some(e => e.etat === "inerte") ? "inerte" : "ok";
+  const worst = ofPackage => ofPackage.some(e => e.etat === "sansSrc") ? "sansSrc"
+                      : ofPackage.some(e => e.etat === "orphelin") ? "orphelin"
+                      : ofPackage.some(e => e.etat === "inerte") ? "inerte" : "ok";
   return '<div class="arbsrc">' + noms.map(pkg => {
-    const liste = paquets[pkg].sort((a,b)=>a.nom<b.nom?-1:1);
-    const mauvais = liste.filter(e => e.etat === "sansSrc").length;
+    const ofPackage = byPackage[pkg].sort((a,b)=>a.nom<b.nom?-1:1);
+    const bad = ofPackage.filter(e => e.etat === "sansSrc").length;
     // Unfolded outright when the search is active, or when there is something to see.
-    const ouvert = !!f || mauvais > 0;
+    const isOpen = !!f || bad > 0;
     return '<div class="pkg">'
-      + '<button type="button" class="pkgt e-' + pire(liste) + '" data-pkg="' + esc(pkg) + '"'
-      + ' aria-expanded="' + ouvert + '">'
-      + '<span class="ic" aria-hidden="true">' + (ouvert ? "▾" : "▸") + '</span>'
+      + '<button type="button" class="pkgt e-' + worst(ofPackage) + '" data-pkg="' + esc(pkg) + '"'
+      + ' aria-expanded="' + isOpen + '">'
+      + '<span class="ic" aria-hidden="true">' + (isOpen ? "▾" : "▸") + '</span>'
       + '<span class="nm">' + esc(dot(pkg)) + '</span>'
-      + '<span class="cnt">' + liste.length + '</span>'
-      + (mauvais ? '<span class="cnt ko">' + mauvais + ' without source</span>' : '')
+      + '<span class="cnt">' + ofPackage.length + '</span>'
+      + (bad ? '<span class="cnt ko">' + bad + ' without source</span>' : '')
       + '</button>'
-      + '<div class="cls"' + (ouvert ? '' : ' hidden') + '>'
-      + liste.map(e => ligneClasseSource(e)).join("")
+      + '<div class="cls"' + (isOpen ? '' : ' hidden') + '>'
+      + ofPackage.map(e => sourceClassLine(e)).join("")
       + '</div></div>';
   }).join("") + '</div>';
 }
 
-function ligneClasseSource(e){
+function sourceClassLine(e){
   const simple = e.nom.split("/").pop();
-  const etat = ETATS_SOURCE[e.etat];
-  return '<div class="cl e-' + e.etat + '" title="' + esc(etat.aide) + '">'
+  const sourceState = ETATS_SOURCE[e.etat];
+  return '<div class="cl e-' + e.etat + '" title="' + esc(sourceState.aide) + '">'
     + '<span class="pt" aria-hidden="true"></span>'
     + '<span class="nm">' + esc(simple) + '</span>'
-    + '<span class="et">' + esc(etat.lib) + '</span>'
+    + '<span class="et">' + esc(sourceState.lib) + '</span>'
     + (e.chemin ? '<span class="or" title="Source file read by the tool">'
                   + esc(e.chemin) + '</span>' : '')
     + (!e.chemin && e.racines.length
@@ -3990,22 +3990,22 @@ function ligneClasseSource(e){
 }
 
 /** A search's verdict: found or not, and where — the question one really asks. */
-function verdictRecherche(q){
+function searchVerdict(q){
   const f = (q || "").trim().toLowerCase();
   if (!f) return "";
-  const trouves = modeleSources().liste.filter(e =>
+  const hits = sourceModel().liste.filter(e =>
     e.nom.toLowerCase().indexOf(f) >= 0 || e.nom.split("/").pop().toLowerCase() === f);
-  if (!trouves.length){
+  if (!hits.length){
     return '<p class="verdict ko"><b>“' + esc(q) +'” was seen nowhere</b> — neither in the '
          + 'measurement, nor in the analysed bytecode, nor in the indexed sources. The class '
          + 'is outside the scope: it was not loaded, or the analysed classpath does not '
          + 'contain it.</p>';
   }
-  const e = trouves[0];
-  const etat = ETATS_SOURCE[e.etat];
+  const e = hits[0];
+  const sourceState = ETATS_SOURCE[e.etat];
   return '<p class="verdict ' + (e.etat === "ok" ? "ok" : e.etat === "sansSrc" ? "ko" : "") + '">'
-    + '<b>' + trouves.length + ' match(es)</b> — ' + esc(dot(e.nom)) + ': '
-    + esc(etat.lib) + '.'
+    + '<b>' + hits.length + ' match(es)</b> — ' + esc(dot(e.nom)) + ': '
+    + esc(sourceState.lib) + '.'
     + (e.chemin ? ' Source read here: <code>' + esc(e.chemin) + '</code>.' : '')
     + (e.racines.length ? ' Bytecode found here: <code>' + esc(e.racines[0]) + '</code>.' : '')
     + '</p>';
@@ -4024,26 +4024,26 @@ function verdictRecherche(q){
  * from the symptom. The rows that carry an alert are those THIS run's configuration makes
  * suspect, not generalities.
  */
-function piegesConfig(){
+function configTraps(){
   const lanc = (D.diagnostic || {}).lancement || {};
   const ctx = R.context || {};
-  const racine = lanc.methodeRacine || ctx.methodeRacine || "";
-  const racines = (diagSources().racines || []).length;
-  const sans = ((D.diagnostic || {}).rapprochement || {}).fichiersSansSource || 0;
+  const rootFrame = lanc.methodeRacine || ctx.methodeRacine || "";
+  const roots = (sourceDiag().racines || []).length;
+  const without = ((D.diagnostic || {}).rapprochement || {}).fichiersSansSource || 0;
 
-  const lignes = [
+  const settingRows = [
     { opt: "--sources / SOURCE_DIRS",
       quoi: "the display of the annotated code, and nothing else",
       pas: "has no effect on the measurement: coverage, time and values are identical without it",
-      alerte: (!racines || sans)
+      alerte: (!roots || without)
         ? "It is the only setting that explains “Source unavailable”. The coverage stays "
           + "correct: it is the .java files that are missing, not the measurement."
         : null },
     { opt: "--root / ROOT_METHOD",
       quoi: "the capture of argument values (Arthas), and the default time filter",
       pas: "restricts NEITHER the coverage, NOR the displayed classes, NOR the sources",
-      alerte: (racine && racine.indexOf("::") < 0)
-        ? "“" + esc(racine) + "” does not name a method: the expected format is "
+      alerte: (rootFrame && rootFrame.indexOf("::") < 0)
+        ? "“" + esc(rootFrame) + "” does not name a method: the expected format is "
           + "package.Class::method. Without “::”, no value is captured."
         : null },
     { opt: "--filter / CLASS_FILTER",
@@ -4066,7 +4066,7 @@ function piegesConfig(){
 
   return '<h4>What each setting actually controls</h4>'
     + '<p class="srcline">Four options each restrict something <b>different</b>. Widening the wrong one gives back exactly the same report.</p>'
-    + '<div class="pieges">' + lignes.map(l =>
+    + '<div class="pieges">' + settingRows.map(l =>
         '<div class="piege' + (l.alerte ? ' alerte' : '') + '">'
         + '<code>' + esc(l.opt) + '</code>'
         + '<span class="agit">acts on ' + l.quoi + '</span>'
@@ -4087,31 +4087,31 @@ function piegesConfig(){
 function sourcesBlock(){
   const d = D.diagnostic;
   if (!d) return "";
-  const r = d.rapprochement || {}, src = diagSources(), racines = src.racines || [];
+  const r = d.rapprochement || {}, src = sourceDiag(), roots = src.racines || [];
   const total = r.fichiersMesures || 0, avec = r.fichiersAvecSource || 0;
-  const sans = r.fichiersSansSource || 0;
+  const without = r.fichiersSansSource || 0;
   const pct = total ? (100 * avec / total) : 0;
-  const c = comptesSources();
+  const c = sourceCounts();
   const lanc = d.lancement || {};
 
-  let corps = '<p class="srcline">' +
+  let bodyEl = '<p class="srcline">' +
     (total
-      ? '<b class="' + (sans ? 'ko' : 'ok') + '">' + avec + ' of ' + total + '</b> measured '
+      ? '<b class="' + (without ? 'ko' : 'ok') + '">' + avec + ' of ' + total + '</b> measured '
         + 'class(es) have their source code in this page (' + pct.toFixed(0) + '%).'
       : 'No measured class: there is nothing to match.') + '</p>';
 
   // 1. the line actually run — the one believed to have been launched is not always that
   //    one. On reassembly there is no launch: the run's context, for its part, kept it, and
   //    it is the same one.
-  const commande = lanc.commande || (R.context || {}).commande || "";
-  if (commande){
-    corps += '<h4>Line executed</h4><pre class="remede">' + esc(commande) + '</pre>';
+  const commandLine = lanc.commande || (R.context || {}).commande || "";
+  if (commandLine){
+    bodyEl += '<h4>Line executed</h4><pre class="remede">' + esc(commandLine) + '</pre>';
   }
 
   // 2. the roots actually opened, bytecode then sources
-  corps += '<h4>Analysed bytecode</h4>';
+  bodyEl += '<h4>Analysed bytecode</h4>';
   const bc = d.bytecode || [];
-  corps += bc.length
+  bodyEl += bc.length
     ? '<ul class="racines">' + bc.map(x =>
         '<li><code>' + esc(x.chemin) + '</code> <span class="abs">(' + esc(x.type) + ')</span>'
         + '<br><span class="' + (x.existe && x.nombre ? 'ok' : 'ko') + '">'
@@ -4119,32 +4119,32 @@ function sourcesBlock(){
                     : '✗ ' + esc(x.motif || 'not found')) + '</span></li>').join("") + '</ul>'
     : '<p class="cause">The analysed bytecode is not known to this report — it is when the measurement is launched by the tool, or when <code>--classes</code> is given when it is reassembled.</p>';
 
-  corps += '<h4>Indexed sources</h4>';
-  if (racines.length){
-    corps += '<ul class="racines">' + racines.map(x =>
+  bodyEl += '<h4>Indexed sources</h4>';
+  if (roots.length){
+    bodyEl += '<ul class="racines">' + roots.map(x =>
       '<li><code>' + esc(x.demandee) + '</code>'
       + (x.absolue && x.absolue !== x.demandee
           ? ' <span class="abs">→ ' + esc(x.absolue) + '</span>' : '')
       + '<br><span class="' + (x.existe ? 'ok' : 'ko') + '">'
       + (x.existe ? '✓ ' + (x.fichiers || 0) + ' .java file(s)'
                   : '✗ ' + esc(x.motif || 'not found')) + '</span></li>').join("") + '</ul>';
-    corps += '<p class="srcline">' + (src.fichiers || 0) + ' file(s) <code>.java</code> '
+    bodyEl += '<p class="srcline">' + (src.fichiers || 0) + ' file(s) <code>.java</code> '
           + 'indexed in total'
           + (src.tronque ? ' <span class="ko">— walk truncated, the index is incomplete</span>' : '')
           + '. The level of the root matters little: the tool reads the package each file '
           + 'declares, not its path.</p>';
   } else {
-    corps += '<p class="cause">No source directory was given to the tool: the measurement does not need one, the display of annotated code does. Set <code>SOURCE_DIRS</code> in the configuration, or '
+    bodyEl += '<p class="cause">No source directory was given to the tool: the measurement does not need one, the display of annotated code does. Set <code>SOURCE_DIRS</code> in the configuration, or '
           + '<code>--sources</code> on the command line.</p>';
   }
-  if (r.conclusion && racines.length) corps += '<p class="cause">' + esc(r.conclusion) + '</p>';
-  corps += pistesSources();
+  if (r.conclusion && roots.length) bodyEl += '<p class="cause">' + esc(r.conclusion) + '</p>';
+  bodyEl += sourceLeads();
 
   // 3. what each setting commands — written from the symptom, not from the docs
-  corps += piegesConfig();
+  bodyEl += configTraps();
 
   // 4. the tree and its search
-  corps += '<h4>Where each class is</h4>'
+  bodyEl += '<h4>Where each class is</h4>'
         // Files read with no measured class are not in the tree: the page carries only what
         // it can show. Their number, for its part, says whether there is matter to search.
         + (r.sourcesSansClasse
@@ -4160,32 +4160,32 @@ function sourcesBlock(){
         + ' placeholder="Search a class — tells whether it was found, and where"'
         + ' aria-label="Search a class in the source inventory"></div>'
         + '<div id="srcverdict"></div>'
-        + '<div id="srctree">' + arbreSources("") + '</div>';
+        + '<div id="srctree">' + sourceTree("") + '</div>';
 
-  corps += '<p class="apres">The detail — launch configuration, runs, class-by-class matching — is in <code>diagnostic.json</code>, next to this page. It is the file to attach when a report does not show what you expected.</p>';
+  bodyEl += '<p class="apres">The detail — launch configuration, runs, class-by-class matching — is in <code>diagnostic.json</code>, next to this page. It is the file to attach when a report does not show what you expected.</p>';
 
-  return sectionPliable("sources", "Source analysis",
+  return foldableSection("sources", "Source analysis",
     "Where the code shown beside the coverage comes from, what is missing, and where each class was found. Clicking the title folds the section.",
     total ? avec + " / " + total : (src.fichiers || 0) + " files",
-    '<div class="constat srcrecap">' + corps + '</div>',
+    '<div class="constat srcrecap">' + bodyEl + '</div>',
     // The default folding follows size: the scale is diverted so that it follows the anomaly
     // instead. Nothing missing → folded; something missing → open, because it is then the
     // first thing to read.
-    sans || !racines.length ? 0 : 999);
+    without || !roots.length ? 0 : 999);
 }
 
 /** Wires the search and the unfolding of the tree of the fragment just written. */
-function cablerExplorateurSources(){
+function wireSourceExplorer(){
   const q = document.getElementById("srcsearch");
   if (!q) return;
   const tree = document.getElementById("srctree");
   const verdict = document.getElementById("srcverdict");
   const cablerPaquets = () => tree.querySelectorAll(".pkgt").forEach(b => b.onclick = () => {
-    const corps = b.nextElementSibling;
-    const ouvert = b.getAttribute("aria-expanded") !== "true";
-    b.setAttribute("aria-expanded", String(ouvert));
-    corps.hidden = !ouvert;
-    b.querySelector(".ic").textContent = ouvert ? "▾" : "▸";
+    const bodyEl = b.nextElementSibling;
+    const isOpen = b.getAttribute("aria-expanded") !== "true";
+    b.setAttribute("aria-expanded", String(isOpen));
+    bodyEl.hidden = !isOpen;
+    b.querySelector(".ic").textContent = isOpen ? "▾" : "▸";
   });
   cablerPaquets();
   let t = null;
@@ -4194,8 +4194,8 @@ function cablerExplorateurSources(){
     // every keystroke over an inventory of several hundred classes.
     clearTimeout(t);
     t = setTimeout(() => {
-      tree.innerHTML = arbreSources(q.value);
-      verdict.innerHTML = verdictRecherche(q.value);
+      tree.innerHTML = sourceTree(q.value);
+      verdict.innerHTML = searchVerdict(q.value);
       cablerPaquets();
     }, 120);
   };
@@ -4230,7 +4230,7 @@ function drawHome(){
    flameBlock()+
    contextBlock()+
    sourcesBlock()+
-   (AGG.dead.length ? sectionPliable("dead", "Never executed",
+   (AGG.dead.length ? foldableSection("dead", "Never executed",
       'Analysed classes with no instruction executed: neither reading the code nor a passing test reveals them. Clicking the title folds the list.',
       AGG.dead.length + (AGG.dead.length > 1 ? ' classes' : ' class'),
       AGG.dead.map(d=>'<span class="chip dead" title="This class was never loaded nor executed during this measurement">'+esc(d)+'</span>').join(""),
@@ -4261,7 +4261,7 @@ function drawHome(){
     c.onclick = () => { const t = frameInfo(c.dataset.f); if (t) select(t, null); };
   });
   cablerPlis();
-  cablerExplorateurSources();
+  wireSourceExplorer();
   const oh = document.getElementById("openhelp");
   if (oh) oh.onclick = e => { e.preventDefault(); openHelp(); };
   renderIdentity();
@@ -4292,8 +4292,8 @@ function renderIdentity(){
   const origine = R.nomOrigine
     ? "Name at launch: " + R.nomOrigine
     : "No name given at launch (--name)";
-  const etat = peutEnregistrer
-    ? (annotationModifiee(R) ? "not saved" : "up to date")
+  const sourceState = canSave
+    ? (annotationChanged(R) ? "not saved" : "up to date")
     : "kept in this browser";
 
   bar.innerHTML =
@@ -4319,12 +4319,12 @@ function renderIdentity(){
       '<button data-tag="' + i + '" title="Remove" aria-label="Remove the tag '
       + esc(k) + '">✕</button></span>').join("") +
     '<button class="mini" id="identTagAdd" title="A key, and a value if needed">+ tag</button>' +
-    '<span class="etat' + (peutEnregistrer && annotationModifiee(R) ? " modifie" : "") +
-      '" id="identEtat">' + esc(etat) + '</span>';
+    '<span class="etat' + (canSave && annotationChanged(R) ? " modifie" : "") +
+      '" id="identEtat">' + esc(sourceState) + '</span>';
 
-  const nom = document.getElementById("identNom");
-  nom.oninput = () => {
-    annotationPatch(R, "name", nom.value.trim() || null);
+  const blockName = document.getElementById("identNom");
+  blockName.oninput = () => {
+    annotationPatch(R, "name", blockName.value.trim() || null);
     refreshRunLabels();
     majEtat();
   };
@@ -4355,10 +4355,10 @@ function renderIdentity(){
     e.currentTarget.replaceWith(zone);
     const k = zone.querySelector(".k"), v = zone.querySelector(".v");
     const poser = () => {
-      const cle = k.value.trim();
-      if (!cle){ renderIdentity(); return; }
+      const srcKey = k.value.trim();
+      if (!srcKey){ renderIdentity(); return; }
       const suite = Object.fromEntries(tags);
-      suite[cle] = v.value.trim();
+      suite[srcKey] = v.value.trim();
       annotationPatch(R, "etiquettes", suite);
       renderIdentity();
     };
@@ -4379,8 +4379,8 @@ function renderIdentity(){
   function majEtat(){
     const e = document.getElementById("identEtat");
     if (!e) return;
-    const modifie = peutEnregistrer && annotationModifiee(R);
-    e.textContent = peutEnregistrer ? (modifie ? "not saved" : "up to date")
+    const modifie = canSave && annotationChanged(R);
+    e.textContent = canSave ? (modifie ? "not saved" : "up to date")
                                     : "kept in this browser";
     e.classList.toggle("modifie", modifie);
     renderAnnotActs();
@@ -4398,15 +4398,15 @@ function renderIdentity(){
 function renderAnnotActs(){
   const box = document.getElementById("annotbar");
   if (!box) return;
-  const modifie = peutEnregistrer && annotationModifiee(R);
+  const modifie = canSave && annotationChanged(R);
   box.innerHTML =
     '<span class="toolgrp fichegrp"><span class="mark" title="The record of this run: the name, description and tags YOU give it — the band just below. No measurement is changed by it.">' + TOOLMARK.fiche + 'card</span>' +
-    (peutEnregistrer && serveurGarde
+    (canSave && serverGuarded
       ? '<span class="mark" title="This server is guarded by a shared secret: only the ' +
         'people who have it can read and annotate" aria-label="Server guarded by a ' +
         'shared secret">🔒</span>'
       : '') +
-    (peutEnregistrer
+    (canSave
       ? '<a href="#" id="annotSave"' + (modifie ? ' style="font-weight:700"' : '') +
         ' title="Write this run\'s record beside its results">' +
         (modifie ? "save •" : "save") + '</a><span class="sep">·</span>'
@@ -4420,24 +4420,24 @@ function renderAnnotActs(){
 
   const save = document.getElementById("annotSave");
   if (save) save.onclick = e => { e.preventDefault(); enregistrerAnnotations(save); };
-  document.getElementById("annotExport").onclick = e => { e.preventDefault(); exporterAnnotations(); };
-  const fichier = document.getElementById("annotFile");
-  document.getElementById("annotImport").onclick = e => { e.preventDefault(); fichier.click(); };
-  fichier.onchange = () => {
-    const f = fichier.files && fichier.files[0];
+  document.getElementById("annotExport").onclick = e => { e.preventDefault(); exportAnnotations(); };
+  const fileInput = document.getElementById("annotFile");
+  document.getElementById("annotImport").onclick = e => { e.preventDefault(); fileInput.click(); };
+  fileInput.onchange = () => {
+    const f = fileInput.files && fileInput.files[0];
     if (!f) return;
     f.text().then(t => {
-      const n = importerAnnotations(t);
+      const n = importAnnotations(t);
       renderIdentity();
       refreshRunLabels();
       mode === "tree" ? renderTree() : renderClasses();
       drawHome();
-      montrer(n + " run" + (n > 1 ? "s" : "") + " taken up"
+      showPanel(n + " run" + (n > 1 ? "s" : "") + " taken up"
               + " from “" + f.name + "”"
-              + (peutEnregistrer ? " — “save” will lay them on the server." : "."),
+              + (canSave ? " — “save” will lay them on the server." : "."),
               "Records taken up");
-    }).catch(e => montrer(e.message, "Import refused"));
-    fichier.value = "";
+    }).catch(e => showPanel(e.message, "Import refused"));
+    fileInput.value = "";
   };
   document.getElementById("annotDump").onclick = e => {
     e.preventDefault();
@@ -4445,14 +4445,14 @@ function renderAnnotActs(){
     // exact, and perfectly useless: the panel now says what it expects and what that file
     // is for.
     const fiches = annotationsFile();
-    const combien = Object.keys(fiches).length;
+    const howMany = Object.keys(fiches).length;
     const texte = JSON.stringify(fiches, null, 2);
-    montrer(texte,
-      combien
-        ? "Records of this report — " + combien + " run" + (combien > 1 ? "s" : "")
+    showPanel(texte,
+      howMany
+        ? "Records of this report — " + howMany + " run" + (howMany > 1 ? "s" : "")
         : "Records of this report — none for the moment",
       texte,
-      combien ? null
+      howMany ? null
         : "No run in this report has a record yet. As soon as one of them is given a "
         + "name, a description, a tag or a pruning, it appears here. This is the file "
         + "that “export” downloads and that “import” takes up, and it is also what the "
@@ -4470,18 +4470,18 @@ function renderAnnotActs(){
  *                 take JSON up again elsewhere, not to read it
  * @param avant    a sentence above, when the text alone does not suffice
  */
-function montrer(texte, titre, aCopier, avant){
+function showPanel(texte, heading, aCopier, avant){
   const out = document.getElementById("annotout");
   if (!out) return;
   out.hidden = false;
   out.innerHTML = "";
 
-  const tete = document.createElement("div");
-  tete.className = "tete";
+  const headRow = document.createElement("div");
+  headRow.className = "tete";
   const t = document.createElement("span");
   t.className = "titre";
-  t.textContent = titre || "Runtime X-Ray";
-  tete.appendChild(t);
+  t.textContent = heading || "Runtime X-Ray";
+  headRow.appendChild(t);
 
   if (aCopier) {
     const copier = document.createElement("button");
@@ -4491,40 +4491,40 @@ function montrer(texte, titre, aCopier, avant){
       // With no clipboard — page opened as a file, permission refused — the text is
       // selected: the user's Ctrl-C does the rest.
       const dit = m => { copier.textContent = m; setTimeout(() => copier.textContent = "copy", 1800); };
-      const corps = out.querySelector(".json");
+      const bodyEl = out.querySelector(".json");
       if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(aCopier).then(() => dit("copied ✓"), () => selectionner(corps, dit));
-      } else selectionner(corps, dit);
+        navigator.clipboard.writeText(aCopier).then(() => dit("copied ✓"), () => selectText(bodyEl, dit));
+      } else selectText(bodyEl, dit);
     };
-    tete.appendChild(copier);
+    headRow.appendChild(copier);
   }
 
-  const fermer = document.createElement("button");
-  fermer.className = "acte";
-  fermer.textContent = "✕";
-  fermer.title = "Close";
-  fermer.setAttribute("aria-label", "Close");
-  fermer.onclick = () => { out.hidden = true; };
-  tete.appendChild(fermer);
-  out.appendChild(tete);
+  const closeIt = document.createElement("button");
+  closeIt.className = "acte";
+  closeIt.textContent = "✕";
+  closeIt.title = "Close";
+  closeIt.setAttribute("aria-label", "Close");
+  closeIt.onclick = () => { out.hidden = true; };
+  headRow.appendChild(closeIt);
+  out.appendChild(headRow);
 
-  const corps = document.createElement("div");
-  corps.className = "corps";
+  const bodyEl = document.createElement("div");
+  bodyEl.className = "corps";
   if (avant) {
     const p = document.createElement("div");
     p.className = "vide";
     p.textContent = avant;
-    corps.appendChild(p);
+    bodyEl.appendChild(p);
   }
   const json = document.createElement("span");
   json.className = "json";
   json.textContent = texte;
-  corps.appendChild(json);
-  out.appendChild(corps);
+  bodyEl.appendChild(json);
+  out.appendChild(bodyEl);
 }
 
 /** Selects the displayed text, for want of an accessible clipboard. */
-function selectionner(noeud, dit){
+function selectText(noeud, dit){
   if (!noeud) { dit("copy refused"); return; }
   const plage = document.createRange();
   plage.selectNodeContents(noeud);
@@ -4540,7 +4540,7 @@ function annotationsFile(){
   D.runs.forEach(run => {
     const a = annotationOf(run);
     const tags = a.etiquettes && Object.keys(a.etiquettes).length ? a.etiquettes : null;
-    const e = elagageActif(run) ? elagageOf(run) : null;
+    const e = pruningActive(run) ? pruningOf(run) : null;
     if (!a.nom && !a.description && !tags && !e) return;
     // A name alone keeps the short shape, the one that was already circulating.
     out[run.uuid] = (!a.description && !tags && !e)
@@ -4779,7 +4779,7 @@ document.addEventListener("keydown", e => {
 function changerOnglet(rendu){
   // Only a METHOD is found in both views: the call tree does not know classes. An open class
   // therefore asks for nothing, and makes nothing fail.
-  aDevoiler = selected && selected.name ? selected.frame : null;
+  toReveal = selected && selected.name ? selected.frame : null;
   rendu();
 }
 document.getElementById("tab-tree").onclick = () => changerOnglet(renderTree);

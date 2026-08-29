@@ -14,7 +14,7 @@ o.append(text(400, 122, "ONE RUN, MEASURED THREE TIMES OVER", 10.5, FAINT, 600, 
 o.append(box(70, 140, 320, 76, 'service'))
 o.append(symbol(f'{LL}/symboles/java.svg', 84, 156, 32))
 o.append(text(126, 168, "The analysed application", 12.5, INK, 600))
-o.append(text(126, 186, "sample-app.jar", 11.5, COUCHES['api'][1], mono=True))
+o.append(text(126, 186, "sample-app.jar", 11.5, LAYERS['api'][1], mono=True))
 o.append(text(126, 202, "22 classes · no dependency · no clock, no randomness", 9.5, FAINT))
 
 # the subject of the diagram
@@ -74,8 +74,8 @@ LANES = [
 ]
 
 y = 440
-for icon, name, how, couche, out_file, question, findings, limit in LANES:
-    colour = COUCHES[couche][1]
+for icon, name, how, layer, out_file, question, findings, limit in LANES:
+    colour = LAYERS[layer][1]
     o.append(box(70, y, 300, 96, 'service'))
     o.append(symbol(icon, 84, y + 16, 30))
     o.append(text(126, y + 30, name, 13, INK, 600))

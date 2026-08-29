@@ -57,8 +57,8 @@ class ClassSourcesTest {
 
         Path fromDir = dir.resolve("depuis-repertoire.class");
         assertTrue(Main.copyClassBytes(
-                List.of(dirWith(dir, "classes", "app/Calcul.class")),
-                "app/Calcul.class", fromDir));
+                List.of(dirWith(dir, "classes", "app/Compute.class")),
+                "app/Compute.class", fromDir));
         assertEquals(BYTES.length, Files.size(fromDir));
     }
 
@@ -66,9 +66,9 @@ class ClassSourcesTest {
     @DisplayName("Directories and jars mix in the same analysis")
     void mixesBothKinds(@TempDir Path dir) throws IOException {
         List<Path> sources = List.of(
-                dirWith(dir, "classes", "app/Calcul.class"),
+                dirWith(dir, "classes", "app/Compute.class"),
                 jarWith(dir, "lib.jar", "com/example/Noyau.class"));
-        assertTrue(Main.copyClassBytes(sources, "app/Calcul.class", dir.resolve("a.class")));
+        assertTrue(Main.copyClassBytes(sources, "app/Compute.class", dir.resolve("a.class")));
         assertTrue(Main.copyClassBytes(sources, "com/example/Noyau.class", dir.resolve("b.class")));
     }
 
@@ -115,7 +115,7 @@ class ClassSourcesTest {
     @DisplayName("An unreadable archive does not bring the analysis down")
     void brokenArchiveIsSkipped(@TempDir Path dir) throws IOException {
         Path casse = dir.resolve("casse.jar");
-        Files.writeString(casse, "ceci n'est pas une archive", StandardCharsets.UTF_8);
+        Files.writeString(casse, "this is not an archive", StandardCharsets.UTF_8);
         Path bon = jarWith(dir, "bon.jar", "app/C.class");
         assertTrue(Main.copyClassBytes(List.of(casse, bon), "app/C.class", dir.resolve("o.class")),
                 "the next entry must be tried");
@@ -125,7 +125,7 @@ class ClassSourcesTest {
     @DisplayName("A class absent everywhere is reported, not invented")
     void missingClassReturnsFalse(@TempDir Path dir) throws IOException {
         assertFalse(Main.copyClassBytes(
-                List.of(jarWith(dir, "lib.jar", "com/example/Autre.class")),
+                List.of(jarWith(dir, "lib.jar", "com/example/Other.class")),
                 "com/example/Absent.class", dir.resolve("o.class")));
     }
 
@@ -155,7 +155,7 @@ class ClassSourcesTest {
     void keepsOnlyDirectoriesFromClasspath(@TempDir Path dir) throws IOException {
         // A real classpath holds dozens of dependency jars. Analysing them all would make
         // a report where the project's code is one percent of the total.
-        Path classes = dirWith(dir, "classes", "app/Calcul.class");
+        Path classes = dirWith(dir, "classes", "app/Compute.class");
         Path other = dirWith(dir, "generated", "app/Genere.class");
         Path dep = jarWith(dir, "commons.jar", "org/apache/Truc.class");
         String cp = String.join(File.pathSeparator,
@@ -168,7 +168,7 @@ class ClassSourcesTest {
     @DisplayName("The -jar wins over the classpath: it is what carries the code")
     void jarWinsOverClasspath(@TempDir Path dir) throws IOException {
         Path jar = jarWith(dir, "appli.jar", "com/example/Main.class");
-        Path classes = dirWith(dir, "classes", "app/Autre.class");
+        Path classes = dirWith(dir, "classes", "app/Other.class");
         List<Path> found = ClassSources.discover(
                 List.of("-cp", classes.toString(), "-jar", jar.toString()), "", dir);
         assertEquals(List.of(jar), found);
@@ -191,7 +191,7 @@ class ClassSourcesTest {
         assertEquals(List.of(), ClassSources.discover(List.of(), "mvn exec:java", dir),
                 "no conventional directory: we do not guess");
 
-        Path target = dirWith(dir, "target/classes", "app/Calcul.class");
+        Path target = dirWith(dir, "target/classes", "app/Compute.class");
         assertEquals(List.of(target), ClassSources.discover(List.of(), "mvn exec:java", dir));
     }
 

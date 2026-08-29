@@ -43,23 +43,23 @@ class CallTreeTest {
     @DisplayName("A simple stack produces a branch, and the counts add up")
     void buildsBranchesAndSums(@TempDir Path dir) throws IOException {
         CallTree t = CallTree.parse(write(dir, """
-                app/Main.main;app/Service.traiter 10
-                app/Main.main;app/Service.traiter;app/Calcul.faire 5
-                app/Main.main;app/Autre.faire 3
+                app/Main.main;app/Service.handle 10
+                app/Main.main;app/Service.handle;app/Compute.doIt 5
+                app/Main.main;app/Other.doIt 3
                 """));
         assertEquals(18L, t.root.get("total"));
         Map<String, Object> main = child(t.root, "app/Main.main");
         assertNotNull(main);
         assertEquals(18L, main.get("total"));
-        assertEquals(15L, child(main, "app/Service.traiter").get("total"));
-        assertEquals(5L, child(child(main, "app/Service.traiter"), "app/Calcul.faire").get("total"));
+        assertEquals(15L, child(main, "app/Service.handle").get("total"));
+        assertEquals(5L, child(child(main, "app/Service.handle"), "app/Compute.doIt").get("total"));
     }
 
     @Test
     @DisplayName("A stack the profiler could not walk back does not become a second entry point")
     void brokenStackNeverBecomesARoot(@TempDir Path dir) throws IOException {
         CallTree t = CallTree.parse(write(dir, """
-                app/Main.main;app/Service.traiter 99
+                app/Main.main;app/Service.handle 99
                 [unknown_Java];app/Speeds.forMode 1
                 """));
         // The sample stays in the total: the time was indeed spent somewhere.
@@ -85,26 +85,26 @@ class CallTreeTest {
     @DisplayName("The branches are sorted from the costliest to the least")
     void sortsChildrenByWeight(@TempDir Path dir) throws IOException {
         CallTree t = CallTree.parse(write(dir, """
-                app/Main.main;app/Petit.faire 1
-                app/Main.main;app/Gros.faire 50
-                app/Main.main;app/Moyen.faire 10
+                app/Main.main;app/Petit.doIt 1
+                app/Main.main;app/Gros.doIt 50
+                app/Main.main;app/Moyen.doIt 10
                 """));
         @SuppressWarnings("unchecked")
         List<Object> kids = (List<Object>) child(t.root, "app/Main.main").get("children");
-        assertEquals("app/Gros.faire", ((Map<?, ?>) kids.get(0)).get("name"));
-        assertEquals("app/Moyen.faire", ((Map<?, ?>) kids.get(1)).get("name"));
-        assertEquals("app/Petit.faire", ((Map<?, ?>) kids.get(2)).get("name"));
+        assertEquals("app/Gros.doIt", ((Map<?, ?>) kids.get(0)).get("name"));
+        assertEquals("app/Moyen.doIt", ((Map<?, ?>) kids.get(1)).get("name"));
+        assertEquals("app/Petit.doIt", ((Map<?, ?>) kids.get(2)).get("name"));
     }
 
     @Test
     @DisplayName("The JDK frames disappear, but their time is attributed to the caller")
     void foldsPlatformFramesWithoutLosingTime(@TempDir Path dir) throws IOException {
         CallTree t = CallTree.parse(write(dir, """
-                app/Main.main;app/Service.traiter;java/util/ArrayList.iterator 7
-                app/Main.main;app/Service.traiter;jdk/internal/misc/Unsafe.park 3
+                app/Main.main;app/Service.handle;java/util/ArrayList.iterator 7
+                app/Main.main;app/Service.handle;jdk/internal/misc/Unsafe.park 3
                 """));
         assertEquals(10L, t.root.get("total"), "no time must be lost");
-        Map<String, Object> service = child(child(t.root, "app/Main.main"), "app/Service.traiter");
+        Map<String, Object> service = child(child(t.root, "app/Main.main"), "app/Service.handle");
         assertEquals(10L, service.get("total"));
         assertTrue(((List<?>) service.get("children")).isEmpty(),
                 "no JDK frame must appear under the application method");
@@ -127,20 +127,20 @@ class CallTreeTest {
     @DisplayName("The inspector's frames are folded AND reported by a caveat")
     void foldsInstrumentationAndWarns(@TempDir Path dir) throws IOException {
         CallTree t = CallTree.parse(write(dir, """
-                app/Main.main;app/Service.traiter 20
-                app/Main.main;app/Service.traiter;java/arthas/SpyAPI.atEnter 80
+                app/Main.main;app/Service.handle 20
+                app/Main.main;app/Service.handle;java/arthas/SpyAPI.atEnter 80
                 """));
         assertEquals(100L, t.root.get("total"));
         assertNotNull(t.note, "a caveat must be stated when the inspector weighs on the profile");
         assertTrue(t.note.contains("80%"), "the share concerned must be given as a figure: " + t.note);
-        Map<String, Object> service = child(child(t.root, "app/Main.main"), "app/Service.traiter");
+        Map<String, Object> service = child(child(t.root, "app/Main.main"), "app/Service.handle");
         assertEquals(100L, service.get("total"));
     }
 
     @Test
     @DisplayName("Without an inspector, no caveat is invented")
     void noNoteWhenNoInstrumentation(@TempDir Path dir) throws IOException {
-        CallTree t = CallTree.parse(write(dir, "app/Main.main;app/Service.traiter 5\n"));
+        CallTree t = CallTree.parse(write(dir, "app/Main.main;app/Service.handle 5\n"));
         assertNull(t.note);
     }
 
@@ -148,11 +148,11 @@ class CallTreeTest {
     @DisplayName("A hidden package is folded like the JDK: its time goes back to the caller")
     void foldsHiddenPackages(@TempDir Path dir) throws IOException {
         CallTree t = CallTree.parse(write(dir, """
-                app/Main.main;app/Service.traiter;org/slf4j/Logger.debug 30
-                app/Main.main;app/Service.traiter 10
+                app/Main.main;app/Service.handle;org/slf4j/Logger.debug 30
+                app/Main.main;app/Service.handle 10
                 """), PackageFilter.of("org.slf4j"));
         assertEquals(40L, t.root.get("total"), "hiding must not lose measured time");
-        Map<String, Object> service = child(child(t.root, "app/Main.main"), "app/Service.traiter");
+        Map<String, Object> service = child(child(t.root, "app/Main.main"), "app/Service.handle");
         assertEquals(40L, service.get("total"), "the hidden package's time goes back to the caller");
         assertTrue(((List<?>) service.get("children")).isEmpty());
     }
@@ -188,8 +188,8 @@ class CallTreeTest {
     void keepsDefaultPackageClasses(@TempDir Path dir) throws IOException {
         // Folding the native symbols rests on the absence of both '/' AND '.'. A class
         // without a package keeps its dot — it must not be taken with them.
-        CallTree t = CallTree.parse(write(dir, "Main.main;Calcul.faire 4\n"));
-        assertNotNull(child(child(t.root, "Main.main"), "Calcul.faire"));
+        CallTree t = CallTree.parse(write(dir, "Main.main;Compute.doIt 4\n"));
+        assertNotNull(child(child(t.root, "Main.main"), "Compute.doIt"));
     }
 
     @Test
@@ -212,8 +212,8 @@ class CallTreeTest {
     @DisplayName("A malformed line is ignored without bringing the rest down")
     void skipsMalformedLines(@TempDir Path dir) throws IOException {
         CallTree t = CallTree.parse(write(dir, """
-                ceci n'est pas une pile
-                app/Main.main;app/Service.traiter 4
+                this is not a stack
+                app/Main.main;app/Service.handle 4
 
                 app/Main.main pasunnombre
                 """));

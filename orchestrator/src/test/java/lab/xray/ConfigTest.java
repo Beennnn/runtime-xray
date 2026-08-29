@@ -286,10 +286,10 @@ class ConfigTest {
         c.level = "full";
         assertTrue(c.valuesWanted());
 
-        // Les variables d'environnement aussi.
+        // Environment variables too.
         Config e = new Config();
-        e.set("COMPONENTS", "/ici");
-        assertEquals("/ici", e.componentsDir);
+        e.set("COMPONENTS", "/here");
+        assertEquals("/here", e.componentsDir);
         Config fr = new Config();
         fr.set("COMPOSANTS", "/la");
         assertEquals("/la", fr.componentsDir);

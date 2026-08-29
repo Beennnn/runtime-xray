@@ -157,7 +157,7 @@ public final class Follow implements AutoCloseable {
                         send(ex, "text/plain; charset=utf-8", asUtf8(raw));
                     }
                     default -> send(ex, "text/plain; charset=utf-8",
-                            "rien ici".getBytes(StandardCharsets.UTF_8));
+                            "nothing here".getBytes(StandardCharsets.UTF_8));
                 }
             } catch (IOException e) {
                 send(ex, "text/plain; charset=utf-8",

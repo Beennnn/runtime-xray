@@ -160,6 +160,6 @@ class ProgressTest {
         assertFalse(Progress.requested("false"));
         assertTrue(Progress.requested("1"));
         assertTrue(Progress.requested("oui"),
-                "toute autre valeur vaut demande : on ne fait pas deviner une syntaxe");
+                "any other value counts as a request: a syntax is not left to be guessed");
     }
 }
