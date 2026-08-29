@@ -27,10 +27,13 @@ class MergedCoverageTest {
     private static final Path CLI = Path.of("/tools/jacococli.jar");
     private static final Path MERGED = Path.of("/out/jacoco-fusion/fusion.exec");
     private static final Path HTML = Path.of("/out/jacoco-fusion/html");
+    // Never a literal with separators: under Windows the same path renders "\app\classes",
+    // and the test would fail on a command that is exactly right.
+    private static final Path CLASSES = Path.of("/app/classes");
+    private static final Path SOURCES = Path.of("/app/src");
 
     private static List<String> command() {
-        return Main.mergedReportCommand(CLI, MERGED, HTML, 3,
-                List.of(Path.of("/app/classes")), List.of(Path.of("/app/src")));
+        return Main.mergedReportCommand(CLI, MERGED, HTML, 3, List.of(CLASSES), List.of(SOURCES));
     }
 
     @Test
@@ -62,9 +65,9 @@ class MergedCoverageTest {
         List<String> command = command();
         // Without --classfiles JaCoCo produces a report with no class at all; without
         // --sourcefiles it produces one with no annotated code. Both are silent failures.
-        assertTrue(command.contains("--classfiles") && command.contains("/app/classes"),
+        assertTrue(command.contains("--classfiles") && command.contains(CLASSES.toString()),
                 "the analysed bytecode must be named: " + command);
-        assertTrue(command.contains("--sourcefiles") && command.contains("/app/src"),
+        assertTrue(command.contains("--sourcefiles") && command.contains(SOURCES.toString()),
                 "and the sources, otherwise the merged report shows no code: " + command);
         assertTrue(command.contains("Cumulative coverage — 3 runs"),
                 "the report says how many runs it unites: " + command);
