@@ -282,29 +282,48 @@ selector gives French back to whoever wants it, and a browser that announces Fre
 straight away. Every other browser reads English — there is no third language, and there will
 not be one. Two letters, no flag: a flag names a country, not a language.
 
-**The template stayed in French, and it is the translation that walks the DOM.** The page runs
-to five thousand lines and half its text is composed inside concatenations of tags; sowing
+**The template is written in English, and it is the translation that walks the DOM.** The page
+runs to five thousand lines and half its text is composed inside concatenations of tags; sowing
 keys through it would have demanded touching each of those lines — hence risking an `id`, a
 selector or a comparison on every one — for no gain. The dictionary lives in a block apart, at
-the end of the file, and nothing else moved. Three rules hold it:
+the end of the file, and nothing else carries a key.
+
+The template was French until August 2026, and the walk translated it into English. Turning it
+round costs nothing at render time and buys the thing that matters: **the language the tool
+gets read in is the one the file carries.** A dictionary hole used to show as French inside an
+English report sent to somebody who does not read French; it now shows as English inside a
+French one, to a reader who asked for French and is looking at their own tool. And English
+costs no walk at all — asking for it returns the template's own text, untouched.
+
+Three rules hold the mechanism:
 
 - **Only whole, known strings are translated.** No word replacement. A class name, a captured
   value, a line of the observed application's code is never a label of the dictionary. The
   **code cell** is in addition excluded from the walk — and it alone, because the folds and
   the call annotations of the same line are, for their part, the tool's own text. The tree's
-  labels are excluded too: a class named `Comment` must not become `How`.
-- **The original French is kept**, not translated back. A round trip over a non-injective
+  labels are excluded too: a class named `Comment` must not become `Commentaire`.
+- **The original English is kept**, not translated back. A round trip over a non-injective
   dictionary would lose text; here it gives the original back to the byte.
 - **A `title` rewritten after the fact is watched like an added node.** The page reassigns
   several — the "expand everything" button changes its own at every toggle — and that creates
   no node, hence does not show in `childList`.
 
+**French spacing lives in the walk, not in the template.** French puts a space before `: ; ! ?`
+and English does not; the template holds the English form, and the FR pass puts the space back
+on the punctuation that ends a word. The eleven fragments that *begin* with a colon — the page
+composes them after a `<b>…</b>` — carry that space in the dictionary instead: a rule keyed on
+the start of a text node would also have spaced out `? Help`.
+
 **Drifting apart is the failure mode, and it is silent**: somebody rephrases a label in the
-template, the dictionary no longer knows it, and the English view displays French with nothing
-to signal it. `ViewLanguageTest` checks the whole static body for that reason — every French
+template, the dictionary no longer knows it, and the French view displays English with nothing
+to signal it. `ViewLanguageTest` checks the whole static body for that reason — every English
 sentence it carries must have its translation. The rest of the text is born in JavaScript and
-only shows at render time: that check is done at the browser, before pushing, by collecting
-the strings displayed and keeping none that is French.
+only shows at render time: that check is done at the browser, before pushing.
+
+**The way to verify a change here is to render it.** Before touching the block, take a snapshot
+of every string the page displays — both languages, a dozen states of the view — and take the
+same one after: the inversion itself was carried out that way, and the only differences it left
+were the ones intended. A reading of the diff proves nothing; the DOM does.
 
 ## Conventions
 
@@ -316,10 +335,10 @@ the strings displayed and keeping none that is French.
   is therefore written in English**, comments and `@DisplayName`s included, and so is every
   document.
 
-  Two things stay in French, each for a reason: the **`dashboard.html` template**, because it
-  is the translation that walks its DOM and not the other way round (see "The view's
-  language"); and the **commit messages**, which address whoever takes over the repository and
-  not whoever runs the tool. Examples are in English **everywhere**, including inside French
+  One thing stays in French, for a reason: the **commit messages**, which address whoever takes
+  over the repository and not whoever runs the tool. The `dashboard.html` template joined the
+  rest in August 2026 — French now lives in its dictionary, not in its markup (see "The view's
+  language"). Examples are in English **everywhere**, including inside French
   prose: `com.example.app`, `--context "which classes never ran?"`.
 - **A French option name stays accepted for ever**, silently, now that its English equivalent
   has arrived. Scripts already deployed never break. Only `faits.jsonl` will break, in format
