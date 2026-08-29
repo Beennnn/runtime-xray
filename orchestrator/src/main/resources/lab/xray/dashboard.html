@@ -2487,12 +2487,12 @@ function renderClasses(){
   const classes = new Map();
   for (const i of [...shownRuns].sort()){
     const run = D.runs[i];
-    for (const [pack, list] of Object.entries(run.packages)){
+    for (const [pkg, list] of Object.entries(run.packages)){
       for (const c of list){
         if (isMasked(c.name)) continue;
         if (executedOnly && !c.covered) continue;
         const seen = classes.get(c.name);
-        if (!seen) classes.set(c.name, {...c, pack, runs: [i]});
+        if (!seen) classes.set(c.name, {...c, pkg, runs: [i]});
         else { seen.covered = Math.max(seen.covered, c.covered); seen.runs.push(i); }
       }
     }
@@ -2917,11 +2917,11 @@ function revealInCode(frame){
     }
     // Packages are compacted — "lab.sample" may fit in a single node: we look for the
     // one whose path is a prefix of the target package, and we descend into it.
-    const pack = noeuds.find(n => (n.dataset.path || "").startsWith("pkg:")
+    const pkg = noeuds.find(n => (n.dataset.path || "").startsWith("pkg:")
       && (paquet + ".").startsWith(n.dataset.path.slice(4) + "."));
-    if (!pack) return false;
-    unfold(pack);
-    conteneur = pack.nextElementSibling;
+    if (!pkg) return false;
+    unfold(pkg);
+    conteneur = pkg.nextElementSibling;
     if (!conteneur) return false;
   }
   return false;
@@ -3000,13 +3000,13 @@ function ouvrirPaquet(blockPath){
   let conteneur = document.getElementById("list");
   for (let garde = 0; garde < 40; garde++){
     const noeuds = [...conteneur.querySelectorAll(":scope > .node")];
-    const pack = noeuds.find(n => (n.dataset.path || "").startsWith("pkg:")
+    const pkg = noeuds.find(n => (n.dataset.path || "").startsWith("pkg:")
       && (vise + ".").startsWith(n.dataset.path.slice(4) + "."));
-    if (!pack) return;
-    unfold(pack);
-    pack.scrollIntoView({block: "center", behavior: "smooth"});
-    if (pack.dataset.path.slice(4) === vise) return;
-    conteneur = pack.nextElementSibling;
+    if (!pkg) return;
+    unfold(pkg);
+    pkg.scrollIntoView({block: "center", behavior: "smooth"});
+    if (pkg.dataset.path.slice(4) === vise) return;
+    conteneur = pkg.nextElementSibling;
     if (!conteneur) return;
   }
 }
@@ -3362,9 +3362,9 @@ function draw(){
  *  one must be able to switch over to it without setting off from its root. */
 function jacocoLink(info){
   if (!(R.rapports || {}).couverture) return "";
-  const pack = info.cls.split("/").slice(0, -1).join(".");
+  const pkg = info.cls.split("/").slice(0, -1).join(".");
   const file = info.cls.split("/").pop() + ".java.html";
-  const href = (R.chemin || "") + "jacoco/html/" + pack + "/" + file +
+  const href = (R.chemin || "") + "jacoco/html/" + pkg + "/" + file +
                (info.line ? "#L" + info.line : "");
   return ' <a class="pill" style="text-decoration:none" target="_blank" rel="noopener" href="' +
          href + '" title="Open this class in JaCoCo\'s HTML report — the same coverage, presented by the tool that measured it">' +
@@ -3946,8 +3946,8 @@ function sourceTree(filtre){
   sourceModel().liste.forEach(e => {
     if (f && e.nom.toLowerCase().indexOf(f) < 0) return;
     const i = e.nom.lastIndexOf("/");
-    const pack = i < 0 ? "(default package)" : e.nom.slice(0, i);
-    (byPackage[pack] = byPackage[pack] || []).push(e);
+    const pkg = i < 0 ? "(default package)" : e.nom.slice(0, i);
+    (byPackage[pkg] = byPackage[pkg] || []).push(e);
   });
   const noms = Object.keys(byPackage).sort();
   if (!noms.length) return '<p class="cause">No class matches.</p>';
@@ -3955,16 +3955,16 @@ function sourceTree(filtre){
   const worst = ofPackage => ofPackage.some(e => e.etat === "sansSrc") ? "sansSrc"
                       : ofPackage.some(e => e.etat === "orphelin") ? "orphelin"
                       : ofPackage.some(e => e.etat === "inerte") ? "inerte" : "ok";
-  return '<div class="arbsrc">' + noms.map(pack => {
-    const ofPackage = byPackage[pack].sort((a,b)=>a.nom<b.nom?-1:1);
+  return '<div class="arbsrc">' + noms.map(pkg => {
+    const ofPackage = byPackage[pkg].sort((a,b)=>a.nom<b.nom?-1:1);
     const bad = ofPackage.filter(e => e.etat === "sansSrc").length;
     // Unfolded outright when the search is active, or when there is something to see.
     const isOpen = !!f || bad > 0;
     return '<div class="pkg">'
-      + '<button type="button" class="pkgt e-' + worst(ofPackage) + '" data-pkg="' + esc(pack) + '"'
+      + '<button type="button" class="pkgt e-' + worst(ofPackage) + '" data-pkg="' + esc(pkg) + '"'
       + ' aria-expanded="' + isOpen + '">'
       + '<span class="ic" aria-hidden="true">' + (isOpen ? "▾" : "▸") + '</span>'
-      + '<span class="nm">' + esc(dot(pack)) + '</span>'
+      + '<span class="nm">' + esc(dot(pkg)) + '</span>'
       + '<span class="cnt">' + ofPackage.length + '</span>'
       + (bad ? '<span class="cnt ko">' + bad + ' without source</span>' : '')
       + '</button>'
