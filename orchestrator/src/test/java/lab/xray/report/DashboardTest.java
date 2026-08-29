@@ -461,7 +461,7 @@ class DashboardTest {
         String page = Files.readString(Dashboard.build(out, List.of(sources(dir)), 8),
                 StandardCharsets.UTF_8);
 
-        assertTrue(page.contains("sectionPliable(\"dead\", \"Jamais exécuté\""),
+        assertTrue(page.contains("sectionPliable(\"dead\", \"Never executed\""),
                 "the \"never executed\" section must be the one that folds");
         assertTrue(page.contains("class=\"plicnt\""),
                 "the count must stay readable when folded, otherwise folding loses what decides to open");
