@@ -893,15 +893,15 @@ const D = /*__DATA__*/;
  * ===================================================================================== */
 const XR = {
   cache: new Map(),         // block name -> what it brought
-  ordre: [],                // from oldest to most recent
+  lruOrder: [],                // from oldest to most recent
   scripts: new Map(),
-  attente: new Map(),       // the same block asked for twice is loaded only once
-  PLAFOND: 6,
-  _recu: null,
+  pending: new Map(),       // the same block asked for twice is loaded only once
+  CAP: 6,
+  _incoming: null,
 
   /** Called by every line of a block while it loads. */
   bloc(type, srcKey, val){
-    if (XR._recu) XR._recu.push([type, srcKey, val]);
+    if (XR._incoming) XR._incoming.push([type, srcKey, val]);
   },
 
   /* Loads follow one another instead of overlapping, and that is not a detail: the
@@ -909,58 +909,58 @@ const XR = {
      it — the second overwrites it before the first has emptied. Seen. Parallelising them
      would gain nothing here: these are local files, and the queue blocks only for the
      time of a parse. */
-  _file: Promise.resolve(),
+  _queue: Promise.resolve(),
 
-  charger(blockName){
-    if (XR.cache.has(blockName)) { XR.toucher(blockName); return Promise.resolve(); }
-    if (XR.attente.has(blockName)) return XR.attente.get(blockName);
-    const p = XR._file.then(() => new Promise((ok, ko) => {
-      if (XR.cache.has(blockName)) { XR.toucher(blockName); ok(); return; }
-      const recu = [];
-      XR._recu = recu;
+  load(blockName){
+    if (XR.cache.has(blockName)) { XR.touch(blockName); return Promise.resolve(); }
+    if (XR.pending.has(blockName)) return XR.pending.get(blockName);
+    const p = XR._queue.then(() => new Promise((ok, ko) => {
+      if (XR.cache.has(blockName)) { XR.touch(blockName); ok(); return; }
+      const received = [];
+      XR._incoming = received;
       const s = document.createElement("script");
       s.src = blockName;
       s.onload = () => {
-        XR._recu = null; XR.attente.delete(blockName); XR.ranger(blockName, recu); ok();
+        XR._incoming = null; XR.pending.delete(blockName); XR.store(blockName, received); ok();
       };
       s.onerror = () => {
-        XR._recu = null; XR.attente.delete(blockName); s.remove(); XR.scripts.delete(blockName);
+        XR._incoming = null; XR.pending.delete(blockName); s.remove(); XR.scripts.delete(blockName);
         ko(new Error("block not found: " + blockName));
       };
       document.head.appendChild(s);
       XR.scripts.set(blockName, s);
     }));
-    XR.attente.set(blockName, p);
+    XR.pending.set(blockName, p);
     // The queue must not stop on a missing block: the next one has every right to be there.
-    XR._file = p.catch(() => {});
+    XR._queue = p.catch(() => {});
     return p;
   },
 
   /** Files what a block brought where the view already reads it. */
-  ranger(blockName, recu){
-    const pose = [];
-    for (const [type, srcKey, val] of recu){
-      if (type === "src"){ D.sources[srcKey] = val; pose.push(["src", srcKey]); }
-      else if (type === "cumul"){ D.cumul[srcKey] = val; pose.push(["cumul", srcKey]); }
-      else if (type === "poids"){ D.poids[srcKey] = val; pose.push(["poids", srcKey]); }
-      else if (type === "presence"){ D.presence[srcKey] = val; pose.push(["presence", srcKey]); }
+  store(blockName, received){
+    const placed = [];
+    for (const [type, srcKey, val] of received){
+      if (type === "src"){ D.sources[srcKey] = val; placed.push(["src", srcKey]); }
+      else if (type === "cumul"){ D.cumul[srcKey] = val; placed.push(["cumul", srcKey]); }
+      else if (type === "poids"){ D.poids[srcKey] = val; placed.push(["poids", srcKey]); }
+      else if (type === "presence"){ D.presence[srcKey] = val; placed.push(["presence", srcKey]); }
       else if (type === "run"){
-        const [uuid, champ] = srcKey.split("/");
+        const [uuid, field] = srcKey.split("/");
         const run = D.runs.find(r => r.uuid === uuid);
-        if (run){ run[champ] = val; pose.push(["run", run, champ]); }
+        if (run){ run[field] = val; placed.push(["run", run, field]); }
       }
     }
-    XR.cache.set(blockName, pose);
+    XR.cache.set(blockName, placed);
     // Global indexes do not age: they are small, they serve all the time, and
     // evicting them breaks accumulation as soon as a few more classes are opened — seen.
     if (XR.permanent(blockName)) return;
-    XR.toucher(blockName);
-    XR.evincer();
+    XR.touch(blockName);
+    XR.evict();
   },
 
-  toucher(blockName){
+  touch(blockName){
     if (XR.permanent(blockName)) return;
-    XR.ordre = XR.ordre.filter(x => x !== blockName); XR.ordre.push(blockName);
+    XR.lruOrder = XR.lruOrder.filter(x => x !== blockName); XR.lruOrder.push(blockName);
   },
 
   /** A global index: it crosses runs, it is small, it stays. */
@@ -975,50 +975,50 @@ const XR = {
    * ceiling no longer held. The counter bounds the round, failing which a whole queue of
    * protected blocks would spin for ever.
    */
-  evincer(){
-    let tours = XR.ordre.length;
-    while (XR.ordre.length > XR.PLAFOND && tours-- > 0){
-      const vieux = XR.ordre.shift();
-      if (XR.protege.has(vieux)) { XR.ordre.push(vieux); continue; }
-      for (const pose of (XR.cache.get(vieux) || [])){
-        if (pose[0] === "src") delete D.sources[pose[1]];
-        else if (pose[0] === "cumul") delete D.cumul[pose[1]];
-        else if (pose[0] === "poids") delete D.poids[pose[1]];
-        else if (pose[0] === "presence") delete D.presence[pose[1]];
-        else if (pose[0] === "run") delete pose[1][pose[2]];
+  evict(){
+    let rounds = XR.lruOrder.length;
+    while (XR.lruOrder.length > XR.CAP && rounds-- > 0){
+      const oldest = XR.lruOrder.shift();
+      if (XR.pinned.has(oldest)) { XR.lruOrder.push(oldest); continue; }
+      for (const placed of (XR.cache.get(oldest) || [])){
+        if (placed[0] === "src") delete D.sources[placed[1]];
+        else if (placed[0] === "cumul") delete D.cumul[placed[1]];
+        else if (placed[0] === "poids") delete D.poids[placed[1]];
+        else if (placed[0] === "presence") delete D.presence[placed[1]];
+        else if (placed[0] === "run") delete placed[1][placed[2]];
       }
-      XR.cache.delete(vieux);
-      const s = XR.scripts.get(vieux);
-      if (s){ s.remove(); XR.scripts.delete(vieux); }
+      XR.cache.delete(oldest);
+      const s = XR.scripts.get(oldest);
+      if (s){ s.remove(); XR.scripts.delete(oldest); }
     }
   },
 
   /** What we do not free: what the view is showing right now. */
-  protege: new Set(),
+  pinned: new Set(),
 
   /** The blocks needed to display these runs — each has its own, under it. */
   async runs(indices){
-    const voulus = [];
-    for (const i of indices) for (const b of ((D.runs[i] || {}).blocs || [])) voulus.push(b);
-    XR.protege = new Set(voulus);
-    await Promise.all(voulus.map(b => XR.charger(b).catch(e => console.error(e))));
+    const wanted = [];
+    for (const i of indices) for (const b of ((D.runs[i] || {}).blocs || [])) wanted.push(b);
+    XR.pinned = new Set(wanted);
+    await Promise.all(wanted.map(b => XR.load(b).catch(e => console.error(e))));
   },
 
   /** A global index: it crosses runs, so it lives above them. */
   async global(blockName){
     const blockPath = (D.global || "vue/") + blockName;
-    if (XR.cache.has(blockPath)) { XR.toucher(blockPath); return; }
-    await XR.charger(blockPath).catch(e => console.error(e));
+    if (XR.cache.has(blockPath)) { XR.touch(blockPath); return; }
+    await XR.load(blockPath).catch(e => console.error(e));
   },
 
   /** The block that carries this file's code, if there is one. */
   async source(srcKey){
     const bloc = D.sourcesDisponibles[srcKey];
-    if (bloc && !D.sources[srcKey]) await XR.charger(bloc);
+    if (bloc && !D.sources[srcKey]) await XR.load(bloc);
   },
 
   async cumulIndex(){ await XR.global("cumul.js"); },
-  async poidsIndex(){ await XR.global("poids.js"); },
+  async weightsIndex(){ await XR.global("poids.js"); },
   async presenceIndex(){ await XR.global("presence.js"); }
 };
 D.sources = {};
@@ -1068,9 +1068,9 @@ let shownRuns = new Set(D.runs.map((_, i) => i));
  *
  * The setting is deliberately in the page and not in the measurement: it changes in one
  * click, with nothing to re-run, and the union recomputes on data already there. */
-let cumul = false;
-try { cumul = localStorage.getItem("runtime-xray.cumul") === "1"; } catch(e){}
-if (D.runs.length < 2) cumul = false;
+let cumulative = false;
+try { cumulative = localStorage.getItem("runtime-xray.cumul") === "1"; } catch(e){}
+if (D.runs.length < 2) cumulative = false;
 
 /** The ticked runs, in the page's order. */
 function tickedRuns(){
@@ -1086,7 +1086,7 @@ function tickedRuns(){
  * same rule JaCoCo applies when merging two {@code .exec} files.
  */
 function coverageForView(source){
-  if (!cumul) return (R.coverage && R.coverage[source]) || {};
+  if (!cumulative) return (R.coverage && R.coverage[source]) || {};
   // The union is read from an index computed at assembly: per line, two bit masks — who
   // covered it entirely, who partially. Uniting a subset becomes a binary AND, one
   // operation per line, instead of a search per line AND per run.
@@ -1095,8 +1095,8 @@ function coverageForView(source){
   let maskBits = 0;
   for (const i of tickedRuns()) maskBits |= (1 << i);
   const out = {};
-  for (const [nr, plein, partiel] of index){
-    const p = plein & maskBits, q = partiel & maskBits;
+  for (const [nr, fully, partly] of index){
+    const p = fully & maskBits, q = partly & maskBits;
     if (!p && !q) continue;
     const bits = p | q, which = [];
     for (let i = 0; i < D.runs.length; i++) if (bits & (1 << i)) which.push(i);
@@ -1107,7 +1107,7 @@ function coverageForView(source){
 
 /** The pips that say which runs covered a line. */
 function runPips(c){
-  if (!cumul || !c || !c.runs || !c.runs.length) return "";
+  if (!cumulative || !c || !c.runs || !c.runs.length) return "";
   return '<span class="quiruns">' + c.runs.map(i =>
     '<span class="runbadge r' + (i % 8) + '" title="Covered in “' + esc(runLabel(D.runs[i]))
     + '”">' + (i + 1) + '</span>').join("") + '</span>';
@@ -1259,7 +1259,7 @@ function saveAnnotations(){
 /** What was typed into the page wins over what the report already carried. */
 function annotationOf(run){
   const local = annotations[run.uuid] || {};
-  const base = annotationEnregistree(run);
+  const base = savedAnnotation(run);
   return {
     nom: local.nom !== undefined ? local.nom : base.nom,
     description: local.description !== undefined ? local.description : base.description,
@@ -1267,9 +1267,9 @@ function annotationOf(run){
     elagage: local.elagage !== undefined ? local.elagage : base.elagage
   };
 }
-function annotationPatch(run, champ, val){
+function annotationPatch(run, field, val){
   const a = annotations[run.uuid] || (annotations[run.uuid] = {});
-  if (val === null) delete a[champ]; else a[champ] = val;
+  if (val === null) delete a[field]; else a[field] = val;
   if (!Object.keys(a).length) delete annotations[run.uuid];
   saveAnnotations();
 }
@@ -1304,12 +1304,12 @@ function readServer(){
                  return r.ok ? r.json() : null; })
     .then(j => {
       if (!j) return false;
-      const avant = JSON.stringify(serverFingerprints);
+      const before = JSON.stringify(serverFingerprints);
       serverAnnotations = j.annotations || {};
       serverFingerprints = j.empreintes || {};
       if (serverRevision === null) serverRevision = j.revision || null;
       else if (j.revision && j.revision !== serverRevision) announceNews(j.executions);
-      return JSON.stringify(serverFingerprints) !== avant;
+      return JSON.stringify(serverFingerprints) !== before;
     })
     .catch(() => false);
 }
@@ -1377,7 +1377,7 @@ function announceNews(howMany){
 
 /** A run's annotation as it is saved: the server first, otherwise the one the page
  *  carried when it was built. */
-function annotationEnregistree(run){
+function savedAnnotation(run){
   const remote = serverAnnotations[run.uuid];
   if (remote !== undefined) {
     return typeof remote === "string"
@@ -1393,7 +1393,7 @@ function annotationEnregistree(run){
 function annotationChanged(run){
   const local = annotations[run.uuid];
   if (!local) return false;
-  const a = annotationOf(run), e = annotationEnregistree(run);
+  const a = annotationOf(run), e = savedAnnotation(run);
   return JSON.stringify([a.nom, a.description, a.etiquettes, a.elagage])
       !== JSON.stringify([e.nom, e.description, e.etiquettes, e.elagage]);
 }
@@ -1405,9 +1405,9 @@ function annotationChanged(run){
  * annotating two runs never cross, and on the same run the second is warned instead of
  * overwriting the first.
  */
-function enregistrerAnnotations(bouton){
+function persistAnnotations(btn){
   const run = R;
-  const say = t => { bouton.textContent = t; };
+  const say = t => { btn.textContent = t; };
   const a = annotationOf(run);
   const tags = a.etiquettes && Object.keys(a.etiquettes).length ? a.etiquettes : undefined;
   const el = pruningActive(run) ? pruningOf(run) : undefined;
@@ -1457,7 +1457,7 @@ function enregistrerAnnotations(bouton){
       // “changed” designates only what has not yet gone out.
       delete annotations[run.uuid];
       saveAnnotations();
-      serverAnnotations[run.uuid] = val && Object.keys(val).length ? valeur : undefined;
+      serverAnnotations[run.uuid] = val && Object.keys(val).length ? val : undefined;
       serverFingerprints[run.uuid] = body.empreinte;
       say("saved ✓");
       refresh();
@@ -1489,8 +1489,8 @@ function exportAnnotations(){
 
 /** Takes up a noms.json: the runs it names overwrite what we had, the others stay —
  *  importing is not starting over. */
-function importAnnotations(texte){
-  const parsed = JSON.parse(texte);
+function importAnnotations(jsonText){
+  const parsed = JSON.parse(jsonText);
   if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
     throw new Error("this file carries no run record");
   }
@@ -1503,16 +1503,16 @@ function importAnnotations(texte){
     saveAnnotations();
     return 1;
   }
-  let reprises = 0;
+  let retries = 0;
   for (const [uuid, val] of Object.entries(parsed)){
     annotations[uuid] = (typeof val === "string")
       ? {nom: val}
       : {nom: val.nom || "", description: val.description || "",
          etiquettes: val.etiquettes || {}, elagage: val.elagage || null};
-    reprises++;
+    retries++;
   }
   saveAnnotations();
-  return reprises;
+  return retries;
 }
 function shortId(run){ return (run.uuid || "").slice(0, 8); }
 
@@ -1541,7 +1541,7 @@ function pruningActive(run){
   const e = pruningOf(run);
   return !!(e.racine || e.coupes.length);
 }
-function poseElagage(run, e){
+function applyPruning(run, e){
   annotationPatch(run, "elagage", {racine: e.racine, coupes: e.coupes});
   renderAnnotActs();
 }
@@ -1554,12 +1554,12 @@ function nodeAtPath(root, path){
   return node;
 }
 /** A copy of the tree without the cut branches, each node carrying its original path. */
-function copyPruned(node, path, coupes){
+function copyPruned(node, path, cuts){
   const kids = [];
   for (const kid of node.children || []){
     const p = path ? path + ";" + kid.name : kid.name;
-    if (coupes.includes(p)) continue;
-    kids.push(copyPruned(kid, p, coupes));
+    if (cuts.includes(p)) continue;
+    kids.push(copyPruned(kid, p, cuts));
   }
   return {name: node.name, total: node.total, children: kids, __path: path};
 }
@@ -1583,12 +1583,12 @@ function prunedTree(run){
   const pruned = copyPruned(base, basePath, e.coupes);
   // Root brought down: we reintroduce a mute parent so the chosen node displays itself,
   // and not only its children — otherwise one no longer knows where one starts from.
-  const arbre = basePath
+  const treeNode = basePath
     ? {name: "all", total: run.calltree.total, children: [pruned], __path: ""}
     : pruned;
   run.__prunedKey = srcKey;
-  run.__pruned = arbre;
-  return arbre;
+  run.__pruned = treeNode;
+  return treeNode;
 }
 
 /** A node's path as the pruning designates it. */
@@ -1635,11 +1635,11 @@ function refreshRunLabels(){
     reselect();
   });
   const cb = document.getElementById("cumulcb");
-  cb.checked = cumul;
+  cb.checked = cumulative;
   cb.onchange = async () => {
-    cumul = cb.checked;
-    try { localStorage.setItem("runtime-xray.cumul", cumul ? "1" : "0"); } catch(e){}
-    if (cumul) await XR.cumulIndex();
+    cumulative = cb.checked;
+    try { localStorage.setItem("runtime-xray.cumul", cumulative ? "1" : "0"); } catch(e){}
+    if (cumulative) await XR.cumulIndex();
     refreshHeader();
     renderLegend();
     // draw() chooses for itself between the code and the overview. Calling a “drawCode”
@@ -1719,7 +1719,7 @@ const TOOLMARK = {
 };
 
 /** The button's arrow: defined here because the bar is built before the rest. */
-const ICONE_EXPORT =
+const EXPORT_ICON =
   '<svg viewBox="0 0 14 14" width="13" height="13" aria-hidden="true" fill="none"' +
   ' stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">' +
   '<path d="M7 1.8v7.4"/><path d="M4.2 6.6 7 9.4l2.8-2.8"/>' +
@@ -1820,12 +1820,12 @@ function refreshLinks(){
   const shownGroups = runFiles().filter(g => g.toujours || g.items.some(i => i[0]));
   const entryOf = (g, it) => {
     const [ok, href, heading] = it;
-    const court = g.toujours ? it[3] : null;
+    const shortLabel = g.toujours ? it[3] : null;
     const what = g.toujours ? it[4] : it[3];
     return ok
       ? '<a role="menuitem" href="' + href + '" target="_blank" rel="noopener">' +
         '<span class="t">' + esc(heading) + '</span><span class="d">' + esc(what) + '</span></a>'
-      : '<a role="menuitem" class="off" href="#" data-export="' + esc(court || heading) + '"' +
+      : '<a role="menuitem" class="off" href="#" data-export="' + esc(shortLabel || heading) + '"' +
         (g.cmd ? ' data-cmd="' + esc(g.cmd) + '"' : "") + '>' +
         '<span class="t">' + esc(heading) + '</span>' +
         '<span class="d">' + esc(what) + ' — not produced for this report yet.</span></a>';
@@ -1834,7 +1834,7 @@ function refreshLinks(){
     '<span class="dl">' +
     '<button id="dlbtn" class="cleanbtn" aria-haspopup="true" aria-expanded="false"' +
     ' aria-controls="dlmenu" title="The files written by this run: raw tool outputs, open formats, log">' +
-    '<span class="ic">' + ICONE_EXPORT + '</span><span class="lab">Exports</span>' +
+    '<span class="ic">' + EXPORT_ICON + '</span><span class="lab">Exports</span>' +
     '<span aria-hidden="true" style="opacity:.7">▾</span></button>' +
     '<div class="dlmenu" id="dlmenu" hidden role="menu" aria-label="Files of this run">' +
     shownGroups.map(g =>
@@ -1852,20 +1852,20 @@ function refreshLinks(){
  * cannot walk with the arrow keys is no menu for whoever uses no mouse.
  */
 function wireExportsMenu(){
-  const bouton = document.getElementById("dlbtn");
+  const btn = document.getElementById("dlbtn");
   const menu = document.getElementById("dlmenu");
-  if (!bouton || !menu) return;
+  if (!btn || !menu) return;
   const items = () => [...menu.querySelectorAll("a")];
-  const closeIt = (rendreLeFocus) => {
+  const closeIt = (giveBackFocus) => {
     menu.hidden = true;
-    bouton.setAttribute("aria-expanded", "false");
-    if (rendreLeFocus) bouton.focus();
+    btn.setAttribute("aria-expanded", "false");
+    if (giveBackFocus) btn.focus();
   };
-  bouton.onclick = e => {
+  btn.onclick = e => {
     e.preventDefault();
     const isOpen = menu.hidden;
     menu.hidden = !isOpen;
-    bouton.setAttribute("aria-expanded", String(isOpen));
+    btn.setAttribute("aria-expanded", String(isOpen));
     if (isOpen) { const l = items()[0]; if (l) l.focus(); }
   };
   menu.onkeydown = e => {
@@ -1874,7 +1874,7 @@ function wireExportsMenu(){
     else if (e.key === "ArrowDown") { e.preventDefault(); l[Math.min(l.length - 1, i + 1)].focus(); }
     else if (e.key === "ArrowUp") { e.preventDefault(); (i <= 0 ? bouton : l[i - 1]).focus(); }
   };
-  bouton.onkeydown = e => { if (e.key === "Escape" && !menu.hidden) closeIt(true); };
+  btn.onkeydown = e => { if (e.key === "Escape" && !menu.hidden) closeIt(true); };
   // A click elsewhere closes: that is what every menu does, and not doing it gives
   // the impression that the page is stuck. Laid ONCE on the document: the bar rebuilds at
   // every change of run, and one listener per rebuild
@@ -1921,7 +1921,7 @@ function renderLegend(){
   // Accumulating, the colour no longer speaks of one run but of their union: saying so
   // here, level with the code, avoids reading a green as the last run's when it comes
   // from another.
-  (cumul ? ' <span style="color:var(--violet)" title="The colours unite the ticked '
+  (cumulative ? ' <span style="color:var(--violet)" title="The colours unite the ticked '
          + 'runs; the number in front of each line says which ones covered '
          + 'it">accumulated: the pips say which run covered the line</span>'
          : '') +
@@ -2259,7 +2259,7 @@ function openPrunePicker(run, path, anchor){
     if (b.dataset.a === "couper" && !e.coupes.includes(path)) e.coupes = e.coupes.concat([path]);
     if (b.dataset.a === "racine") e.racine = path;
     if (b.dataset.a === "reset"){ e.racine = ""; e.coupes = []; }
-    poseElagage(run, e);
+    applyPruning(run, e);
     closeMaskPicker();
     // Pruning must not close the tree: we reopen what was open, otherwise every cut costs
     // finding one's way again.
@@ -2302,7 +2302,7 @@ function renderPruneBar(){
     if (a === "racine") e.racine = "";
     else if (a === "reset"){ e.racine = ""; e.coupes = []; }
     else if (a.startsWith("coupe:")) e.coupes = e.coupes.filter((_, i) => i !== +a.slice(6));
-    poseElagage(run, e);
+    applyPruning(run, e);
     const isOpen = captureExpanded();
     renderTree();
     restoreExpanded(isOpen);
@@ -2472,7 +2472,7 @@ function renderTree(){
   function hasMatch(node){
     return visibleChildren(node).some(k => dot(k.name).toLowerCase().includes(filter) || hasMatch(k));
   }
-  reprendreSelection();
+  restoreSelection();
 }
 
 /**
@@ -2591,7 +2591,7 @@ function renderClasses(){
     for (const child of node.children.values()) n += countClasses(child);
     return n;
   }
-  reprendreSelection();
+  restoreSelection();
 }
 
 /** A class's executed methods, in alphabetical order. */
@@ -2663,9 +2663,9 @@ function pathsTo(frame, max = 4){
  * display one line under the one being looked at.
  */
 function occurrencesOf(run, frame){
-  const rang = D.runs.indexOf(run);
+  const rank = D.runs.indexOf(run);
   const tally = D.presence[frame];
-  if (tally) return tally[rang] || 0;
+  if (tally) return tally[rank] || 0;
   if (!run.calltree) return 0;      // index absent and block not loaded: we do not invent
   let n = 0;
   (function walk(node){
@@ -2676,12 +2676,12 @@ function occurrencesOf(run, frame){
 function renderContexts(info){
   const box = document.getElementById("context");
   if (!info || !info.name){ box.innerHTML = ""; box.style.display = "none"; return; }
-  const {chemins, total, nb} = pathsTo(info.frame);
-  if (!chemins.length){ box.innerHTML = ""; box.style.display = "none"; return; }
+  const {chemins: pathList, total, nb: num} = pathsTo(info.frame);
+  if (!pathList.length){ box.innerHTML = ""; box.style.display = "none"; return; }
   // The last link of each path IS the open method: it is already written in the
   // breadcrumb just above, and it is identical on every row. What tells one context
   // from another is who calls — only that is shown.
-  const chains = chemins.map(c => ({
+  const chains = pathList.map(c => ({
     part: 100 * c.total / total,
     appelants: c.path.filter(f => frameInfo(f) && f !== info.frame)
   })).filter(c => c.appelants.length);
@@ -2695,7 +2695,7 @@ function renderContexts(info){
   // We show it only where it tells things apart.
   const lone = chains.length === 1;
   const label = lone ? "Called from:"
-                     : "Called from " + nb + " contexts — choose which one to look at:";
+                     : "Called from " + num + " contexts — choose which one to look at:";
   box.innerHTML = '<span class="ctxlabel">' + label + '</span>' +
     chains.map((c, i) => {
       const short = c.appelants.map(f =>
@@ -2795,11 +2795,11 @@ function wireIterations(){
         ? p.map((ms, k) => '<span class="iter"><b>' + (k + 1) + '</b>' +
             (ms < 1 ? ms.toFixed(3) : ms.toFixed(2)) + ' ms</span>').join("")
         : '<span class="iter">durations not recorded</span>';
-      const reste = call.n > p.length
+      const rest = call.n > p.length
         ? '<span class="iter" style="opacity:.7">+' + (call.n - p.length) +
           ' passes not detailed</span>' : "";
       tr.innerHTML = '<td class="n"></td><td colspan="2" class="iters-detail">' +
-        '<b>' + esc(call.callee) + '</b> — one node per pass: ' + body + reste + '</td>';
+        '<b>' + esc(call.callee) + '</b> — one node per pass: ' + body + rest + '</td>';
       row.after(tr);
     };
   });
@@ -2833,16 +2833,16 @@ function linkifyCalls(escapedLine, lineNumber){
    scratch to find again what one had just left. */
 
 /** What is currently being looked at, reduced to what suffices to come back to it. */
-function vueCourante(){
+function currentView(){
   return {mode: mode, run: runIndex, frame: selected ? selected.frame : null,
           call: callIndex, ctx: ctxIndex, scope: scopeFrame};
 }
-function memeVue(a, b){
+function sameView(a, b){
   return !!a && !!b && a.mode === b.mode && a.run === b.run && a.frame === b.frame
       && a.call === b.call;
 }
 
-let histoire = [], histoirePos = -1, rejoue = false;
+let history = [], historyPos = -1, replaying = false;
 
 /**
  * Records the current view in the history.
@@ -2852,20 +2852,20 @@ let histoire = [], histoirePos = -1, rejoue = false;
  * serve. Setting off again from an old view cuts the rest, as a browser does.
  */
 function recordView(){
-  if (rejoue) return;
-  const v = vueCourante();
-  if (memeVue(histoire[histoirePos], v)) { histoire[histoirePos] = v; return; }
-  histoire = histoire.slice(0, histoirePos + 1);
-  histoire.push(v);
-  histoirePos = histoire.length - 1;
-  majNav();
+  if (replaying) return;
+  const v = currentView();
+  if (sameView(history[historyPos], v)) { history[historyPos] = v; return; }
+  history = history.slice(0, historyPos + 1);
+  history.push(v);
+  historyPos = history.length - 1;
+  refreshNav();
 }
 
-function allerA(pos){
-  if (pos < 0 || pos >= histoire.length) return;
-  const v = histoire[pos];
-  histoirePos = pos;
-  rejoue = true;
+function goToPos(pos){
+  if (pos < 0 || pos >= history.length) return;
+  const v = history[pos];
+  historyPos = pos;
+  replaying = true;
   try {
     if (v.run !== runIndex) switchRun(v.run, false);
     scopeFrame = v.scope;
@@ -2875,15 +2875,15 @@ function allerA(pos){
       const t = frameInfo(v.frame);
       if (t){ select(t, null, v.call === null ? undefined : v.call); reveal(v.frame); }
     } else goHome();
-  } finally { rejoue = false; }
-  majNav();
+  } finally { replaying = false; }
+  refreshNav();
 }
 
-function majNav(){
+function refreshNav(){
   const p = document.getElementById("navprec"), s = document.getElementById("navsuiv");
   if (!p || !s) return;
-  p.disabled = histoirePos <= 0;
-  s.disabled = histoirePos >= histoire.length - 1;
+  p.disabled = historyPos <= 0;
+  s.disabled = historyPos >= history.length - 1;
 }
 
 /* -------------------------------------------------- reveal a method inside a view */
@@ -2904,30 +2904,30 @@ function reveal(frame){
 function revealInCode(frame){
   const info = frameInfo(frame);
   if (!info) return false;
-  const paquet = dot(info.cls).split(".").slice(0, -1).join(".");
-  let conteneur = document.getElementById("list");
-  for (let garde = 0; garde < 40; garde++){
-    const noeuds = [...conteneur.querySelectorAll(":scope > .node")];
-    const classe = noeuds.find(n => n.dataset.path === "cls:" + info.cls);
-    if (classe){
-      if (unfold(classe)) { /* the class opens and selects itself */ }
-      const dedans = classe.nextElementSibling;
-      const meth = info.name && dedans
+  const pkgName = dot(info.cls).split(".").slice(0, -1).join(".");
+  let hostEl = document.getElementById("list");
+  for (let guard = 0; guard < 40; guard++){
+    const nodesByName = [...conteneur.querySelectorAll(":scope > .node")];
+    const classNode = nodesByName.find(n => n.dataset.path === "cls:" + info.cls);
+    if (classNode){
+      if (unfold(classNode)) { /* the class opens and selects itself */ }
+      const within = classNode.nextElementSibling;
+      const meth = info.name && within
         ? [...dedans.querySelectorAll(":scope > .node")].find(n => n.dataset.frame === frame)
         : null;
-      const aim = meth || classe;
+      const aim = meth || classNode;
       aim.click();
       aim.scrollIntoView({block: "center", behavior: "smooth"});
       return true;
     }
     // Packages are compacted — "lab.sample" may fit in a single node: we look for the
     // one whose path is a prefix of the target package, and we descend into it.
-    const pkg = noeuds.find(n => (n.dataset.path || "").startsWith("pkg:")
-      && (paquet + ".").startsWith(n.dataset.path.slice(4) + "."));
+    const pkg = nodesByName.find(n => (n.dataset.path || "").startsWith("pkg:")
+      && (pkgName + ".").startsWith(n.dataset.path.slice(4) + "."));
     if (!pkg) return false;
     unfold(pkg);
-    conteneur = pkg.nextElementSibling;
-    if (!conteneur) return false;
+    hostEl = pkg.nextElementSibling;
+    if (!hostEl) return false;
   }
   return false;
 }
@@ -2940,8 +2940,8 @@ function unfold(el){
 }
 
 /** The shortest path, in a call tree, up to a frame name. */
-function cheminVers(arbre, frame){
-  const file = [{node: arbre, chemin: []}];
+function pathTo(treeNode, frame){
+  const file = [{node: treeNode, chemin: []}];
   while (file.length){
     const {node, blockPath} = file.shift();
     for (const kid of node.children || []){
@@ -2956,12 +2956,12 @@ function cheminVers(arbre, frame){
 function revealInTree(frame){
   // We look at the open run first; otherwise the first one where the method appears,
   // in the report's order.
-  const ordre = [runIndex].concat(D.runs.map((_, i) => i).filter(i => i !== runIndex));
-  for (const idx of ordre){
+  const order = [runIndex].concat(D.runs.map((_, i) => i).filter(i => i !== runIndex));
+  for (const idx of order){
     // Only runs already loaded yield a path: the others make do with the count, which the
     // presence index gives without loading anything.
     if (!D.runs[idx].calltree) continue;
-    const blockPath = cheminVers(prunedTree(D.runs[idx]), frame);
+    const blockPath = pathTo(prunedTree(D.runs[idx]), frame);
     if (!blockPath) continue;
     if (idx !== runIndex){
       // Changing run rebuilds the tree: the intent is laid down again, and it is the
@@ -2970,19 +2970,19 @@ function revealInTree(frame){
       switchRun(idx, true);
       return true;
     }
-    return poserDansArbre(blockPath);
+    return placeInTree(blockPath);
   }
   return false;
 }
 
-function poserDansArbre(blockPath){
+function placeInTree(blockPath){
   const box = document.getElementById("list");
   const rootFrame = [...box.querySelectorAll(":scope > .node.runroot")][runIndex];
   if (!rootFrame) return false;
   unfold(rootFrame);
-  let conteneur = rootFrame.nextElementSibling;
+  let hostEl = rootFrame.nextElementSibling;
   for (let i = 0; i < blockPath.length; i++){
-    if (!conteneur) return false;
+    if (!hostEl) return false;
     const el = [...conteneur.querySelectorAll(":scope > .node")]
       .find(n => n.dataset.path === blockPath[i]);
     if (!el) return false;
@@ -2992,27 +2992,27 @@ function poserDansArbre(blockPath){
       return true;
     }
     unfold(el);
-    conteneur = el.nextElementSibling;
+    hostEl = el.nextElementSibling;
   }
   return false;
 }
 
 /** Opens a package in the Code view — what a click on the breadcrumb does. */
-function ouvrirPaquet(blockPath){
-  const vise = dot(blockPath);
+function openPackage(blockPath){
+  const targetPath = dot(blockPath);
   toReveal = null;
   if (mode !== "cls") renderClasses();
-  let conteneur = document.getElementById("list");
-  for (let garde = 0; garde < 40; garde++){
-    const noeuds = [...conteneur.querySelectorAll(":scope > .node")];
-    const pkg = noeuds.find(n => (n.dataset.path || "").startsWith("pkg:")
-      && (vise + ".").startsWith(n.dataset.path.slice(4) + "."));
+  let hostEl = document.getElementById("list");
+  for (let guard = 0; guard < 40; guard++){
+    const nodesByName = [...conteneur.querySelectorAll(":scope > .node")];
+    const pkg = nodesByName.find(n => (n.dataset.path || "").startsWith("pkg:")
+      && (targetPath + ".").startsWith(n.dataset.path.slice(4) + "."));
     if (!pkg) return;
     unfold(pkg);
     pkg.scrollIntoView({block: "center", behavior: "smooth"});
-    if (pkg.dataset.path.slice(4) === vise) return;
-    conteneur = pkg.nextElementSibling;
-    if (!conteneur) return;
+    if (pkg.dataset.path.slice(4) === targetPath) return;
+    hostEl = pkg.nextElementSibling;
+    if (!hostEl) return;
   }
 }
 
@@ -3026,27 +3026,27 @@ let toReveal = null;
  * a hidden package, a run where it never ran — nothing is forced: the view opens
  * normally, and it is said rather than pretended.
  */
-function reprendreSelection(){
+function restoreSelection(){
   const frame = toReveal;
   toReveal = null;
   if (!frame) return;
-  rejoue = true;
+  replaying = true;
   try {
     if (!reveal(frame)) flash(dot(frame).split(".").pop()
       + " does not appear in this view.");
-  } finally { rejoue = false; }
+  } finally { replaying = false; }
   recordView();
 }
 
 /** A word at the bottom right, which fades away by itself. */
-function flash(texte){
+function flash(jsonText){
   let b = document.getElementById("bref");
   if (!b){
     b = document.createElement("div");
     b.id = "bref";
     document.body.appendChild(b);
   }
-  b.textContent = texte;
+  b.textContent = jsonText;
   b.hidden = false;
   clearTimeout(flash.t);
   flash.t = setTimeout(() => { b.hidden = true; }, 3200);
@@ -3095,18 +3095,18 @@ function constatSourceAbsente(info){
   const elsewhere = ((d.parNom || {})[blockName]) || [];
   let h = '<div class="constat">';
   h += '<h3>This class\'s code was not found</h3>';
-  const paquet = srcKey.lastIndexOf("/") > 0 ? dot(srcKey.slice(0, srcKey.lastIndexOf("/")))
+  const pkgName = srcKey.lastIndexOf("/") > 0 ? dot(srcKey.slice(0, srcKey.lastIndexOf("/")))
                                           : "(default package)";
   h += '<p>The coverage reports this file under the key <code>'+esc(srcKey)+'</code> — '
-     + 'that is to say the package <code>'+esc(paquet)
+     + 'that is to say the package <code>'+esc(pkgName)
      + '</code> and the file <code>'+esc(blockName)+'</code>. It is that file that is missing.</p>';
 
   if (!roots.length){
     h += '<p class="cause"><b>No source directory was given to the tool.</b> '
        + 'The measurement does not need one, the display of annotated code does.</p>';
     h += '<p>Add to the configuration file:</p>'
-       + '<pre class="remede">SOURCE_DIRS="'+esc(racineProbable(srcKey))+'"</pre>'
-       + '<p>or re-run with <code>--sources '+esc(racineProbable(srcKey))+'</code>. '
+       + '<pre class="remede">SOURCE_DIRS="'+esc(likelyRoot(srcKey))+'"</pre>'
+       + '<p>or re-run with <code>--sources '+esc(likelyRoot(srcKey))+'</code>. '
        + 'Several roots are separated by <code>:</code>. The exact level matters little: '
        + 'the tool reads the package each file declares, not its path.</p>';
   } else {
@@ -3155,7 +3155,7 @@ function constatSourceAbsente(info){
  * great majority of projects, and wrong it remains a starting point the reader corrects
  * at a glance — which an empty message did not allow.
  */
-function racineProbable(){
+function likelyRoot(){
   return "src/main/java";
 }
 
@@ -3262,11 +3262,11 @@ function draw(){
 
   document.getElementById("crumb").innerHTML =
     '<a class="back" id="backHome" title="Back to the overview">← Overview</a> <span>›</span> ' +
-    (D.runs.length > 1 ? '<span class="pill" title="' + (cumul
+    (D.runs.length > 1 ? '<span class="pill" title="' + (cumulative
         ? 'Coverage unified over the ticked runs — the values shown stay those of the run being looked at'
         : 'The run the displayed coverage and values come from')
-        + '"' + (cumul ? ' style="color:var(--violet);border-color:var(--violet)"' : '') + '>'
-        + (cumul ? 'accumulated over ' + tickedRuns().length + ' runs'
+        + '"' + (cumulative ? ' style="color:var(--violet);border-color:var(--violet)"' : '') + '>'
+        + (cumulative ? 'accumulated over ' + tickedRuns().length + ' runs'
                  : '<span id="crumbname">' + esc(runLabel(R)) + '</span>')
         + '</span> <span>›</span> ' : '') +
     crumbPackage(info.cls) + ' <b>'+
@@ -3284,7 +3284,7 @@ function draw(){
 
   document.querySelectorAll("#crumb a.pkgseg").forEach(a => a.onclick = e => {
     e.preventDefault();
-    ouvrirPaquet(a.dataset.p);
+    openPackage(a.dataset.p);
   });
 
   if (!src){ code.innerHTML = constatSourceAbsente(info);
@@ -3532,7 +3532,7 @@ function rawBlock(){
   // The same table as the top bar's menu: what is added there appears here without anyone
   // thinking about it, and the two can no longer contradict each other.
   const shownGroups = runFiles();
-  const lien = (g, it) => {
+  const linkHtml = (g, it) => {
     const [ok, href, heading] = it;
     const what = g.toujours ? it[4] : it[3];
     return ok ? '<a class="lk" href="' + href + '" target="_blank" rel="noopener">' +
@@ -3542,7 +3542,7 @@ function rawBlock(){
   return '<h2>The raw outputs of the tools</h2>' +
     '<p class="rawnote">What follows is not produced by this page: these are the files each tool wrote, as they are. To consult when the summary surprises — or if it no longer opens. They are also in the <b>Exports</b>, at the top.</p>' +
     shownGroups.map(g => {
-      const bodyEl = g.items.map(it => lien(g, it)).join("");
+      const bodyEl = g.items.map(it => linkHtml(g, it)).join("");
       if (!bodyEl) return "";
       return '<h3 class="rawh">' + (TOOLMARK[g.mark] || "") + ' ' + esc(g.nom) + '</h3>' +
         (g.note ? '<p class="rawnote">' + esc(g.note) + '</p>' : '') +
@@ -3567,12 +3567,12 @@ function linksBlock(){
 function reserveBlock(){
   // The caveat on truncated stacks holds even without value inspection: it says why the
   // sum of the roots does not quite make the total.
-  const piles = R.stacksNote
+  const stacks = R.stacksNote
     ? '<div class="reserve"><b>Stacks the profiler could not walk back.</b> ' +
       esc(R.stacksNote) + '</div>'
     : "";
-  if (!R.profileNote) return piles;
-  return piles + '<div class="reserve"><b>One caveat on the time percentages.</b> ' +
+  if (!R.profileNote) return stacks;
+  return stacks + '<div class="reserve"><b>One caveat on the time percentages.</b> ' +
     esc(R.profileNote) + ' <br><br>' +
     'Everything was collected in <b>a single launch</b>: that is the default mode, because it gives the three pieces of information at once and execution time is not a criterion of this project. <b>If the times had to be exact</b>, it is enough to make <b>several launches</b>: a first one for coverage and the profile, a second one for value capture. The percentages then become exact, at the price of one extra run.</div>';
 }
@@ -3668,17 +3668,17 @@ function flameBlock(){
   const bars = [];
   let maxDepth = 0;
 
-  const totalMesure = R.calltree.total;
+  const measuredTotal = R.calltree.total;
   (function layout(node, depth, x){
     for (const kid of node.children){
-      const w = kid.total / totalMesure;
+      const w = kid.total / measuredTotal;
       if (w * 100 < 0.4 || depth > MAXD){ x += w; continue; }   // too thin to be read
       // SELF time: what the method keeps for itself, once what it delegated is removed. It
       // is the only quantity that designates a place to act — a wide bar one of whose
       // children is just as wide is only passing the baton.
-      const delegue = kid.children.reduce((sum, c) => sum + c.total, 0);
+      const delegated = kid.children.reduce((sum, c) => sum + c.total, 0);
       bars.push({x, w, depth, name: kid.name, known: !!frameInfo(kid.name), total: kid.total,
-                 propre: Math.max(0, kid.total - delegue) / totalMesure});
+                 selfShare: Math.max(0, kid.total - delegated) / measuredTotal});
       maxDepth = Math.max(maxDepth, depth);
       layout(kid, depth + 1, x);
       x += w;
@@ -3691,9 +3691,9 @@ function flameBlock(){
     return '<div class="fl' + (b.known ? " known" : "") + '"' +
       (b.known ? ' data-f="' + esc(b.name) + '"' : '') +
       ' style="left:' + (b.x * 100).toFixed(4) + '%;width:' + (b.w * 100).toFixed(4) + '%;' +
-      'top:' + (b.depth * H) + 'px;background:' + flameColour(b.propre, b.known) + '"' +
-      ' title="' + esc(dot(b.name)) + '  —  ' + formatWeight(b.total, totalMesure) +
-      ' total, of which ' + (b.propre * 100).toFixed(1) + '% self">' +
+      'top:' + (b.depth * H) + 'px;background:' + flameColour(b.selfShare, b.known) + '"' +
+      ' title="' + esc(dot(b.name)) + '  —  ' + formatWeight(b.total, measuredTotal) +
+      ' total, of which ' + (b.selfShare * 100).toFixed(1) + '% self">' +
       '<span>' + esc(label) + '</span></div>';
   }).join("");
 
@@ -3718,8 +3718,8 @@ function fitFlameLabels(){
     if (!span) return;
     const full = span.dataset.full || span.textContent;
     span.dataset.full = full;
-    for (const essai of [full, full.split(".").pop(), ""]) {
-      span.textContent = essai;
+    for (const attempt of [full, full.split(".").pop(), ""]) {
+      span.textContent = attempt;
       if (span.scrollWidth <= span.clientWidth) break;
     }
   });
@@ -3742,11 +3742,11 @@ addEventListener("resize", () => {
  * already in what counts, and a linear gradient would crush all the rest into the same
  * pale hue.
  */
-function flameColour(propre, known){
+function flameColour(selfShare, known){
   if (!known) return "var(--border)";
-  const t = Math.min(1, Math.sqrt(propre / 0.25));      // 25 % en propre = saturation
-  const tons = ["#dbe7f3", "#f3e2b4", "#f5cf7a", "#ef9f45", "#e2662c", "#c8341b"];
-  return tons[Math.min(tons.length - 1, Math.round(t * (tons.length - 1)))];
+  const t = Math.min(1, Math.sqrt(selfShare / 0.25));      // 25 % en propre = saturation
+  const palette = ["#dbe7f3", "#f3e2b4", "#f5cf7a", "#ef9f45", "#e2662c", "#c8341b"];
+  return palette[Math.min(palette.length - 1, Math.round(t * (palette.length - 1)))];
 }
 
 /* -------------------------------------------------------------- sections repliables
@@ -3763,16 +3763,16 @@ function flameColour(propre, known){
  * for nothing. What the user chose, for its part, is kept in the browser and always wins
  * over that default: it is a reading setting, not a datum.
  */
-const PLI_KEY = "runtime-xray.plis";
-const PLI_AUTO = 40;
-let plis = {};
-try { plis = JSON.parse(localStorage.getItem(PLI_KEY) || "{}"); } catch(e){ plis = {}; }
+const FOLD_KEY = "runtime-xray.plis";
+const FOLD_AUTO = 40;
+let folds = {};
+try { folds = JSON.parse(localStorage.getItem(FOLD_KEY) || "{}"); } catch(e){ folds = {}; }
 function savePlis(){
-  try { localStorage.setItem(PLI_KEY, JSON.stringify(plis)); } catch(e){}
+  try { localStorage.setItem(FOLD_KEY, JSON.stringify(folds)); } catch(e){}
 }
 /** Open? The kept choice if there is one, otherwise the threshold. */
-function pliOuvert(id, taille){
-  return typeof plis[id] === "boolean" ? plis[id] : taille <= PLI_AUTO;
+function foldOpen(id, size){
+  return typeof folds[id] === "boolean" ? folds[id] : size <= FOLD_AUTO;
 }
 /**
  * The markup of a foldable section.
@@ -3784,8 +3784,8 @@ function pliOuvert(id, taille){
  * @param corps  the content, already escaped
  * @param taille the number of entries, which decides the default folding
  */
-function foldableSection(id, heading, info, tally, bodyEl, taille){
-  const isOpen = pliOuvert(id, taille);
+function foldableSection(id, heading, info, tally, bodyEl, size){
+  const isOpen = foldOpen(id, size);
   return '<section class="pliable">'
     + '<h2 title="' + info + '">'
     + '<button type="button" class="plibtn" data-pli="' + id + '"'
@@ -3798,14 +3798,14 @@ function foldableSection(id, heading, info, tally, bodyEl, taille){
     + bodyEl + '</p></section>';
 }
 /** Wires the foldable titles of the fragment just written. */
-function cablerPlis(){
+function wireFolds(){
   document.querySelectorAll(".plibtn").forEach(b => {
     b.onclick = () => {
       const bodyEl = document.getElementById(b.getAttribute("aria-controls"));
       const isOpen = b.getAttribute("aria-expanded") !== "true";
       b.setAttribute("aria-expanded", String(isOpen));
       bodyEl.hidden = !isOpen;
-      plis[b.dataset.pli] = isOpen;
+      folds[b.dataset.pli] = isOpen;
       savePlis();
     };
   });
@@ -3875,7 +3875,7 @@ function sourceLeads(){
 function sourceDiag(){ return (D.diagnostic || {}).sources || {}; }
 
 /** A class's four states, and what each means for whoever has to fix things. */
-const ETATS_SOURCE = {
+const SOURCE_STATES = {
   ok:      { lib: "measured, code shown",   aide: "The class ran and its source file was found: the code view shows it annotated." },
   sansSrc: { lib: "measured, code missing",  aide: "The class ran, but no source file matches it. That is what gives “Source unavailable” — a source root is missing." },
   inerte:  { lib: "compiled, never measured",aide: "The class is in the analysed bytecode but none of its instructions were executed, or a filter left it out." },
@@ -3889,46 +3889,46 @@ const ETATS_SOURCE = {
  * in the bytecode, the indexed source files. It is their intersection, and above all their
  * differences, that explain an incomplete report.
  */
-let MODELE_SOURCES = null;
+let SOURCES_MODEL = null;
 function sourceModel(){
-  if (MODELE_SOURCES) return MODELE_SOURCES;
+  if (SOURCES_MODEL) return SOURCES_MODEL;
   const d = D.diagnostic || {};
-  const parNom = sourceDiag().parNom || {};
-  const noeuds = {};                       // "com/example/app/Application" -> what we know of it
-  const prendre = n => noeuds[n] || (noeuds[n] = { nom: n, mesuree: false, source: null,
+  const byName = sourceDiag().parNom || {};
+  const nodesByName = {};                       // "com/example/app/Application" -> what we know of it
+  const nodeFor = n => nodesByName[n] || (nodesByName[n] = { nom: n, mesuree: false, source: null,
                                                   chemin: null, racines: [] });
 
   //    1. what the measurement saw — all runs taken together: a class absent from one run
   //    but present in another remains a measured class.
   D.runs.forEach(run => Object.values(run.packages || {}).forEach(classes =>
-    (classes || []).forEach(c => { const e = prendre(c.name); e.mesuree = true; e.attendu = c.source; })));
+    (classes || []).forEach(c => { const e = nodeFor(c.name); e.mesuree = true; e.attendu = c.source; })));
 
   // 2. what the bytecode contains, and in which root
   (d.bytecode || []).forEach(r => (r.classes || []).forEach(n => {
-    prendre(n).racines.push(r.chemin);
+    nodeFor(n).racines.push(r.chemin);
   }));
 
   // 3. what the sources supplied. The key "package/File.java" designates the file, not the
   //    class: it is attached to the class name it most probably carries.
-  Object.values(parNom).forEach(endroits => endroits.forEach(o => {
+  Object.values(byName).forEach(places => places.forEach(o => {
     const blockName = o.cle.replace(/\.java$/, "");
-    const e = prendre(blockName);
+    const e = nodeFor(blockName);
     e.source = o.cle; e.chemin = o.chemin;
   }));
 
   // A measured class whose source file was found under ANOTHER key (inner class, file
   // carrying several types): attachment is done through the expected file.
-  const cheminParCle = {};
-  Object.values(parNom).forEach(l => l.forEach(o => { cheminParCle[o.cle] = o.chemin; }));
-  Object.values(noeuds).forEach(e => {
-    if (!e.chemin && e.attendu && cheminParCle[e.attendu]){
-      e.source = e.attendu; e.chemin = cheminParCle[e.attendu];
+  const pathByKey = {};
+  Object.values(byName).forEach(l => l.forEach(o => { pathByKey[o.cle] = o.chemin; }));
+  Object.values(nodesByName).forEach(e => {
+    if (!e.chemin && e.attendu && pathByKey[e.attendu]){
+      e.source = e.attendu; e.chemin = pathByKey[e.attendu];
     }
     e.etat = e.mesuree ? (e.chemin ? "ok" : "sansSrc")
                        : (e.racines.length ? "inerte" : "orphelin");
   });
-  MODELE_SOURCES = { noeuds, liste: Object.values(noeuds).sort((a,b)=>a.nom<b.nom?-1:1) };
-  return MODELE_SOURCES;
+  SOURCES_MODEL = { noeuds: nodesByName, liste: Object.values(nodesByName).sort((a,b)=>a.nom<b.nom?-1:1) };
+  return SOURCES_MODEL;
 }
 
 /** The count by state, the one read before opening anything at all. */
@@ -3945,8 +3945,8 @@ function sourceCounts(){
  * to the problem in a tree of several hundred classes, without unfolding everything.
  * Entirely healthy packages stay green and folded.
  */
-function sourceTree(filtre){
-  const f = (filtre || "").toLowerCase();
+function sourceTree(filterText){
+  const f = (filterText || "").toLowerCase();
   const byPackage = {};
   sourceModel().liste.forEach(e => {
     if (f && e.nom.toLowerCase().indexOf(f) < 0) return;
@@ -3954,13 +3954,13 @@ function sourceTree(filtre){
     const pkg = i < 0 ? "(default package)" : e.nom.slice(0, i);
     (byPackage[pkg] = byPackage[pkg] || []).push(e);
   });
-  const noms = Object.keys(byPackage).sort();
-  if (!noms.length) return '<p class="cause">No class matches.</p>';
+  const names = Object.keys(byPackage).sort();
+  if (!names.length) return '<p class="cause">No class matches.</p>';
 
   const worst = ofPackage => ofPackage.some(e => e.etat === "sansSrc") ? "sansSrc"
                       : ofPackage.some(e => e.etat === "orphelin") ? "orphelin"
                       : ofPackage.some(e => e.etat === "inerte") ? "inerte" : "ok";
-  return '<div class="arbsrc">' + noms.map(pkg => {
+  return '<div class="arbsrc">' + names.map(pkg => {
     const ofPackage = byPackage[pkg].sort((a,b)=>a.nom<b.nom?-1:1);
     const bad = ofPackage.filter(e => e.etat === "sansSrc").length;
     // Unfolded outright when the search is active, or when there is something to see.
@@ -3981,7 +3981,7 @@ function sourceTree(filtre){
 
 function sourceClassLine(e){
   const simple = e.nom.split("/").pop();
-  const sourceState = ETATS_SOURCE[e.etat];
+  const sourceState = SOURCE_STATES[e.etat];
   return '<div class="cl e-' + e.etat + '" title="' + esc(sourceState.aide) + '">'
     + '<span class="pt" aria-hidden="true"></span>'
     + '<span class="nm">' + esc(simple) + '</span>'
@@ -4007,7 +4007,7 @@ function searchVerdict(q){
          + 'contain it.</p>';
   }
   const e = hits[0];
-  const sourceState = ETATS_SOURCE[e.etat];
+  const sourceState = SOURCE_STATES[e.etat];
   return '<p class="verdict ' + (e.etat === "ok" ? "ok" : e.etat === "sansSrc" ? "ko" : "") + '">'
     + '<b>' + hits.length + ' match(es)</b> — ' + esc(dot(e.nom)) + ': '
     + esc(sourceState.lib) + '.'
@@ -4030,9 +4030,9 @@ function searchVerdict(q){
  * suspect, not generalities.
  */
 function configTraps(){
-  const lanc = (D.diagnostic || {}).lancement || {};
+  const launch = (D.diagnostic || {}).lancement || {};
   const ctx = R.context || {};
-  const rootFrame = lanc.methodeRacine || ctx.methodeRacine || "";
+  const rootFrame = launch.methodeRacine || ctx.methodeRacine || "";
   const roots = (sourceDiag().racines || []).length;
   const without = ((D.diagnostic || {}).rapprochement || {}).fichiersSansSource || 0;
 
@@ -4093,22 +4093,22 @@ function sourcesBlock(){
   const d = D.diagnostic;
   if (!d) return "";
   const r = d.rapprochement || {}, src = sourceDiag(), roots = src.racines || [];
-  const total = r.fichiersMesures || 0, avec = r.fichiersAvecSource || 0;
+  const total = r.fichiersMesures || 0, withSource = r.fichiersAvecSource || 0;
   const without = r.fichiersSansSource || 0;
-  const pct = total ? (100 * avec / total) : 0;
+  const pct = total ? (100 * withSource / total) : 0;
   const c = sourceCounts();
-  const lanc = d.lancement || {};
+  const launch = d.lancement || {};
 
   let bodyEl = '<p class="srcline">' +
     (total
-      ? '<b class="' + (without ? 'ko' : 'ok') + '">' + avec + ' of ' + total + '</b> measured '
+      ? '<b class="' + (without ? 'ko' : 'ok') + '">' + withSource + ' of ' + total + '</b> measured '
         + 'class(es) have their source code in this page (' + pct.toFixed(0) + '%).'
       : 'No measured class: there is nothing to match.') + '</p>';
 
   // 1. the line actually run — the one believed to have been launched is not always that
   //    one. On reassembly there is no launch: the run's context, for its part, kept it, and
   //    it is the same one.
-  const commandLine = lanc.commande || (R.context || {}).commande || "";
+  const commandLine = launch.commande || (R.context || {}).commande || "";
   if (commandLine){
     bodyEl += '<h4>Line executed</h4><pre class="remede">' + esc(commandLine) + '</pre>';
   }
@@ -4158,7 +4158,7 @@ function sourcesBlock(){
               + 'wide. They are not carried here; <code>diagnostic.json</code> lists '
               + 'them.</p>'
             : '')
-        + '<p class="srcline">' + Object.entries(ETATS_SOURCE).map(([k, v]) =>
+        + '<p class="srcline">' + Object.entries(SOURCE_STATES).map(([k, v]) =>
             '<span class="lgd e-' + k + '" title="' + esc(v.aide) + '"><span class="pt"></span>'
             + esc(v.lib) + ' <b>' + c[k] + '</b></span>').join("") + '</p>'
         + '<div class="srcq"><input id="srcsearch" type="search" autocomplete="off"'
@@ -4171,7 +4171,7 @@ function sourcesBlock(){
 
   return foldableSection("sources", "Source analysis",
     "Where the code shown beside the coverage comes from, what is missing, and where each class was found. Clicking the title folds the section.",
-    total ? avec + " / " + total : (src.fichiers || 0) + " files",
+    total ? withSource + " / " + total : (src.fichiers || 0) + " files",
     '<div class="constat srcrecap">' + bodyEl + '</div>',
     // The default folding follows size: the scale is diverted so that it follows the anomaly
     // instead. Nothing missing → folded; something missing → open, because it is then the
@@ -4185,14 +4185,14 @@ function wireSourceExplorer(){
   if (!q) return;
   const tree = document.getElementById("srctree");
   const verdict = document.getElementById("srcverdict");
-  const cablerPaquets = () => tree.querySelectorAll(".pkgt").forEach(b => b.onclick = () => {
+  const wirePackages = () => tree.querySelectorAll(".pkgt").forEach(b => b.onclick = () => {
     const bodyEl = b.nextElementSibling;
     const isOpen = b.getAttribute("aria-expanded") !== "true";
     b.setAttribute("aria-expanded", String(isOpen));
     bodyEl.hidden = !isOpen;
     b.querySelector(".ic").textContent = isOpen ? "▾" : "▸";
   });
-  cablerPaquets();
+  wirePackages();
   let t = null;
   q.oninput = () => {
     // The filter rebuilds the whole tree: a typing pause is awaited so as not to redo it on
@@ -4201,7 +4201,7 @@ function wireSourceExplorer(){
     t = setTimeout(() => {
       tree.innerHTML = sourceTree(q.value);
       verdict.innerHTML = searchVerdict(q.value);
-      cablerPaquets();
+      wirePackages();
     }, 120);
   };
 }
@@ -4215,7 +4215,7 @@ function drawHome(){
         + ' runs</span>' : '');
   document.getElementById("values").innerHTML = "";
   const hot = executedMethods().slice(0, 6);
-  const observees = Object.keys(R.values || {});
+  const watchedMethods = Object.keys(R.values || {});
   document.getElementById("code").innerHTML =
    '<div class="home">' +
    '<div class="cards">' +
@@ -4244,8 +4244,8 @@ function drawHome(){
    + 'The most costly</h2><p>'+hot.map(h=>
       '<span class="chip hot" data-f="'+esc(h.frame)+'" title="Open '
       + esc(dot(h.frame)) + '">'+esc(h.cls.split("/").pop()+"."+h.name)+'</span>').join("")+'</p>'+
-   (observees.length
-      ? '<h2 title="Methods whose arguments and return value Arthas recorded for a few invocations">Captured values</h2><p>'+observees.map(f =>
+   (watchedMethods.length
+      ? '<h2 title="Methods whose arguments and return value Arthas recorded for a few invocations">Captured values</h2><p>'+watchedMethods.map(f =>
           '<span class="chip val" data-f="'+esc(f)+'" title="Open ' + esc(dot(f))
           + ' and its recorded calls">'+esc(f.split("/").pop())+' — '+R.values[f].length
           + (R.values[f].length > 1 ? ' calls' : ' call') + '</span>').join("")+'</p>'
@@ -4265,7 +4265,7 @@ function drawHome(){
     c.style.cursor = "pointer";
     c.onclick = () => { const t = frameInfo(c.dataset.f); if (t) select(t, null); };
   });
-  cablerPlis();
+  wireFolds();
   wireSourceExplorer();
   const oh = document.getElementById("openhelp");
   if (oh) oh.onclick = e => { e.preventDefault(); openHelp(); };
@@ -4294,7 +4294,7 @@ function renderIdentity(){
 
   const a = annotationOf(R);
   const tags = Object.entries(a.etiquettes || {});
-  const origine = R.nomOrigine
+  const originName = R.nomOrigine
     ? "Name at launch: " + R.nomOrigine
     : "No name given at launch (--name)";
   const sourceState = canSave
@@ -4307,9 +4307,9 @@ function renderIdentity(){
     (R.uuid ? '<span class="uid" title="Permanent id, it never changes: '
               + esc(R.uuid) + '">' + esc(shortId(R)) + '</span>' : '') +
     '<input class="inom" id="identNom" type="text" value="' + esc(a.nom) +
-      '" placeholder="' + esc(R.nomOrigine || shortId(R)) + '" title="' + esc(origine) +
+      '" placeholder="' + esc(R.nomOrigine || shortId(R)) + '" title="' + esc(originName) +
       ' · Id: ' + esc(R.uuid || "—") + '" aria-label="Name of this run. '
-      + esc(origine) + '">' +
+      + esc(originName) + '">' +
     (a.nom ? '<button class="mini" id="identReset" title="Back to the launch name"'
              + ' aria-label="Back to the launch name">↺</button>' : '') +
     '<span class="sep"></span>' +
@@ -4329,25 +4329,25 @@ function renderIdentity(){
 
   const blockName = document.getElementById("identNom");
   blockName.oninput = () => {
-    annotationPatch(R, "name", blockName.value.trim() || null);
+    annotationPatch(R, "nom", blockName.value.trim() || null);
     refreshRunLabels();
-    majEtat();
+    refreshState();
   };
   const reset = document.getElementById("identReset");
   if (reset) reset.onclick = () => {
     // Empty, and not "absent": an erased key would let the recorded name come back, and the
     // return to the launch's name would not survive a regeneration.
-    annotationPatch(R, "name", "");
+    annotationPatch(R, "nom", "");
     refreshRunLabels();
     renderIdentity();
   };
   const desc = document.getElementById("identDesc");
-  desc.oninput = () => { annotationPatch(R, "description", desc.value.trim()); majEtat(); };
+  desc.oninput = () => { annotationPatch(R, "description", desc.value.trim()); refreshState(); };
 
   bar.querySelectorAll(".tag button").forEach(b => b.onclick = () => {
-    const restantes = {};
-    tags.forEach(([k, v], i) => { if (i !== +b.dataset.tag) restantes[k] = v; });
-    annotationPatch(R, "etiquettes", restantes);
+    const remaining = {};
+    tags.forEach(([k, v], i) => { if (i !== +b.dataset.tag) remaining[k] = v; });
+    annotationPatch(R, "etiquettes", remaining);
     renderIdentity();
   });
   document.getElementById("identTagAdd").onclick = e => {
@@ -4359,7 +4359,7 @@ function renderIdentity(){
                    + 'aria-label="Text of the new tag, optional">';
     e.currentTarget.replaceWith(zone);
     const k = zone.querySelector(".k"), v = zone.querySelector(".v");
-    const poser = () => {
+    const apply = () => {
       const srcKey = k.value.trim();
       if (!srcKey){ renderIdentity(); return; }
       const suite = Object.fromEntries(tags);
@@ -4369,25 +4369,25 @@ function renderIdentity(){
     };
     // Enter confirms, Escape abandons, and leaving the field counts as confirming: the three
     // gestures one tries in front of two small fields with no button.
-    [k, v].forEach(champ => {
-      champ.onkeydown = ev => {
-        if (ev.key === "Enter"){ ev.preventDefault(); poser(); }
+    [k, v].forEach(field => {
+      field.onkeydown = ev => {
+        if (ev.key === "Enter"){ ev.preventDefault(); apply(); }
         if (ev.key === "Escape"){ ev.preventDefault(); renderIdentity(); }
       };
-      champ.onblur = () => setTimeout(() => {
-        if (!zone.contains(document.activeElement)) poser();
+      field.onblur = () => setTimeout(() => {
+        if (!zone.contains(document.activeElement)) apply();
       }, 120);
     });
     k.focus();
   };
 
-  function majEtat(){
+  function refreshState(){
     const e = document.getElementById("identEtat");
     if (!e) return;
-    const modifie = canSave && annotationChanged(R);
-    e.textContent = canSave ? (modifie ? "not saved" : "up to date")
+    const touched = canSave && annotationChanged(R);
+    e.textContent = canSave ? (touched ? "not saved" : "up to date")
                                     : "kept in this browser";
-    e.classList.toggle("modifie", modifie);
+    e.classList.toggle("modifie", touched);
     renderAnnotActs();
   }
 }
@@ -4403,7 +4403,7 @@ function renderIdentity(){
 function renderAnnotActs(){
   const box = document.getElementById("annotbar");
   if (!box) return;
-  const modifie = canSave && annotationChanged(R);
+  const touched = canSave && annotationChanged(R);
   box.innerHTML =
     '<span class="toolgrp fichegrp"><span class="mark" title="The record of this run: the name, description and tags YOU give it — the band just below. No measurement is changed by it.">' + TOOLMARK.fiche + 'card</span>' +
     (canSave && serverGuarded
@@ -4412,9 +4412,9 @@ function renderAnnotActs(){
         'shared secret">🔒</span>'
       : '') +
     (canSave
-      ? '<a href="#" id="annotSave"' + (modifie ? ' style="font-weight:700"' : '') +
+      ? '<a href="#" id="annotSave"' + (touched ? ' style="font-weight:700"' : '') +
         ' title="Write this run\'s record beside its results">' +
-        (modifie ? "save •" : "save") + '</a><span class="sep">·</span>'
+        (touched ? "save •" : "save") + '</a><span class="sep">·</span>'
       : '') +
     '<a href="#" id="annotExport" title="Download the records of every run in this report, as one file">export</a>' +
     '<span class="sep">·</span>' +
@@ -4424,7 +4424,7 @@ function renderAnnotActs(){
     '<input type="file" id="annotFile" accept=".json,application/json" hidden></span>';
 
   const save = document.getElementById("annotSave");
-  if (save) save.onclick = e => { e.preventDefault(); enregistrerAnnotations(save); };
+  if (save) save.onclick = e => { e.preventDefault(); persistAnnotations(save); };
   document.getElementById("annotExport").onclick = e => { e.preventDefault(); exportAnnotations(); };
   const fileInput = document.getElementById("annotFile");
   document.getElementById("annotImport").onclick = e => { e.preventDefault(); fileInput.click(); };
@@ -4449,14 +4449,14 @@ function renderAnnotActs(){
     // A report where nobody has filled in a card yet gave "{}", alone, in a corner. That is
     // exact, and perfectly useless: the panel now says what it expects and what that file
     // is for.
-    const fiches = annotationsFile();
-    const howMany = Object.keys(fiches).length;
-    const texte = JSON.stringify(fiches, null, 2);
-    showPanel(texte,
+    const cards = annotationsFile();
+    const howMany = Object.keys(cards).length;
+    const jsonText = JSON.stringify(cards, null, 2);
+    showPanel(jsonText,
       howMany
         ? "Records of this report — " + howMany + " run" + (howMany > 1 ? "s" : "")
         : "Records of this report — none for the moment",
-      texte,
+      jsonText,
       howMany ? null
         : "No run in this report has a record yet. As soon as one of them is given a "
         + "name, a description, a tag or a pruning, it appears here. This is the file "
@@ -4475,7 +4475,7 @@ function renderAnnotActs(){
  *                 take JSON up again elsewhere, not to read it
  * @param avant    a sentence above, when the text alone does not suffice
  */
-function showPanel(texte, heading, aCopier, avant){
+function showPanel(jsonText, heading, toCopy, before){
   const out = document.getElementById("annotout");
   if (!out) return;
   out.hidden = false;
@@ -4488,20 +4488,20 @@ function showPanel(texte, heading, aCopier, avant){
   t.textContent = heading || "Runtime X-Ray";
   headRow.appendChild(t);
 
-  if (aCopier) {
-    const copier = document.createElement("button");
-    copier.className = "acte";
-    copier.textContent = "copier";
-    copier.onclick = () => {
+  if (toCopy) {
+    const copyBtn = document.createElement("button");
+    copyBtn.className = "acte";
+    copyBtn.textContent = "copier";
+    copyBtn.onclick = () => {
       // With no clipboard — page opened as a file, permission refused — the text is
       // selected: the user's Ctrl-C does the rest.
-      const dit = m => { copier.textContent = m; setTimeout(() => copier.textContent = "copy", 1800); };
+      const announce = m => { copyBtn.textContent = m; setTimeout(() => copyBtn.textContent = "copy", 1800); };
       const bodyEl = out.querySelector(".json");
       if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(aCopier).then(() => dit("copied ✓"), () => selectText(bodyEl, dit));
-      } else selectText(bodyEl, dit);
+        navigator.clipboard.writeText(toCopy).then(() => announce("copied ✓"), () => selectText(bodyEl, announce));
+      } else selectText(bodyEl, announce);
     };
-    headRow.appendChild(copier);
+    headRow.appendChild(copyBtn);
   }
 
   const closeIt = document.createElement("button");
@@ -4515,28 +4515,28 @@ function showPanel(texte, heading, aCopier, avant){
 
   const bodyEl = document.createElement("div");
   bodyEl.className = "corps";
-  if (avant) {
+  if (before) {
     const p = document.createElement("div");
     p.className = "vide";
-    p.textContent = avant;
+    p.textContent = before;
     bodyEl.appendChild(p);
   }
   const json = document.createElement("span");
   json.className = "json";
-  json.textContent = texte;
+  json.textContent = jsonText;
   bodyEl.appendChild(json);
   out.appendChild(bodyEl);
 }
 
 /** Selects the displayed text, for want of an accessible clipboard. */
-function selectText(noeud, dit){
-  if (!noeud) { dit("copy refused"); return; }
-  const plage = document.createRange();
-  plage.selectNodeContents(noeud);
+function selectText(domNode, announce){
+  if (!domNode) { announce("copy refused"); return; }
+  const domRange = document.createRange();
+  domRange.selectNodeContents(domNode);
   const sel = window.getSelection();
   sel.removeAllRanges();
-  sel.addRange(plage);
-  dit("selected — Ctrl-C");
+  sel.addRange(domRange);
+  announce("selected — Ctrl-C");
 }
 
 /** The annotations of every run in the report, in the shape the tool expects. */
@@ -4781,22 +4781,22 @@ document.addEventListener("keydown", e => {
  * organisation. Going from one to the other while losing the open method forced one to redo
  * the whole path to find again what one had just left.
  */
-function changerOnglet(rendu){
+function switchTab(tabId){
   // Only a METHOD is found in both views: the call tree does not know classes. An open class
   // therefore asks for nothing, and makes nothing fail.
   toReveal = selected && selected.name ? selected.frame : null;
-  rendu();
+  tabId();
 }
-document.getElementById("tab-tree").onclick = () => changerOnglet(renderTree);
-document.getElementById("tab-cls").onclick  = () => changerOnglet(renderClasses);
+document.getElementById("tab-tree").onclick = () => switchTab(renderTree);
+document.getElementById("tab-cls").onclick  = () => switchTab(renderClasses);
 
-document.getElementById("navprec").onclick = () => allerA(histoirePos - 1);
-document.getElementById("navsuiv").onclick = () => allerA(histoirePos + 1);
+document.getElementById("navprec").onclick = () => goToPos(historyPos - 1);
+document.getElementById("navsuiv").onclick = () => goToPos(historyPos + 1);
 // Alt + arrows: the shortcut everybody already knows for "back".
 document.addEventListener("keydown", e => {
   if (!e.altKey || e.ctrlKey || e.metaKey) return;
-  if (e.key === "ArrowLeft"){ e.preventDefault(); allerA(histoirePos - 1); }
-  if (e.key === "ArrowRight"){ e.preventDefault(); allerA(histoirePos + 1); }
+  if (e.key === "ArrowLeft"){ e.preventDefault(); goToPos(historyPos - 1); }
+  if (e.key === "ArrowRight"){ e.preventDefault(); goToPos(historyPos + 1); }
 });
 function reselect(){
   // Re-rendering the list erases the highlight: it is laid back on the current method,
@@ -4886,7 +4886,7 @@ setOption("clean",    {icon: OPT.cible});
 // call tree, the overview would have only zeros to show. It is the only wait the opening
 // imposes — everything else comes at the gesture that asks for it.
 (async () => {
-  try { await XR.runs([0]); await XR.poidsIndex(); await XR.presenceIndex(); }
+  try { await XR.runs([0]); await XR.weightsIndex(); await XR.presenceIndex(); }
   catch (e) { console.error(e); }
   AGG = computeAgg();
   renderClasses();
