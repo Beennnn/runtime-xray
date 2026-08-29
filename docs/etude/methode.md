@@ -22,6 +22,8 @@ The program is designed to **tell tools apart**: calls conditioned by the contex
 never taken, a recursion, a virtual dispatch, a blocking operation. Detail in [the technical
 details](../outil/technique.md).
 
+![The reference use case: one deterministic run, three tools attached to it, and what each one answers about the root method](../assets/architecture-reference.svg)
+
 ## 2. The five criteria, in order
 
 The order is not decorative: it settles the cases where two tools are good in different ways.
