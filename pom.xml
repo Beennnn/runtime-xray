@@ -76,7 +76,7 @@
   <modules>
     <module>orchestrator</module>
     <module>sample-app</module>
-    <!-- Les collecteurs par outil ne sont PAS des modules Maven : voir tools/README.md -->
+    <!-- The per-tool collectors are NOT Maven modules: see tools/README.md -->
   </modules>
 
   <build>
@@ -99,7 +99,7 @@
     <!--
       Publication to Maven Central. Isolated in a profile because it demands a signing key
       and credentials nobody has when cloning the repository: `mvn verify`
-      doit rester possible sans rien configurer.
+      must stay possible with nothing to configure.
 
           mvn -Prelease deploy
 

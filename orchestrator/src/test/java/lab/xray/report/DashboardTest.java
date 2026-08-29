@@ -687,7 +687,7 @@ class DashboardTest {
                 "the tree must exist, coloured by what each class is missing");
         assertTrue(html.contains("function piegesConfig("),
                 "the settings table is what avoids widening the wrong filter");
-        assertTrue(html.contains("ne restreint NI la couverture, NI les classes affichées"),
+        assertTrue(html.contains("restricts NEITHER the coverage, NOR the displayed classes"),
                 "--root must no longer be suspectable of a report without sources");
     }
 

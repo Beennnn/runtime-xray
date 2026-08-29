@@ -73,7 +73,7 @@ class AccessTest {
                 HttpResponse.BodyHandlers.ofString());
     }
 
-    /** Le cookie de session tel qu'on le renverra ensuite, ou {@code null} s'il n'y en a pas. */
+    /** The session cookie as it will be sent back, or {@code null} if there is none. */
     private String cookie(HttpResponse<String> r) {
         return r.headers().firstValue("Set-Cookie")
                 .map(header -> header.split(";")[0]).orElse(null);
@@ -85,11 +85,11 @@ class AccessTest {
         run(dir, "u-1");
         String base = guards(dir, Access.open());
 
-        assertEquals(200, get(base + "/", null).statusCode(), "la page s'ouvre");
+        assertEquals(200, get(base + "/", null).statusCode(), "the page opens");
         HttpResponse<String> ping = get(base + "/__xray/ping", null);
         assertEquals(200, ping.statusCode());
         assertTrue(ping.body().contains("\"garde\":false"),
-                "la page doit savoir qu'il n'y a pas de porte, pour ne rien annoncer de faux");
+                "the page must know there is no door, so as to announce nothing false");
     }
 
     @Test
@@ -144,8 +144,8 @@ class AccessTest {
         String cookie = cookie(entry);
         assertTrue(cookie != null && cookie.startsWith("xray_session="), "a session is set");
         String raw = entry.headers().firstValue("Set-Cookie").orElseThrow();
-        assertTrue(raw.contains("HttpOnly"), "le script de la page n'a aucune raison de le lire");
-        assertTrue(raw.contains("SameSite=Strict"), "et un autre site aucune de s'en servir");
+        assertTrue(raw.contains("HttpOnly"), "the page's script has no reason to read it");
+        assertTrue(raw.contains("SameSite=Strict"), "and another site none to make use of it");
         assertFalse(raw.contains(SECRET), "the session does not carry the secret itself");
 
         assertEquals(200, get(base + "/", cookie).statusCode());
@@ -232,12 +232,12 @@ class AccessTest {
     @Test
     @DisplayName("The secret comes from the command line, otherwise from the environment")
     void theSecretComesFromEitherPlace() {
-        assertEquals("depuis-la-ligne", Access.secretRequested("depuis-la-ligne",
-                Map.of("XRAY_SERVE_TOKEN", "depuis-l-environnement")));
-        assertEquals("depuis-l-environnement", Access.secretRequested(null,
-                Map.of("XRAY_SERVE_TOKEN", "depuis-l-environnement")));
+        assertEquals("from-the-line", Access.secretRequested("from-the-line",
+                Map.of("XRAY_SERVE_TOKEN", "from-the-environment")));
+        assertEquals("from-the-environment", Access.secretRequested(null,
+                Map.of("XRAY_SERVE_TOKEN", "from-the-environment")));
         assertEquals(null, Access.secretRequested(null, Map.of()));
         assertEquals(null, Access.secretRequested(null, Map.of("XRAY_SERVE_TOKEN", "   ")),
-                "une variable vide vaut pas de secret, pas un secret vide");
+                "an empty variable means no secret, not an empty secret");
     }
 }

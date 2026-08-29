@@ -1,37 +1,37 @@
-# Sorties réellement produites
+# Outputs actually produced
 
-Ce dossier contient ce que les outils ont **effectivement écrit** en analysant
-[`sample-app`](../sample-app/) — pas des captures d'écran, pas des exemples reconstitués.
+This directory holds what the tools **actually wrote** while analysing
+[`sample-app`](../sample-app/) — not screenshots, not reconstructed examples.
 
-**→ [Tout est navigable en ligne](https://beennnn.github.io/runtime-xray/)** sans rien cloner.
+**→ [Everything is browsable online](https://beennnn.github.io/runtime-xray/)** with nothing to clone.
 
-Les exécutions de [`executions/`](executions/) portent en plus un dossier `exports/` : les
-mêmes mesures réécrites pour d'autres outils — `cpuprofile` (speedscope), LCOV (éditeurs,
-suivi de couverture), et les valeurs capturées en JSON. Voir
-[Reprendre le résultat dans un autre outil](../docs/outil/exports.md).
+The runs in [`executions/`](executions/) carry an `exports/` directory as well: the same
+measurements rewritten for other tools — `cpuprofile` (speedscope), LCOV (editors, coverage
+tracking), and the captured values as JSON. See
+[Taking the result up in another tool](../docs/outil/exports.md).
 
-| Dossier | Outil | Ce qu'on y voit |
+| Directory | Tool | What it shows |
 |---|---|---|
-| `generated/jacoco/html/` | JaCoCo | Site de couverture, **code source colorié ligne à ligne**. Point d'entrée : `index.html` |
-| `generated/jacoco-focused/html/` | JaCoCo (CLI) | Le même, **restreint aux classes réellement exécutées** — le code jamais atteint disparaît du rapport |
-| `generated/async-profiler/` | async-profiler | `tree.html` (arbre d'appel dépliable) et `flamegraph.html` |
-| `generated/jfr/` | JFR sous Java 21 | Résumé et échantillons d'exécution — **pas** de traçage de méthodes : il n'existe pas avant Java 25 |
-| `generated/jfr-jdk25/` | JFR sous Java 25 | `method-timing.txt` (16 000 000 d'invocations comptées exactement) et un extrait de `MethodTrace` |
-| `generated/arthas/` | Arthas | `watch-params.txt` : **les valeurs réellement passées** · `trace-calltree.txt` : l'arbre d'**un** appel avec les numéros de ligne |
+| `generated/jacoco/html/` | JaCoCo | Coverage site, **source code coloured line by line**. Entry point: `index.html` |
+| `generated/jacoco-focused/html/` | JaCoCo (CLI) | The same, **restricted to the classes that actually ran** — code never reached disappears from the report |
+| `generated/async-profiler/` | async-profiler | `tree.html` (unfoldable call tree) and `flamegraph.html` |
+| `generated/jfr/` | JFR under Java 21 | Summary and execution samples — **no** method tracing: it does not exist before Java 25 |
+| `generated/jfr-jdk25/` | JFR under Java 25 | `method-timing.txt` (16,000,000 invocations counted exactly) and an extract of `MethodTrace` |
+| `generated/arthas/` | Arthas | `watch-params.txt`: **the values actually passed** · `trace-calltree.txt`: the tree of **one** call with line numbers |
 
-## Comment les regarder
+## How to look at them
 
 ```bash
 open reports-demo/generated/jacoco-focused/html/index.html
 open reports-demo/generated/async-profiler/tree.html
 ```
 
-Dans le rapport de couverture, le fichier le plus parlant est
-`lab.sample.weather/WeatherPenalty.java.html` : une branche rouge à l'intérieur d'une
-méthode exécutée des millions de fois — le cas qu'un pourcentage par classe masque et
-qu'un rapport ligne à ligne révèle.
+In the coverage report, the most telling file is
+`lab.sample.weather/WeatherPenalty.java.html`: a red branch inside a method executed
+millions of times — the case a per-class percentage hides and a line-by-line report
+reveals.
 
-## Les régénérer
+## Regenerating them
 
 ```bash
 ./tools/jacoco/collect.sh && ./tools/jacoco/collect-focused.sh
@@ -40,9 +40,9 @@ qu'un rapport ligne à ligne révèle.
 JAVA_TARGET=25 ./tools/jfr/collect.sh
 ```
 
-## Le contraste à regarder
+## The contrast to look at
 
-Ouvrir `generated/jfr/` puis `generated/arthas/watch-params.txt` : JFR affiche la signature
-`travelTimeMinutes(Trip)` et la pile complète, **mais jamais la valeur du `Trip`**. Arthas,
-lui, dit `@Mode[CAR] @Weather[SUNNY] @TimeOfDay[RUSH_HOUR]`. C'est toute la différence entre
-savoir *qu'un* appel a eu lieu et savoir *lequel*.
+Open `generated/jfr/` then `generated/arthas/watch-params.txt`: JFR shows the signature
+`travelTimeMinutes(Trip)` and the whole stack, **but never the value of the `Trip`**.
+Arthas, for its part, says `@Mode[CAR] @Weather[SUNNY] @TimeOfDay[RUSH_HOUR]`. That is the
+whole difference between knowing *that* a call took place and knowing *which one*.

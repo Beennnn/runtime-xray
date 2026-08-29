@@ -100,7 +100,7 @@ class AnnotationsTest {
     void runsAreFoundByUuid(@TempDir Path dir) throws IOException {
         run(dir, "un");
         run(dir, "deux");
-        Files.createDirectories(dir.resolve("runs/pas-une-execution"));
+        Files.createDirectories(dir.resolve("runs/not-a-run"));
 
         Map<String, Path> byUuid = Annotations.runsByUuid(dir);
         assertEquals(2, byUuid.size(), "a directory without a context is not a run");

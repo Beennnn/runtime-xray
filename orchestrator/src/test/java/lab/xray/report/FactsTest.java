@@ -28,7 +28,7 @@ class FactsTest {
     private static Map<String, Object> run(String uuid, boolean withProfile) {
         Map<String, Object> r = new LinkedHashMap<>();
         r.put("uuid", uuid);
-        r.put("nom", "scénario " + uuid);
+        r.put("nom", "scenario " + uuid);
         r.put("chemin", "runs/" + uuid + "/");
         r.put("packages", Map.of("app", List.of(
                 Map.of("name", "app/Moteur", "simple", "Moteur",
@@ -50,7 +50,7 @@ class FactsTest {
         List<Map<String, Object>> facts = new ArrayList<>();
         for (String line : Files.readAllLines(file, StandardCharsets.UTF_8)) {
             if (line.isBlank()) continue;
-            assertFalse(line.contains("\n"), "un fait doit tenir sur UNE ligne");
+            assertFalse(line.contains("\n"), "a fact must fit on ONE line");
             @SuppressWarnings("unchecked")
             Map<String, Object> f = (Map<String, Object>) Json.read(line);
             facts.add(f);
@@ -75,7 +75,7 @@ class FactsTest {
 
         assertTrue(facts.size() > 5, "we expect at least the header, the runs and the classes");
         for (Map<String, Object> fact : facts) {
-            assertTrue(fact.containsKey("fact"), "chaque ligne dit ce qu'elle est : " + fact);
+            assertTrue(fact.containsKey("fact"), "every line says what it is: " + fact);
         }
         // A measurement without its unit forces the reader to guess, and they will.
         for (Map<String, Object> fact : de(facts, "class")) {
@@ -99,7 +99,7 @@ class FactsTest {
         for (Map<String, Object> a : unavailabilities) {
             assertEquals("B", a.get("run"), "only B is concerned: A measured everything");
             assertTrue(String.valueOf(a.get("why")).length() > 20);
-            assertTrue(a.containsKey("consequence"), "dire ce qu'on ne peut PAS en conclure");
+            assertTrue(a.containsKey("consequence"), "say what one may NOT conclude from it");
             assertTrue(a.containsKey("remedy"));
         }
     }
@@ -135,7 +135,7 @@ class FactsTest {
         Map<String, Object> vocabulary = (Map<String, Object>) head.get("vocabulary");
         for (Map<String, Object> f : facts) {
             assertTrue(vocabulary.containsKey(String.valueOf(f.get("fact"))),
-                    "un fait que le vocabulaire n'explique pas est muet : " + f.get("fact"));
+                    "a fact the vocabulary does not explain is mute: " + f.get("fact"));
         }
         assertTrue(head.get("alsoSee") instanceof Map, "where to find the page and the diagnostic");
     }
@@ -150,6 +150,6 @@ class FactsTest {
 
         assertFalse(text.contains("hunter2"),
                 "the captured values stay in their block: they are bulky, "
-                + "et elles portent parfois ce qu'on ne veut pas voir voyager");
+                + "and they sometimes carry what one does not want to see travel");
     }
 }

@@ -44,5 +44,5 @@ These files stay readable as they are: hand them over as an attachment, or point
 `skills/runtime-xray-read/SKILL.md`. They depend on no proprietary format — it is Markdown
 with a header.
 
-See also [Faire lire le rapport par une IA](../docs/outil/integration-ia.md), which covers
+See also [Having the report read by a language model](../docs/outil/integration-ia.md), which covers
 the case where it is the *report* that is given to be read, and not the procedure.

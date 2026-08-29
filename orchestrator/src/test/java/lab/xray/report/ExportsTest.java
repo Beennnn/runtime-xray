@@ -113,7 +113,7 @@ class ExportsTest {
         assertTrue(lcov.contains("LH:1"), "une seule atteinte");
         assertTrue(lcov.contains("FNDA:1,calculer"));
         assertTrue(lcov.contains("FNDA:0,mort"));
-        assertTrue(lcov.contains("BRDA:3,0,0,1"), "une branche prise sur les deux");
+        assertTrue(lcov.contains("BRDA:3,0,0,1"), "one branch taken out of two");
         assertTrue(lcov.contains("BRDA:3,0,1,0"), "the other one was not");
         assertTrue(lcov.endsWith("end_of_record\n"));
     }

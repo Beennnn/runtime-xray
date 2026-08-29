@@ -137,18 +137,18 @@ class LocalServerTest {
 
         // The first one goes through.
         assertEquals(200, post(base + "/__xray/noms/UUID-1",
-                Json.write(Map.of("base", start, "valeur", Map.of("nom", "posé par Alice"))))
+                Json.write(Map.of("base", start, "valeur", Map.of("nom", "laid by Alice"))))
                 .statusCode());
 
         // The second started from the same version: it is told so, and nothing is overwritten.
         HttpResponse<String> refusal = post(base + "/__xray/noms/UUID-1",
-                Json.write(Map.of("base", start, "valeur", Map.of("nom", "posé par Bob"))));
+                Json.write(Map.of("base", start, "valeur", Map.of("nom", "laid by Bob"))));
         assertEquals(409, refusal.statusCode());
-        assertEquals("posé par Alice", ((Map<?, ?>) json(refusal).get("valeur")).get("nom"),
+        assertEquals("laid by Alice", ((Map<?, ?>) json(refusal).get("valeur")).get("nom"),
                 "the refusal must show what is recorded, otherwise one cannot decide");
 
         Map<?, ?> annotations = (Map<?, ?>) json(get(base + "/__xray/noms")).get("annotations");
-        assertEquals("posé par Alice", ((Map<?, ?>) annotations.get("UUID-1")).get("nom"));
+        assertEquals("laid by Alice", ((Map<?, ?>) annotations.get("UUID-1")).get("nom"));
     }
 
     @Test
@@ -199,7 +199,7 @@ class LocalServerTest {
     @DisplayName("A body that is not a JSON object is refused")
     void garbageBodyIsRefused(@TempDir Path dir) throws Exception {
         run(dir, "essai", "UUID-1");
-        assertEquals(400, post(base(dir) + "/__xray/noms/UUID-1", "ceci n'est pas du JSON")
+        assertEquals(400, post(base(dir) + "/__xray/noms/UUID-1", "this is not JSON")
                 .statusCode());
     }
 
@@ -207,7 +207,7 @@ class LocalServerTest {
     @DisplayName("File serving never leaves the served directory")
     void staticServingStaysInside(@TempDir Path dir) throws Exception {
         Files.writeString(dir.resolve("index.html"), "<html>la vue</html>", StandardCharsets.UTF_8);
-        Files.writeString(dir.getParent().resolve("secret.txt"), "hors du répertoire",
+        Files.writeString(dir.getParent().resolve("secret.txt"), "outside the directory",
                 StandardCharsets.UTF_8);
         String base = base(dir);
 
@@ -216,7 +216,7 @@ class LocalServerTest {
         for (String path : List.of("/../secret.txt", "/%2e%2e/secret.txt",
                                      "/runs/../../secret.txt")) {
             HttpResponse<String> r = get(base + path);
-            assertFalse(r.body().contains("hors du répertoire"),
+            assertFalse(r.body().contains("outside the directory"),
                     "tree traversal accepted on " + path);
         }
         // And the check itself bears on the resolved path, not on what was written.
