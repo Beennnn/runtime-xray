@@ -1,0 +1,16 @@
+Picked up JAVA_TOOL_OPTIONS: -javaagent:/root/.runtime-xray/org.jacoco.agent-0.8.13-runtime.jar=destfile=/home/user/demo-new/executions/runs/20260829-061111-full-scenario/jacoco/jacoco.exec -agentpath:/root/.runtime-xray/libasyncProfiler-4.1.so=start,event=itimer,interval=1ms,collapsed,file=/home/user/demo-new/executions/runs/20260829-061111-full-scenario/async-profiler/profil.collapsed,include=lab/sample/* -XX:+UnlockDiagnosticVMOptions -XX:+DebugNonSafepoints
+Profiling started
+sample-app: 24000000 trips evaluated, final pause 0 s
+  [JVM started                 ] stage        0 ms | total        0 ms | memory ~1 MB / 3416 MB max
+  [trip set built              ] stage       22 ms | total       22 ms | memory ~1 MB / 3416 MB max
+WARNING: A Java agent has been loaded dynamically (/root/.runtime-xray/arthas-4.3.4/arthas-agent.jar)
+WARNING: If a serviceability tool is in use, please run with -XX:+EnableDynamicAgentLoading to hide this warning
+WARNING: If a serviceability tool is not in use, please run with -Djdk.instrument.traceUsage for more information
+WARNING: Dynamic loading of agents will be disallowed by default in a future release
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+WARNING: A Java agent has been loaded dynamically (/root/.runtime-xray/arthas-4.3.4/arthas-agent.jar)
+WARNING: If a serviceability tool is in use, please run with -XX:+EnableDynamicAgentLoading to hide this warning
+WARNING: If a serviceability tool is not in use, please run with -Djdk.instrument.traceUsage for more information
+WARNING: Dynamic loading of agents will be disallowed by default in a future release
+  [computation finished        ] stage   153862 ms | total   153884 ms | memory ~15 MB / 3416 MB max
+total duration = 14407220021 minutes
