@@ -4,13 +4,13 @@
 
 **[→ See the integrated view](https://beennnn.github.io/runtime-xray/multi/)**
 
-![Overview](../assets/shots/vue-accueil.png)
+![Overview](../assets/shots/view-overview.png)
 
 *On opening: what the run produced, and on the left **the list of all the code that ran**,
 from the most costly to the least. No tree to descend — the list is exhaustive, established
 by JaCoCo.*
 
-![A method in detail](../assets/shots/vue-integree.png)
+![A method in detail](../assets/shots/view-integrated.png)
 
 *One click opens the code: executed lines in green, purple annotations saying which call
 leaves from which line and in how long, and at the bottom the values actually passed. The

@@ -5,7 +5,7 @@
 >
 > [An example online](https://beennnn.github.io/runtime-xray/multi/)
 
-![The view: the call tree on the left, the annotated code in the middle, the compared calls at the bottom](../assets/shots/vue-arbre-appel.png)
+![The view: the call tree on the left, the annotated code in the middle, the compared calls at the bottom](../assets/shots/view-call-tree.png)
 
 The page is self-contained: an HTML file with no dependency, which opens from a disk, an
 attachment or a forge. It calls nothing on the network.

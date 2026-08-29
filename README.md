@@ -143,7 +143,7 @@ understood first.
 
 ## What dynamic analysis brings
 
-![Delivered code does not say what runs; an observed run shows it line by line, with the time spent and the real values](docs/assets/analyse-dynamique.svg)
+![Delivered code does not say what runs; an observed run shows it line by line, with the time spent and the real values](docs/assets/dynamic-analysis.svg)
 
 Reading the code answers "it depends". Running it under observation answers with
 measurements: which lines ran, where the time went, which values circulated. The three
@@ -178,7 +178,7 @@ Their outputs are assembled into a single page by an orchestrator written for th
 detail of the arrangement and its caveats are in [the solution
 retained](docs/resultat/solution.md).
 
-![The view produced: the call tree on the left, the annotated code in the middle, the compared calls at the bottom](docs/assets/shots/vue-arbre-appel.png)
+![The view produced: the call tree on the left, the annotated code in the middle, the compared calls at the bottom](docs/assets/shots/view-call-tree.png)
 
 The page brings together two ways into the same code: the code arranged by package, and the
 runs presented as a call tree — it is that second way in that is open above.
@@ -522,7 +522,7 @@ a finding. `--context "a question"` draws a bounded extract from it, ready to ha
 
 ### Following a run while it happens
 
-![The follow page: activity band, busy cores, tail of the application's log](docs/assets/shots/suivi-execution.png)
+![The follow page: activity band, busy cores, tail of the application's log](docs/assets/shots/follow-run.png)
 
 An analysis lasts as long as the observed application. `progression.jsonl` is **always**
 written at the root of the output, one JSON line per second: `tail -f

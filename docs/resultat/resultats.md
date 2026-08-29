@@ -204,7 +204,7 @@ view](https://beennnn.github.io/runtime-xray/multi/): one navigates the call tre
 classes, picks a point, and sees at once the executed lines, the calls that leave from them
 with their cost, and the values passed.
 
-![The integrated view](../assets/shots/vue-integree.png)
+![The integrated view](../assets/shots/view-integrated.png)
 
 **All of it in a single run**: the three tools run together, and the coverage is not
 corrupted — that is verified automatically at every launch. One caveat only: Arthas captures
