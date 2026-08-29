@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="fr"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Timetable.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">sample-app</a> &gt; <a href="index.source.html" class="el_package">lab.sample.transfer</a> &gt; <span class="el_source">Timetable.java</span></div><h1>Timetable.java</h1><pre class="source lang-java linenums">package lab.sample.transfer;
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Timetable.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">sample-app</a> &gt; <a href="index.source.html" class="el_package">lab.sample.transfer</a> &gt; <span class="el_source">Timetable.java</span></div><h1>Timetable.java</h1><pre class="source lang-java linenums">package lab.sample.transfer;
 
 import lab.sample.model.Leg;
 
@@ -6,16 +6,16 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Consultation des horaires — la seule opération &lt;b&gt;bloquante&lt;/b&gt; du programme.
+ * Timetable lookup — the program's only &lt;b&gt;blocking&lt;/b&gt; operation.
  *
- * &lt;p&gt;Elle simule un appel à un service extérieur par un {@code Thread.sleep}. Sa
- * présence n'est pas décorative : elle crée du &lt;em&gt;temps d'attente&lt;/em&gt; à côté du temps
- * de calcul, et c'est un excellent discriminant entre outils. Un profiler qui échantillonne
- * le CPU ne la verra pratiquement pas ; un profiler en temps réel (wall clock) la verra
- * dominer. Deux outils peuvent donc donner deux réponses opposées à « où passe le temps ? »
- * sur exactement la même exécution — et il faut savoir laquelle on regarde.
+ * &lt;p&gt;It simulates a call to an external service with a {@code Thread.sleep}. Its presence is
+ * not decorative: it creates &lt;em&gt;waiting time&lt;/em&gt; alongside computation time, and that is an
+ * excellent discriminator between tools. A profiler that samples the CPU will hardly see it;
+ * a wall-clock profiler will see it dominate. Two tools can therefore give two opposite
+ * answers to &quot;where does the time go?&quot; on exactly the same run — and one has to know which
+ * one is being looked at.
  *
- * &lt;p&gt;Le résultat est mis en cache : un horaire ne se demande qu'une fois par liaison.
+ * &lt;p&gt;The result is cached: a timetable is asked for only once per link.
  */
 public final class Timetable {
 
@@ -24,11 +24,11 @@ public final class Timetable {
 
     private Timetable() {}
 
-    /** @return la fréquence de passage, en minutes, pour cette liaison. */
+    /** @return the service frequency, in minutes, for this link. */
     public static int frequencyMinutes(Leg leg) {
 <span class="fc" id="L29">        return CACHE.computeIfAbsent(leg.from() + &quot;&gt;&quot; + leg.to(), key -&gt; {</span>
             try {
-<span class="fc" id="L31">                Thread.sleep(LOOKUP_MILLIS); // appel réseau simulé</span>
+<span class="fc" id="L31">                Thread.sleep(LOOKUP_MILLIS); // simulated network call</span>
 <span class="nc" id="L32">            } catch (InterruptedException e) {</span>
 <span class="nc" id="L33">                Thread.currentThread().interrupt();</span>
 <span class="fc" id="L34">            }</span>

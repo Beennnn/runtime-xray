@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="fr"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Scenarios.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">sample-app</a> &gt; <a href="index.source.html" class="el_package">lab.sample</a> &gt; <span class="el_source">Scenarios.java</span></div><h1>Scenarios.java</h1><pre class="source lang-java linenums">package lab.sample;
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Scenarios.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">sample-app</a> &gt; <a href="index.source.html" class="el_package">lab.sample</a> &gt; <span class="el_source">Scenarios.java</span></div><h1>Scenarios.java</h1><pre class="source lang-java linenums">package lab.sample;
 
 import lab.sample.model.Leg;
 import lab.sample.model.Mode;
@@ -10,13 +10,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Les trajets rejoués à l'identique par tous les outils.
+ * The trips replayed identically by every tool.
  *
- * &lt;p&gt;Le tirage est &lt;b&gt;déterministe&lt;/b&gt; : ni {@code Random}, ni horloge. Deux exécutions
- * produisent exactement la même trace — sans quoi comparer deux rapports reviendrait à
- * comparer deux exécutions différentes, et l'écart observé ne dirait plus rien de l'outil.
+ * &lt;p&gt;The draw is &lt;b&gt;deterministic&lt;/b&gt;: no {@code Random}, no clock. Two runs produce exactly
+ * the same trace — otherwise comparing two reports would amount to comparing two different
+ * runs, and the gap observed would no longer say anything about the tool.
  *
- * &lt;p&gt;{@code Mode.PLANE} et {@code Weather.SNOW} sont volontairement absents du tirage.
+ * &lt;p&gt;{@code Mode.PLANE} and {@code Weather.SNOW} are deliberately absent from the draw.
  */
 final class Scenarios {
 
@@ -41,9 +41,9 @@ final class Scenarios {
 <span class="fc" id="L41">            double km = 2 + ((i + l * 7) % 60);</span>
 <span class="fc" id="L42">            legs.add(new Leg(from, to, km));</span>
         }
-        // Concaténation simple et non &quot;TRIP-%05d&quot;.formatted(i) : le formatage coûtait à lui
-        // seul ~40 % du temps CPU et écrasait le calcul dans le flame graph. Le profil doit
-        // montrer la logique évaluée, pas la fabrication du jeu de test.
+        // Plain concatenation rather than &quot;TRIP-%05d&quot;.formatted(i): the formatting alone
+        // cost ~40 % of the CPU time and crushed the computation in the flame graph. The
+        // profile must show the logic being evaluated, not the making of the test set.
 <span class="fc" id="L47">        return new Trip(&quot;TRIP-&quot; + i, mode, weather, time, luggage, List.copyOf(legs));</span>
     }
 }

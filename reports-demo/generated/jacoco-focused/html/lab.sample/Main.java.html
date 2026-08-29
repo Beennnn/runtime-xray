@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="fr"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Main.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Runtime X-Ray — code réellement exécuté</a> &gt; <a href="index.source.html" class="el_package">lab.sample</a> &gt; <span class="el_source">Main.java</span></div><h1>Main.java</h1><pre class="source lang-java linenums">package lab.sample;
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Main.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Runtime X-Ray: code actually executed</a> &gt; <a href="index.source.html" class="el_package">lab.sample</a> &gt; <span class="el_source">Main.java</span></div><h1>Main.java</h1><pre class="source lang-java linenums">package lab.sample;
 
 import lab.sample.model.Trip;
 
@@ -6,73 +6,72 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Lanceur de l'application-cible.
+ * Launcher for the target application.
  *
- * &lt;p&gt;Deux options n'existent que pour les besoins de l'analyse :
+ * &lt;p&gt;Two options exist only for the needs of the analysis:
  * &lt;ul&gt;
- *   &lt;li&gt;{@code --iterations} — un profiler par échantillonnage n'a rien à montrer sur
- *       une exécution de 5 ms ; il faut du temps CPU pour que des frames soient prélevées.&lt;/li&gt;
- *   &lt;li&gt;{@code --hold-seconds} — les outils qui s'&lt;em&gt;attachent&lt;/em&gt; à un process vivant
- *       (VisualVM, JMC, JProfiler, YourKit) ont besoin que la JVM soit encore là quand
- *       l'opérateur clique. Sans cette pause, la cible est morte avant d'avoir été
- *       sélectionnée dans la liste.&lt;/li&gt;
+ *   &lt;li&gt;{@code --iterations} — a sampling profiler has nothing to show on a 5 ms run; CPU
+ *       time is needed for frames to be collected.&lt;/li&gt;
+ *   &lt;li&gt;{@code --hold-seconds} — tools that &lt;em&gt;attach&lt;/em&gt; to a live process (VisualVM, JMC,
+ *       JProfiler, YourKit) need the JVM to still be there when the operator clicks. Without
+ *       this pause, the target is dead before it has been selected from the list.&lt;/li&gt;
  * &lt;/ul&gt;
  */
-<span class="nc" id="L21">public final class Main {</span>
+<span class="nc" id="L20">public final class Main {</span>
 
-    /** Nombre de trajets distincts fabriqués avant la mesure. Assez pour couvrir toutes
-     *  les combinaisons mode × météo × horaire × bagages, assez peu pour que leur
-     *  fabrication ne pèse rien face à la boucle de calcul. */
+    /** Number of distinct trips built before the measurement. Enough to cover every
+     *  mode × weather × time × luggage combination, few enough that building them weighs
+     *  nothing against the computation loop. */
     private static final int TRIP_VARIANTS = 240;
 
-    /** Calibré pour que le calcul dure ~10 s sur un Mac Apple Silicon. C'est le minimum
-     *  confortable pour qu'un outil qui s'attache à un process vivant (VisualVM, JMC,
-     *  JProfiler) ait le temps d'être lancé, de sélectionner la JVM et d'enregistrer
-     *  quelque chose. Une exécution d'une seconde ne laisse aucune prise. */
+    /** Calibrated so the computation lasts ~10 s on an Apple Silicon Mac. That is the
+     *  comfortable minimum for a tool attaching to a live process (VisualVM, JMC, JProfiler)
+     *  to have time to be launched, to select the JVM and to record something. A one-second
+     *  run offers no grip at all. */
     private static final int DEFAULT_ITERATIONS = 16_000_000;
 
     public static void main(String[] args) throws InterruptedException {
-<span class="fc" id="L35">        int iterations = intArg(args, &quot;--iterations&quot;, DEFAULT_ITERATIONS);</span>
-<span class="fc" id="L36">        int holdSeconds = intArg(args, &quot;--hold-seconds&quot;, 0);</span>
+<span class="fc" id="L34">        int iterations = intArg(args, &quot;--iterations&quot;, DEFAULT_ITERATIONS);</span>
+<span class="fc" id="L35">        int holdSeconds = intArg(args, &quot;--hold-seconds&quot;, 0);</span>
 
-<span class="fc" id="L38">        System.out.printf(&quot;sample-app : %d trajets évalués, pause finale %d s%n&quot;, iterations, holdSeconds);</span>
-<span class="fc" id="L39">        Metrics metrics = new Metrics();</span>
-<span class="fc" id="L40">        metrics.stage(&quot;JVM démarrée&quot;);</span>
+<span class="fc" id="L37">        System.out.printf(&quot;sample-app: %d trips evaluated, final pause %d s%n&quot;, iterations, holdSeconds);</span>
+<span class="fc" id="L38">        Metrics metrics = new Metrics();</span>
+<span class="fc" id="L39">        metrics.stage(&quot;JVM started&quot;);</span>
 
-        // Les trajets sont fabriqués UNE FOIS, hors de la boucle mesurée.
-        // Sans cette séparation, la génération du jeu de test (concaténations de chaînes,
-        // allocations de listes) capte ~70 % des échantillons et l'arbre d'appel montre
-        // java.lang.StringConcatHelper au lieu du calcul d'itinéraire. Mesuré, pas supposé.
-<span class="fc" id="L46">        List&lt;Trip&gt; trips = new ArrayList&lt;&gt;(TRIP_VARIANTS);</span>
-<span class="fc bfc" id="L47" title="All 2 branches covered.">        for (int i = 0; i &lt; TRIP_VARIANTS; i++) {</span>
-<span class="fc" id="L48">            trips.add(Scenarios.at(i));</span>
+        // The trips are built ONCE, outside the measured loop. Without that separation,
+        // generating the test set (string concatenations, list allocations) captures ~70 % of
+        // the samples and the call tree shows java.lang.StringConcatHelper instead of the
+        // route computation. Measured, not assumed.
+<span class="fc" id="L45">        List&lt;Trip&gt; trips = new ArrayList&lt;&gt;(TRIP_VARIANTS);</span>
+<span class="fc bfc" id="L46" title="All 2 branches covered.">        for (int i = 0; i &lt; TRIP_VARIANTS; i++) {</span>
+<span class="fc" id="L47">            trips.add(Scenarios.at(i));</span>
         }
 
-<span class="fc" id="L51">        metrics.stage(&quot;jeu de trajets fabriqué&quot;);</span>
+<span class="fc" id="L50">        metrics.stage(&quot;trip set built&quot;);</span>
 
-<span class="fc" id="L53">        double total = 0;</span>
-<span class="fc bfc" id="L54" title="All 2 branches covered.">        for (int i = 0; i &lt; iterations; i++) {</span>
-<span class="fc" id="L55">            total += RoutePlanner.travelTimeMinutes(trips.get(i % TRIP_VARIANTS));</span>
+<span class="fc" id="L52">        double total = 0;</span>
+<span class="fc bfc" id="L53" title="All 2 branches covered.">        for (int i = 0; i &lt; iterations; i++) {</span>
+<span class="fc" id="L54">            total += RoutePlanner.travelTimeMinutes(trips.get(i % TRIP_VARIANTS));</span>
         }
-        // Imprimé pour que le calcul ne puisse pas être éliminé, et pour vérifier d'un
-        // coup d'œil que deux exécutions comparées ont bien fait le même travail.
-<span class="fc" id="L59">        metrics.stage(&quot;calcul terminé&quot;);</span>
-<span class="fc" id="L60">        System.out.printf(&quot;durée cumulée = %.0f minutes%n&quot;, total);</span>
+        // Printed so the computation cannot be eliminated, and to check at a glance that two
+        // runs being compared really did the same work.
+<span class="fc" id="L58">        metrics.stage(&quot;computation finished&quot;);</span>
+<span class="fc" id="L59">        System.out.printf(&quot;total duration = %.0f minutes%n&quot;, total);</span>
 
-<span class="pc bpc" id="L62" title="1 of 2 branches missed.">        if (holdSeconds &gt; 0) {</span>
-<span class="nc" id="L63">            System.out.printf(&quot;JVM maintenue en vie %d s — attache ton profiler (pid %d)%n&quot;,</span>
-<span class="nc" id="L64">                    holdSeconds, ProcessHandle.current().pid());</span>
-<span class="nc" id="L65">            Thread.sleep(holdSeconds * 1000L);</span>
+<span class="pc bpc" id="L61" title="1 of 2 branches missed.">        if (holdSeconds &gt; 0) {</span>
+<span class="nc" id="L62">            System.out.printf(&quot;JVM kept alive %d s — attach your profiler (pid %d)%n&quot;,</span>
+<span class="nc" id="L63">                    holdSeconds, ProcessHandle.current().pid());</span>
+<span class="nc" id="L64">            Thread.sleep(holdSeconds * 1000L);</span>
         }
-<span class="fc" id="L67">    }</span>
+<span class="fc" id="L66">    }</span>
 
     private static int intArg(String[] args, String name, int fallback) {
-<span class="fc bfc" id="L70" title="All 2 branches covered.">        for (int i = 0; i &lt; args.length - 1; i++) {</span>
-<span class="fc bfc" id="L71" title="All 2 branches covered.">            if (args[i].equals(name)) {</span>
-<span class="fc" id="L72">                return Integer.parseInt(args[i + 1]);</span>
+<span class="pc bpc" id="L69" title="1 of 2 branches missed.">        for (int i = 0; i &lt; args.length - 1; i++) {</span>
+<span class="nc bnc" id="L70" title="All 2 branches missed.">            if (args[i].equals(name)) {</span>
+<span class="nc" id="L71">                return Integer.parseInt(args[i + 1]);</span>
             }
         }
-<span class="fc" id="L75">        return fallback;</span>
+<span class="fc" id="L74">        return fallback;</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

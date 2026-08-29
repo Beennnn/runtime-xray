@@ -60,6 +60,24 @@ class MergedCoverageTest {
     }
 
     @Test
+    @DisplayName("Every argument is ASCII: a child JVM is handed bytes, not characters")
+    void everyArgumentIsAscii() {
+        // A JVM encodes the arguments it passes to a child with sun.jnu.encoding, read from
+        // the machine's locale at start-up. Under a POSIX or C locale — the default in a
+        // good many containers and CI images — that is pure ASCII, and an em dash leaves as
+        // a "?". The merged report is produced all the same, titled with a question mark
+        // where a dash was meant. Seen on 29 August 2026, in the regenerated demo.
+        for (String argument : command()) {
+            for (int i = 0; i < argument.length(); i++) {
+                char c = argument.charAt(i);
+                assertTrue(c < 128,
+                        "non-ASCII in an argument handed to another process, it will not "
+                        + "survive a POSIX locale: '" + c + "' in " + argument);
+            }
+        }
+    }
+
+    @Test
     @DisplayName("The bytecode and the sources are passed, otherwise the report is empty")
     void theBytecodeAndTheSourcesArePassed() {
         List<String> command = command();
@@ -69,7 +87,7 @@ class MergedCoverageTest {
                 "the analysed bytecode must be named: " + command);
         assertTrue(command.contains("--sourcefiles") && command.contains(SOURCES.toString()),
                 "and the sources, otherwise the merged report shows no code: " + command);
-        assertTrue(command.contains("Cumulative coverage — 3 runs"),
+        assertTrue(command.contains("Cumulative coverage over 3 runs"),
                 "the report says how many runs it unites: " + command);
     }
 }

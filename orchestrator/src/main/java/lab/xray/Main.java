@@ -437,6 +437,14 @@ public final class Main {
      * {@code [java, -jar, …]}. The merge is a bonus, so its failure is caught and reduced
      * to one warning line: the report was still produced, nobody looked, and
      * {@code jacoco-fusion/} was missing from every campaign.
+     *
+     * <p><b>The report's name stays ASCII</b>, and that is not a style choice. A JVM encodes
+     * the arguments it hands to a child process with {@code sun.jnu.encoding}, read from the
+     * machine's locale at start-up. Under a {@code POSIX} or {@code C} locale — the default
+     * in a good many containers and CI images — that is pure ASCII, and an em dash leaves as
+     * a {@code ?}. Nothing fails: the merged report is produced, titled with a question mark
+     * where a dash was meant, and only a reader notices. Setting the property on the child
+     * does not help, since the damage is done by the parent as it writes the arguments.
      */
     static List<String> mergedReportCommand(Path cli, Path merged, Path html, int runs,
                                             List<Path> classes, List<Path> sources) {
@@ -446,7 +454,7 @@ public final class Main {
                 "--html", html.toString(),
                 "--xml", html.resolve("jacoco.xml").toString(),
                 "--csv", html.resolve("jacoco.csv").toString(),
-                "--name", "Cumulative coverage — " + runs + " runs",
+                "--name", "Cumulative coverage over " + runs + " runs",
                 "--quiet"));
         for (Path entry : classes) {
             report.add("--classfiles");
