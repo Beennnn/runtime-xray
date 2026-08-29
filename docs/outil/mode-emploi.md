@@ -185,7 +185,8 @@ the first go — **[Reducing the footprint on a large codebase](empreinte.md)** 
 | `LEVEL` / `--level` | `full` | How far to observe: `coverage` (JaCoCo alone), `tree` (+ sampling), `full` (+ values). The first knob to turn down when the measurement costs too much |
 | `COVER_INCLUDES` / `--cover` | everything | Classes JaCoCo instruments, e.g. `com.example.*`. **Without it, every class loaded is instrumented**, dependencies included: it is the main cost centre |
 | `SAMPLE_INTERVAL_MS` / `--interval` | 1 ms | Stack sampling interval. At 10 ms, ten times fewer samples |
-| `JACOCO_REPORTS` / `--jacoco-reports` | `full` | How much of JaCoCo's own rendering to write per run — see [When the number of files costs](#when-the-number-of-files-costs) |
+| `JACOCO_REPORTS` / `--jacoco-reports` | `full` | How much of JaCoCo's own rendering to write per run. **Every value but the default gives a rendering up** — see [When the number of files costs](#when-the-number-of-files-costs) |
+| `ARCHIVE` / `--archive` | — | Gather `runs/` into `runs.zip` once the report is built: `keep` beside the tree, `replace` **instead of it** — same section |
 | `FOLLOW_PORT` / `--follow` | — | Port of the follow page. Without it nothing is served — but `progression.jsonl` is written all the same |
 | `EXPORT` / `--export` | — | Rewrites the measurements for other tools: `perf`, `cpuprofile`, `lcov`, `values`, or `all` — see [the exports](exports.md) |
 
@@ -257,7 +258,8 @@ runtime-xray-out/
         ├── config.json          ← annotations for THIS run (optional, takes priority)
         ├── execution.log        ← the application's output
         ├── jacoco/html/         ← the detailed coverage, all the analysed code
-        ├── jacoco-focused/html/ ← the same, restricted to the classes that ran
+        ├── jacoco-focused/html/ ← the same, restricted to the classes that ran (absent when
+        │                          every analysed class ran: it would repeat the other)
         ├── classes-executees.jar ← the bytecode kept for that second report
         ├── async-profiler/      ← the folded stacks, plus the profile rendered by the tool
         │                          itself (flamegraph.html and its inverse)
@@ -277,22 +279,65 @@ size of the analysed code, not with the measurement. On a machine where every fi
 crosses a stack of filters — antivirus, EDR, DLP — that count is what a campaign pays for:
 at write time, at every later walk, and when archiving it to pass it on.
 
-`JACOCO_REPORTS` (or `--jacoco-reports`) decides how much of it is written:
+**The tool says the figure itself.** Past ten thousand files it prints the count at the end
+of a campaign, names the directory to exclude, and points at `--help`; `diagnostic.json`
+carries the count run by run, and the count of `runs/`. Before that, knowing what a campaign
+had cost meant going and counting on the machine where counting is itself slow — so nobody
+did, and a setting that reduces it stayed documented and unused.
 
-| Value | What is written | What is lost |
+**Two things are done without being asked, because they take nothing away.** The two sites
+of a run are **rendered at the same time** rather than one after the other: the cost is one
+file open apiece, paid serially, so two writers overlap where one could not. Measured on the
+example application, with a fixed latency injected on every file open, **on the rendering
+step** — which is the only thing this changes: **−27 % at 5 ms per open, −34 % at 10 ms,
+−42 % at 20 ms**, and *nothing at all* — 0.75 s against 0.76 s — with no filter, which is
+what makes it free. Read as a share of a whole run the figure is much smaller, since a run
+also pays for the application, the components and the assembly. And the focused report is
+**not written when every analysed class ran**: it would then list exactly what the complete
+one lists.
+
+### First, and it takes nothing away: exclude the directory
+
+`runs/` is the right candidate for an antivirus exclusion: a single directory, holding only
+generated artefacts, of which nothing is executed and everything is reproducible. It is the
+only measure that **removes** the cost. Everything below merely reduces it, and everything
+below has a price.
+
+### Then, if that is refused — and each of these gives something up
+
+> **These settings restrict the report.** None of them is on by default, none of them
+> changes the coverage the page displays — read from `jacoco.xml`, written in every case —
+> and an absent report is never silent: the page keeps naming it, greyed out, and clicking
+> gives the command that produces it. But each takes away something a reader might have
+> opened. That is the trade being offered, and it is offered here rather than left to be
+> discovered.
+
+`JACOCO_REPORTS` (or `--jacoco-reports`) decides how much of JaCoCo's own rendering is
+written:
+
+| Value | What is written | What is given up |
 |---|---|---|
 | `full` *(default)* | both sites | nothing |
 | `detailed` | the complete site alone | a framing: the focused report holds **no datum** the complete one lacks |
 | `data` | `jacoco.xml` and `jacoco.csv` only | JaCoCo's rendering **per run**; the campaign's (`jacoco-fusion/`) stays |
+| `minimal` | the same, and no merged site either | the rendering of the figure one hands on; the merged XML and CSV are still written |
 
-This setting touches **neither the measurement nor what the page shows**: the coverage
-rendered line by line comes from `jacoco.xml`, written in every case. And an absent report is
-never silent — the page keeps naming it, greyed out, and clicking gives the command that
-produces it.
+`ARCHIVE` (or `--archive`) gathers `runs/` into one `runs.zip` once the report is built:
 
-`runs/` is, moreover, the right candidate for an antivirus exclusion: a single directory,
-holding only generated artefacts, of which nothing is executed and everything is
-reproducible.
+| Value | What it does | What is given up |
+|---|---|---|
+| `keep` *(what a bare `--archive` means)* | writes the archive, leaves the tree | nothing — and it reduces nothing either: one object to hand on, to back up, to have scanned once |
+| `replace` | writes it, checks it, **then removes `runs/`** | the page's links to the JaCoCo sites stop resolving, and `--report-only` and `--serve` have nothing left to rebuild from. The page, the diagnostic, the facts and the Markdown still read |
+
+Nothing is removed before the archive has been verified — the entries written are counted
+against the files walked, and the tree only goes if they agree. Writing the archive does read
+every file: the gesture costs, once and deliberately, exactly what it stops costing at every
+later walk.
+
+Two other settings reduce the count and are documented elsewhere because they do more than
+that: `--cover` restricts what JaCoCo instruments — by far the biggest lever, and the only
+one that **changes the measurement**, since what it leaves out is no longer covered at all —
+and `--level coverage` gives up the call tree and the captured values.
 
 ### `rapport.md` — for a forge
 

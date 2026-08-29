@@ -4,6 +4,7 @@ import lab.xray.json.Json;
 import lab.xray.report.Coverage;
 import lab.xray.report.Dashboard;
 import lab.xray.report.Exports;
+import lab.xray.report.Footprint;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -22,6 +23,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
+import java.util.zip.ZipOutputStream;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -111,6 +113,19 @@ public final class Main {
                 case "--level", "--niveau" -> config.level = args[++i];
                 case "--cover" -> config.coverIncludes = args[++i];
                 case "--jacoco-reports" -> config.jacocoReports = args[++i];
+                // The value attaches to the option, and "keep" is what a bare --archive
+                // means: it is the one that takes nothing away, so it is the one somebody
+                // typing the option without reading further should get.
+                case "--archive" -> {
+                    config.archive = Config.KEEP;
+                    // Anything that is not another option is taken as the value, even one
+                    // that does not exist: it then gets the message naming the values that
+                    // do, where leaving it in place would have made the parser complain
+                    // about an option, over a word the reader typed as a value.
+                    if (i + 1 < args.length && !args[i + 1].startsWith("-")) {
+                        config.archive = args[++i];
+                    }
+                }
                 case "--interval" -> config.sampleIntervalMs = Integer.parseInt(args[++i]);
                 // The port attaches to the option, as for --serve: "--suivi" alone takes
                 // the default port, and "--suivi 9100" the one given to it.
@@ -212,6 +227,10 @@ public final class Main {
         require(Config.JACOCO_REPORTS.contains(config.jacocoReports),
                 "unknown value for --jacoco-reports: " + config.jacocoReports
                 + " (known: " + String.join(", ", Config.JACOCO_REPORTS) + ")");
+        config.archive = config.archive.trim().toLowerCase(Locale.ROOT);
+        require(config.archive.isBlank() || Config.ARCHIVE.contains(config.archive),
+                "unknown value for --archive: " + config.archive
+                + " (known: " + String.join(", ", Config.ARCHIVE) + ")");
         require(Config.LEVELS.contains(Config.level(config.level)),
                 "--level expects coverage, tree or full (got: " + config.level + ")");
         // The classes serve to MEASURE. Reassembling a view from existing measurements
@@ -242,6 +261,13 @@ public final class Main {
                 config.hidden(), launch(config, tools, sourceRoots(config)));
         sayWhatWasFound(outDir);
         sayTheWeight(page);
+        archiveRuns(config, outDir);
+        // Counted last, once nothing more is going to be written: it is the figure a reader
+        // can check with a single "find", and one that cannot be checked is one nobody
+        // believes twice.
+        for (String line : Footprint.of(outDir).console()) {
+            System.out.println(line);
+        }
         System.out.println();
         System.out.println("Done — open: " + page);
 
@@ -419,7 +445,11 @@ public final class Main {
             Path html = dir.resolve("html");
             Files.createDirectories(html);
             exec(mergedReportCommand(cli, merged, html, samples.size(),
-                    classes, sourceRoots(config)));
+                    classes, sourceRoots(config), config.mergedHtmlWanted()));
+            if (!config.mergedHtmlWanted()) {
+                System.out.println("   JACOCO_REPORTS=" + config.jacocoReports
+                        + " — merged figure written as XML and CSV, site not rendered");
+            }
         } catch (Exception e) {
             // The merge is a bonus: the view can already accumulate on the page side. Its
             // failure must not take the report down, it must be said.
@@ -447,15 +477,19 @@ public final class Main {
      * does not help, since the damage is done by the parent as it writes the arguments.
      */
     static List<String> mergedReportCommand(Path cli, Path merged, Path html, int runs,
-                                            List<Path> classes, List<Path> sources) {
+                                            List<Path> classes, List<Path> sources,
+                                            boolean site) {
         List<String> report = new ArrayList<>(List.of(
                 RunSession.javaExecutable(), "-jar", cli.toString(), "report",
                 merged.toString(),
-                "--html", html.toString(),
                 "--xml", html.resolve("jacoco.xml").toString(),
                 "--csv", html.resolve("jacoco.csv").toString(),
                 "--name", "Cumulative coverage over " + runs + " runs",
                 "--quiet"));
+        if (site) {
+            report.add("--html");
+            report.add(html.toString());
+        }
         for (Path entry : classes) {
             report.add("--classfiles");
             report.add(entry.toString());
@@ -487,6 +521,30 @@ public final class Main {
      * Two renderings from the same measurement: the complete report, and a <b>focused</b>
      * report restricted to the classes that actually ran. On a real project the second is
      * often the only readable one — the first lists thousands of irrelevant classes.
+     *
+     * <p><b>Three passes rather than two, so the two sites can be written at once.</b> The
+     * focused report needs to know which classes ran, and it learns that from
+     * {@code jacoco.xml} — so the data pass has to come first, and until now it carried the
+     * complete site with it, leaving the two renderings strictly one after the other. Split
+     * this way, the data pass writes two files, and the two HTML renderings overlap.
+     *
+     * <p>That was measured before being written, because the gain is entirely a matter of
+     * where the time goes. On a filtered machine the cost is one open per file, paid
+     * serially: injecting a fixed latency on every file open under the output gives, on the
+     * sample application and <b>on this step alone</b>, −27 % at 5 ms per open, −34 % at
+     * 10 ms and −42 % at 20 ms. With no filter at all the two shapes are indistinguishable
+     * — the extra JVM start-up is exactly paid by the overlap — so this costs nothing where
+     * it brings nothing. As a share of a whole run it is far less: the rest of a run pays
+     * for the application, the components and the assembly, none of which this touches.
+     *
+     * <p>The parallelism is of degree two and stays there: each rendering parses the whole
+     * class set, so the peak memory of this phase doubles. Two is what the work naturally
+     * offers; more would only buy memory pressure.
+     *
+     * <p>None of this contradicts the note in {@code CLAUDE.md} that neither memory nor
+     * cores buy the latency back. That one is about a <i>walk</i> — an archiver, an explorer
+     * — going through the files one after another, where nothing can be overlapped. Here we
+     * hold the producer, and two producers do overlap.
      */
     private static void renderCoverage(Config config, Toolbox tools, Path runDir) throws Exception {
         Path exec = runDir.resolve("jacoco/jacoco.exec");
@@ -500,29 +558,24 @@ public final class Main {
         // report read. A produced file never moves.
         Path html = runDir.resolve("jacoco/html");
         Files.createDirectories(html);
+        List<Path> classes = config.classesPaths();
+        List<Path> sources = sourceRoots(config);
 
-        List<String> cmd = new ArrayList<>(List.of(
-                RunSession.javaExecutable(), "-jar", cli.toString(), "report", exec.toString(),
-                "--xml", html.resolve("jacoco.xml").toString(),
-                "--csv", html.resolve("jacoco.csv").toString(),
-                "--name", "Runtime X-Ray", "--quiet"));
-        if (config.jacocoHtmlWanted()) {
-            cmd.add("--html");
-            cmd.add(html.toString());
+        // With a single HTML rendering to produce, the data pass carries it: there would be
+        // nothing to overlap, and splitting would cost a start-up for nothing.
+        boolean twoSites = config.focusedReportWanted();
+        List<String> data = reportCommand(cli, exec, "Runtime X-Ray", classes, sources);
+        data.add("--xml");
+        data.add(html.resolve("jacoco.xml").toString());
+        data.add("--csv");
+        data.add(html.resolve("jacoco.csv").toString());
+        if (config.jacocoHtmlWanted() && !twoSites) {
+            data.add("--html");
+            data.add(html.toString());
         }
-        // One --classfiles entry per directory or jar: the option is repeatable, and that
-        // is the tool's intended mechanism for analysing several bytecode sources.
-        for (Path entry : config.classesPaths()) {
-            cmd.add("--classfiles");
-            cmd.add(entry.toString());
-        }
-        for (Path src : sourceRoots(config)) {
-            cmd.add("--sourcefiles");
-            cmd.add(src.toString());
-        }
-        exec(cmd);
+        exec(data);
 
-        if (!config.focusedReportWanted()) {
+        if (!twoSites) {
             System.out.println("   JACOCO_REPORTS=" + config.jacocoReports
                     + " — coverage read from jacoco.xml, "
                     + (config.jacocoHtmlWanted() ? "focused report not written"
@@ -530,28 +583,87 @@ public final class Main {
             return;
         }
 
+        Coverage coverage = Coverage.parse(html.resolve("jacoco.xml"), config.hidden());
+        List<List<String>> renderings = new ArrayList<>();
+        List<String> complete = reportCommand(cli, exec, "Runtime X-Ray", classes, sources);
+        complete.add("--html");
+        complete.add(html.toString());
+        renderings.add(complete);
+
         // Focused report: only the classes with at least one covered instruction are
         // presented to the CLI. That is the tool's native mechanism, not a home-made
         // filter.
-        Coverage coverage = Coverage.parse(html.resolve("jacoco.xml"), config.hidden());
         Path staging = runDir.resolve("classes-executees.jar");
-        int kept = stageExecutedClasses(coverage, config.classesPaths(), staging);
-        if (kept == 0) {
-            return;
+        int kept = 0;
+        boolean duplicate = focusedWouldRepeatTheComplete(config, coverage);
+        if (!duplicate) {
+            kept = stageExecutedClasses(coverage, classes, staging);
+            if (kept > 0) {
+                Path focused = runDir.resolve("jacoco-focused/html");
+                Files.createDirectories(focused);
+                List<String> focusedCmd = reportCommand(
+                        cli, exec, "Code actually executed", List.of(staging), sources);
+                focusedCmd.add("--html");
+                focusedCmd.add(focused.toString());
+                renderings.add(focusedCmd);
+            }
         }
-        Path focused = runDir.resolve("jacoco-focused/html");
-        Files.createDirectories(focused);
-        List<String> focusedCmd = new ArrayList<>(List.of(
+        execTogether(renderings);
+        if (duplicate) {
+            System.out.println("   focused report not written: every analysed class ran, so it"
+                    + " would list exactly what the complete one lists");
+        } else if (kept > 0) {
+            System.out.println("   " + kept + " executed classes kept for the focused report");
+        }
+    }
+
+    /**
+     * Whether the focused report would name exactly the classes of the complete one.
+     *
+     * <p>When it would, it is a copy: two files per class, written and then walked and then
+     * archived, for a framing that frames nothing. Not writing it restricts nothing — which
+     * is the condition for doing it without being asked. The page keeps naming it, greyed
+     * out, with the command that produces it.
+     *
+     * <p>The test is deliberately strict, and it is made on the coverage alone, before the
+     * classes are staged. Two things could make the two sites differ, and both disqualify
+     * the shortcut: a class the run never entered, and a hidden package — hidden here on
+     * reading, but not by the CLI, which knows nothing of it and puts it in the complete
+     * site. As for a class whose bytecode could not be staged, it would have made the
+     * focused report <i>poorer</i> than the complete one, never richer: nothing is lost by
+     * not producing it.
+     */
+    static boolean focusedWouldRepeatTheComplete(Config config, Coverage coverage) {
+        if (!config.hiddenPackages.isBlank()) return false;
+        int analysed = 0;
+        for (Object value : coverage.packages.values()) {
+            if (!(value instanceof List<?> classes)) continue;
+            for (Object o : classes) {
+                if (!(o instanceof Map<?, ?> cls)) continue;
+                analysed++;
+                if (((Number) cls.get("covered")).intValue() == 0) return false;
+            }
+        }
+        return analysed > 0;
+    }
+
+    /** The invariable part of a {@code jacococli report} call: what it reads, and its name. */
+    static List<String> reportCommand(Path cli, Path exec, String name,
+                                      List<Path> classes, List<Path> sources) {
+        List<String> cmd = new ArrayList<>(List.of(
                 RunSession.javaExecutable(), "-jar", cli.toString(), "report", exec.toString(),
-                "--classfiles", staging.toString(),
-                "--html", focused.toString(),
-                "--name", "Code actually executed", "--quiet"));
-        for (Path src : sourceRoots(config)) {
-            focusedCmd.add("--sourcefiles");
-            focusedCmd.add(src.toString());
+                "--name", name, "--quiet"));
+        // One --classfiles entry per directory or jar: the option is repeatable, and that
+        // is the tool's intended mechanism for analysing several bytecode sources.
+        for (Path entry : classes) {
+            cmd.add("--classfiles");
+            cmd.add(entry.toString());
         }
-        exec(focusedCmd);
-        System.out.println("   " + kept + " executed classes kept for the focused report");
+        for (Path src : sources) {
+            cmd.add("--sourcefiles");
+            cmd.add(src.toString());
+        }
+        return cmd;
     }
 
     /**
@@ -979,6 +1091,103 @@ public final class Main {
         }
     }
 
+    /**
+     * Gathers {@code runs/} into a single archive, and — only if asked — removes the tree.
+     *
+     * <p>A campaign is a great many small files, and each of them is paid again at every
+     * later walk: a backup, a search, the zip somebody makes to send the report on. One
+     * archive pays that count <b>once</b>. Writing it does read every file, so the gesture
+     * costs exactly what it is meant to stop costing — once, deliberately, instead of at
+     * each pass.
+     *
+     * <p><b>Nothing is removed before the archive has been checked.</b> The count of entries
+     * written is compared with the count of files walked, and the tree only goes if they
+     * agree. This deletes measurements: a zip that is short by a file, discovered a week
+     * later, is a campaign to run again.
+     *
+     * <p>A failure here never takes the report down — it is a convenience applied after the
+     * fact, and the report was the point. But it is said, and it stops: a warning followed
+     * by a deletion would be the worst of both.
+     */
+    private static void archiveRuns(Config config, Path outDir) {
+        if (!config.archiveWanted()) return;
+        Path runs = outDir.resolve("runs");
+        if (!Files.isDirectory(runs)) return;
+        Path zip = outDir.resolve("runs.zip");
+        try {
+            long files = Footprint.count(runs);
+            System.out.println("▶ Archiving " + Footprint.grouped(files) + " files into "
+                    + zip.getFileName());
+            long entries = zipTree(runs, zip);
+            require(entries == files, "the archive holds " + entries + " entries for "
+                    + files + " files: nothing removed");
+            if (config.archiveReplaces()) {
+                deleteRecursively(runs);
+                System.out.println("   runs/ removed — the page and the diagnostic still"
+                        + " read; the links to the JaCoCo sites no longer resolve, and"
+                        + " --report-only has nothing left to rebuild from");
+            }
+        } catch (Exception e) {
+            System.out.println("   ⚠️ archive not produced: " + e.getMessage());
+        }
+    }
+
+    /** Writes every regular file under {@code dir} into {@code zip}; returns the count. */
+    private static long zipTree(Path dir, Path zip) throws IOException {
+        long entries = 0;
+        try (ZipOutputStream out = new ZipOutputStream(Files.newOutputStream(zip))) {
+            try (var walk = Files.walk(dir)) {
+                for (Path file : walk.filter(Files::isRegularFile).toList()) {
+                    // A zip entry is separated by '/' on every system: a Windows path put in
+                    // as it comes gives one entry whose name contains backslashes, which no
+                    // reader splits back into directories.
+                    String name = dir.relativize(file).toString().replace('\\', '/');
+                    out.putNextEntry(new ZipEntry(name));
+                    Files.copy(file, out);
+                    out.closeEntry();
+                    entries++;
+                }
+            }
+        }
+        return entries;
+    }
+
+    /**
+     * Runs several commands at once, and waits for every one of them.
+     *
+     * <p>Waiting for all before reporting anything is the point: a command left running
+     * behind a thrown exception writes into a directory the caller believes finished. The
+     * first failure is the one raised, the others travel with it as suppressed exceptions —
+     * two renderings that both fail usually fail for the same reason, and hiding the second
+     * would make that look like a coincidence.
+     */
+    private static void execTogether(List<List<String>> commands)
+            throws IOException, InterruptedException {
+        if (commands.size() == 1) {
+            exec(commands.get(0));
+            return;
+        }
+        List<Process> started = new ArrayList<>();
+        for (List<String> cmd : commands) {
+            started.add(new ProcessBuilder(cmd).inheritIO().start());
+        }
+        IOException failure = null;
+        for (int i = 0; i < started.size(); i++) {
+            Process p = started.get(i);
+            String what = String.join(" ", commands.get(i));
+            IOException problem = null;
+            if (!p.waitFor(10, TimeUnit.MINUTES)) {
+                p.destroy();
+                problem = new IOException("commande interrompue : " + what);
+            } else if (p.exitValue() != 0) {
+                problem = new IOException("failed (exit " + p.exitValue() + ") : " + what);
+            }
+            if (problem == null) continue;
+            if (failure == null) failure = problem; else failure.addSuppressed(problem);
+        }
+        if (failure != null) throw failure;
+    }
+
     private static void deleteRecursively(Path dir) throws IOException {
         try (var walk = Files.walk(dir)) {
             walk.sorted(java.util.Comparator.reverseOrder()).forEach(p -> {
@@ -1033,9 +1242,16 @@ public final class Main {
                                        Without it every class the JVM loads is instrumented.
                   --jacoco-reports <v> How much of JaCoCo's own rendering to write per run:
                                        full (both sites, the default), detailed (the complete
-                                       site alone), data (jacoco.xml and .csv only). The page
+                                       site alone), data (jacoco.xml and .csv only), minimal
+                                       (and not the campaign's merged site either). The page
                                        reads the XML, so it shows the same coverage either
                                        way; this only decides how many FILES land on disk.
+                                       Every value but the default takes a rendering away —
+                                       see LIVING WITH A SECURITY FILTER.
+                  --archive [v]        Gather runs/ into runs.zip once the report is built:
+                                       keep (the default of this option) leaves the tree in
+                                       place, replace removes it after checking the archive.
+                                       "replace" takes something away — see the same section.
                   --interval <ms>      Stack sampling interval (default: 1).
                   --attach-after <s>   Delay before inspecting values (default: 8).
                   --max-seconds <s>    Guard rail on the run duration (default: 600).
@@ -1098,9 +1314,51 @@ public final class Main {
                   --print-options      Run nothing: print the JVM options to add to any command
                                        line, then assemble with --report-only.
 
+                LIVING WITH A SECURITY FILTER (antivirus, EDR, DLP)
+                  A report is a great many small FILES, not many bytes: JaCoCo writes two per
+                  class, and the tool asks it for two sites per run. Where every file open
+                  crosses a filter, the time paid is that count times the filter's latency —
+                  measured, one open per file — and it is paid again at every later walk:
+                  a backup, a search, the archive made to send the report on. The latency is
+                  serial, so neither the memory nor the cores of the machine buy a walk back.
+
+                  FIRST, AND IT TAKES NOTHING AWAY
+                    Exclude <out>/runs from the scan. It holds only generated artefacts,
+                    nothing in it is executed, and everything in it is reproducible. This
+                    is the only measure that REMOVES the cost. Everything below reduces it,
+                    and every line below has a price written next to it.
+
+                  IF THAT IS REFUSED — each of these gives something up
+                    --cover "com.example.*"    By far the fewest files, and the only one here
+                                               that touches the MEASUREMENT: what it leaves
+                                               out is not covered at all any more.
+                    --jacoco-reports detailed  Drops the focused site. Gives up a framing
+                                               ("only the code that ran") — no datum: the
+                                               complete site holds everything it held.
+                    --jacoco-reports data      Drops both sites of each run. Gives up JaCoCo's
+                                               own rendering per run; the campaign's merged
+                                               one still stands.
+                    --jacoco-reports minimal   ... and the merged site as well. Gives up the
+                                               rendering of the figure one hands on; the
+                                               merged XML and CSV are still written.
+                    --archive replace          Gathers runs/ into runs.zip, then removes the
+                                               tree. The page, the diagnostic and the facts
+                                               still read; the links to the JaCoCo sites stop
+                                               resolving, and --report-only and --serve have
+                                               nothing left to rebuild from.
+                    --level coverage           Measures less, and that is the point: no call
+                                               tree and no captured values.
+
+                  WHAT NONE OF THEM CHANGES
+                    The coverage this page shows. It is read from jacoco.xml, written in
+                    every case. A report not produced stays named in the page, greyed out,
+                    and the click gives the command that produces it. And the tool says the
+                    figure by itself past <NOTABLE> files, so nobody has to go and count.
+
                 EXIT STATUS
                   0  success, or --help
                   2  bad usage: unknown option, unknown fact family
-                """);
+                """.replace("<NOTABLE>", lab.xray.report.Footprint.grouped(
+                        lab.xray.report.Footprint.NOTABLE)));
     }
 }

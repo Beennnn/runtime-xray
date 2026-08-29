@@ -128,7 +128,7 @@ echo
 echo "4 bis. What is written to disk is a setting, and does not touch the measurement"
 pct(){ grep -o '"pct":[0-9.]*' "$1"/faits.jsonl | head -1; }
 count(){ find "$1"/runs -type f | wc -l; }
-for v in detailed data; do
+for v in detailed data minimal; do
   java -jar "$JAR" \
     --java "java -jar $APP --iterations 200000" \
     --level coverage --sources "$REPO_DIR/sample-app/src/main/java" \
@@ -145,11 +145,57 @@ done
 step $? "in \"data\", no HTML site is written for the run"
 grep -q 'toujours: true' "$REPO_DIR/orchestrator/src/main/resources/lab/xray/dashboard.html"
 step $? "and the page still names the absent reports, with their command"
+# The whole point of the settings: they give up a RENDERING, never a figure. The count of
+# files written per run is in the diagnostic, so the trade is checkable after the fact.
+grep -q '"fichiersEcrits"' rep-data/diagnostic.json
+step $? "the diagnostic says, run by run, what was left on disk"
+grep -q '"conseil":"Exclude' rep-data/diagnostic.json
+step $? "and names the directory to exclude from an antivirus scan"
+echo
+
+# The only value that also gives up the campaign's merged rendering. It is the one that
+# must not take the figure with it: an aggressive setting stays defensible only as long as
+# the last possible reading survives it.
+echo "4 ter. \"minimal\" gives up the merged SITE, never the merged figure"
+java -jar "$JAR" \
+  --java "java -jar $APP --iterations 120000" \
+  --level coverage --sources "$REPO_DIR/sample-app/src/main/java" \
+  --classes "$APP" --jacoco-reports minimal --name "minimal bis" --out rep-minimal \
+  > rep-minimal-2.log 2>&1
+step $? "a second run under \"minimal\" ends, so there is something to merge"
+[ -f rep-minimal/jacoco-fusion/html/jacoco.xml ]
+step $? "the merged XML is written"
+[ ! -f rep-minimal/jacoco-fusion/html/index.html ]
+step $? "and its site is not"
+echo
+
+# Gathering the run directories into one file, and — only if asked — putting it in their
+# place. Nothing is removed before the archive has been counted against what it replaces.
+echo "4 quater. --archive gathers the files, and \"replace\" takes their place"
+java -jar "$JAR" \
+  --java "java -jar $APP --iterations 120000" \
+  --level coverage --sources "$REPO_DIR/sample-app/src/main/java" \
+  --classes "$APP" --archive --name "archive kept" --out arch-keep > arch-keep.log 2>&1
+step $? "a measurement with --archive ends"
+[ -f arch-keep/runs.zip ] && [ -d arch-keep/runs ]
+step $? "  the archive is written, and the tree stays: \"keep\" takes nothing away"
+[ "$(unzip -l arch-keep/runs.zip | tail -1 | awk '{print $2}')" = "$(find arch-keep/runs -type f | wc -l)" ]
+step $? "  and it holds exactly as many entries as there are files"
+java -jar "$JAR" \
+  --java "java -jar $APP --iterations 120000" \
+  --level coverage --sources "$REPO_DIR/sample-app/src/main/java" \
+  --classes "$APP" --archive replace --name "archive replaced" --out arch-rep \
+  > arch-rep.log 2>&1
+step $? "a measurement with --archive replace ends"
+[ -f arch-rep/runs.zip ] && [ ! -d arch-rep/runs ]
+step $? "  the tree is gone, the archive is there"
+[ -f arch-rep/index.html ] && [ -f arch-rep/diagnostic.json ] && [ -f arch-rep/faits.jsonl ]
+step $? "  and what is read without the measurements still stands"
 echo
 
 # A report is often reassembled without passing the launch options again. What was given to
 # the measurement must not get lost on the way — and above all, must not be denied.
-echo "4 ter. Reassembling without --sources finds the annotated code again"
+echo "4 quinquies. Reassembling without --sources finds the annotated code again"
 rm -rf reassemble && cp -r out reassemble
 java -jar "$JAR" --report-only --out reassemble > reassemble.log 2>&1
 step $? "reassembling without --sources ends"

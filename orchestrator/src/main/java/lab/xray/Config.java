@@ -46,6 +46,18 @@ public final class Config {
     public String sourceDirs = "";
     public String classFilter = "";
     public String outDir = "runtime-xray-out";
+    /**
+     * What to do with {@code runs/} once the report is assembled: {@code ""} nothing,
+     * {@code "keep"} also write {@code runs.zip}, {@code "replace"} write it and remove the
+     * tree.
+     *
+     * <p>A campaign is a great many small files, and on a machine where a filter inspects
+     * every open, they are paid at every later walk — a backup, a search, the archive one
+     * makes to send it. Gathering them into one file pays that count once and stops paying
+     * it. {@code replace} is the only value that actually reduces anything, and it is the
+     * only one that takes something away: see {@link #ARCHIVE}.
+     */
+    public String archive = "";
     public String runName = "";
     public int attachAfterSeconds = 8;
     public int maxSeconds = 600;
@@ -163,19 +175,62 @@ public final class Config {
     public static final String FULL = "full";
     public static final String DETAILED = "detailed";
     public static final String DATA = "data";
+    /**
+     * Neither site per run, <b>nor the campaign's merged rendering</b>.
+     *
+     * <p>Apart from the other three, and it must stay apart. They give up a convenience per
+     * run while the campaign's figure — the one that is handed on and that makes authority —
+     * stays rendered; this one gives that up too. It is the last reading JaCoCo produces by
+     * itself, so nothing here should ever make it a default, and the documentation states
+     * what it costs before saying how to turn it on. The merged XML and CSV are still
+     * written: the figure survives, its rendering does not.
+     */
+    public static final String MINIMAL = "minimal";
 
-    /** The three values, in decreasing order of what is written. */
+    /** The four values, in decreasing order of what is written. */
     public static final java.util.List<String> JACOCO_REPORTS =
-            java.util.List.of(FULL, DETAILED, DATA);
+            java.util.List.of(FULL, DETAILED, DATA, MINIMAL);
 
     /** Whether an HTML site is written for each run at all. */
     public boolean jacocoHtmlWanted() {
-        return !DATA.equals(jacocoReports);
+        return !DATA.equals(jacocoReports) && !MINIMAL.equals(jacocoReports);
     }
 
     /** Whether the focused report — and the class staging it needs — is produced. */
     public boolean focusedReportWanted() {
         return FULL.equals(jacocoReports);
+    }
+
+    /** Whether the campaign's merged coverage gets its HTML site. */
+    public boolean mergedHtmlWanted() {
+        return !MINIMAL.equals(jacocoReports);
+    }
+
+    public static final String KEEP = "keep";
+    public static final String REPLACE = "replace";
+
+    /**
+     * The accepted values of {@code ARCHIVE}, and the only restricting one is the second.
+     *
+     * <p>{@code keep} adds {@code runs.zip} beside the tree: one object to hand on, to
+     * back up, to have scanned once instead of file by file. It takes nothing away, and it
+     * reduces nothing either — the tree is still there.
+     *
+     * <p>{@code replace} removes the tree once the archive is verified, and <b>that one
+     * restricts</b>: the report's links to the JaCoCo sites stop resolving, and neither
+     * {@code --report-only} nor {@code --serve} can rebuild anything from this output any
+     * more. The page, the diagnostic, the facts and the Markdown stay where they are and
+     * still read. It is off by default and says what it costs where it is documented.
+     */
+    public static final java.util.List<String> ARCHIVE = java.util.List.of(KEEP, REPLACE);
+
+    public boolean archiveWanted() {
+        return !archive.isBlank();
+    }
+
+    /** Whether {@code runs/} is removed once the archive has been checked. */
+    public boolean archiveReplaces() {
+        return REPLACE.equals(archive);
     }
 
     public static Config load(Path file) throws IOException {
@@ -221,6 +276,7 @@ public final class Config {
             case "LEVEL", "NIVEAU" -> level = value;
             case "COVER_INCLUDES" -> coverIncludes = value;
             case "JACOCO_REPORTS" -> jacocoReports = value;
+            case "ARCHIVE" -> archive = value;
             case "SAMPLE_INTERVAL_MS" -> sampleIntervalMs = parse(value, sampleIntervalMs);
             case "FOLLOW_PORT", "SUIVI_PORT" -> followPort = parse(value, followPort);
             case "TRACE_COUNT" -> traceCount = parse(value, traceCount);
@@ -471,9 +527,25 @@ public final class Config {
             #   full      both sites (the default)
             #   detailed  the complete site alone — the focused report holds no datum it lacks
             #   data      jacoco.xml and .csv only; the campaign's merged report still stands
+            #   minimal   and not the merged site either; its XML and CSV are still written
             #
-            # An absent report stays named in the page, with the command that produces it.
+            # Every value but the default GIVES A RENDERING UP. None of them changes the
+            # coverage the page shows — it is read from jacoco.xml, written in every case —
+            # and an absent report stays named in the page, with the command that produces
+            # it. "runtime-xray --help" weighs them up one by one.
             #JACOCO_REPORTS="detailed"
+
+            # Gathering runs/ into a single runs.zip once the report is built, for a machine
+            # where every file open crosses a security filter and the count is paid again at
+            # each walk.
+            #
+            #   keep      the archive beside the tree — takes nothing away, reduces nothing
+            #   replace   the archive INSTEAD of the tree, once it has been verified
+            #
+            # "replace" gives something up: the page's links to the JaCoCo sites stop
+            # resolving, and --report-only and --serve have nothing left to rebuild from.
+            # The page, the diagnostic, the facts and the Markdown still read.
+            #ARCHIVE="keep"
 
             # Classes JaCoCo instruments, in its agent's format (patterns separated by ':').
             # Without this setting, EVERY class loaded is instrumented, dependencies
