@@ -418,28 +418,45 @@ public final class Main {
 
             Path html = dir.resolve("html");
             Files.createDirectories(html);
-            List<String> report = new ArrayList<>(List.of(
-                    RunSession.javaExecutable(), "-jar", cli.toString(), "report",
-                    merge.toString(),
-                    "--html", html.toString(),
-                    "--xml", html.resolve("jacoco.xml").toString(),
-                    "--csv", html.resolve("jacoco.csv").toString(),
-                    "--name", "Cumulative coverage — " + samples.size() + " runs",
-                    "--quiet"));
-            for (Path entry : classes) {
-                report.add("--classfiles");
-                report.add(entry.toString());
-            }
-            for (Path src : sourceRoots(config)) {
-                report.add("--sourcefiles");
-                report.add(src.toString());
-            }
-            exec(report);
+            exec(mergedReportCommand(cli, merged, html, samples.size(),
+                    classes, sourceRoots(config)));
         } catch (Exception e) {
             // The merge is a bonus: the view can already accumulate on the page side. Its
             // failure must not take the report down, it must be said.
             System.out.println("   ⚠️ merged coverage not produced: " + e.getMessage());
         }
+    }
+
+    /**
+     * The command that draws the campaign's report from the merged {@code .exec}.
+     *
+     * <p>Built apart so a test can read it. What it guards is a typo that costs the whole
+     * feature and says almost nothing: the argument here is the <b>merged file</b>, and
+     * naming the merge <i>command</i> instead compiles — a {@code List<String>} has a
+     * {@code toString()} — and then fails at run time on a file called
+     * {@code [java, -jar, …]}. The merge is a bonus, so its failure is caught and reduced
+     * to one warning line: the report was still produced, nobody looked, and
+     * {@code jacoco-fusion/} was missing from every campaign.
+     */
+    static List<String> mergedReportCommand(Path cli, Path merged, Path html, int runs,
+                                            List<Path> classes, List<Path> sources) {
+        List<String> report = new ArrayList<>(List.of(
+                RunSession.javaExecutable(), "-jar", cli.toString(), "report",
+                merged.toString(),
+                "--html", html.toString(),
+                "--xml", html.resolve("jacoco.xml").toString(),
+                "--csv", html.resolve("jacoco.csv").toString(),
+                "--name", "Cumulative coverage — " + runs + " runs",
+                "--quiet"));
+        for (Path entry : classes) {
+            report.add("--classfiles");
+            report.add(entry.toString());
+        }
+        for (Path src : sources) {
+            report.add("--sourcefiles");
+            report.add(src.toString());
+        }
+        return report;
     }
 
     /** The run directories under the common output, in the sense the view means them. */

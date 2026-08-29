@@ -14,8 +14,7 @@ It **opens in English** — a report gets attached to a ticket and read by someo
 launch the measurement. The `EN | FR` selector in the header switches everything it shows,
 in one click and without reloading anything; the choice is kept for the next openings, and a
 browser that announces French gets it straight away. The source code shown beside the
-coverage is never translated: it is the observed application's. The screenshots in this
-document still show the French view.
+coverage is never translated: it is the observed application's.
 
 > **Everything explains itself on hover.** Figures, pills, columns, buttons, flame bars,
 > checkboxes: every element carries a tooltip saying what it shows, or what it does when
