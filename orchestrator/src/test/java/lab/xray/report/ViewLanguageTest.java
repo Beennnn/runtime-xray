@@ -197,4 +197,19 @@ class ViewLanguageTest {
         assertFalse(PAGE.contains("🇫🇷") || PAGE.contains("🇬🇧"),
                 "no flag: a flag names a country, not a language");
     }
+
+    @Test
+    @DisplayName("The template declares the language it is written in")
+    void theTemplateDeclaresItsOwnLanguage() throws Exception {
+        // The file carries English since the template was inverted; its <html lang> went on
+        // saying "fr". The script puts that right on load, so nothing showed — but the page
+        // as it sits on disk announced French over English text, to a screen reader, to a
+        // translation prompt, and on the first paint. The whole point of the inversion is
+        // that the language the tool is read in is the one the file carries: the attribute
+        // is part of the file.
+        String template = read();
+        assertTrue(template.contains("<html lang=\"en\">"),
+                "the template is written in English and must say so");
+        assertFalse(template.contains("<html lang=\"fr\">"), template.substring(0, 120));
+    }
 }

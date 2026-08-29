@@ -353,6 +353,14 @@ were the ones intended. A reading of the diff proves nothing; the DOM does.
 - **A French option name stays accepted for ever**, silently, now that its English equivalent
   has arrived. Scripts already deployed never break. Only `faits.jsonl` will break, in format
   2.0, and that is assumed: it is three days old.
+- **A produced file keeps one vocabulary, and `diagnostic.json`'s is French.** Its keys —
+  `executions`, `rapprochement`, `fichiersSansSource` — predate the switch to English and are
+  frozen like every other produced key. New keys there follow them (`empreinte`,
+  `fichiersEcrits`, `seuilAlerte`): a document half in one language and half in the other
+  reads worse than either, and the choice is between consistency inside one file and
+  consistency with the code around it. `faits.jsonl` went the other way and paid for it with
+  a format break at 2.0 — worth it there, because that file is *read by others*; the
+  diagnostic is read by us.
 - **A commit explains why**, not what the diff already shows. The subject is a sentence, not a
   label.
 - **A test guards a decision.** The tests here do not check lines but choices: that the Maven
@@ -412,12 +420,24 @@ were the ones intended. A reading of the diff proves nothing; the DOM does.
   out MSYS2's POSIX translation as the cause. The JVM escapes it because it opens few files
   and keeps its handles.
 
+  **That sentence is about a *walk*, and it must not be read as "concurrency never helps".**
+  An archiver, an explorer, a backup agent goes through the files one after another and
+  nothing overlaps. When we hold the *producer*, on the other hand, two producers do overlap
+  — which is what makes the parallel rendering below worth its extra pass.
+
+  **The cost model was measured rather than assumed**, and the measurement is what settled
+  the rest. Injecting a fixed latency on every `open` under the output — an `LD_PRELOAD` that
+  changes nothing else — gives a total that tracks **one open per file written**: ~185
+  delayed opens for the 178 files of a run's two sites. So the time paid is the file count
+  times the filter's latency, and any change is worth exactly what it does to that product.
+
   **`JACOCO_REPORTS` decides what is written of them**, and nothing else: `full` both sites
-  (the default, unchanged), `detailed` the complete one alone, `data` neither. The setting
-  touches neither the measurement nor the display — the coverage rendered comes from
-  `jacoco.xml`, written in every case, and `Coverage.parse` reads it directly. On the example
-  application, a run goes from 186 to 101 files in `detailed`, to 9 in `data`, with the same
-  coverage to the figure.
+  (the default, unchanged), `detailed` the complete one alone, `data` neither, `minimal`
+  not even the campaign's merged site — its XML and CSV are still written, so the figure
+  survives its rendering. The setting touches neither the measurement nor the display — the
+  coverage rendered comes from `jacoco.xml`, written in every case, and `Coverage.parse`
+  reads it directly. On the example application, a run goes from 186 to 101 files in
+  `detailed`, to 9 in `data`, with the same coverage to the figure.
 
   Three decisions hold it, and they are the ones to know before touching it:
 
@@ -439,9 +459,61 @@ were the ones intended. A reading of the diff proves nothing; the DOM does.
   copy goes through the zip filesystem, so the intermediate files never exist. Writing them in
   order to delete them would have cost exactly what one is trying to avoid.
 
+  **Three things are now done without being asked, because they take nothing away.**
+
+  - **The two sites are rendered at once.** The focused report learns which classes ran from
+    `jacoco.xml`, so the data pass has to come first — and it used to carry the complete site
+    with it, which left the two renderings strictly one after the other. Split into three
+    passes, the data pass writes two files and the two renderings overlap. Measured **on the
+    rendering step**, which is the only thing this changes: the two `jacococli` calls alone
+    go from 1.69 s to 1.24 s at 5 ms per open (−27 %), 2.62 → 1.73 at 10 ms (−34 %), 4.44 →
+    2.68 at 20 ms (−40 %) — and *0.75 against 0.76* with no filter at all, the extra
+    start-up being exactly paid by the overlap. On the tool itself, read off the files'
+    timestamps, the phase goes **4.26 s → 2.45 s at 20 ms (−42 %)**.
+
+    **Do not quote those percentages of a whole run.** The same run goes 7.84 s → 7.22 s
+    (−8 %), because it also pays for the application, the components and the assembly, none
+    of which this touches. The gain is on the rendering and grows with the number of
+    classes; everything else is fixed. The parallelism is of degree two and stays there:
+    each rendering parses the whole class set, so this phase's peak memory doubles.
+  - **The focused report is not written when every analysed class ran.** It would then list
+    exactly what the complete one lists. The test is strict and made on the coverage alone,
+    before staging: a single class never entered, or a hidden package — hidden on our side,
+    unknown to the CLI, hence present in the complete site — puts the two out of step and the
+    shortcut off.
+  - **The count is said.** Past `Footprint.NOTABLE` files the tool prints it at the end of a
+    campaign and names the directory to exclude; `diagnostic.json` carries it run by run.
+    Counting opens each *directory* and never a file, so it costs the tree's directories and
+    not its files — 0.63 s for one walk at 20 ms per open, against some four seconds for a
+    single pass over the files that walk describes. Cheap, not free: which is why the
+    diagnostic **sums the runs it has already counted** instead of walking them a second
+    time, and why the total is taken once, at the very end. Before this, the figure was
+    reachable only by counting by hand on the machine where counting is itself slow, which
+    is to say never: the setting existed, was documented, and nothing ever pointed at it.
+
+  **`ARCHIVE` gathers `runs/` into one `runs.zip`**, `keep` beside the tree or `replace`
+  instead of it. `replace` is the one that restricts — the page's links to the JaCoCo sites
+  stop resolving and `--report-only` has nothing left to rebuild from — so it is off by
+  default and says so where it is offered. Nothing is removed before the entries written are
+  counted against the files walked: this deletes measurements. And writing the archive does
+  read every file, so the gesture costs, once, exactly what it stops costing at every later
+  walk.
+
+  **A cache of rendered pages across runs is not possible, and the example application hides
+  it.** JaCoCo's source page carries the per-line colouring: the same class, with an `exec`
+  and without, gives 14 lines `fc` against 14 lines `nc`. But every run of `sample-app`
+  covers the same lines, so its 26 source pages come out identical from one run to the next —
+  a cache keyed on the code would pass every test here and be wrong exactly in a campaign
+  whose runs differ, which is the only reason to run a campaign. What *is* run-independent is
+  `jacoco-resources/`: 20 files per site, 22 % of a site on the example, ~2 % on an analysis
+  of 447 classes. It shrinks where the problem grows.
+
   `runs/` remains, moreover, the right candidate for an antivirus exclusion: a single
   directory, containing only generated artefacts, of which nothing is executed and everything
-  is reproducible.
+  is reproducible. It is the only measure that **removes** the cost rather than trimming it,
+  and it is the first thing the help's section on filtered machines says — that section lists
+  every setting that reduces the count **with what it gives up**, and `FileCostTest` holds it
+  to that: a value added to `JACOCO_REPORTS` and left out of the section fails the build.
 - **Windows terminal**: the tool writes in UTF-8. A terminal in cp850 — the default on many
   machines — renders the accents unreadable. Fix it on the terminal's side (mintty → Options →
   Text → UTF-8), or launch with `-Dstdout.encoding=cp850`. Do not "fix" this in the code: when

@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="fr">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -1747,7 +1747,9 @@ function runFiles(){
      cmd: "JaCoCo's HTML sites hold two files per class, and the tool produces two of them"
         + " per run: on a large application, that is the bulk of a campaign's file count."
         + " JACOCO_REPORTS decides what is written of them — full both, detailed the"
-        + " complete one alone, data neither.\n\nTo get them back:\n\n"
+        + " complete one alone, data neither, minimal not even the merged site.\n\n"
+        + "The focused report is also left out when every analysed class ran: it would then"
+        + " list exactly what the complete one lists.\n\nTo get them back:\n\n"
         + "    java -jar runtime-xray.jar --config <your .conf> --jacoco-reports full\n\n"
         + "The coverage displayed in this page, for its part, does not depend on this"
         + " setting: it is read from jacoco.xml, which is written in every case.",

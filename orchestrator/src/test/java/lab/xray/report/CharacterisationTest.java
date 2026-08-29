@@ -94,7 +94,7 @@ class CharacterisationTest {
 
     /** The options the command line accepts, today. */
     private static final List<String> EXPECTED_OPTIONS = List.of(
-            "--attach-after", "--classes", "--components", "--composants", "--config",
+            "--archive", "--attach-after", "--classes", "--components", "--composants", "--config",
             "--context", "--contexte", "--cover", "--export", "--families", "--familles",
             "--filter", "--follow", "--help", "--hide", "--interval", "--jacoco-reports",
             "--java", "--level",

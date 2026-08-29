@@ -91,19 +91,34 @@ per run**. A campaign's file count therefore grows with the size of the code, no
 measurement — and on a machine where every file open crosses an antivirus, an EDR, a DLP,
 that is often the real brake.
 
+**Start with the exclusion, it takes nothing away.** The `runs/` directory is the right
+candidate for an antivirus exclusion: nothing in it is executed, everything in it is
+generated and reproducible. It is the only measure that *removes* the cost. Everything below
+reduces it, and each line below gives something up — the tool prints the file count itself
+past ten thousand, and `runtime-xray --help` weighs the settings one by one.
+
 ```sh
 --jacoco-reports detailed   # the complete site alone, without the focused one
 --jacoco-reports data       # jacoco.xml and .csv only, no site per run
+--jacoco-reports minimal    # and no merged site either — its XML and CSV are still written
+--archive                   # gather runs/ into runs.zip, and keep the tree
+--archive replace           # gather it, then put the archive IN PLACE of the tree
 ```
 
-This setting changes **neither the measurement nor what the page shows**: the coverage comes
+These settings change **neither the measurement nor what the page shows**: the coverage comes
 from `jacoco.xml`, written in every case. `detailed` loses no data — the focused report
 holds none the complete one lacks. `data` loses JaCoCo's rendering per run, but keeps the
-whole campaign's. An absent report stays named in the page, with the command that produces
-it.
+whole campaign's; `minimal` loses that one too, keeping its figure. An absent report stays
+named in the page, with the command that produces it.
 
-The `runs/` directory is, moreover, the right candidate for an antivirus exclusion: nothing
-in it is executed, everything in it is generated and reproducible.
+`--archive replace` is the one to weigh: it removes the measurements once the archive has
+been checked against them, so the page's links to the JaCoCo sites stop resolving and
+`--report-only` has nothing left to rebuild from. The page, the diagnostic, the facts and
+the Markdown still read.
+
+Two things happen on their own and need no setting: the two sites of a run are rendered at
+the same time, and the focused report is not written when every analysed class ran — it
+would repeat the complete one.
 
 ## Observing a process one does not launch oneself
 

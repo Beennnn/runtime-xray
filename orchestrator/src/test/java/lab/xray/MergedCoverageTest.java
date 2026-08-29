@@ -33,7 +33,12 @@ class MergedCoverageTest {
     private static final Path SOURCES = Path.of("/app/src");
 
     private static List<String> command() {
-        return Main.mergedReportCommand(CLI, MERGED, HTML, 3, List.of(CLASSES), List.of(SOURCES));
+        return command(true);
+    }
+
+    private static List<String> command(boolean site) {
+        return Main.mergedReportCommand(CLI, MERGED, HTML, 3,
+                List.of(CLASSES), List.of(SOURCES), site);
     }
 
     @Test
@@ -89,5 +94,20 @@ class MergedCoverageTest {
                 "and the sources, otherwise the merged report shows no code: " + command);
         assertTrue(command.contains("Cumulative coverage over 3 runs"),
                 "the report says how many runs it unites: " + command);
+    }
+
+    @Test
+    @DisplayName("Without its site, the merged report still writes the figure")
+    void withoutItsSiteTheFigureSurvives() {
+        // JACOCO_REPORTS=minimal gives up the campaign's RENDERING, never its figure: the
+        // XML and the CSV are what one goes back to, and what another tool reads. Dropping
+        // them with the site would have made the setting a way of measuring less, which is
+        // exactly what every value of this setting refuses to be.
+        List<String> command = command(false);
+        assertFalse(command.contains("--html"), "no site was asked for: " + command);
+        assertTrue(command.contains("--xml"), "the merged XML is written all the same");
+        assertTrue(command.contains("--csv"), "and so is the CSV");
+        assertFalse(command.contains(HTML.toString()),
+                "the site's directory has no business in the command: " + command);
     }
 }

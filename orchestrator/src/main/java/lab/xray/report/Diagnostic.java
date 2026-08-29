@@ -70,7 +70,9 @@ public final class Diagnostic {
         d.put("machine", environment());
         if (context != null && !context.isEmpty()) d.put("lancement", context);
         d.put("sortie", commonDir.toAbsolutePath().normalize().toString());
-        d.put("executions", runs(runs));
+        List<Object> runViews = runs(commonDir, runs);
+        d.put("executions", runViews);
+        d.put("empreinte", footprint(commonDir, runViews));
         d.put("sources", index.diagnostic());
         List<Object> bytecode = bytecode(context);
         d.put("bytecode", bytecode);
@@ -331,7 +333,7 @@ public final class Diagnostic {
         return missing + " measured class(es) out of " + expected + " have no source.";
     }
 
-    private static List<Object> runs(List<Object> runs) {
+    private static List<Object> runs(Path commonDir, List<Object> runs) {
         List<Object> out = new ArrayList<>();
         for (Object r : runs) {
             if (!(r instanceof Map<?, ?> run)) continue;
@@ -346,9 +348,55 @@ public final class Diagnostic {
             e.put("classesMesurees", count(run.get("packages")));
             e.put("fichiersCouverts", size(run.get("coverage")));
             e.put("methodesInspectees", size(run.get("values")));
+            e.put("fichiersEcrits", writtenFiles(commonDir, run.get("chemin")));
             out.add(e);
         }
         return out;
+    }
+
+    /**
+     * What this run left on disk, in number of files.
+     *
+     * <p>Placed with each run rather than as a single total, and that is deliberate: a run's
+     * directory is finished once its reports are written, so this figure is stable and a
+     * reader can reproduce it with a single {@code find}. A total over the whole output
+     * would be taken here, while the page, the facts and the diagram are still to be
+     * written — it would be wrong by a handful the moment it was read, and a figure one
+     * cannot reproduce is a figure one stops believing.
+     */
+    private static long writtenFiles(Path commonDir, Object relative) {
+        if (!(relative instanceof String path) || path.isBlank()) return 0;
+        try {
+            return Footprint.count(commonDir.resolve(path));
+        } catch (IOException e) {
+            return 0;
+        }
+    }
+
+    /**
+     * The file count of {@code runs/}, and what to do about it.
+     *
+     * <p>{@code runs/} and not the whole output: it is the directory the advice names, so it
+     * is the one whose figure must be checkable against it.
+     *
+     * <p>Summed from the runs rather than walked again. Walking costs a directory open
+     * apiece, and on the machine this figure is written for, a directory open is not free
+     * either — measured at 0.63 s for one walk under a 20 ms filter. Two walks of the same
+     * tree to print the same number would have been the small, self-inflicted version of
+     * exactly what is being reported.
+     */
+    private static Map<String, Object> footprint(Path commonDir, List<Object> runViews) {
+        Map<String, Object> m = new LinkedHashMap<>();
+        long total = 0;
+        for (Object r : runViews) {
+            if (r instanceof Map<?, ?> run && run.get("fichiersEcrits") instanceof Number n) {
+                total += n.longValue();
+            }
+        }
+        m.put("fichiersDansRuns", total);
+        m.put("seuilAlerte", Footprint.NOTABLE);
+        m.put("conseil", Footprint.exclusionAdvice(commonDir));
+        return m;
     }
 
     private static int count(Object packages) {
