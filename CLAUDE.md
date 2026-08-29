@@ -320,20 +320,39 @@ to signal it. `ViewLanguageTest` checks the whole static body for that reason �
 sentence it carries must have its translation. The rest of the text is born in JavaScript and
 only shows at render time: that check is done at the browser, before pushing.
 
-**Renaming an identifier here needs a rendered check, not a compiler.** The template's code
-holds names that are *also* frozen JSON keys — `nom`, `valeur`, `racine`, `chemin`,
-`elagage` — read from and written to disk. A rename must therefore leave `.nom`, `nom:` and
-`"nom"` alone and touch only the bare identifier; that much a script can do. What it cannot
-see is the **object-literal shorthand**: `{...c, pkg, runs: [i]}` names a property by naming
-a variable, so renaming the variable renames the property, and the reader two hundred lines
-below still asks for the old one. Nothing fails at parse time, no test written in Java can
-reach it, and the view simply comes up empty. It happened on 29 August 2026, and it is the
-snapshot of the rendered strings that said so — not the 258 tests, which stayed green.
+**The identifiers are English; the keys are not, and that line is the whole difficulty.** The
+template's code holds names that are *also* frozen JSON keys — `nom`, `valeur`, `racine`,
+`chemin`, `elagage`, `coupes`, `ordre` — read from and written to disk, so a rename must
+leave `.nom`, `nom:` and `"nom"` alone and touch only the bare identifier. The page's own
+internals have no such constraint: the block loader's members are English (`load`, `store`,
+`touch`, `evict`, `pending`, `pinned`, `_queue`), because no file on disk names them —
+`XR.bloc` is the single name the generated `vue/*.js` know, and it stays.
+
+**Three traps, each of which shipped a defect.** A script that renames bare identifiers gets
+all three wrong unless it is told:
+
+- **The object-literal shorthand.** `{...c, pkg, runs: [i]}` names a property by naming a
+  variable. Renaming the variable renames the property (the view came up empty, 29 August);
+  *skipping* it leaves a reference to a variable that no longer exists (`noeuds is not
+  defined`, the same day). Neither is right: the shorthand must be **expanded** —
+  `noeuds: nodesByName` — which keeps the frozen name and points it at the new variable.
+- **A ternary's colon is not a key.** `? valeur : undefined` reads as `valeur:` to a regex,
+  so the rename skipped it and left a name that had been renamed away. It throws only after
+  a successful save through the served page — the one path the acceptance drives with `curl`
+  rather than a browser, so nothing saw it for a day.
+- **A frozen key inside a string.** Translating the identifiers turned `annotationPatch(R,
+  "nom", …)` into `"name"`, while every reader, the exporter and the save payload went on
+  asking for `nom`. A name typed in the page went into a field nobody read — and the page
+  showed it anyway, because it re-reads the input it just filled. `ViewContractTest` holds
+  that line now: a patched field outside `nom, description, etiquettes, elagage` fails the
+  build.
 
 **The way to verify a change here is to render it.** Before touching the block, take a snapshot
 of every string the page displays — both languages, a dozen states of the view — and take the
-same one after: the inversion itself was carried out that way, and the only differences it left
-were the ones intended. A reading of the diff proves nothing; the DOM does.
+same one after: the inversion itself was carried out that way, and so was the rename of the
+last eighty French names, which left **0 differences over 7 734 captured strings**. A reading
+of the diff proves nothing; the DOM does. And the DOM does not prove everything either — it
+never opens the save path, which is why the two defects above needed a test apiece.
 
 ## Conventions
 
