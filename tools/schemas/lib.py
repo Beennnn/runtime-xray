@@ -1,7 +1,7 @@
 """Shared drawing helpers — the logo-libres grammar, applied by hand.
 
 Shapes, fills, strokes and the accent come from formes.json and ADR 0007;
-the six layer colours from scripts/couches.json. Nothing here invents a value.
+the six layer colours from scripts/layers.json. Nothing here invents a value.
 """
 import re, html, os
 
@@ -18,7 +18,10 @@ FAINT    = '#8896A2'
 STROKE   = '#3E444A'
 ACCENT   = '#A3196F'
 
-FORMES = {
+# The keys of SHAPES and LAYERS are logo-libres' own — `formes.json` and
+# `scripts/couches.json` name them exactly so. They stay French because they are what
+# one greps for in that repository to check a value here against its source.
+SHAPES = {
     'service':     dict(rx=0,  fill='#FFFFFF', stroke=STROKE, w=1.6),
     'application': dict(rx=10, fill='#FFFFFF', stroke=STROKE, w=1.6),
     'stockage':    dict(cyl=True, fill='#FFFFFF', stroke=STROKE, w=1.6),
@@ -30,7 +33,7 @@ FORMES = {
     'noeud':       dict(rx=2,  fill='#DFE5E9', stroke=STROKE, w=2.4),
 }
 
-COUCHES = {
+LAYERS = {
     'api':       ('API and code',   '#7038D8'),
     'fichiers':  ('Files',          '#0B7A6E'),
     'infra':     ('Infrastructure', '#4C5A66'),
@@ -52,7 +55,7 @@ def symbol(path, x, y, size):
             f'viewBox="{vb}" overflow="visible">{inner}</svg>')
 
 def box(x, y, w, h, forme, accent=False):
-    f = FORMES[forme]
+    f = SHAPES[forme]
     stroke = ACCENT if accent else f['stroke']
     width  = 3.2 if accent else f['w']
     dash   = f' stroke-dasharray="{f["dash"]}"' if 'dash' in f else ''
@@ -110,7 +113,7 @@ def legend_couleurs(x, y, keys):
     out = [text(x, y + 10, 'COLOURS', 10, FAINT, 600, mono=True)]
     cx = x + 64
     for k in keys:
-        label, colour = COUCHES[k]
+        label, colour = LAYERS[k]
         out.append(f'<rect x="{cx}" y="{y}" width="12" height="12" rx="3" fill="{colour}"/>')
         out.append(text(cx + 18, y + 10, label, 10.5, MUTED))
         cx += 18 + len(label) * 6.2 + 24

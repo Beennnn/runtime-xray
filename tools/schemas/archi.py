@@ -35,7 +35,7 @@ o.append(text(600, 398, "OBSERVED JAVA VIRTUAL MACHINE", 10.5, FAINT, 600, ancho
 o.append(box(108, 410, 250, 66, 'service'))
 o.append(symbol(f'{LL}/symboles/java.svg', 120, 424, 32))
 o.append(text(162, 436, "Analysed application", 12.5, INK, 600))
-o.append(text(162, 454, "sample-app.jar", 11.5, COUCHES['api'][1], mono=True))
+o.append(text(162, 454, "sample-app.jar", 11.5, LAYERS['api'][1], mono=True))
 o.append(text(162, 469, "22 classes, no dependency", 9.5, FAINT))
 
 o.append(text(376, 448, "All three measure the SAME run.", 11, MUTED))
@@ -61,7 +61,7 @@ o.append(arrow(f"M{CX} 626 V672", "write their outputs, each in its own format",
 o.append(box(CX - 180, 676, 360, 116, 'stockage'))
 o.append(symbol(f'{LL}/symboles/volume.svg', CX - 162, 716, 28))
 o.append(text(CX + 20, 716, "The measurements", 12.5, INK, 600, anchor='middle'))
-o.append(text(CX + 20, 734, "runs/", 12, COUCHES['fichiers'][1], anchor='middle', mono=True))
+o.append(text(CX + 20, 734, "runs/", 12, LAYERS['fichiers'][1], anchor='middle', mono=True))
 o.append(text(CX + 20, 752, "jacoco.exec · profil.collapsed · watch-params.txt", 9.5, FAINT, anchor='middle', mono=True))
 o.append(text(CX + 20, 772, "the only durable thing: everything else is derived from it", 10, FAINT, anchor='middle'))
 
@@ -71,14 +71,14 @@ o.append(arrow(f"M{CX} 792 V838", "read back and assembled — by the same jar",
 o.append(box(CX - 180, 842, 360, 116, 'application'))
 o.append(symbol(f'{LL}/symboles/couverture.svg', CX - 160, 872, 28))
 o.append(text(CX + 20, 872, "The report", 12.5, INK, 600, anchor='middle'))
-o.append(text(CX + 20, 892, "index.html · faits.jsonl · diagnostic.json", 11, COUCHES['fichiers'][1], anchor='middle', mono=True))
+o.append(text(CX + 20, 892, "index.html · faits.jsonl · diagnostic.json", 11, LAYERS['fichiers'][1], anchor='middle', mono=True))
 o.append(text(CX + 20, 912, "one file to open, no external resource,", 10, FAINT, anchor='middle'))
 o.append(text(CX + 20, 926, "readable on a machine with nothing installed", 10, FAINT, anchor='middle'))
 
 # --------------------------------------------------------------- the component cache
 o.append(box(700, 244, 300, 66, 'stockage'))
 o.append(text(850, 278, "Component cache", 11.5, INK, 600, anchor='middle'))
-o.append(text(850, 296, "~/.runtime-xray", 11, COUCHES['infra'][1], anchor='middle', mono=True))
+o.append(text(850, 296, "~/.runtime-xray", 11, LAYERS['infra'][1], anchor='middle', mono=True))
 o.append(arrow("M700 280 H528", "supplies the three tools", None, 614, 270, anchor='middle'))
 
 # --------------------------------------------------------------- Maven, outside the zone

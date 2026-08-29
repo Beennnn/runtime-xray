@@ -5,7 +5,7 @@ library rather than retyped, so the file cannot drift from the grammar.
 """
 import sys, pathlib, base64, html, json, re, zlib, urllib.parse
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
-from lib import LL, XRAY, COUCHES, ACCENT
+from lib import LL, XRAY, LAYERS, ACCENT
 
 lib = json.loads(re.search(r'<mxlibrary>(.*)</mxlibrary>',
                            open(f'{LL}/drawio/grammaire.xml', encoding='utf-8').read(), re.S).group(1))
@@ -13,6 +13,15 @@ STYLE = {}
 for e in lib:
     xml = urllib.parse.unquote(zlib.decompress(base64.b64decode(e['xml']), -15).decode('utf-8'))
     STYLE[e['title']] = re.search(r'style="([^"]*)"', xml).group(1)
+
+# The library's shape titles are French: they are keys into somebody else's file, and
+# renaming them there is not ours to do. Naming them once, here, keeps the rest of this
+# script English and leaves exactly one place to look when the grammar moves.
+ZONE, NESTED_ZONE = STYLE['Zone'], STYLE['Zone imbriquée']
+ACTOR, SUBJECT = STYLE['Acteur'], STYLE['Sujet du schéma']
+SERVICE, APPLICATION = STYLE['Service'], STYLE['Application']
+STORAGE, EXTERNAL = STYLE['Stockage'], STYLE['Externe']
+ARROW = STYLE['Flèche annotée']
 
 def img(path):
     raw = open(path, 'rb').read()
@@ -37,7 +46,7 @@ class Page:
         return self.node(x, y, size, size, '',
                          f'shape=image;imageAspect=0;aspect=fixed;html=1;image={img(path)};')
     def edge(self, src, dst, label='', dashed=False, exitp=None, entryp=None):
-        st = STYLE['Flèche annotée']
+        st = ARROW
         if dashed:
             st += 'dashed=1;dashPattern=6 5;'
         if exitp:
@@ -66,43 +75,43 @@ class Page:
 # ============================================================ page 1 — overall
 p = Page("Overall architecture")
 
-zone = p.node(40, 60, 1000, 860, "NO NETWORK ACCESS WHILE IT RUNS", STYLE['Zone'])
-actor = p.node(280, 100, 240, 60, "Acceptance&#10;or taking over code", STYLE['Acteur'])
+zone = p.node(40, 60, 1000, 860, "NO NETWORK ACCESS WHILE IT RUNS", ZONE)
+actor = p.node(280, 100, 240, 60, "Acceptance&#10;or taking over code", ACTOR)
 p.icon(292, 110, 36, f'{LL}/symboles/utilisateur.svg')
 
 orch = p.node(220, 220, 360, 90,
               "&lt;b&gt;Orchestrator&lt;/b&gt;&#10;runtime-xray.jar&#10;"
               "instruments nothing, profiles nothing — no dependency outside the Java Development Kit",
-              STYLE['Sujet du schéma'] + 'verticalAlign=middle;spacingLeft=54;align=left;')
+              SUBJECT + 'verticalAlign=middle;spacingLeft=54;align=left;')
 p.icon(232, 245, 40, f'{XRAY}/docs/assets/icons/runtime-xray.svg')
 
-jvm = p.node(100, 380, 560, 250, "OBSERVED JAVA VIRTUAL MACHINE", STYLE['Zone imbriquée'])
+jvm = p.node(100, 380, 560, 250, "OBSERVED JAVA VIRTUAL MACHINE", NESTED_ZONE)
 app = p.node(130, 420, 260, 70, "&lt;b&gt;Analysed application&lt;/b&gt;&#10;sample-app.jar&#10;22 classes, no dependency",
-             STYLE['Service'] + 'spacingLeft=44;align=left;')
+             SERVICE + 'spacingLeft=44;align=left;')
 p.icon(140, 435, 34, f'{LL}/symboles/java.svg')
 p.label(410, 430, 230, 60, "All three measure the SAME run.&lt;br&gt;&lt;b&gt;None answers all three questions.&lt;/b&gt;")
 
 tools = []
-for i, (icon, name, how, what, couche) in enumerate([
+for i, (icon, name, how, what, layer) in enumerate([
         (f'{XRAY}/docs/assets/icons/jacoco.svg', 'JaCoCo', 'agent', 'the executed lines', 'fichiers'),
         (f'{XRAY}/docs/assets/icons/async-profiler.svg', 'async-profiler', 'agent', 'where the time goes', 'infra'),
         (f'{XRAY}/docs/assets/icons/arthas.svg', 'Arthas', 'attached', 'the values passed', 'api')]):
     y = 510 + i * 40
     tools.append(p.node(130, y, 500, 34, f"&lt;b&gt;{name}&lt;/b&gt; — {how} — {what}",
-                        STYLE['Service'] + f'spacingLeft=36;align=left;fontColor={COUCHES[couche][1]};'))
+                        SERVICE + f'spacingLeft=36;align=left;fontColor={LAYERS[layer][1]};'))
     p.icon(138, y + 6, 22, icon)
 
 runs = p.node(220, 690, 360, 110,
               "&lt;b&gt;The measurements&lt;/b&gt;&#10;runs/&#10;"
               "jacoco.exec · profil.collapsed · watch-params.txt&#10;"
               "the only durable thing: everything else is derived from it",
-              STYLE['Stockage'])
+              STORAGE)
 report = p.node(220, 840, 360, 70,
                 "&lt;b&gt;The report&lt;/b&gt;&#10;index.html · faits.jsonl · diagnostic.json&#10;"
                 "one file to open, no external resource",
-                STYLE['Application'])
-cache = p.node(700, 220, 300, 70, "&lt;b&gt;Component cache&lt;/b&gt;&#10;~/.runtime-xray", STYLE['Stockage'])
-maven = p.node(1100, 220, 260, 70, "&lt;b&gt;Maven repository&lt;/b&gt;&#10;or an internal mirror", STYLE['Externe'])
+                APPLICATION)
+cache = p.node(700, 220, 300, 70, "&lt;b&gt;Component cache&lt;/b&gt;&#10;~/.runtime-xray", STORAGE)
+maven = p.node(1100, 220, 260, 70, "&lt;b&gt;Maven repository&lt;/b&gt;&#10;or an internal mirror", EXTERNAL)
 p.icon(1112, 236, 32, f'{LL}/symboles/maven.svg')
 
 p.edge(actor, orch, "starts a campaign&#10;command line")
@@ -126,14 +135,14 @@ p.label(40, 940, 1000, 40,
 
 # ============================================================ page 2 — reference
 q = Page("Reference use case")
-zq = q.node(40, 60, 420, 320, "ONE RUN, MEASURED THREE TIMES OVER", STYLE['Zone'])
+zq = q.node(40, 60, 420, 320, "ONE RUN, MEASURED THREE TIMES OVER", ZONE)
 qapp = q.node(70, 100, 360, 70, "&lt;b&gt;The analysed application&lt;/b&gt;&#10;sample-app.jar&#10;"
                                 "22 classes · no dependency · no clock, no randomness",
-              STYLE['Service'] + 'spacingLeft=44;align=left;')
+              SERVICE + 'spacingLeft=44;align=left;')
 q.icon(80, 115, 34, f'{LL}/symboles/java.svg')
 root = q.node(70, 200, 360, 80, "&lt;b&gt;The root method&lt;/b&gt;&#10;RoutePlanner::travelTimeMinutes&#10;"
                                 "named at launch — the only one whose values are captured",
-              STYLE['Sujet du schéma'])
+              SUBJECT)
 q.label(70, 300, 380, 70,
         "Deterministic: two runs produce the same trace.&lt;br&gt;"
         "Calibrated to ~10 s: long enough to attach to a live process.&lt;br&gt;"
@@ -159,20 +168,20 @@ LANES = [
      'Which values went through', 'Trip[id=TRIP-56, mode=CAR, weather=SUNNY] → 52.008… minutes',
      'A console, not a report — and one method at a time.'),
 ]
-for i, (icon, name, how, couche, out, question, finding, limit) in enumerate(LANES):
+for i, (icon, name, how, layer, out, question, finding, limit) in enumerate(LANES):
     y = 430 + i * 130
     t = q.node(70, y, 300, 100, f"&lt;b&gt;{name}&lt;/b&gt;&#10;{how}&#10;&#10;{limit}",
-               STYLE['Service'] + f'spacingLeft=44;align=left;fontColor={COUCHES[couche][1]};')
+               SERVICE + f'spacingLeft=44;align=left;fontColor={LAYERS[layer][1]};')
     q.icon(80, y + 14, 32, icon)
-    f = q.node(450, y + 16, 220, 68, out + "&#10;inside runs/", STYLE['Stockage'])
+    f = q.node(450, y + 16, 220, 68, out + "&#10;inside runs/", STORAGE)
     a = q.node(750, y, 560, 100, f"&lt;b&gt;{question}&lt;/b&gt;&#10;{finding}",
-               STYLE['Application'] + f'align=left;spacingLeft=14;fontColor={COUCHES[couche][1]};')
+               APPLICATION + f'align=left;spacingLeft=14;fontColor={LAYERS[layer][1]};')
     q.edge(t, f, "writes")
     q.edge(f, a, "answers")
 q.node(70, 830, 1240, 60,
        "&lt;b&gt;None of the three answers the other two's question.&lt;/b&gt;&#10;"
        "That is the whole finding of the study: the answer is a combination, and what is left "
-       "to settle is which second tool — not which one wins.", STYLE['Zone'] + 'align=left;spacingLeft=16;')
+       "to settle is which second tool — not which one wins.", ZONE + 'align=left;spacingLeft=16;')
 
 out = ('<mxfile host="app.diagrams.net" type="device">'
        + p.xml() + q.xml() + '</mxfile>\n')
