@@ -59,6 +59,23 @@ public final class Config {
      */
     public String archive = "";
     public String runName = "";
+    /**
+     * The interface the served report listens on — {@code 127.0.0.1} unless said otherwise.
+     *
+     * <p>It is here because <b>which interface a machine exposes is a property of that
+     * machine</b>, and repeating it on every launch is how one ends up not repeating it.
+     * What is <i>not</i> here, and must not be, is the decision to serve at all: this key
+     * says where to listen when {@code --serve} is given, and never puts anything into
+     * listening by itself. A configuration file travels — into a repository, into a ticket,
+     * onto another machine — and a file that can open a port by travelling is a file nobody
+     * can read safely.
+     *
+     * <p>Widening it beyond the loopback publishes the captured argument values of a real
+     * application to whoever reaches the port, and opens the annotation writes to them too.
+     * The tool says so at start-up when there is no shared secret; the documentation says
+     * what that secret is worth.
+     */
+    public String serveHost = "127.0.0.1";
     public int attachAfterSeconds = 8;
     public int maxSeconds = 600;
     public int watchCount = 10;
@@ -276,6 +293,7 @@ public final class Config {
             case "LEVEL", "NIVEAU" -> level = value;
             case "COVER_INCLUDES" -> coverIncludes = value;
             case "JACOCO_REPORTS" -> jacocoReports = value;
+            case "SERVE_HOST" -> serveHost = value;
             case "ARCHIVE" -> archive = value;
             case "SAMPLE_INTERVAL_MS" -> sampleIntervalMs = parse(value, sampleIntervalMs);
             case "FOLLOW_PORT", "SUIVI_PORT" -> followPort = parse(value, followPort);
@@ -560,12 +578,18 @@ public final class Config {
             # or "all". The files go into <run>/exports/.
             #EXPORT="cpuprofile,lcov"
 
-            # Serving the report is not set here: it is a way of launching, not a property
-            # of the project. "--serve" serves the output directory and lets the page write
-            # its annotations beside the runs; "--serve-host 0.0.0.0" makes it a shared
-            # server, where several people annotate in parallel, which "--serve-token"
-            # closes with a secret (XRAY_SERVE_TOKEN so as not to expose it in "ps"). A
-            # secret does not belong in a file under version control.
+            # WHERE the report is served, when it is. "--serve" alone starts the server and
+            # lets the page write its annotations beside the runs; this key only decides the
+            # interface it listens on, and never puts anything into listening by itself —
+            # a configuration file travels, and one that could open a port by travelling
+            # would be unreadable safely.
+            #
+            # Beyond the loopback, the report becomes readable — and annotatable — by whoever
+            # reaches the port: it carries the captured argument values of a real
+            # application. Guard it with "--serve-token" (XRAY_SERVE_TOKEN so as not to
+            # expose the secret in "ps"), and put TLS in front, since this speaks plain HTTP.
+            # A secret does not belong in a file under version control.
+            #SERVE_HOST="0.0.0.0"
 
             # The repository to fetch the analysis components from, once. On a closed
             # network, name the internal mirror: it is the only setting that matters for

@@ -76,7 +76,6 @@ public final class Main {
         boolean reportOnly = false;
         boolean serve = false;
         int servePort = 8787;
-        String serveHost = "127.0.0.1";
         String serveToken = null;
         boolean randomToken = false;
 
@@ -135,7 +134,7 @@ public final class Main {
                         config.followPort = Integer.parseInt(args[++i]);
                     }
                 }
-                case "--serve-host" -> serveHost = args[++i];
+                case "--serve-host" -> config.serveHost = args[++i];
                 case "--serve-token" -> {
                     // The secret attaches to the option, or stays silent: "--serve-token"
                     // alone draws one at random and shows it. That is the most frequent
@@ -200,7 +199,12 @@ public final class Main {
             Path def = Path.of(DEFAULT_CONFIG);
             if (Files.isRegularFile(def)) {
                 System.out.println("▶ Configuration read from: " + DEFAULT_CONFIG);
-                config = Config.load(def);
+                // Merged, exactly as an explicit --config is: a file found by its name
+                // rather than named on the line is still a file, and the options typed
+                // beside it were still typed.
+                Config fromFile = Config.load(def);
+                merge(fromFile, config);
+                config = fromFile;
             } else {
                 Config.writeTemplate(def);
                 announceTemplate(def, "");
@@ -283,7 +287,7 @@ public final class Main {
                 System.out.println("   Pass it to whoever needs access to the "
                         + "report.");
             }
-            LocalServer.serve(outDir, serveHost, servePort, () -> {
+            LocalServer.serve(outDir, config.serveHost, servePort, () -> {
                 // After a write the page is rebuilt: the annotation becomes the report's,
                 // and not merely this browser's.
                 Dashboard.build(outDir, sourceRoots(served), served.watchCount, served.hidden(),
@@ -880,17 +884,34 @@ public final class Main {
         System.out.println("     java -jar runtime-xray.jar " + relaunch);
     }
 
-    /** The command line's options win over the file. */
-    private static void merge(Config base, Config overrides) {
-        if (!overrides.javaCommand.isBlank()) base.javaCommand = overrides.javaCommand;
-        if (!overrides.rootMethod.isBlank()) base.rootMethod = overrides.rootMethod;
-        if (!overrides.classesDir.isBlank()) base.classesDir = overrides.classesDir;
-        if (!overrides.hiddenPackages.isBlank()) base.hiddenPackages = overrides.hiddenPackages;
-        if (!overrides.sourceDirs.isBlank()) base.sourceDirs = overrides.sourceDirs;
-        if (!overrides.classFilter.isBlank()) base.classFilter = overrides.classFilter;
-        if (!overrides.runName.isBlank()) base.runName = overrides.runName;
-        if (!"runtime-xray-out".equals(overrides.outDir)) base.outDir = overrides.outDir;
-        if (!overrides.captureValues) base.captureValues = false;
+    /**
+     * The command line's options win over the file — <b>all of them</b>.
+     *
+     * <p>This used to be a hand-written list, and it covered nine settings out of
+     * twenty-two. Everything else given on the command line beside a {@code --config} was
+     * dropped without a word: {@code --level coverage} measured everything, and
+     * {@code --jacoco-reports data} wrote its hundred and eighty files. Nothing failed —
+     * the run simply did something other than what it had been asked, and the only way to
+     * notice was to count the files afterwards.
+     *
+     * <p>So the rule is applied rather than enumerated: <b>a setting that differs from a
+     * fresh {@link Config} is one the command line set</b>, and it overrides the file.
+     * A list has to be remembered at every new option; this does not.
+     */
+    static void merge(Config base, Config overrides) {
+        Config pristine = new Config();
+        for (java.lang.reflect.Field f : Config.class.getFields()) {
+            if (java.lang.reflect.Modifier.isStatic(f.getModifiers())) continue;
+            try {
+                Object given = f.get(overrides);
+                if (java.util.Objects.equals(given, f.get(pristine))) continue;
+                f.set(base, given);
+            } catch (IllegalAccessException e) {
+                // A public instance field of a public class: unreachable. And a setting
+                // silently not carried over is exactly what this method exists to stop.
+                throw new IllegalStateException("setting not carried over: " + f.getName(), e);
+            }
+        }
     }
 
     /**
@@ -1295,8 +1316,16 @@ public final class Main {
                   --serve [port]       Serve the report (default: 8787) and let the page write
                                        its annotations next to the runs, then rebuild it.
                                        Several people can annotate at once.
-                  --serve-host <host>  Listening interface (default: 127.0.0.1). Use 0.0.0.0
-                                       for a shared server.
+                  --serve-host <host>  Listening interface (default: 127.0.0.1), or a single
+                                       interface such as 10.0.0.5. SERVE_HOST says the same
+                                       in the configuration file — where a machine exposes
+                                       itself is a property of that machine. Neither ever
+                                       STARTS a server: only --serve does, so a file that
+                                       travels cannot open a port. Past the loopback the
+                                       report, and the captured values in it, are readable
+                                       and annotatable by whoever reaches the port: guard it
+                                       with --serve-token and put TLS in front — this speaks
+                                       plain HTTP. The tool says so at start-up.
                   --serve-token [s]    Guard the served report with a shared secret, asked once
                                        then remembered for 12 h. With no value, a secret is
                                        drawn at random and printed. XRAY_SERVE_TOKEN does the
