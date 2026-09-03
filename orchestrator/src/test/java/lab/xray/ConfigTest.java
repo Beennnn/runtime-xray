@@ -182,6 +182,27 @@ class ConfigTest {
     }
 
     @Test
+    @DisplayName("SERVE_HOST is read from the file, and its example carries the warning")
+    void serveHostIsReadAndItsPriceIsStated(@TempDir Path dir) throws IOException {
+        Path file = dir.resolve("c.conf");
+        Files.writeString(file, "JAVA_CMD=\"java -jar a.jar\"\nSERVE_HOST=\"0.0.0.0\"\n",
+                StandardCharsets.UTF_8);
+        assertEquals("0.0.0.0", Config.load(file).serveHost);
+        assertEquals("127.0.0.1", new Config().serveHost, "the loopback stays the default");
+
+        Path template = dir.resolve("t.conf");
+        Config.writeTemplate(template);
+        String text = Files.readString(template, StandardCharsets.UTF_8);
+        assertTrue(text.contains("#SERVE_HOST="), "the key must be shown, commented out");
+        // Whoever uncomments it must read what it costs on the same screen, not in a
+        // paragraph somewhere else: past the loopback, the captured values of a real
+        // application become readable — and the annotations writable — by whoever reaches
+        // the port.
+        assertTrue(text.contains("XRAY_SERVE_TOKEN"), "and how to guard it: " + text);
+        assertTrue(text.contains("TLS"), "and that this speaks plain HTTP: " + text);
+    }
+
+    @Test
     @DisplayName("The level and its settings travel with the run")
     void levelIsRecorded() {
         Config c = new Config();

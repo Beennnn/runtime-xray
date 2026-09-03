@@ -207,6 +207,53 @@ grep -q '"sourcesDisponibles":{"' reassemble/index.html
 step $? "the annotated code is back in the report"
 echo
 
+# A configuration file and a command line say different things: the line wins. It used to
+# win on nine settings out of twenty-two, and to lose in silence on the others.
+echo "4 sexies. A --config beside the options does not swallow them"
+cat > both.conf <<CONF
+JAVA_CMD="java -jar $APP --iterations 200000"
+SOURCE_DIRS="$REPO_DIR/sample-app/src/main/java"
+CLASSES_DIR="$APP"
+OUT_DIR="both"
+LEVEL="full"
+JACOCO_REPORTS="full"
+SERVE_HOST="127.0.0.1"
+CONF
+java -jar "$JAR" --config both.conf --level coverage --jacoco-reports data \
+  --name "the line wins" > both.log 2>&1
+step $? "a measurement with a --config AND options ends"
+grep -q "no stack sampling" both.log
+step $? "  --level coverage was obeyed, not the file's \"full\""
+grep -q "JACOCO_REPORTS=data" both.log
+step $? "  and --jacoco-reports data too"
+[ "$(count both)" -lt 20 ]
+step $? "  which shows on the disk: $(count both) files, not the file's hundreds"
+
+# The same, with the file found by its name instead of named on the line: it is still a
+# file, and the options typed beside it were still typed.
+mkdir -p implicit
+( cd implicit && cat > runtime-xray.conf <<CONF
+JAVA_CMD="java -jar $APP --iterations 200000"
+SOURCE_DIRS="$REPO_DIR/sample-app/src/main/java"
+CLASSES_DIR="$APP"
+OUT_DIR="out"
+LEVEL="full"
+CONF
+  java -jar "$JAR" --level coverage --name "implicit" > implicit.log 2>&1 )
+step $? "a measurement with the implicit runtime-xray.conf ends"
+grep -q "Configuration read from" implicit/implicit.log
+step $? "  the file was indeed found by its name"
+grep -q "no stack sampling" implicit/implicit.log
+step $? "  and --level coverage was obeyed all the same"
+
+# The interface is a setting; putting the tool into listening is a gesture. A file that
+# travels — into a repository, a ticket, another machine — must not be able to open a port.
+java -jar "$JAR" --config both.conf --report-only > serves-not.log 2>&1
+step $? "reading with SERVE_HOST set and no --serve ends instead of listening"
+! grep -q "Report served at" serves-not.log
+step $? "  nothing was put into listening"
+echo
+
 echo "5. The server writes the annotations beside the measurements"
 PORT="$(python3 -c 'import socket;s=socket.socket();s.bind(("127.0.0.1",0));print(s.getsockname()[1]);s.close()')"
 java -jar "$JAR" --report-only --out out \

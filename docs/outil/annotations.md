@@ -159,6 +159,75 @@ diagnostic tool, not a service: the only write it accepts is a run's annotation,
 whose name it chooses itself, and the file serving refuses any path that would leave the
 served directory.
 
+### Deploying it, so nobody has to remember the options
+
+Repeating `--serve-host` on every launch is how one ends up not repeating it. Two things
+carry it instead — and neither of them ever *starts* a server, which is the point:
+
+**In the project's configuration**, because which interface a machine exposes is a property
+of that machine:
+
+```conf
+SERVE_HOST="0.0.0.0"
+```
+
+> ⚠️ **This key widens what is readable, and it is off by default.** Past the loopback, the
+> report — with the argument values captured from a real application — becomes readable by
+> whoever reaches the port, and the annotation writes become theirs too. The key sets the
+> interface and nothing else: `--serve` remains the only gesture that puts the tool into
+> listening, so a configuration file copied into a repository, a ticket or another machine
+> cannot open a port by travelling.
+
+**In a service**, for a machine that serves results permanently. The secret goes through the
+environment rather than the command line, where `ps` would show it:
+
+```ini
+# /etc/systemd/system/runtime-xray.service
+[Unit]
+Description=Runtime X-Ray — shared report
+After=network-online.target
+
+[Service]
+User=xray
+WorkingDirectory=/srv/xray
+EnvironmentFile=/etc/runtime-xray.env      # XRAY_SERVE_TOKEN=…, chmod 600
+ExecStart=/usr/bin/java -jar /opt/runtime-xray/runtime-xray.jar \
+          --report-only --out /srv/xray/campaigns \
+          --serve 8787 --serve-host 127.0.0.1
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Note the `127.0.0.1` in a unit meant to serve a whole team: **the TLS proxy is what listens
+outside**, and the tool answers only to it. That way the plain HTTP never leaves the machine,
+which is what the first caveat above asks for.
+
+```nginx
+server {
+    listen 443 ssl;
+    server_name xray.internal.example.com;
+    ssl_certificate     /etc/ssl/certs/xray.pem;
+    ssl_certificate_key /etc/ssl/private/xray.key;
+
+    location / {
+        proxy_pass http://127.0.0.1:8787;
+        proxy_set_header Host $host;
+        # The report is a lot of small files, and some of them are large enough to matter.
+        proxy_buffering off;
+    }
+}
+```
+
+Two things to check before opening it, and they are the ones people skip:
+
+- **The output directory is the perimeter.** Everything under `--out` is served, and a
+  campaign carries the observed application's log and its captured values. Serve a directory
+  that holds only what you meant to hand over.
+- **`--serve-host 0.0.0.0` without a proxy is a decision**, not a shortcut. It works, the tool
+  warns about it at start-up, and the warning is the whole of the protection you then have.
+
 ## Where the file is written
 
 Seen as files, **a run is a directory**. Its annotation can live in three places, and the

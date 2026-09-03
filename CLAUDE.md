@@ -354,6 +354,36 @@ last eighty French names, which left **0 differences over 7 734 captured strings
 of the diff proves nothing; the DOM does. And the DOM does not prove everything either — it
 never opens the save path, which is why the two defects above needed a test apiece.
 
+## What wins between the file and the command line
+
+**The command line, on every setting — and for a long time that was true of nine out of
+twenty-two.** `merge` was a hand-written list of `if`s, and it stopped being complete around
+the fifth option added after it. Everything absent from the list was dropped without a word
+the moment a `--config` sat on the line beside it: `--level coverage` measured everything,
+`--jacoco-reports data` wrote its hundred and eighty files. Nothing failed — the run simply
+did something other than what it had been asked, and the only way to notice was to count the
+files afterwards. Found on 29 August 2026 while adding a key, not while reading the code.
+
+The rule is now **applied rather than enumerated**: a setting that differs from a fresh
+`Config` is one the command line set, and it overrides the file. A list has to be remembered
+at every new option; a comparison does not. `SettingsPrecedenceTest` walks `Config`'s fields
+by reflection and fails the build on any that does not come through — which is the guard a
+longer list could never be.
+
+**`SERVE_HOST` says where to listen, and never that one should.** The interface a machine
+exposes is a property of that machine, so it belongs in the configuration; the decision to
+serve is a gesture, so it stays on the command line. That split is the whole point: a
+configuration file travels — into a repository, a ticket, another machine — and one that
+could open a port by travelling would be unreadable safely. `--serve` remains the only thing
+that puts the tool into listening, and a test holds it: exactly one `serve = true` in the
+options switch.
+
+Past the loopback, the report becomes readable — and annotatable — by whoever reaches the
+port, and it carries the argument values captured from a real application. So the default
+stays `127.0.0.1`, the key is shipped commented out with its price beside it, the tool warns
+at start-up when it listens wider without a secret, and the documentation carries the
+deployment that does it properly: the proxy terminates TLS and the tool answers only to it.
+
 ## Conventions
 
 - **The tool speaks English, and so does the code now.** The switch happened in stages — the
