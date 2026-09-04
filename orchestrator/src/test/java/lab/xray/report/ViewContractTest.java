@@ -99,6 +99,30 @@ class ViewContractTest {
                 "the loader's internals are English now, and no block file names them");
     }
 
+    @Test
+    @DisplayName("A data file that cannot be read is said in the page, not only in the console")
+    void aMissingBlockIsNeverSilent() {
+        String view = template();
+        // The page travels as a single file; the tree, the code and the captured values are
+        // read beside it, under runs/, as they are opened. Deployed alone — a very easy
+        // thing to do, since the page opens perfectly — the overview works and everything
+        // one clicks stays shut. That used to leave a console error and nothing else: the
+        // node simply did not open, and the report read like a report with nothing in it.
+        assertTrue(view.contains("XR.absent(blockName);"),
+                "the loader must record a block it could not read");
+        assertTrue(view.contains("sayBlocksMissing()"),
+                "and something must say it where the reader is looking");
+        assertTrue(view.contains("This report's data files were not found."),
+                "with the sentence that names the situation");
+        assertTrue(view.contains("Deploy the whole output directory"),
+                "and the one that says what to do about it — a warning with no way out is "
+                + "a complaint");
+        // Said in both languages: a band that appears only in English inside a French view
+        // is the drift the dictionary exists to prevent.
+        assertTrue(view.contains("Les fichiers de données de ce rapport n'ont pas été trouvés."),
+                "the band must have its translation, like every sentence the page shows");
+    }
+
     private static int count(String haystack, String needle) {
         int n = 0;
         for (int i = haystack.indexOf(needle); i >= 0; i = haystack.indexOf(needle, i + 1)) n++;
