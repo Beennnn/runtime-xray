@@ -21,6 +21,7 @@ import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -157,12 +158,39 @@ class CharacterisationTest {
         // The blocks are pure derivations of the measurements: no clock, no absolute path.
         // A difference between two assemblies would be non-determinism there, and the report
         // would stop being comparable with itself from one week to the next.
+        //
+        // What this cannot see: both assemblies run in the SAME JVM. Map.of randomises its
+        // iteration order from a seed drawn at start-up, so a Map.of serialised into a file
+        // looks perfectly stable here and comes out reordered from one generation to the
+        // next. That is exactly what happened to faits.jsonl — hence the test below, which
+        // checks an order rather than an equality.
         for (String block : EXPECTED_FILES) {
             if (!block.endsWith(".js")) continue;
             assertArrayEquals(Files.readAllBytes(a.resolve(block)),
                     Files.readAllBytes(b.resolve(block)), block + " differs from one assembly to "
                     + "the next although it derives only from the measurements");
         }
+    }
+
+    @Test
+    @DisplayName("The facts file keeps its keys in the order it writes them")
+    void theFactsKeepTheirKeyOrder(@TempDir Path dir) throws Exception {
+        // Two generations of the same measurements must give the same bytes. A map whose
+        // order moves makes a diff between two reports say "everything changed", and a diff
+        // that always says that stops being read — which is the whole value of the format.
+        String campaign = "";
+        for (String line : Files.readAllLines(assemble(dir).resolve("faits.jsonl"),
+                StandardCharsets.UTF_8)) {
+            if (line.contains("\"fact\":\"campaign\"")) campaign = line;
+        }
+        assertFalse(campaign.isBlank(), "the campaign line must stay findable");
+        int page = campaign.indexOf("\"page\"");
+        int diagnostic = campaign.indexOf("\"diagnostic\"", page);
+        int markdown = campaign.indexOf("\"markdown\"", page);
+        int manifest = campaign.indexOf("\"manifeste\"", page);
+        assertTrue(page > 0 && page < diagnostic && diagnostic < markdown && markdown < manifest,
+                "the keys of \"alsoSee\" must come out in the order they are written, which "
+                + "Map.of does not promise and does not do: " + campaign);
     }
 
     @Test

@@ -402,6 +402,13 @@ deployment that does it properly: the proxy terminates TLS and the tool answers 
 - **A French option name stays accepted for ever**, silently, now that its English equivalent
   has arrived. Scripts already deployed never break. Only `faits.jsonl` will break, in format
   2.0, and that is assumed: it is three days old.
+- **What is serialised is built with `Json.ordered`, never with `Map.of`.** `Map.of`
+  randomises its iteration order from a seed drawn at JVM start-up: stable inside one run,
+  different at the next. One of them reached `faits.jsonl`, whose keys therefore came out in
+  a different order at every generation, for identical content — enough to make a diff
+  between two reports say "everything changed", which is how a diff stops being read. The
+  guard could not see it either: `CharacterisationTest` assembles twice **in the same JVM**,
+  where that order does not move. Hence a test on the *order* rather than on an equality.
 - **A produced file keeps one vocabulary, and `diagnostic.json`'s is French.** Its keys —
   `executions`, `rapprochement`, `fichiersSansSource` — predate the switch to English and are
   frozen like every other produced key. New keys there follow them (`empreinte`,

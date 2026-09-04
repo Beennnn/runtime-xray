@@ -95,7 +95,7 @@ public final class Follow implements AutoCloseable {
         // The observed command on the opening line: without it, whoever opens the page or
         // the file sees a run moving without knowing which one. It does not leave the
         // machine — the page only listens on the loopback.
-        follow.write("start", Map.of("command", command == null ? "" : command,
+        follow.write("start", Json.ordered("command", command == null ? "" : command,
                 "output", outDir.toAbsolutePath().toString()));
         return follow;
     }
@@ -113,7 +113,7 @@ public final class Follow implements AutoCloseable {
 
     /** The last line: what lets a reader know they can stop. */
     public void end(String status, long seconds) {
-        write("end", Map.of("status", status, "seconds", seconds));
+        write("end", Json.ordered("status", status, "seconds", seconds));
     }
 
     private void write(String event, Map<String, Object> fields) {

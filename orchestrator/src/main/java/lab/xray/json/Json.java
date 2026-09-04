@@ -17,6 +17,31 @@ public final class Json {
 
     private Json() {}
 
+    /**
+     * A map that keeps the order it was written in, for anything that ends up in a file.
+     *
+     * <p>{@code Map.of} does not: its iteration order is deliberately randomised, and the
+     * seed changes at every JVM start. Inside one run it looks perfectly stable — which is
+     * how a {@code Map.of} reached {@code faits.jsonl} and made the file come out with its
+     * keys in a different order at each generation, for identical content. The existing
+     * guard could not see it either: it assembles twice <b>in the same JVM</b>, where that
+     * order does not move.
+     *
+     * <p>So the rule is: anything serialised by {@link #write} is built with this, not with
+     * {@code Map.of}. Two generations of the same measurements must give the same bytes —
+     * otherwise a diff between two reports says "everything changed" and stops being read.
+     */
+    public static Map<String, Object> ordered(Object... keysAndValues) {
+        if (keysAndValues.length % 2 != 0) {
+            throw new IllegalArgumentException("a key without its value");
+        }
+        Map<String, Object> m = new LinkedHashMap<>();
+        for (int i = 0; i < keysAndValues.length; i += 2) {
+            m.put(String.valueOf(keysAndValues[i]), keysAndValues[i + 1]);
+        }
+        return m;
+    }
+
     // ------------------------------------------------------------------ writing
 
     /** Serialises Map / List / String / Number / Boolean / null. */
