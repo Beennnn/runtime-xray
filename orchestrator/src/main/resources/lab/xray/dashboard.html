@@ -303,6 +303,23 @@
   #maskpop button .q{color:var(--muted);font-size:11px;margin-left:6px}
   /* The banner stands out by an outline, not by a hard-coded colour: a fixed tint becomes
      unreadable as soon as the reader is in a dark theme. */
+  /* Said where the click was: under the run root that just opened onto nothing. Same
+     shape as the caveats of the overview — an outline rather than a tint, so it stays
+     readable in either theme. */
+  .noprof{margin:4px 10px 10px 24px;padding:10px 13px;border:1px solid var(--border);
+          border-left:3px solid var(--partbar);border-radius:6px;background:var(--panel);
+          color:var(--muted);font-size:12px;line-height:1.55;max-width:78ch}
+  .noprof p{margin:0}
+  .noprof p + p{margin-top:5px}
+  .noprof b{color:var(--text)}
+  /* The row that says a level was stopped: it is not a node, it must not read as one,
+     and it must not be missed either — an unexplained truncation is a lie by omission. */
+  .levelmore{display:flex;flex-wrap:wrap;align-items:center;gap:7px;margin:2px 10px 6px 24px;
+             padding:5px 9px;border:1px dashed var(--border);border-radius:6px;
+             color:var(--muted);font-size:11.5px}
+  .morebtn{font:inherit;cursor:pointer;color:var(--accent);background:var(--accent-soft);
+           border:1px solid transparent;border-radius:11px;padding:1px 9px}
+  .morebtn:hover,.morebtn:focus-visible{border-color:var(--accent)}
   .maskbar{padding:7px 9px;border-bottom:1px solid var(--border);background:var(--panel);
            border-left:3px solid var(--missbar);font-size:12px;color:var(--text)}
   .maskbar > b{display:block;font-size:9.5px;letter-spacing:.7px;text-transform:uppercase;
@@ -883,6 +900,96 @@ const D = /*__DATA__*/;
 // at; all the rest of the page reads R, never D directly (except the sources,
 // common to every run).
 /* =====================================================================================
+ * THE ACTIVITY JOURNAL
+ *
+ * A report is read on a machine that is not ours, by somebody who did not run the
+ * measurement, and who reports "it does not work" — which is the only thing they can
+ * honestly say. Everything that would settle it lives in the browser's console, which
+ * nobody opens, which keeps nothing once the tab is closed, and which one cannot ask for
+ * over the telephone. That cost a week: a call tree that opened onto nothing was diagnosed
+ * as a deployment problem it was not.
+ *
+ * So the page keeps its own trace, and hands it over in one gesture. Four decisions hold
+ * it, and they are the ones to know before adding a line to it:
+ *
+ *  - ONE LINE PER GESTURE, never per render. A journal one scrolls is a journal nobody
+ *    reads, and the drawing functions run dozens of times for a single click. What is
+ *    written down is what somebody DID, and what the page could not do.
+ *  - REPEATS COLLAPSE. A keystroke in the search box, an "unfold everything" over four
+ *    hundred nodes: consecutive entries of the same kind, less than a second and a half
+ *    apart, become one line with its count. That is what makes the ceiling hold without
+ *    losing a gesture that was deliberate.
+ *  - IT CARRIES NO CAPTURED VALUE. The same rule as everywhere else in this tool: the
+ *    values stay in their block, on disk. Class and method names travel — the report is
+ *    full of them, and the reader already has it — an observed argument does not.
+ *  - IT NEVER CARRIES OFF THE PAGE. Writing to it is wrapped: a comfort that could break
+ *    the view it explains would be worse than no journal.
+ * ===================================================================================== */
+const Journal = {
+  // A few hundred lines is a session's worth of gestures and weighs nothing; a page left
+  // open all afternoon must not grow all afternoon.
+  MAX: 400,
+  lines: [],
+  dropped: 0,
+  opened: new Date(),
+  /** Gestures of the same kind that follow one another closely are one gesture. */
+  SAME_MS: 1500,
+
+  note(what, detail, repeats){
+    try {
+      const at = Date.now() - Journal.opened.getTime();
+      const last = Journal.lines[Journal.lines.length - 1];
+      const same = last && last.what === what
+                   && (repeats || last.detail === String(detail === undefined ? "" : detail));
+      if (same && at - last.at < Journal.SAME_MS){
+        last.at = at; last.detail = detail === undefined ? last.detail : String(detail);
+        last.n++;
+        return;
+      }
+      Journal.lines.push({at, what, detail: detail === undefined ? "" : String(detail), n: 1});
+      if (Journal.lines.length > Journal.MAX){ Journal.lines.shift(); Journal.dropped++; }
+    } catch (e) { /* a journal that breaks the page it explains is worse than none */ }
+  },
+
+  /** The text one sends back: a header that situates it, then the lines. */
+  text(){
+    const pad = (s, n) => (s + "                    ").slice(0, n);
+    const clock = ms => {
+      const t = ms / 1000;
+      return (t < 10 ? "  " : t < 100 ? " " : "") + t.toFixed(3);
+    };
+    const head = [
+      "runtime-xray — activity log",
+      "",
+      "opened      " + Journal.opened.toISOString().replace("T", " ").slice(0, 19) + " UTC",
+      "report      format " + (D.format || "?") + " · " + (D.runs || []).length + " run(s)",
+      "address     " + location.href,
+      "browser     " + navigator.userAgent,
+      "language    " + document.documentElement.lang,
+      "",
+      "This log holds no captured value: only what was clicked, and what the page could",
+      "not do. Times are seconds since the page was opened; “×n” counts repeats of the",
+      "same gesture." + (Journal.dropped
+          ? " " + Journal.dropped + " earlier line(s) fell off the " + Journal.MAX
+            + "-line ceiling." : ""),
+      "",
+    ];
+    const body = Journal.lines.map(l =>
+      clock(l.at) + "  " + pad(l.what, 14) + " " + l.detail + (l.n > 1 ? "  ×" + l.n : ""));
+    return head.concat(body.length ? body : ["(nothing recorded yet)"]).join("\n");
+  }
+};
+/** Short name, because it is written at forty call sites and read at every one of them. */
+function note(what, detail, repeats){ Journal.note(what, detail, repeats); }
+
+// An uncaught error is the one thing that used to leave no trace at all outside the
+// console. It goes in first, before any drawing has had the chance to throw.
+window.addEventListener("error", e =>
+    note("script error", (e.message || "") + " — " + (e.filename || "") + ":" + (e.lineno || 0)));
+window.addEventListener("unhandledrejection", e =>
+    note("promise error", (e.reason && e.reason.message) || String(e.reason || "")));
+
+/* =====================================================================================
  * THE BLOCK LOADER
  *
  * The page now carries only the first picture: the runs' identity, the class tree, and the
@@ -924,14 +1031,19 @@ const XR = {
     const p = XR._queue.then(() => new Promise((ok, ko) => {
       if (XR.cache.has(blockName)) { XR.touch(blockName); ok(); return; }
       const received = [];
+      const asked = performance.now();
       XR._incoming = received;
       const s = document.createElement("script");
       s.src = blockName;
       s.onload = () => {
-        XR._incoming = null; XR.pending.delete(blockName); XR.store(blockName, received); ok();
+        XR._incoming = null; XR.pending.delete(blockName); XR.store(blockName, received);
+        note("block", blockName + " — " + received.length + " entrie(s), "
+                      + Math.round(performance.now() - asked) + " ms");
+        ok();
       };
       s.onerror = () => {
         XR._incoming = null; XR.pending.delete(blockName); s.remove(); XR.scripts.delete(blockName);
+        note("block MISSING", blockName);
         XR.absent(blockName);
         ko(new Error("block not found: " + blockName));
       };
@@ -1220,6 +1332,7 @@ function addMask(path){
     // ligne de configuration produite reste lisible.
     masked = masked.filter(m => !(m === path || m.startsWith(path + "/")));
     masked.push(path);
+    note("hide package", path);
     masked.sort();
   }
   saveMasks();
@@ -1490,6 +1603,7 @@ function persistAnnotations(btn){
         // overwriting silently would make their work disappear.
         serverAnnotations[run.uuid] = body.valeur;
         serverFingerprints[run.uuid] = body.empreinte;
+        note("save refused", shortId(run) + " — changed meanwhile (409)");
         say("changed meanwhile");
         showPanel("This run's record was changed by somebody else while you were editing "
           + "it. Saved version:\n\n"
@@ -1504,12 +1618,14 @@ function persistAnnotations(btn){
         // The worst moment to lose access: somebody has just written a description.
         // It is not lost — it stays in this browser as long as the server has
         // not taken — and that is exactly what to say, rather than a “failure”.
+        note("save refused", shortId(run) + " — session expired (401)");
         say("session expired");
         sessionExpired();
         refresh();
         return;
       }
       if (status !== 200) throw new Error("server refusal (" + status + ")");
+      note("save", shortId(run) + " — accepted");
       // What is saved is no longer “a local change”: we erase the browser's copy, so that
       // “changed” designates only what has not yet gone out.
       delete annotations[run.uuid];
@@ -1519,7 +1635,8 @@ function persistAnnotations(btn){
       say("saved ✓");
       refresh();
     })
-    .catch(e => { say("failed: " + e.message); refresh(); });
+    .catch(e => { note("save FAILED", shortId(run) + " — " + e.message);
+                  say("failed: " + e.message); refresh(); });
 }
 
 /** Drops a run's local changes and takes back what is saved. */
@@ -1599,6 +1716,7 @@ function pruningActive(run){
   return !!(e.racine || e.coupes.length);
 }
 function applyPruning(run, e){
+  note("prune", (e.racine ? "root " + e.racine + ", " : "") + e.coupes.length + " cut(s)");
   annotationPatch(run, "elagage", {racine: e.racine, coupes: e.coupes});
   renderAnnotActs();
 }
@@ -1648,6 +1766,13 @@ function prunedTree(run){
   return treeNode;
 }
 
+/** How many nodes a call tree holds — the figure the journal announces at opening. */
+function treeSize(node){
+  if (!node) return 0;
+  let n = 0;
+  (function walk(k){ n++; for (const kid of k.children || []) walk(kid); })(node);
+  return n - 1;
+}
 /** A node's path as the pruning designates it. */
 function pathOf(node){ return node && node.__path ? node.__path : (node ? node.name : ""); }
 /** The name set in the tool, else the launch name, else the identifier: never anything invented. */
@@ -1713,6 +1838,7 @@ function methodCount(run){
 }
 
 async function switchRun(i, redraw){
+  note("run", "#" + i + " " + shortId(D.runs[i]));
   runIndex = i; R = D.runs[i];
   await XR.runs([i]).catch(e => console.error(e));
   AGG = computeAgg(); methodIndex = null;
@@ -1898,6 +2024,14 @@ function refreshLinks(){
       '<h4>' + (TOOLMARK[g.mark] || "") + esc(g.nom) + '</h4>' +
       (g.note ? '<p class="note">' + esc(g.note) + '</p>' : '') +
       g.items.filter(it => g.toujours || it[0]).map(it => entryOf(g, it)).join("")).join("") +
+    // Last, because it is not a file of the run: it is what THIS reading has done. It
+    // lives here because this is the menu one already opens to send something back.
+    '<h4>This page</h4>' +
+    '<a role="menuitem" href="#" id="journallink">' +
+    '<span class="t">Activity log</span>' +
+    '<span class="d">What this page has done since it was opened, and what it could not do'
+    + ' — to send back when a report does not show what was expected. No captured value'
+    + ' goes into it.</span></a>' +
     '</div></span>';
   wireExportsMenu();
 }
@@ -1947,6 +2081,13 @@ function wireExportsMenu(){
     });
   }
   menu.addEventListener("click", e => {
+    if (e.target.closest("#journallink")){
+      e.preventDefault();
+      closeIt(false);
+      const said = Journal.text();
+      showPanel(said, "Activity log", said);
+      return;
+    }
     const a = e.target.closest("a.off");
     if (!a) { if (e.target.closest("a")) closeIt(false); return; }
     e.preventDefault();
@@ -2367,7 +2508,28 @@ function renderPruneBar(){
   });
 }
 
+/**
+ * How many calls one level lays down before saying it is stopping there.
+ *
+ * <p>The whole tree is never built in advance — one pays only for what one opens — but
+ * ONE level was built whole, however wide it was, and the width of a level is not
+ * bounded by anything: {@code visibleChildren} pulls up, in place of a frame without
+ * source, all of its readable descendants, so a run whose top frames are virtual-machine
+ * cogs can show tens of thousands of children at the first click.
+ *
+ * <p>Measured on a synthetic profile, on a machine with nothing else to do: 4 000
+ * children take 0.36 s to lay down, 20 000 take 4.4 s, 60 000 take 10.6 s — and each
+ * fold-then-reopen pays it again. That is the report that “does not open when clicked”,
+ * and nothing said so: the browser was busy, not stuck.
+ *
+ * <p>Four hundred is not a measurement, it is a reading limit: a level one scrolls past
+ * four hundred rows is a level one searches rather than reads. The heaviest come first —
+ * the order is already by descending time — so what is held back is what weighs least,
+ * and the row that says so gives it back in one click.
+ */
+const LEVEL_BUDGET = 400;
 function renderTree(){
+  const drawnAt = performance.now();
   mode = "tree"; tab("tab-tree"); renderScope();
   renderPruneBar();
   // The tree shows EVERY run as a root: ticking them would make no sense.
@@ -2382,7 +2544,10 @@ function renderTree(){
     // The roots are ALL the runs, including those whose tree is not loaded
     // and will not be: loading them to display a counter would give back at first display
     // everything late loading saves. So the summary carries the number.
-    const total = (run.calltree ? run.calltree.total : run.mesures) || 1;
+    // The figure shown is the one measured, and the denominator alone falls back to 1: a
+    // run with no profile used to announce “1 samples”, which is a number nobody counted.
+    const measured = (run.calltree ? run.calltree.total : run.mesures) || 0;
+    const total = measured || 1;
     const head = document.createElement("div");
     head.className = "node runroot" + (idx === runIndex ? " on" : "");
     head.innerHTML = '<span class="tw">' + (idx === runIndex ? "▾" : "▸") + '</span>' +
@@ -2394,13 +2559,21 @@ function renderTree(){
                      (run.uuid ? '<span class="uid" title="Permanent id: '
                                  + esc(run.uuid) + '">' + esc(shortId(run)) + '</span>' : '') +
                      ' <span class="pct2" title="Stack samples taken during this run: this is the total its percentages derive from">'
-                     + total.toLocaleString("en") + ' samples</span>';
+                     + measured.toLocaleString("en") + ' samples</span>';
     box.appendChild(head);
     const holder = document.createElement("div");
     holder.style.display = idx === runIndex ? "block" : "none";
     box.appendChild(holder);
     let built = false;
-    if (idx === runIndex){ level(holder, prunedTree(run), 1, total, idx); built = true; }
+    // A root that opens onto nothing reads exactly like a run that did nothing — and it
+    // almost never is that. Filling goes through here so the empty case is said, once,
+    // wherever it is discovered: at first display or at the click that opens the root.
+    const fill = () => {
+      level(holder, prunedTree(run), 1, total, idx);
+      if (!holder.firstChild) holder.appendChild(whyEmpty(run, measured));
+      built = true;
+    };
+    if (idx === runIndex) fill();
     head.onclick = () => {
       // Changing run rebuilds the whole list. Touching the DOM we are about to replace
       // BEFOREHAND left a container already filled but marked closed — hence an orphan
@@ -2409,7 +2582,7 @@ function renderTree(){
       if (idx !== runIndex){ switchRun(idx, true); return; }
 
       const open = holder.style.display === "none";
-      if (open && !built){ level(holder, prunedTree(run), 1, total, idx); built = true; }
+      if (open && !built) fill();
       holder.style.display = open ? "block" : "none";
       head.querySelector(".tw").textContent = open ? "▾" : "▸";
       if (!open) goHome();
@@ -2442,9 +2615,109 @@ function renderTree(){
     return out.sort((a, b) => b.total - a.total);
   }
 
+  /**
+   * Why this run's tree has nothing under it — said in the tree, where the click was.
+   *
+   * <p>An empty root is the failure mode this project fights everywhere else: it reads
+   * exactly like a run that executed nothing, and it is almost never that. The twisty
+   * turned, no row appeared, and the console held no error either — because nothing had
+   * failed. Five distinct situations produce it, they are fixed in five different ways,
+   * and nothing in the page allowed telling them apart.
+   *
+   * <p>Nothing here is guessed. The reason is read off the run's own launch context — the
+   * system it ran on, the observation level asked for — and off a scan of the tree the
+   * page holds: how many of its frames are hidden, how many fall outside the analysed
+   * classes, and how many are analysed classes whose source was never found. That last
+   * one is the difference between a filter to widen and a source root to give, and the
+   * two are fixed at opposite ends of the command line.
+   */
+  function whyEmpty(run, measured){
+    const c = run.context || {};
+    const box = document.createElement("div");
+    box.className = "noprof";
+    const say = (text, heading) => {
+      if (heading) note("empty tree", text);
+      const p = document.createElement("p");
+      if (heading){ const b = document.createElement("b"); b.textContent = text; p.appendChild(b); }
+      else p.textContent = text;
+      box.appendChild(p);
+    };
+
+    // The search comes first: a filter that matches nothing is the reader's own gesture,
+    // and telling them about async-profiler there would send them a very long way off.
+    if (filter){
+      say("No frame of this run matches the search.", true);
+      say("Emptying the search box above gives the whole tree back.");
+      return box;
+    }
+
+    if (!measured){
+      say("No execution profile for this run.", true);
+      if (/^windows/i.test(c.systeme || ""))
+        say("Time is sampled by async-profiler, which publishes no binary for Windows. On this system the tool says so at launch and measures the rest: coverage and captured values are unaffected, and this tab is the only one that stays empty.");
+      else if (c.niveau === "coverage" || c.niveau === "couverture")
+        say("This run was asked for at the coverage level, so no sampling was started. Relaunch without --level to obtain the call tree.");
+      else
+        say("Not one stack sample was recorded. The run's own log, under its directory, says what the profiler did.");
+      return box;
+    }
+
+    // The tree is there and holds frames: it is the display that keeps none of them. What
+    // it keeps is what one can open and read, so the count is taken on that criterion.
+    const seen = {masked: 0, sourceless: 0, foreign: 0};
+    (function scan(node){
+      for (const kid of node.children){
+        if (isMasked(kid.name)){ seen.masked++; continue; }
+        if (!frameInfo(kid.name)) seen.foreign++;
+        else if (!hasSource(kid.name)) seen.sourceless++;
+        scan(kid);
+      }
+    })(prunedTree(run));
+
+    if (seen.masked && !seen.sourceless && !seen.foreign){
+      say("Every frame of this run is in a hidden package.", true);
+      say("The banner above the tree names them and gives them back.");
+    } else if (seen.sourceless){
+      say("The profile is full, and no source was found for the methods it names.", true);
+      say("The tree exists to open a method and read it: with no source file there is nothing to open. The overview’s “Source analysis” says which roots were consulted, and proposes the SOURCE_DIRS line to add.");
+    } else {
+      say("Nothing in this profile has a source to open.", true);
+      say("Stacks were sampled, but every method they name falls outside the analysed classes: there is nothing here to read. Widen what the tool is given with --classes and --sources, then reassemble.");
+    }
+    return box;
+  }
+
+
   function level(container, node, depth, total, idx){
-    for (const kid of visibleChildren(node)){
-      if (filter && !dot(kid.name).toLowerCase().includes(filter) && !hasMatch(kid)) continue;
+    const kept = visibleChildren(node).filter(kid =>
+        !filter || dot(kid.name).toLowerCase().includes(filter) || hasMatch(kid));
+    let shown = 0;
+    const more = document.createElement("div");
+    more.className = "levelmore";
+    const drawMore = () => {
+      const upto = Math.min(kept.length, shown + LEVEL_BUDGET);
+      for (let k = shown; k < upto; k++) row(kept[k]);
+      shown = upto;
+      // Appending it again keeps it last: the rows have just been laid down behind it.
+      container.appendChild(more);
+      if (shown >= kept.length){ more.remove(); return; }
+      more.textContent = "";
+      const said = document.createElement("span");
+      said.textContent = shown + " of " + kept.length + " calls shown at this level, the heaviest first.";
+      const btn = document.createElement("button");
+      btn.className = "morebtn";
+      btn.textContent = "show " + Math.min(LEVEL_BUDGET, kept.length - shown) + " more";
+      btn.onclick = e => {
+        e.stopPropagation();
+        note("show more", "level of " + kept.length + " calls, " + shown + " shown");
+        drawMore();
+      };
+      more.appendChild(said);
+      more.appendChild(document.createTextNode(" "));
+      more.appendChild(btn);
+    };
+
+    function row(kid){
       const known = !!frameInfo(kid.name);
       const el = document.createElement("div");
       el.className = "node" + (known ? "" : " jdk");
@@ -2525,11 +2798,19 @@ function renderTree(){
         if (known) selectFrame(kid.name, el);
       };
     }
+
+    if (kept.length > LEVEL_BUDGET)
+      note("wide level", kept.length + " calls at depth " + depth + ", " + LEVEL_BUDGET + " laid down");
+    drawMore();
   }
   function hasMatch(node){
     return visibleChildren(node).some(k => dot(k.name).toLowerCase().includes(filter) || hasMatch(k));
   }
   restoreSelection();
+  // "The tree does not open" describes a wait as well as an absence, and the two are
+  // fixed at opposite ends. This is the line that tells them apart.
+  note("tree drawn", box.querySelectorAll(".node").length + " row(s), "
+       + Math.round(performance.now() - drawnAt) + " ms");
 }
 
 /**
@@ -3117,6 +3398,7 @@ function selectFrame(frame, el){
   select(info, el);
 }
 function select(info, el, call){
+  note("open method", dot(info && info.frame || "?"), true);
   document.querySelectorAll(".node.sel").forEach(n=>n.classList.remove("sel"));
   if (el) el.classList.add("sel");
   selected = info;
@@ -4751,12 +5033,14 @@ document.getElementById("expandbtn").onclick = e => {
   const expanded = b.dataset.state === "open";
   if (expanded){
     collapseAll();
+    note("fold all");
     b.dataset.state = "";
     setOption("expandbtn", {icon: OPT.deplier, label: "unfold all", pressed: false,
                             title: "Open every branch at once"});
     return;
   }
   const n = expandAll();
+  note("unfold all", n + " line(s)" + (n >= EXPAND_BUDGET ? " — ceiling reached" : ""));
   b.dataset.state = "open";
   setOption("expandbtn", {icon: OPT.replier, label: "fold all", pressed: true,
                           title: "Everything is open — click to close it all"});
@@ -4844,8 +5128,10 @@ function switchTab(tabId){
   toReveal = selected && selected.name ? selected.frame : null;
   tabId();
 }
-document.getElementById("tab-tree").onclick = () => switchTab(renderTree);
-document.getElementById("tab-cls").onclick  = () => switchTab(renderClasses);
+document.getElementById("tab-tree").onclick = () => {
+  note("tab", "runs and call tree"); switchTab(renderTree); };
+document.getElementById("tab-cls").onclick  = () => {
+  note("tab", "classes"); switchTab(renderClasses); };
 
 document.getElementById("navprec").onclick = () => goToPos(historyPos - 1);
 document.getElementById("navsuiv").onclick = () => goToPos(historyPos + 1);
@@ -4879,6 +5165,8 @@ document.getElementById("clean").onclick = () => {
 };
 document.getElementById("search").oninput = e => {
   filter = e.target.value.trim().toLowerCase();
+  // One line per keystroke would bury the rest: the gesture is the search, not the letter.
+  note("search", filter ? '"' + filter + '"' : "(cleared)", true);
   mode === "cls" ? renderClasses() : renderTree();
 };
 /* ------------------------------------------------------- panneaux ajustables */
@@ -4943,11 +5231,27 @@ setOption("clean",    {icon: OPT.cible});
 // call tree, the overview would have only zeros to show. It is the only wait the opening
 // imposes — everything else comes at the gesture that asks for it.
 (async () => {
+  const started = performance.now();
   try { await XR.runs([0]); await XR.weightsIndex(); await XR.presenceIndex(); }
-  catch (e) { console.error(e); }
+  catch (e) { note("opening FAILED", e && e.message); console.error(e); }
   AGG = computeAgg();
   renderClasses();
   drawHome();
+  // The size of what was opened, in one line: it is the first question asked of a report
+  // that behaves oddly, and it is the one nobody can answer from a screenshot.
+  const restored = [];
+  if (masked.length) restored.push(masked.length + " hidden package(s)");
+  D.runs.forEach((run, i) => {
+    const e = pruningOf(run);
+    if (e.racine || e.coupes.length)
+      restored.push("run #" + i + " pruned (" + (e.racine ? "root set, " : "")
+                    + e.coupes.length + " cut(s))");
+  });
+  if (restored.length) note("restored", restored.join(", ") + " — from this browser");
+  note("ready", Object.keys(R.methods || {}).length + " class(es), "
+       + ((R.calltree && R.calltree.total) || 0) + " sample(s), "
+       + treeSize(R.calltree) + " tree node(s), "
+       + Math.round(performance.now() - started) + " ms");
 })();
 </script>
 <script>
@@ -5343,6 +5647,21 @@ setOption("clean",    {icon: OPT.cible});
     "The argument values": "Les valeurs des paramètres",
     "The arguments and return values recorded, in the form the tool printed them.": "Les paramètres et retours relevés, dans la forme où l'outil les a imprimés.",
     "The bottom panel shows the values.": "Le bandeau du bas montre les valeurs.",
+    "This page": "Cette page",
+    "Activity log": "Journal d'activité",
+    "What this page has done since it was opened, and what it could not do — to send back when a report does not show what was expected. No captured value goes into it.": "Ce que cette page a fait depuis son ouverture, et ce qu'elle n'a pas pu faire — à renvoyer quand un rapport ne montre pas ce qu'on attendait. Aucune valeur capturée n'y entre.",
+    "No frame of this run matches the search.": "Aucune image de cette exécution ne correspond à la recherche.",
+    "Emptying the search box above gives the whole tree back.": "Vider le champ de recherche ci-dessus rend l'arbre entier.",
+    "Every frame of this run is in a hidden package.": "Toutes les images de cette exécution sont dans un paquet masqué.",
+    "The banner above the tree names them and gives them back.": "Le bandeau au-dessus de l'arbre les nomme et les rend.",
+    "The profile is full, and no source was found for the methods it names.": "Le profil est plein, et aucune source n'a été trouvée pour les méthodes qu'il nomme.",
+    "The tree exists to open a method and read it: with no source file there is nothing to open. The overview’s “Source analysis” says which roots were consulted, and proposes the SOURCE_DIRS line to add.": "L'arbre existe pour ouvrir une méthode et la lire : sans fichier source, il n'y a rien à ouvrir. « L'analyse des sources », dans la vue d'ensemble, dit quelles racines ont été consultées et propose la ligne SOURCE_DIRS à ajouter.",
+    "No execution profile for this run.": "Aucun profil d'exécution pour cette exécution.",
+    "Time is sampled by async-profiler, which publishes no binary for Windows. On this system the tool says so at launch and measures the rest: coverage and captured values are unaffected, and this tab is the only one that stays empty.": "Le temps est échantillonné par async-profiler, qui ne publie aucun binaire pour Windows. Sur ce système l'outil le dit au lancement et mesure le reste : la couverture et les valeurs capturées ne sont pas touchées, et cet onglet est le seul qui reste vide.",
+    "This run was asked for at the coverage level, so no sampling was started. Relaunch without --level to obtain the call tree.": "Cette exécution a été demandée au niveau couverture, donc aucun échantillonnage n'a été lancé. Relancer sans --level pour obtenir l'arbre d'appels.",
+    "Not one stack sample was recorded. The run's own log, under its directory, says what the profiler did.": "Pas un seul échantillon de pile n'a été enregistré. Le journal de l'exécution, dans son répertoire, dit ce qu'a fait le profileur.",
+    "Nothing in this profile has a source to open.": "Rien dans ce profil n'a de source à ouvrir.",
+    "Stacks were sampled, but every method they name falls outside the analysed classes: there is nothing here to read. Widen what the tool is given with --classes and --sources, then reassemble.": "Des piles ont bien été échantillonnées, mais toutes les méthodes qu'elles nomment sont hors des classes analysées : il n'y a rien à lire ici. Élargir ce qui est donné à l'outil avec --classes et --sources, puis réassembler.",
     "The call context": "Le contexte d'appel",
     "the card": "la fiche",
     "the class": "la classe",
@@ -5494,6 +5813,9 @@ setOption("clean",    {icon: OPT.cible});
     [/^([\d,]+) runs?$/, (m) => nb(m[1]) + " exécutions"],
     [/^([\d.]+)% of time$/, (m) => dec(m[1]) + " % du temps"],
     [/^(\d+) of (\d+)$/, (m) => m[1] + " sur " + m[2]],
+    [/^(\d+) of (\d+) calls shown at this level, the heaviest first\.$/,
+      (m) => m[1] + " appels sur " + m[2] + " affichés à ce niveau, les plus lourds d'abord."],
+    [/^show (\d+) more$/, (m) => "en afficher " + m[1] + " de plus"],
     [/^\s*measured class\(es\) have their source code in this page \((\d+)%\)\.$/,
       (m) => "classe(s) mesurée(s) ont leur code source dans cette page (" + m[1] + " %)."],
     [/^(\d+) measured class\(es\) out of (\d+) have no source\.$/,
@@ -5637,6 +5959,7 @@ setOption("clean",    {icon: OPT.cible});
   let observer = null;
 
   function applyLanguage(to) {
+    note("language", to);
     lang = to;
     if (observer) observer.disconnect();
     walk(document.body, to);

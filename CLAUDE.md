@@ -152,6 +152,66 @@ package directory: it lands on its feet. That is what broke on 26 August 2026 �
 notch too high was enough to shift the whole index, hence "Source unavailable" on the 447
 classes of one analysis.
 
+## When the tree opens onto nothing — and what the page writes down
+
+Two defects of the same family were fixed together, and they are the ones to know before
+touching `renderTree`.
+
+**An empty root used to say nothing.** Clicking a run whose tree holds no displayable frame
+turned the twisty, added no row, and left no error in the console either — because nothing
+had failed. That is exactly the failure mode this project fights everywhere else: an absence
+that reads as an emptiness. Five distinct situations produce it, and they are fixed in five
+different ways — a search that matches nothing, a profile never taken (Windows publishes no
+async-profiler binary, or `--level coverage` was asked for), a hidden package, a profile
+whose methods have no source, a profile entirely outside the analysed classes. `whyEmpty`
+names the one that applies. Nothing is guessed: the reason is read off the run's own
+`run-context.json` — the system, the level — and off a scan of the tree the page already
+holds. **A whole week went into looking for a deployment problem that did not exist**, on a
+machine where the profiler simply does not run.
+
+**One level was built whole, however wide it was.** The tree is never built in advance — one
+pays only for what one opens — but a level's width is bounded by nothing: in place of a frame
+without source, `visibleChildren` pulls up *all* of its readable descendants, so a run whose
+top frames are virtual-machine cogs can show tens of thousands of children at the first click.
+Measured on a synthetic profile: **4 000 children take 0.36 s to lay down, 20 000 take 4.4 s,
+60 000 take 10.6 s** — and each fold-then-reopen pays it again. That is the report that "does
+not open when clicked": the browser was busy, not stuck. `LEVEL_BUDGET` stops at 400 rows and
+says so, with the click that gives the rest back; the same profile now draws in 0.18 s. Four
+hundred is a reading limit and not a measurement — past that one searches a level rather than
+reads it — and what is held back is what weighs least, the order already being by descending
+time.
+
+**The volume itself is not the problem**, and that is worth knowing before optimising the
+wrong thing: a call tree of a million nodes in a 68 MB block opens in 6.7 s and then behaves
+like any other — the tab, the root, the folds all stay under 200 ms. It is the width of *one
+displayed level* that costs, nothing else.
+
+**The page keeps its own trace, and hands it over in one gesture.** Everything that settles
+"it does not work on my machine" used to live in the browser's console: nobody opens it, it
+keeps nothing once the tab is closed, and one cannot ask for it over the telephone.
+`Journal` writes one line per gesture — never per render, the drawing functions run dozens of
+times for a single click — and the **Exports** menu hands the text over. Four decisions hold
+it:
+
+- **Repeats collapse.** Consecutive entries of the same kind less than 1.5 s apart become one
+  line with its count, but only where the call site says the gesture repeats (`note(what,
+  detail, true)`): collapsing on the kind alone merged six different block loads into one
+  line and kept only the last name — the journal then said less than the console it replaces.
+- **It carries no captured value.** Class and method names travel — the report is full of
+  them and the reader already has it — an observed argument does not. `ViewContractTest`
+  walks the `note(...)` call sites and fails the build on one that reaches into a value.
+- **It writes down what the page could *not* do**, first of all: an uncaught error, a
+  rejected promise, a block that would not load. Those are the ones that were lost.
+- **It never carries off the page.** Writing to it is wrapped: a comfort that could break the
+  view it explains would be worse than no journal.
+
+The lines that answer "the tree does not open" are `block` (how long each data file took),
+`ready` (classes, samples, tree nodes), `wide level`, `tree drawn` (rows and milliseconds),
+`empty tree` (the reason `whyEmpty` gave), and `restored` — the masks and prunings the
+**browser** brought back from a previous reading. That last one is invisible by nature: it
+travels with the browser and not with the report, and it can empty a tree with no gesture to
+explain it.
+
 ## The activity band during the wait
 
 `Progress` writes a line that rewrites itself while the observed application works. Three
