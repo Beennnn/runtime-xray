@@ -123,6 +123,40 @@ class ViewContractTest {
                 "the band must have its translation, like every sentence the page shows");
     }
 
+    @Test
+    @DisplayName("A tree with nothing under it says why, and not the same thing every time")
+    void anEmptyTreeSaysWhy() {
+        String view = template();
+        // A run root that opens onto nothing reads exactly like a run that executed
+        // nothing. It almost never is that — and until this, the page said nothing at all:
+        // the twisty turned, no row appeared, and the console held no error either,
+        // because nothing had failed. A whole week was spent looking for a deployment
+        // problem that did not exist, on a machine where the profiler simply does not run.
+        assertTrue(view.contains("holder.appendChild(whyEmpty(run, measured))"),
+                "an empty holder must be filled with its reason, wherever it is discovered");
+        // The five causes are fixed in five different ways, so one sentence for all of
+        // them would send four readers out of five to the wrong place.
+        for (String said : List.of(
+                "No frame of this run matches the search.",
+                "No execution profile for this run.",
+                "Every frame of this run is in a hidden package.",
+                "The profile is full, and no source was found for the methods it names.",
+                "Nothing in this profile has a source to open.")) {
+            assertTrue(view.contains("say(\"" + said + "\", true)"),
+                    "the tree lost the case it named: " + said);
+            assertTrue(view.contains("\"" + said + "\":"),
+                    "and its translation — a band that shows in English inside a French "
+                    + "view is the drift the dictionary exists to prevent: " + said);
+        }
+        // The platform reason is READ, never guessed: it is the run's own context that
+        // says which system measured it, and Windows is the one with no profiler at all.
+        assertTrue(view.contains("/^windows/i.test(c.systeme"),
+                "the system comes from the run's launch context");
+        assertTrue(view.contains("async-profiler, which publishes no binary for Windows"),
+                "and the sentence must name the tool and the platform: on the machine "
+                + "where this is read, there is nothing else to check it against");
+    }
+
     private static int count(String haystack, String needle) {
         int n = 0;
         for (int i = haystack.indexOf(needle); i >= 0; i = haystack.indexOf(needle, i + 1)) n++;

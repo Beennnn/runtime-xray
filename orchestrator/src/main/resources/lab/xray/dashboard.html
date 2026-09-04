@@ -303,6 +303,15 @@
   #maskpop button .q{color:var(--muted);font-size:11px;margin-left:6px}
   /* The banner stands out by an outline, not by a hard-coded colour: a fixed tint becomes
      unreadable as soon as the reader is in a dark theme. */
+  /* Said where the click was: under the run root that just opened onto nothing. Same
+     shape as the caveats of the overview — an outline rather than a tint, so it stays
+     readable in either theme. */
+  .noprof{margin:4px 10px 10px 24px;padding:10px 13px;border:1px solid var(--border);
+          border-left:3px solid var(--partbar);border-radius:6px;background:var(--panel);
+          color:var(--muted);font-size:12px;line-height:1.55;max-width:78ch}
+  .noprof p{margin:0}
+  .noprof p + p{margin-top:5px}
+  .noprof b{color:var(--text)}
   .maskbar{padding:7px 9px;border-bottom:1px solid var(--border);background:var(--panel);
            border-left:3px solid var(--missbar);font-size:12px;color:var(--text)}
   .maskbar > b{display:block;font-size:9.5px;letter-spacing:.7px;text-transform:uppercase;
@@ -2382,7 +2391,10 @@ function renderTree(){
     // The roots are ALL the runs, including those whose tree is not loaded
     // and will not be: loading them to display a counter would give back at first display
     // everything late loading saves. So the summary carries the number.
-    const total = (run.calltree ? run.calltree.total : run.mesures) || 1;
+    // The figure shown is the one measured, and the denominator alone falls back to 1: a
+    // run with no profile used to announce “1 samples”, which is a number nobody counted.
+    const measured = (run.calltree ? run.calltree.total : run.mesures) || 0;
+    const total = measured || 1;
     const head = document.createElement("div");
     head.className = "node runroot" + (idx === runIndex ? " on" : "");
     head.innerHTML = '<span class="tw">' + (idx === runIndex ? "▾" : "▸") + '</span>' +
@@ -2394,13 +2406,21 @@ function renderTree(){
                      (run.uuid ? '<span class="uid" title="Permanent id: '
                                  + esc(run.uuid) + '">' + esc(shortId(run)) + '</span>' : '') +
                      ' <span class="pct2" title="Stack samples taken during this run: this is the total its percentages derive from">'
-                     + total.toLocaleString("en") + ' samples</span>';
+                     + measured.toLocaleString("en") + ' samples</span>';
     box.appendChild(head);
     const holder = document.createElement("div");
     holder.style.display = idx === runIndex ? "block" : "none";
     box.appendChild(holder);
     let built = false;
-    if (idx === runIndex){ level(holder, prunedTree(run), 1, total, idx); built = true; }
+    // A root that opens onto nothing reads exactly like a run that did nothing — and it
+    // almost never is that. Filling goes through here so the empty case is said, once,
+    // wherever it is discovered: at first display or at the click that opens the root.
+    const fill = () => {
+      level(holder, prunedTree(run), 1, total, idx);
+      if (!holder.firstChild) holder.appendChild(whyEmpty(run, measured));
+      built = true;
+    };
+    if (idx === runIndex) fill();
     head.onclick = () => {
       // Changing run rebuilds the whole list. Touching the DOM we are about to replace
       // BEFOREHAND left a container already filled but marked closed — hence an orphan
@@ -2409,7 +2429,7 @@ function renderTree(){
       if (idx !== runIndex){ switchRun(idx, true); return; }
 
       const open = holder.style.display === "none";
-      if (open && !built){ level(holder, prunedTree(run), 1, total, idx); built = true; }
+      if (open && !built) fill();
       holder.style.display = open ? "block" : "none";
       head.querySelector(".tw").textContent = open ? "▾" : "▸";
       if (!open) goHome();
@@ -2432,6 +2452,77 @@ function renderTree(){
    * <p>Those classes do not disappear from the analysis for all that: the <b>Code</b> tab
    * list with their coverage, because there it is an inventory, not a reading.
    */
+  /**
+   * Why this run's tree has nothing under it — said in the tree, where the click was.
+   *
+   * <p>An empty root is the failure mode this project fights everywhere else: it reads
+   * exactly like a run that executed nothing, and it is almost never that. The twisty
+   * turned, no row appeared, and the console held no error either — because nothing had
+   * failed. Five distinct situations produce it, they are fixed in five different ways,
+   * and nothing in the page allowed telling them apart.
+   *
+   * <p>Nothing here is guessed. The reason is read off the run's own launch context — the
+   * system it ran on, the observation level asked for — and off a scan of the tree the
+   * page holds: how many of its frames are hidden, how many fall outside the analysed
+   * classes, and how many are analysed classes whose source was never found. That last
+   * one is the difference between a filter to widen and a source root to give, and the
+   * two are fixed at opposite ends of the command line.
+   */
+  function whyEmpty(run, measured){
+    const c = run.context || {};
+    const box = document.createElement("div");
+    box.className = "noprof";
+    const say = (text, heading) => {
+      const p = document.createElement("p");
+      if (heading){ const b = document.createElement("b"); b.textContent = text; p.appendChild(b); }
+      else p.textContent = text;
+      box.appendChild(p);
+    };
+
+    // The search comes first: a filter that matches nothing is the reader's own gesture,
+    // and telling them about async-profiler there would send them a very long way off.
+    if (filter){
+      say("No frame of this run matches the search.", true);
+      say("Emptying the search box above gives the whole tree back.");
+      return box;
+    }
+
+    if (!measured){
+      say("No execution profile for this run.", true);
+      if (/^windows/i.test(c.systeme || ""))
+        say("Time is sampled by async-profiler, which publishes no binary for Windows. On this system the tool says so at launch and measures the rest: coverage and captured values are unaffected, and this tab is the only one that stays empty.");
+      else if (c.niveau === "coverage" || c.niveau === "couverture")
+        say("This run was asked for at the coverage level, so no sampling was started. Relaunch without --level to obtain the call tree.");
+      else
+        say("Not one stack sample was recorded. The run's own log, under its directory, says what the profiler did.");
+      return box;
+    }
+
+    // The tree is there and holds frames: it is the display that keeps none of them. What
+    // it keeps is what one can open and read, so the count is taken on that criterion.
+    const seen = {masked: 0, sourceless: 0, foreign: 0};
+    (function scan(node){
+      for (const kid of node.children){
+        if (isMasked(kid.name)){ seen.masked++; continue; }
+        if (!frameInfo(kid.name)) seen.foreign++;
+        else if (!hasSource(kid.name)) seen.sourceless++;
+        scan(kid);
+      }
+    })(prunedTree(run));
+
+    if (seen.masked && !seen.sourceless && !seen.foreign){
+      say("Every frame of this run is in a hidden package.", true);
+      say("The banner above the tree names them and gives them back.");
+    } else if (seen.sourceless){
+      say("The profile is full, and no source was found for the methods it names.", true);
+      say("The tree exists to open a method and read it: with no source file there is nothing to open. The overview’s “Source analysis” says which roots were consulted, and proposes the SOURCE_DIRS line to add.");
+    } else {
+      say("Nothing in this profile has a source to open.", true);
+      say("Stacks were sampled, but every method they name falls outside the analysed classes: there is nothing here to read. Widen what the tool is given with --classes and --sources, then reassemble.");
+    }
+    return box;
+  }
+
   function visibleChildren(node){
     const out = [];
     for (const kid of node.children){
@@ -5343,6 +5434,18 @@ setOption("clean",    {icon: OPT.cible});
     "The argument values": "Les valeurs des paramètres",
     "The arguments and return values recorded, in the form the tool printed them.": "Les paramètres et retours relevés, dans la forme où l'outil les a imprimés.",
     "The bottom panel shows the values.": "Le bandeau du bas montre les valeurs.",
+    "No frame of this run matches the search.": "Aucune image de cette exécution ne correspond à la recherche.",
+    "Emptying the search box above gives the whole tree back.": "Vider le champ de recherche ci-dessus rend l'arbre entier.",
+    "Every frame of this run is in a hidden package.": "Toutes les images de cette exécution sont dans un paquet masqué.",
+    "The banner above the tree names them and gives them back.": "Le bandeau au-dessus de l'arbre les nomme et les rend.",
+    "The profile is full, and no source was found for the methods it names.": "Le profil est plein, et aucune source n'a été trouvée pour les méthodes qu'il nomme.",
+    "The tree exists to open a method and read it: with no source file there is nothing to open. The overview’s “Source analysis” says which roots were consulted, and proposes the SOURCE_DIRS line to add.": "L'arbre existe pour ouvrir une méthode et la lire : sans fichier source, il n'y a rien à ouvrir. « L'analyse des sources », dans la vue d'ensemble, dit quelles racines ont été consultées et propose la ligne SOURCE_DIRS à ajouter.",
+    "No execution profile for this run.": "Aucun profil d'exécution pour cette exécution.",
+    "Time is sampled by async-profiler, which publishes no binary for Windows. On this system the tool says so at launch and measures the rest: coverage and captured values are unaffected, and this tab is the only one that stays empty.": "Le temps est échantillonné par async-profiler, qui ne publie aucun binaire pour Windows. Sur ce système l'outil le dit au lancement et mesure le reste : la couverture et les valeurs capturées ne sont pas touchées, et cet onglet est le seul qui reste vide.",
+    "This run was asked for at the coverage level, so no sampling was started. Relaunch without --level to obtain the call tree.": "Cette exécution a été demandée au niveau couverture, donc aucun échantillonnage n'a été lancé. Relancer sans --level pour obtenir l'arbre d'appels.",
+    "Not one stack sample was recorded. The run's own log, under its directory, says what the profiler did.": "Pas un seul échantillon de pile n'a été enregistré. Le journal de l'exécution, dans son répertoire, dit ce qu'a fait le profileur.",
+    "Nothing in this profile has a source to open.": "Rien dans ce profil n'a de source à ouvrir.",
+    "Stacks were sampled, but every method they name falls outside the analysed classes: there is nothing here to read. Widen what the tool is given with --classes and --sources, then reassemble.": "Des piles ont bien été échantillonnées, mais toutes les méthodes qu'elles nomment sont hors des classes analysées : il n'y a rien à lire ici. Élargir ce qui est donné à l'outil avec --classes et --sources, puis réassembler.",
     "The call context": "Le contexte d'appel",
     "the card": "la fiche",
     "the class": "la classe",
