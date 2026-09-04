@@ -347,6 +347,16 @@ all three wrong unless it is told:
   that line now: a patched field outside `nom, description, etiquettes, elagage` fails the
   build.
 
+**A data file that cannot be read is said in the page.** The page travels as a single file —
+that is what makes it sendable — but the tree, the code and the captured values are read
+*beside* it, under `runs/`, as they are opened. Deployed alone, which is easy to do since the
+page opens perfectly, the overview works and **everything one clicks stays shut**: the node
+does not open, the code panel stays empty, and the report reads like a report with nothing in
+it. Until 4 September 2026 the only trace was a `block not found` in the browser console —
+the exact failure this project fights everywhere else, an absence that looks like an
+emptiness. `XR.absent` now raises a band naming the file and saying to deploy the whole
+output directory, and `ViewContractTest` holds it, translation included.
+
 **The way to verify a change here is to render it.** Before touching the block, take a snapshot
 of every string the page displays — both languages, a dozen states of the view — and take the
 same one after: the inversion itself was carried out that way, and so was the rename of the
