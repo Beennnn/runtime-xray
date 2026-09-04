@@ -175,11 +175,11 @@ public final class Blocks {
     }
 
     /** The empty shape of each heavy field: what a reader must find failing anything better. */
-    private static final Map<String, Object> EMPTY = Map.of(
-            "coverage", Map.of(),
-            "calltree", Map.of("name", "tout", "total", 0, "children", List.of()),
-            "values", Map.of(),
-            "trace", Map.of());
+    private static final Map<String, Object> EMPTY = Json.ordered(
+            "coverage", Json.ordered(),
+            "calltree", Json.ordered("name", "tout", "total", 0, "children", List.of()),
+            "values", Json.ordered(),
+            "trace", Json.ordered());
 
     private static long samplesOf(Map<?, ?> run) {
         return run.get("calltree") instanceof Map<?, ?> tree

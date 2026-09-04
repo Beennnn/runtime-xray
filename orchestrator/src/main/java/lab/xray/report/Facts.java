@@ -143,7 +143,7 @@ public final class Facts {
         f.put("runs", runs.size());
         // Where to go when a fact is not enough. A reader arriving through this file has
         // no reason to guess that the page and the diagnostic exist.
-        f.put("alsoSee", Map.of(
+        f.put("alsoSee", Json.ordered(
                 "page", "index.html",
                 "diagnostic", "diagnostic.json",
                 "markdown", "rapport.md",
