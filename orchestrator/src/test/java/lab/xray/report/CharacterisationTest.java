@@ -101,7 +101,7 @@ class CharacterisationTest {
             "--java", "--level",
             "--max-seconds", "--name", "--niveau", "--no-values", "--out", "--print-options",
             "--repo", "--report-only", "--root", "--serve", "--serve-host", "--serve-token",
-            "--sources", "--suivi");
+            "--sources", "--suivi", "--time-source");
 
     @Test
     @DisplayName("Two runs produce exactly these twenty-six files")

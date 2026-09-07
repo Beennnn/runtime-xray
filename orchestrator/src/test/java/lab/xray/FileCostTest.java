@@ -145,6 +145,34 @@ class FileCostTest {
         }
     }
 
+    @Test
+    @DisplayName("The option that costs accuracy says what it costs, where it is offered")
+    void theTimeSourceCarriesItsPrice() throws IOException {
+        String main = main();
+        int start = main.indexOf("MEASURING TIME WITHOUT ASYNC-PROFILER");
+        int end = main.indexOf("LIVING WITH A SECURITY FILTER", start);
+        assertTrue(start > 0 && end > start, "the section must stay locatable in the help");
+        String help = main.substring(start, end);
+        // This is the only setting in the tool whose price is paid in ACCURACY rather than
+        // in files or in seconds — and a less true profile that does not say so is worse
+        // than no profile. So the three ways it differs are named where it is offered, and
+        // the one that costs nothing is named first.
+        assertTrue(help.indexOf("WSL") < help.indexOf("--time-source jfr"),
+                "the way out that costs nothing comes before the one that costs accuracy");
+        assertTrue(help.contains("SAFEPOINT"),
+                "the reason the profile is less true, not merely that it is");
+        assertTrue(help.contains("10 ms") && help.contains("1 ms"),
+                "and the sampling rates, so the reader can weigh them rather than trust");
+        assertTrue(help.contains("--filter HAS NO EFFECT"),
+                "an option silently doing nothing is the defect this tool exists to expose");
+        for (String value : Config.TIME_SOURCES) {
+            if (Config.ASYNC_PROFILER.equals(value)) continue;
+            assertTrue(help.contains("--time-source " + value),
+                    "\"" + value + "\" measures differently and is not in the section that "
+                    + "says at what price");
+        }
+    }
+
     /** The help's section on filtered machines, cut out of the source rather than run. */
     private static String section() throws IOException {
         String main = main();

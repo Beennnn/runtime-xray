@@ -414,9 +414,13 @@ class DashboardTest {
         String page = Files.readString(Dashboard.build(out, List.of(sources(dir)), 8),
                 StandardCharsets.UTF_8);
 
+        // The profile's directory is no longer written into the path: two tools can have
+        // measured the run and each writes under its own name, so the page composes it
+        // from what the run says. The file's own name is still a literal, and it is still
+        // the thing that must appear exactly once.
         for (String path : List.of("exports/profil.perf.txt", "exports/profil.cpuprofile",
                 "exports/couverture.lcov", "exports/valeurs.json",
-                "async-profiler/profil.collapsed", "execution.log")) {
+                "profil.collapsed", "execution.log")) {
             assertEquals(1, page.split(java.util.regex.Pattern.quote(path), -1).length - 1,
                     "\"" + path + "\" is written more than once: the two lists will diverge");
         }

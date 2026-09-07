@@ -223,6 +223,53 @@ public final class Config {
         return !MINIMAL.equals(jacocoReports);
     }
 
+    /**
+     * Which tool samples the call stacks — and it is the one setting here whose price is
+     * paid in <b>accuracy</b> rather than in files or in time.
+     *
+     * <p>The default, async-profiler, publishes no binary for Windows: on that system the
+     * call tree is simply never measured. JFR is in the JDK, runs everywhere, and the
+     * converter this tool already carries turns its recording into exactly the folded
+     * stacks the rest of the chain reads. So the tree becomes reachable on Windows — at a
+     * price that has to be stated where it is offered, because a profile that is less true
+     * and does not say so is worse than no profile at all:
+     *
+     * <ul>
+     *   <li><b>Safepoint bias.</b> JFR obtains a stack through {@code GetStackTrace}, which
+     *       needs the thread at a safepoint. The JIT removes safepoints from hot counted
+     *       loops, so the sampler cannot observe where the time is actually spent — it
+     *       observes the nearest safepoint, which can be the <i>caller</i> of the hot
+     *       method. async-profiler samples from a signal handler through
+     *       {@code AsyncGetCallTrace} and has no such constraint. That difference is
+     *       measured, not theoretical (Mytkowicz et al., PLDI 2010).</li>
+     *   <li><b>A tenth of the samples.</b> JFR's {@code profile} settings sample every
+     *       10 ms; {@link #sampleIntervalMs} defaults to 1. {@code --interval} therefore
+     *       does not command a JFR run, and the percentages rest on far fewer readings.</li>
+     *   <li><b>{@code --filter} has no effect.</b> It is handed to async-profiler, which
+     *       then records nothing else. Flight Recorder takes no such thing, and applying
+     *       it on reading would keep the option's name and change its meaning — worse than
+     *       not having it. The recording holds everything and is bigger for the same run;
+     *       what still clears the noise is the folding the tree always does on JDK and
+     *       instrumentation frames.</li>
+     * </ul>
+     *
+     * <p>It is therefore <b>opt-in and never automatic</b>. A silent fallback on Windows
+     * would hand somebody a less accurate tree looking exactly like the accurate one.
+     */
+    public String timeSource = ASYNC_PROFILER;
+
+    public static final String ASYNC_PROFILER = "async-profiler";
+    public static final String JFR = "jfr";
+
+    /** The two values; the second is the one that costs accuracy. */
+    public static final java.util.List<String> TIME_SOURCES =
+            java.util.List.of(ASYNC_PROFILER, JFR);
+
+    /** Whether the stacks come from a Flight Recorder recording rather than the profiler. */
+    public boolean jfrTime() {
+        return JFR.equals(timeSource);
+    }
+
     public static final String KEEP = "keep";
     public static final String REPLACE = "replace";
 
@@ -295,6 +342,7 @@ public final class Config {
             case "JACOCO_REPORTS" -> jacocoReports = value;
             case "SERVE_HOST" -> serveHost = value;
             case "ARCHIVE" -> archive = value;
+            case "TIME_SOURCE" -> timeSource = value;
             case "SAMPLE_INTERVAL_MS" -> sampleIntervalMs = parse(value, sampleIntervalMs);
             case "FOLLOW_PORT", "SUIVI_PORT" -> followPort = parse(value, followPort);
             case "TRACE_COUNT" -> traceCount = parse(value, traceCount);
@@ -419,6 +467,7 @@ public final class Config {
         m.put("classesInstrumentees", coverIncludes.isBlank() ? null : coverIncludes);
         m.put("intervalleMs", sampleIntervalMs);
         m.put("rapportsJacoco", jacocoReports);
+        m.put("sourceTemps", timeSource);
         return m;
     }
 
@@ -551,6 +600,21 @@ public final class Config {
             # coverage the page shows — it is read from jacoco.xml, written in every case —
             # and an absent report stays named in the page, with the command that produces
             # it. "runtime-xray --help" weighs them up one by one.
+            # Which tool samples the call stacks. The default publishes no binary for
+            # Windows, where the call tree is then never measured at all; "jfr" uses Flight
+            # Recorder, which is in the JDK and runs everywhere.
+            #
+            # IT COSTS ACCURACY, and that is the whole trade-off. JFR reads a stack at a
+            # safepoint, and the JIT removes safepoints from hot loops: the sample then
+            # lands on the nearest safepoint rather than on the code actually running — it
+            # can name the CALLER of the hot method. It samples every 10 ms where
+            # async-profiler samples every 1 ms, so --interval no longer commands anything.
+            # And --filter is applied afterwards instead of inside the JVM.
+            #
+            # A tree measured this way is worth having where there was none; it is not the
+            # same tree. The page says which tool produced each run's profile.
+            #TIME_SOURCE="jfr"
+
             #JACOCO_REPORTS="detailed"
 
             # Gathering runs/ into a single runs.zip once the report is built, for a machine

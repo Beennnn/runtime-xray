@@ -13,6 +13,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -227,6 +228,38 @@ class ViewContractTest {
         assertTrue(view.contains("btn.textContent = \"show \" +"),
                 "and the click that gives the rest back — a ceiling with no way past it "
                 + "would hide measurements rather than defer them");
+    }
+
+    @Test
+    @DisplayName("A profile measured the other way says so, wherever the reader looks")
+    void aJfrProfileNeverPassesForTheOther() {
+        String view = template();
+        // Two tools can now measure the time, and one of them is less accurate. A reader
+        // comparing two runs has no way of telling them apart from the figures — the
+        // percentages look the same. So the run says which tool measured it in the three
+        // places somebody who doubts a figure goes: the caveat beside the percentages,
+        // the run's context card, and the way out offered when there is no tree at all.
+        assertTrue(view.contains("sourceTemps === \"jfr\""),
+                "the page reads the tool from the run's own launch context");
+        assertTrue(view.contains("This run's times come from Flight Recorder."),
+                "the caveat, beside the one already there on the percentages");
+        assertTrue(view.contains("Time measured by"),
+                "and the context card names it, like every other launch setting");
+        // The sentence must give the REASON, not the label: "less accurate" teaches
+        // nothing and cannot be weighed.
+        assertTrue(view.contains("JFR reads a stack at a safepoint"),
+                "with why it is less true, so the reader can judge rather than trust");
+        // A key carrying markup is split into several text nodes and matches nothing:
+        // that is exactly how the first version shipped an untranslated French view.
+        // The caveat carries no inline markup, deliberately: a key holding a <code> is
+        // split into several text nodes and matches nothing, which is exactly how the
+        // first version of it shipped an English paragraph inside the French view.
+        int caveat = view.indexOf("Asked for with --time-source jfr");
+        assertTrue(caveat > 0, "the caveat's body must stay one findable string");
+        assertFalse(view.substring(caveat, view.indexOf('"', caveat)).contains("<"),
+                "no markup inside a translated sentence: the walk matches whole strings");
+        assertTrue(view.contains("Les temps de cette exécution viennent de Flight Recorder."),
+                "and have its translation, like every sentence the page shows");
     }
 
     private static int count(String haystack, String needle) {
