@@ -155,6 +155,20 @@ class ViewContractTest {
         assertTrue(view.contains("async-profiler, which publishes no binary for Windows"),
                 "and the sentence must name the tool and the platform: on the machine "
                 + "where this is read, there is nothing else to check it against");
+        // "A warning with no way out is a complaint" — the rule this project applies to
+        // every other message it prints. The first version of this one broke it: it
+        // explained the platform perfectly and left the reader with nothing to do, which
+        // is what the reader said back. Each cause therefore carries its gesture.
+        for (String wayOut : List.of(
+                "Emptying the search box above",          // the search matched nothing
+                "run the same command from a WSL shell",  // no profiler on this platform
+                "Relaunch without --level",               // sampling was not asked for
+                "The banner above the tree names them",   // a hidden package
+                "proposes the SOURCE_DIRS line to add",   // the sources were not found
+                "--classes and --sources")) {             // the profile is all foreign
+            assertTrue(view.contains(wayOut),
+                    "a cause of the empty tree lost the gesture that fixes it: " + wayOut);
+        }
     }
 
     @Test

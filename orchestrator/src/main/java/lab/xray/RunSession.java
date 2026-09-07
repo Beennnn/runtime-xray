@@ -225,8 +225,17 @@ public final class RunSession {
             // Without these two options, the samples are attributed to the wrong line number.
             sb.append(" -XX:+UnlockDiagnosticVMOptions -XX:+DebugNonSafepoints");
         } else {
-            System.out.println("   ⚠️ timing measurements unavailable on this platform — "
-                    + "coverage and values remain available");
+            // A warning with no way out is a complaint — the rule this project applies
+            // everywhere else. What is lost is the call tree and nothing else, and the
+            // same command run from WSL gives it back: that is what the reader needs
+            // here, on the machine where they cannot go and look it up.
+            String os = System.getProperty("os.name", "this platform");
+            System.out.println("   ⚠️ no call tree on " + os + ": async-profiler publishes"
+                    + " no binary for it.");
+            System.out.println("      Coverage and captured values are measured as usual."
+                    + " To obtain the tree, run");
+            System.out.println("      the same command from WSL, or on a Linux or macOS"
+                    + " machine.");
         }
         return sb.toString();
     }
