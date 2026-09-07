@@ -187,6 +187,17 @@ names the one that applies. Nothing is guessed: the reason is read off the run's
 holds. **A whole week went into looking for a deployment problem that did not exist**, on a
 machine where the profiler simply does not run.
 
+**Each of the five carries the gesture that fixes it**, and the first version did not. It
+explained the platform exactly — async-profiler, no Windows binary, the rest is measured —
+and left the reader with nothing to do, which is what the reader said back the next morning:
+*"it does not say where the problem is nor how to solve it concretely"*. That is the rule
+this project applies to every other message it prints, `Footprint`'s exclusion advice
+included: **a warning with no way out is a complaint.** So the Windows branch names WSL and
+the `--out` path to keep off `/mnt/c`, the coverage level names the relaunch, the hidden
+package names the banner, the missing source names `SOURCE_DIRS`, the foreign profile names
+`--classes` and `--sources`. `ViewContractTest` holds the five gestures, not only the five
+diagnoses. The console line at launch was the same complaint and got the same treatment.
+
 **One level was built whole, however wide it was.** The tree is never built in advance — one
 pays only for what one opens — but a level's width is bounded by nothing: in place of a frame
 without source, `visibleChildren` pulls up *all* of its readable descendants, so a run whose

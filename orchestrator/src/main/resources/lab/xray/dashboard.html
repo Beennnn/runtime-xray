@@ -2653,8 +2653,10 @@ function renderTree(){
 
     if (!measured){
       say("No execution profile for this run.", true);
-      if (/^windows/i.test(c.systeme || ""))
-        say("Time is sampled by async-profiler, which publishes no binary for Windows. On this system the tool says so at launch and measures the rest: coverage and captured values are unaffected, and this tab is the only one that stays empty.");
+      if (/^windows/i.test(c.systeme || "")){
+        say("Time is sampled by async-profiler, which publishes no binary for Windows, and this run was measured on Windows. Nothing else is affected: the coverage and the captured values are complete, in the Code tab.");
+        say("To obtain the call tree, run the same command from a WSL shell, or on a Linux or macOS machine — the jar, the options and the report do not change. Under WSL, give --out a path on the Linux side rather than under /mnt/c: the report writes thousands of small files, and that crossing makes it slow.");
+      }
       else if (c.niveau === "coverage" || c.niveau === "couverture")
         say("This run was asked for at the coverage level, so no sampling was started. Relaunch without --level to obtain the call tree.");
       else
@@ -5657,7 +5659,8 @@ setOption("clean",    {icon: OPT.cible});
     "The profile is full, and no source was found for the methods it names.": "Le profil est plein, et aucune source n'a été trouvée pour les méthodes qu'il nomme.",
     "The tree exists to open a method and read it: with no source file there is nothing to open. The overview’s “Source analysis” says which roots were consulted, and proposes the SOURCE_DIRS line to add.": "L'arbre existe pour ouvrir une méthode et la lire : sans fichier source, il n'y a rien à ouvrir. « L'analyse des sources », dans la vue d'ensemble, dit quelles racines ont été consultées et propose la ligne SOURCE_DIRS à ajouter.",
     "No execution profile for this run.": "Aucun profil d'exécution pour cette exécution.",
-    "Time is sampled by async-profiler, which publishes no binary for Windows. On this system the tool says so at launch and measures the rest: coverage and captured values are unaffected, and this tab is the only one that stays empty.": "Le temps est échantillonné par async-profiler, qui ne publie aucun binaire pour Windows. Sur ce système l'outil le dit au lancement et mesure le reste : la couverture et les valeurs capturées ne sont pas touchées, et cet onglet est le seul qui reste vide.",
+    "Time is sampled by async-profiler, which publishes no binary for Windows, and this run was measured on Windows. Nothing else is affected: the coverage and the captured values are complete, in the Code tab.": "Le temps est échantillonné par async-profiler, qui ne publie aucun binaire pour Windows, et cette exécution a été mesurée sous Windows. Rien d'autre n'est touché : la couverture et les valeurs capturées sont complètes, dans l'onglet Code.",
+    "To obtain the call tree, run the same command from a WSL shell, or on a Linux or macOS machine — the jar, the options and the report do not change. Under WSL, give --out a path on the Linux side rather than under /mnt/c: the report writes thousands of small files, and that crossing makes it slow.": "Pour obtenir l'arbre d'appels, relancer la même commande depuis un shell WSL, ou sur une machine Linux ou macOS — le jar, les options et le rapport ne changent pas. Sous WSL, donner à --out un chemin côté Linux plutôt que sous /mnt/c : le rapport écrit des milliers de petits fichiers, et cette traversée le rend lent.",
     "This run was asked for at the coverage level, so no sampling was started. Relaunch without --level to obtain the call tree.": "Cette exécution a été demandée au niveau couverture, donc aucun échantillonnage n'a été lancé. Relancer sans --level pour obtenir l'arbre d'appels.",
     "Not one stack sample was recorded. The run's own log, under its directory, says what the profiler did.": "Pas un seul échantillon de pile n'a été enregistré. Le journal de l'exécution, dans son répertoire, dit ce qu'a fait le profileur.",
     "Nothing in this profile has a source to open.": "Rien dans ce profil n'a de source à ouvrir.",
