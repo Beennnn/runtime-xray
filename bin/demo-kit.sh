@@ -66,20 +66,27 @@ cd "$(dirname "$0")"
 
 OUT="${OUT:-report}"
 
-# The three workloads are NOT the same, and not because the scenarios differ: because
-# capturing values means tracing every invocation of the root method, and the three roots
-# are not called at the same rate. Measured here, all three observed the same way:
+# The workload is not the same for the three runs, and the reason is not the scenario:
+# capturing values means tracing EVERY invocation of the root method, and the two roots are
+# not called at the same rate. Measured here, all runs observed identically:
 #
-#   RoutePlanner::travelTimeMinutes    8 M iterations →  31 s
-#   RoutePlanner::travelTimeMinutes   24 M iterations → 206 s
-#   Terrain::slowdownFactor           24 M iterations → cut off at the 600 s guard rail
+#   RoutePlanner::travelTimeMinutes    2 M →   5 s      Terrain::slowdownFactor  1 M →  4 s
+#   RoutePlanner::travelTimeMinutes    8 M →  37 s      Terrain::slowdownFactor  2 M →  5 s
+#   RoutePlanner::travelTimeMinutes   24 M → 206 s      Terrain::slowdownFactor  4 M → 24 s
+#                                                       Terrain::slowdownFactor 24 M → cut
+#                                                         off at the 600 s guard rail
 #
-# Terrain::slowdownFactor is called several times per itinerary where the other is called
-# once. Giving the three runs the same number of iterations — which is what the published
-# demonstration does — makes the second one the longest by far, and on this machine made
-# the tool stop it: a demonstration package whose middle run gets killed demonstrates the
-# guard rail. Each run is therefore sized for its own root.
+# The published demonstration gives all three runs 24 M, and pays 11 minutes for it — on the
+# machine it was recorded on, where the middle run took 498 s. On a slower one that run
+# crosses the guard rail and the tool stops it: a demonstration package whose middle run
+# gets killed demonstrates the guard rail. So the full scenario carries the workload and the
+# two others carry half of it.
+#
+# Note what the figures also say: past 4 M, the terrain run buys almost no extra sample. The
+# time goes into the tracing, which is not in "lab/sample/terrain/*" and therefore does not
+# count — a narrow filter is exactly what that run is there to show.
 WORKLOAD="${WORKLOAD:-8000000}"
+HALF=$(( WORKLOAD / 2 ))
 
 # The application's own classes, and them alone. Adding libs/commons-lang3.jar here — which
 # the application does reach — puts its 231 classes into the coverage, none of which has its
@@ -101,8 +108,8 @@ run(){ # name  root method  filter  iterations
        --name "$1" --root "$2" --filter "$3" "${COMMON[@]}"
 }
 
-run "Scenario 1"    "lab.sample.RoutePlanner::travelTimeMinutes"  "lab/sample/*"          "$(( WORKLOAD / 4 ))"
-run "Scenario 2"    "lab.sample.terrain.Terrain::slowdownFactor"  "lab/sample/terrain/*"  "$(( WORKLOAD / 8 ))"
+run "Scenario 1"    "lab.sample.RoutePlanner::travelTimeMinutes"  "lab/sample/*"          "$HALF"
+run "Scenario 2"    "lab.sample.terrain.Terrain::slowdownFactor"  "lab/sample/terrain/*"  "$HALF"
 run "Full scenario" "lab.sample.RoutePlanner::travelTimeMinutes"  "lab/sample/*"          "$WORKLOAD"
 
 echo
@@ -123,11 +130,11 @@ cd /d "%~dp0"
 
 if "%OUT%"=="" set OUT=report
 
-rem The three workloads differ because the three root methods are not called at the same
-rem rate, and capturing values means tracing every invocation. See demo.sh for the figures.
+rem The first two runs carry half the workload: capturing values means tracing every
+rem invocation of the root method, and Terrain::slowdownFactor is called far more often
+rem than RoutePlanner::travelTimeMinutes. See demo.sh for the measured figures.
 if "%WORKLOAD%"=="" set WORKLOAD=8000000
-set /a W1=%WORKLOAD%/4
-set /a W2=%WORKLOAD%/8
+set /a HALF=%WORKLOAD%/2
 
 rem The application's own classes and them alone: adding libs\commons-lang3.jar would put
 rem its 231 source-less classes into the coverage of a package meant to demonstrate.
@@ -141,14 +148,14 @@ if %ATTACH% GTR 8 set ATTACH=8
 
 echo.
 echo ^> Scenario 1
-java -jar runtime-xray.jar --java "java -jar sample-app.jar --iterations %W1%" ^
+java -jar runtime-xray.jar --java "java -jar sample-app.jar --iterations %HALF%" ^
      --attach-after 2 ^
      --name "Scenario 1" --root "lab.sample.RoutePlanner::travelTimeMinutes" ^
      --filter "lab/sample/*" %COMMON% || exit /b 1
 
 echo.
 echo ^> Scenario 2
-java -jar runtime-xray.jar --java "java -jar sample-app.jar --iterations %W2%" ^
+java -jar runtime-xray.jar --java "java -jar sample-app.jar --iterations %HALF%" ^
      --attach-after 2 ^
      --name "Scenario 2" --root "lab.sample.terrain.Terrain::slowdownFactor" ^
      --filter "lab/sample/terrain/*" %COMMON% || exit /b 1
@@ -199,14 +206,16 @@ The three runs
   They accumulate in the same output directory: the report shows the campaign, and
   the coverage can be united across the runs one ticks.
 
-  The three runs take some two minutes in all, and they carry three different
-  workloads on purpose: capturing values means tracing every invocation of the root
-  method, and Terrain::slowdownFactor is called several times per itinerary where
-  RoutePlanner::travelTimeMinutes is called once. Giving all three the same number of
-  iterations makes the second one ten times the longest.
+  The three runs take under two minutes in all. The published report is denser — it
+  gives all three runs three times this workload and pays eleven minutes for it, on the
+  machine it was recorded on. On a slower one its middle run crosses the tool's 600 s
+  guard rail and gets stopped: capturing values means tracing every invocation of the
+  root method, and Terrain::slowdownFactor is called far more often than
+  RoutePlanner::travelTimeMinutes.
 
-  WORKLOAD=2000000 ./demo.sh shortens all three, for a slower machine. The shape does
-  not change, only the number of stack samples behind the percentages.
+  WORKLOAD=16000000 ./demo.sh gets closer to the published density and takes some four
+  minutes; WORKLOAD=2000000 shortens it for a slower machine. Only the number of stack
+  samples behind the percentages changes.
 
 What you will NOT see under Windows
   The call tree, and it is not a defect of the package: time is sampled by
