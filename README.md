@@ -270,6 +270,26 @@ async-profiler and Arthas (Apache-2.0) — that is what sets them apart from the
 which redistributes nothing. See [THIRD-PARTY.md](THIRD-PARTY.md). They are not published on
 Maven Central: the 170 KB jar stays the normal artefact.
 
+#### The demonstration package, to try the tool without building it
+
+[`bin/demo-kit.sh`](bin/demo-kit.sh) assembles a package that carries the tool **and the
+application it observes**, so the campaign published above can be replayed on any machine
+with a JDK and nothing else:
+
+```bash
+bin/demo-kit.sh          # → target/runtime-xray-demo.zip (~18 MB)
+
+# then, wherever it is unzipped
+./demo.sh                # Linux / macOS      demo.cmd on Windows
+```
+
+It holds the complete edition, `sample-app.jar` with its two dependencies, the sample's
+sources — without them the report opens on "Source unavailable", which is the failure the
+tool exists to explain rather than to demonstrate — and the three runs of the published
+report, with their own root methods and filters. Under Windows the call tree is absent, and
+that is the platform and not the package: async-profiler publishes no binary for it, and the
+report now says so where the tree would be.
+
 #### The kit, if one wants to see what is being carried
 
 [`bin/offline-kit.sh`](bin/offline-kit.sh) assembles the package to carry — the jar, the three

@@ -97,6 +97,24 @@ suffice to get out of it, and it must stay so.
 
 `bin/offline-kit.sh` assembles the equivalent package to carry, fingerprints included.
 
+`bin/demo-kit.sh` assembles a different one, and the difference is the point: the offline kit
+carries the tool towards an application one already has, the demo kit carries **an
+application too** — `sample-app.jar`, its dependencies and its sources — so somebody can
+replay the published campaign with a JDK and nothing else. Two decisions in it were made by
+running it rather than by reading it, and both would have shipped a package that demonstrates
+the opposite of what it is for:
+
+- **`--classes` names `sample-app.jar` alone.** Adding `libs/commons-lang3.jar`, which the
+  application really does reach and which the published demo really did pass, puts its 231
+  classes into the coverage — none with its source in the package. The report then opened on
+  *"231 measured classes out of 258 have no source"*: the exact failure mode this tool exists
+  to explain, on the first screen of a demonstration.
+- **`--attach-after` is computed from the workload.** Values are captured by attaching to the
+  live JVM, and the default 8 s suits the full run only. Shortening the campaign — which the
+  README offers — made the application finish before the attachment, and a third of what the
+  report shows disappeared with a warning nobody would connect to the `ITERATIONS=` they had
+  just typed.
+
 ## When the report does not show what was expected
 
 This is the tool's most costly failure mode, because it is **silent**: an empty code panel
