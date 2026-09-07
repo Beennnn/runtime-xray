@@ -158,7 +158,7 @@ public final class Dashboard {
                 : PackageFilter.of(String.valueOf(recorded));
 
         Coverage coverage = Coverage.parse(base.resolve("jacoco/html/jacoco.xml"), hidden);
-        CallTree tree = CallTree.parse(base.resolve("async-profiler/profil.collapsed"), hidden);
+        CallTree tree = CallTree.parse(Capture.profile(base), hidden);
         Inspection inspection = Inspection.read(
                 base.resolve("arthas/watch-params.txt"),
                 base.resolve("arthas/trace-calltree.txt"),
@@ -188,6 +188,10 @@ public final class Dashboard {
                 : origin != null ? origin
                 : shortId(uuid, base));
         run.put("chemin", relative(commonDir, base));
+        // Which directory holds this run's profile. The page links three files inside it,
+        // and the two tools write under their own name — so an old capture, which knows
+        // only async-profiler/, keeps working: the field simply says what is there.
+        run.put("repertoireProfil", Capture.profileDir(base) + "/");
         run.put("rapports", reportsPresent(base));
         // The view must be able to say what was set aside BEFORE the measurement: that
         // code is not "absent", it was silenced, and silencing the difference would be
@@ -239,10 +243,11 @@ public final class Dashboard {
         m.put("ciblee", Files.isRegularFile(base.resolve("jacoco-focused/html/index.html")));
         m.put("jacocoXml", Files.isRegularFile(base.resolve("jacoco/html/jacoco.xml")));
         m.put("jacocoCsv", Files.isRegularFile(base.resolve("jacoco/html/jacoco.csv")));
-        m.put("flamegraph", Files.isRegularFile(base.resolve("async-profiler/flamegraph.html")));
+        String profileDir = Capture.profileDir(base);
+        m.put("flamegraph", Files.isRegularFile(base.resolve(profileDir + "/flamegraph.html")));
         m.put("flamegraphInverse",
-                Files.isRegularFile(base.resolve("async-profiler/flamegraph-inverse.html")));
-        m.put("collapsed", Files.isRegularFile(base.resolve("async-profiler/profil.collapsed")));
+                Files.isRegularFile(base.resolve(profileDir + "/flamegraph-inverse.html")));
+        m.put("collapsed", Files.isRegularFile(Capture.profile(base)));
         m.put("valeurs", Files.isRegularFile(base.resolve("arthas/watch-params.txt")));
         m.put("traceBrute", Files.isRegularFile(base.resolve("arthas/trace-calltree.txt")));
         m.put("exportPerf", Files.isRegularFile(base.resolve("exports/profil.perf.txt")));

@@ -115,6 +115,51 @@ the opposite of what it is for:
   report shows disappeared with a warning nobody would connect to the `ITERATIONS=` they had
   just typed.
 
+## Measuring time where async-profiler cannot
+
+`--time-source jfr` is the tool's **only setting whose price is paid in accuracy**, and that
+is what makes it different from every other restriction here. `JACOCO_REPORTS` and `ARCHIVE`
+give up files; this one gives up truth, and a profile that is less true without saying so is
+worse than no profile — which is why it is opt-in, never a fallback, and says what it costs
+in four places: the help, the configuration template, the console at launch, and the report
+itself.
+
+**The mechanism is small because the format is already shared.** Flight Recorder is in the
+JDK, `-XX:StartFlightRecording` replaces the `-agentpath:`, and the converter this tool
+already carries for the flame graphs folds the recording into exactly the stacks `CallTree`
+already parses. Downstream, nothing can tell which tool measured — and that is the point,
+and also the danger, hence the caveats.
+
+**Three things were found by running it, not by reading it:**
+
+- **`--cpu` converts a full recording into an empty file.** That flag looks for
+  `jdk.CPUTimeSample`, a JDK 25 event; on anything older the converter cheerfully writes zero
+  lines from 218 samples. The conversion asks for no event filter at all.
+- **The converter marks frames `_[j]`, `_[i]`, `_[0]`** — compiled, interpreted, compilation
+  level. A first pass stripped `_[a-z]` only and left `RoutePlanner.<clinit>_[0]` in the
+  tree, a frame name no reader would recognise. The class is `[a-z0-9]`.
+- **`--filter` has no effect, and the first console message said it was "applied on
+  reading".** It is not applied at all: it is handed to async-profiler, which then records
+  nothing else, and Flight Recorder takes no such thing. Reimplementing it afterwards would
+  keep the option's name and change its meaning. What still clears the noise is the folding
+  `CallTree` always does on JDK and instrumentation frames. Writing the true sentence cost
+  three edits, in the three places the false one had been copied to.
+
+**The profile files moved, and `Capture` owns where they are.** async-profiler writes under
+`async-profiler/`, Flight Recorder under `jfr/`; naming a directory after a tool that did not
+produce the file would be a quiet lie. `Capture.profile(runDir)` and `Capture.profileDir` are
+the single answer to "where is this run's profile", used by the tree, the two exports, the raw
+flame graphs and the page's links — five readers that would otherwise each have their own
+idea, and a run measured the other way would look like a run with no profile at all. An older
+capture, which knows only `async-profiler/`, still resolves: that is why this is capture
+**1.2** and not **2.0**.
+
+**A sentence shown in the page carries no inline markup.** The caveat's first version held
+`<code>--time-source jfr</code>`, which splits the paragraph into text nodes none of which is
+a dictionary key — the French view then showed an English paragraph, exactly the drift
+`ViewLanguageTest` exists to prevent. The rule is in "The view's language" and it is absolute:
+one translated sentence is one text node.
+
 ## When the report does not show what was expected
 
 This is the tool's most costly failure mode, because it is **silent**: an empty code panel

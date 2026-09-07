@@ -1,5 +1,7 @@
 package lab.xray.report;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Map;
 
 /**
@@ -43,7 +45,7 @@ public final class Capture {
     public static final String ORIGIN = "1.0";
 
     /** What a run started today writes into its context. */
-    public static final String CURRENT = "1.1";
+    public static final String CURRENT = "1.2";
 
     /**
      * The oldest one this tool can read.
@@ -52,6 +54,36 @@ public final class Capture {
      * convenience of the code. Raising it forces every user to measure again.
      */
     public static final String MINIMUM = "1.0";
+
+    /**
+     * Where a run's folded stacks are, whichever tool produced them.
+     *
+     * <p>Two tools can measure the time and they do not write to the same place —
+     * async-profiler folds the stacks itself, Flight Recorder records and the converter
+     * folds afterwards. Everything downstream reads <b>one</b> file, so the choice is made
+     * here rather than at each of the four readers: the tree, the two exports, the raw
+     * flame graphs and the page's links would otherwise each have their own idea of where
+     * the profile is, and a run measured the other way would look like a run without one.
+     *
+     * <p>The order is not arbitrary. A directory named after a tool that did not produce
+     * the file would be a quiet lie, so each writes under its own name; and an older
+     * capture, which knows only {@code async-profiler/}, still resolves — that is what
+     * makes this a minor version and not a major one.
+     */
+    public static Path profile(Path runDir) {
+        Path fromJfr = runDir.resolve(JFR_DIR + "/profil.collapsed");
+        return Files.isRegularFile(fromJfr)
+                ? fromJfr : runDir.resolve(ASYNC_DIR + "/profil.collapsed");
+    }
+
+    /** The directory of that file, relative to the run — what the page's links need. */
+    public static String profileDir(Path runDir) {
+        return Files.isRegularFile(runDir.resolve(JFR_DIR + "/profil.collapsed"))
+                ? JFR_DIR : ASYNC_DIR;
+    }
+
+    public static final String ASYNC_DIR = "async-profiler";
+    public static final String JFR_DIR = "jfr";
 
     private Capture() {}
 

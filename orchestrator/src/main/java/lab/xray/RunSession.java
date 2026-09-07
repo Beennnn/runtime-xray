@@ -53,7 +53,12 @@ public final class RunSession {
 
     public void execute() throws IOException, InterruptedException {
         Files.createDirectories(runDir.resolve("jacoco"));
-        Files.createDirectories(runDir.resolve("async-profiler"));
+        // Both are made: the run may be measured either way, and an empty directory
+        // costs one inode where a missing one costs a failed launch.
+        Files.createDirectories(runDir.resolve(lab.xray.report.Capture.ASYNC_DIR));
+        if (config.jfrTime()) {
+            Files.createDirectories(runDir.resolve(lab.xray.report.Capture.JFR_DIR));
+        }
         Files.createDirectories(runDir.resolve("arthas"));
 
         String agentOptions = agentOptions();
@@ -212,6 +217,31 @@ public final class RunSession {
 
         if (!config.profileWanted()) {
             System.out.println("   level \"couverture\": no stack sampling");
+        } else if (config.jfrTime()) {
+            // Flight Recorder is in the JDK: nothing to find, nothing to install, and it
+            // runs where async-profiler has no binary. What it costs is said at every
+            // place it is offered — here too, because this line is what the operator sees.
+            sb.append(" -XX:StartFlightRecording:settings=profile,filename=")
+              .append(runDir.resolve(lab.xray.report.Capture.JFR_DIR + "/recording.jfr")
+                      .toAbsolutePath());
+            // Same two options as below, and for the same reason: without them the samples
+            // are attributed to the wrong line.
+            sb.append(" -XX:+UnlockDiagnosticVMOptions -XX:+DebugNonSafepoints");
+            System.out.println("   time from Flight Recorder (--time-source jfr): samples"
+                    + " at safepoints, every 10 ms.");
+            System.out.println("      Less accurate than async-profiler, and --interval"
+                    + " does not apply. The page says so.");
+            if (!config.effectiveFilter().isBlank()) {
+                // --filter is handed to async-profiler, which then records nothing else.
+                // Flight Recorder takes no such thing, and we do not reimplement it: a
+                // filter applied on reading would keep the option's name and change its
+                // meaning, which is worse than not having it. What DOES clear the noise is
+                // the folding the tree already does on JDK and instrumentation frames.
+                System.out.println("      --filter has no effect here: the recording holds"
+                        + " everything. The tree still folds");
+                System.out.println("      JDK and instrumentation frames onto their caller,"
+                        + " as it always does.");
+            }
         } else if (tools.asyncProfilerAvailable()) {
             StringBuilder async = new StringBuilder("start,event=itimer,interval=")
                     .append(Math.max(1, config.sampleIntervalMs))
@@ -234,8 +264,10 @@ public final class RunSession {
                     + " no binary for it.");
             System.out.println("      Coverage and captured values are measured as usual."
                     + " To obtain the tree, run");
-            System.out.println("      the same command from WSL, or on a Linux or macOS"
-                    + " machine.");
+            System.out.println("      the same command from WSL, on a Linux or macOS"
+                    + " machine, or with --time-source jfr");
+            System.out.println("      here — Flight Recorder measures a coarser tree, and"
+                    + " the page says so.");
         }
         return sb.toString();
     }

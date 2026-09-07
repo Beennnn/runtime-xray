@@ -126,6 +126,10 @@ public final class Main {
                     }
                 }
                 case "--interval" -> config.sampleIntervalMs = Integer.parseInt(args[++i]);
+                // No bare form, deliberately, where --archive has one: a bare --archive
+                // takes the value that costs nothing, and this option has no such value.
+                // Whoever types it is giving up accuracy, and must say which way.
+                case "--time-source" -> config.timeSource = args[++i];
                 // The port attaches to the option, as for --serve: "--suivi" alone takes
                 // the default port, and "--suivi 9100" the one given to it.
                 case "--follow", "--suivi" -> {
@@ -235,6 +239,10 @@ public final class Main {
         require(config.archive.isBlank() || Config.ARCHIVE.contains(config.archive),
                 "unknown value for --archive: " + config.archive
                 + " (known: " + String.join(", ", Config.ARCHIVE) + ")");
+        config.timeSource = config.timeSource.trim().toLowerCase(Locale.ROOT);
+        require(Config.TIME_SOURCES.contains(config.timeSource),
+                "unknown value for --time-source: " + config.timeSource
+                + " (known: " + String.join(", ", Config.TIME_SOURCES) + ")");
         require(Config.LEVELS.contains(Config.level(config.level)),
                 "--level expects coverage, tree or full (got: " + config.level + ")");
         // The classes serve to MEASURE. Reassembling a view from existing measurements
@@ -320,6 +328,11 @@ public final class Main {
         System.out.println("▶ Rendering coverage");
         renderCoverage(config, tools, runDir);
 
+        if (config.jfrTime() && config.profileWanted()) {
+            System.out.println("▶ Folding the Flight Recorder recording");
+            foldRecording(tools, runDir);
+        }
+
         System.out.println("▶ Rendering the profile with its own tool");
         renderProfileViews(tools, runDir);
 
@@ -371,22 +384,70 @@ public final class Main {
      * the measurement is already on disk as {@code .collapsed}.
      */
     private static void renderProfileViews(Toolbox tools, Path runDir) {
-        Path collapsed = runDir.resolve("async-profiler/profil.collapsed");
+        Path collapsed = lab.xray.report.Capture.profile(runDir);
         if (!Files.isRegularFile(collapsed)) {
             return;
         }
+        Path dir = collapsed.getParent();
+        String from = lab.xray.report.Capture.JFR_DIR.equals(dir.getFileName().toString())
+                ? "Flight Recorder" : "async-profiler";
         try {
             Path converter = tools.asyncProfilerConverter();
             // The classic graph, then its reverse: the first answers "where does the time
             // go?", the second "who calls this costly method?". They are two different
             // questions, and the reverse is the harder one to obtain otherwise.
-            convert(converter, collapsed, runDir.resolve("async-profiler/flamegraph.html"),
-                    List.of("--title", "Raw profile — async-profiler"));
-            convert(converter, collapsed, runDir.resolve("async-profiler/flamegraph-inverse.html"),
+            convert(converter, collapsed, dir.resolve("flamegraph.html"),
+                    List.of("--title", "Raw profile — " + from));
+            convert(converter, collapsed, dir.resolve("flamegraph-inverse.html"),
                     List.of("--reverse", "--title", "Reversed profile — who calls what"));
         } catch (Exception e) {
             System.out.println("   ⚠️ native rendering unavailable (" + e.getMessage()
                     + ") — the raw stacks remain in profil.collapsed");
+        }
+    }
+
+    /**
+     * Turns a Flight Recorder recording into the folded stacks the rest of the chain reads.
+     *
+     * <p>The converter is the one this tool already carries for the flame graphs — it is
+     * async-profiler's own, and it reads {@code .jfr} as well as it writes HTML. So nothing
+     * new is downloaded and nothing new is parsed: once this file exists, the tree, the
+     * exports and the page cannot tell which tool measured, which is exactly the point.
+     *
+     * <p>Two details are not details. The event is <b>not</b> asked for with {@code --cpu}:
+     * that flag looks for {@code jdk.CPUTimeSample}, a JDK 25 event, and on anything older
+     * it converts a recording full of samples into an empty file — measured, 218 samples in
+     * and zero lines out. And the converter marks each frame with how it ran —
+     * {@code _[j]} compiled, {@code _[i]} interpreted, {@code _[0]} a compilation level —
+     * which is a different vocabulary from async-profiler's; the suffixes are removed so
+     * that one frame is one name, whichever tool produced the run. The character class
+     * covers digits as well as letters because the first pass did not, and left
+     * {@code RoutePlanner.<clinit>_[0]} in the tree.
+     */
+    private static void foldRecording(Toolbox tools, Path runDir) {
+        Path recording = runDir.resolve(lab.xray.report.Capture.JFR_DIR + "/recording.jfr");
+        if (!Files.isRegularFile(recording)) {
+            System.out.println("   ⚠️ no recording written: the JVM refused"
+                    + " -XX:StartFlightRecording, or the run never started.");
+            return;
+        }
+        Path folded = runDir.resolve(lab.xray.report.Capture.JFR_DIR + "/profil.collapsed");
+        try {
+            Path raw = runDir.resolve(lab.xray.report.Capture.JFR_DIR + "/profil.brut");
+            exec(List.of(RunSession.javaExecutable(), "-jar",
+                    tools.asyncProfilerConverter().toString(),
+                    "-o", "collapsed", recording.toString(), raw.toString()));
+            List<String> lines = new ArrayList<>();
+            for (String line : Files.readAllLines(raw, StandardCharsets.UTF_8)) {
+                lines.add(line.replaceAll("_\\[[a-z0-9]\\]", ""));
+            }
+            Files.write(folded, lines, StandardCharsets.UTF_8);
+            Files.deleteIfExists(raw);
+            System.out.println("   " + lines.size() + " folded stack(s) from the recording");
+        } catch (Exception e) {
+            // The recording stays: it is the measurement, and jfr(1) reads it without us.
+            System.out.println("   ⚠️ the recording could not be folded (" + e.getMessage()
+                    + ") — it stays in " + recording + ", readable with \"jfr summary\".");
         }
     }
 
@@ -858,7 +919,8 @@ public final class Main {
                 "--out (or --classes) is needed to place the measurement files");
         Path runDir = Path.of(config.outDir, "runs", "manuel");
         Files.createDirectories(runDir.resolve("jacoco"));
-        Files.createDirectories(runDir.resolve("async-profiler"));
+        Files.createDirectories(runDir.resolve(config.jfrTime()
+                ? lab.xray.report.Capture.JFR_DIR : lab.xray.report.Capture.ASYNC_DIR));
         String options = new RunSession(config, tools, runDir).agentOptions();
         System.out.println();
         System.out.println("Options to add to ANY Java command line:");
@@ -944,7 +1006,8 @@ public final class Main {
             classes.add(e);
         }
         m.put("racinesClasses", classes);
-        m.put("mesureDuTemps", tools.asyncProfilerAvailable());
+        m.put("mesureDuTemps", config.jfrTime() || tools.asyncProfilerAvailable());
+        m.put("sourceTemps", config.timeSource);
         return m;
     }
 
@@ -1274,6 +1337,9 @@ public final class Main {
                                        place, replace removes it after checking the archive.
                                        "replace" takes something away — see the same section.
                   --interval <ms>      Stack sampling interval (default: 1).
+                  --time-source <name> Which tool samples the stacks: async-profiler (the
+                                       default) or jfr. See MEASURING TIME WITHOUT
+                                       ASYNC-PROFILER \u2014 the second one costs accuracy.
                   --attach-after <s>   Delay before inspecting values (default: 8).
                   --max-seconds <s>    Guard rail on the run duration (default: 600).
                   --no-values          Do not inspect values: timings become exact.
@@ -1342,6 +1408,51 @@ public final class Main {
 
                   --print-options      Run nothing: print the JVM options to add to any command
                                        line, then assemble with --report-only.
+
+                MEASURING TIME WITHOUT ASYNC-PROFILER
+
+                  The call tree is built from sampled stacks, and async-profiler publishes
+                  binaries for Linux and macOS only. On Windows it is therefore never
+                  measured: the coverage and the captured values are complete, that tab is
+                  empty, and the report says so where the tree would be.
+
+                  Three ways out, and they are not equivalent:
+
+                    WSL, or a Linux or macOS machine
+                      Same jar, same options, same report, same accuracy. This is the one
+                      to prefer. Under WSL give --out a path on the Linux side rather than
+                      under /mnt/c: the report writes thousands of small files and that
+                      crossing pays for each of them.
+
+                    --time-source jfr
+                      Flight Recorder is in the JDK and runs everywhere, and this tool
+                      already carries the converter that folds its recording into the same
+                      stacks. IT IS LESS ACCURATE, and here is exactly how:
+
+                        \u2022 JFR reads a stack at a SAFEPOINT. The JIT removes safepoints
+                          from hot counted loops, so the sample lands on the nearest
+                          safepoint rather than on the code that was running \u2014 it can name
+                          the CALLER of the hot method. async-profiler samples from a
+                          signal handler and has no such constraint. The difference is
+                          measured, not theoretical.
+                        \u2022 It samples every 10 ms where async-profiler samples every 1 ms,
+                          so --interval no longer commands anything and the percentages
+                          rest on roughly a tenth of the readings.
+                        \u2022 --filter HAS NO EFFECT. It is handed to async-profiler, which
+                          then records nothing else; Flight Recorder takes no such
+                          thing, and a filter applied afterwards would keep the
+                          option's name and change its meaning. The recording holds
+                          everything and is bigger for the same run. What still
+                          clears the noise is the folding the tree always does on
+                          JDK and instrumentation frames.
+
+                      A tree obtained this way is worth having where there was none. It is
+                      not the same tree, and the page names the tool that measured each
+                      run so nobody compares the two without knowing.
+
+                    Nothing at all
+                      Coverage and captured values are untouched. Only the tree is missing,
+                      and the report says which of these three you are looking at.
 
                 LIVING WITH A SECURITY FILTER (antivirus, EDR, DLP)
                   A report is a great many small FILES, not many bytes: JaCoCo writes two per

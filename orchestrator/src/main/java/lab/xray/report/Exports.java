@@ -111,7 +111,7 @@ public final class Exports {
     public static List<Path> write(Path runDir, Set<Format> formats, int intervalMs,
                                    int valuesPerMethod) throws Exception {
         Path dir = runDir.resolve("exports");
-        Path collapsed = runDir.resolve("async-profiler/profil.collapsed");
+        Path collapsed = Capture.profile(runDir);
         Path jacoco = runDir.resolve("jacoco/html/jacoco.xml");
         List<Path> written = new ArrayList<>();
 

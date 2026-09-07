@@ -1925,6 +1925,9 @@ const EXPORT_ICON =
  */
 function runFiles(){
   const b = R.chemin || "", a = R.rapports || {}, F = D.fusion || {};
+  // Where this run's profile files are. Two tools can have measured it and each writes
+  // under its own name; a report made before that choice existed knows only the first.
+  const prof = R.repertoireProfil || "async-profiler/";
   return [
     {mark: "jacoco", nom: "JaCoCo", toujours: true,
      cmd: "JaCoCo's HTML sites hold two files per class, and the tool produces two of them"
@@ -1962,11 +1965,11 @@ function runFiles(){
       [F.csv, "jacoco-fusion/html/jacoco.csv", "Merged CSV data",
        "One line per class, for a spreadsheet."]]}] : []),
     {mark: "async", nom: "async-profiler", items: [
-      [a.flamegraph, b + "async-profiler/flamegraph.html", "Raw profile",
+      [a.flamegraph, b + prof + "flamegraph.html", "Raw profile",
        "The tool's own rendering, without any of our folding or aggregation."],
-      [a.flamegraphInverse, b + "async-profiler/flamegraph-inverse.html", "Reversed profile",
+      [a.flamegraphInverse, b + prof + "flamegraph-inverse.html", "Reversed profile",
        "The same, reversed: starts from a costly method and climbs back to its callers."],
-      [a.collapsed, b + "async-profiler/profil.collapsed", "Folded stacks",
+      [a.collapsed, b + prof + "profil.collapsed", "Folded stacks",
        "The measurement itself: one call stack per line, followed by its sample count."]]},
     {mark: "arthas", nom: "Arthas", items: [
       [a.valeurs, b + "arthas/watch-params.txt", "Captured values",
@@ -2656,6 +2659,7 @@ function renderTree(){
       if (/^windows/i.test(c.systeme || "")){
         say("Time is sampled by async-profiler, which publishes no binary for Windows, and this run was measured on Windows. Nothing else is affected: the coverage and the captured values are complete, in the Code tab.");
         say("To obtain the call tree, run the same command from a WSL shell, or on a Linux or macOS machine — the jar, the options and the report do not change. Under WSL, give --out a path on the Linux side rather than under /mnt/c: the report writes thousands of small files, and that crossing makes it slow.");
+        say("Or measure it here with --time-source jfr, which uses Flight Recorder: it is in the JDK and runs on Windows. That tree is coarser — it samples at safepoints and about ten times less often — so the page says, on every run measured that way, that it was.");
       }
       else if (c.niveau === "coverage" || c.niveau === "couverture")
         say("This run was asked for at the coverage level, so no sampling was started. Relaunch without --level to obtain the call tree.");
@@ -3912,8 +3916,17 @@ function reserveBlock(){
     ? '<div class="reserve"><b>Stacks the profiler could not walk back.</b> ' +
       esc(R.stacksNote) + '</div>'
     : "";
-  if (!R.profileNote) return stacks;
-  return stacks + '<div class="reserve"><b>One caveat on the time percentages.</b> ' +
+  // A profile measured by Flight Recorder is not the same profile, and the reader has no
+  // way of knowing which they are looking at. It is said here, beside the other caveat on
+  // the percentages, because that is where somebody who doubts a figure goes looking.
+  const jfr = (R.context || {}).sourceTemps === "jfr"
+    ? '<div class="reserve"><b>This run\'s times come from Flight Recorder.</b> ' +
+      // One text node, no markup inside: the walk translates whole strings, and a
+      // sentence carrying a <code> is split into pieces none of which is a known one.
+      esc("Asked for with --time-source jfr, the option that measures a call tree where async-profiler has no binary — Windows. JFR reads a stack at a safepoint, and the compiler removes safepoints from hot loops: a sample can therefore land on the caller of the method that was really running. It samples about ten times less often, so the percentages rest on fewer readings, and --filter had no effect on the recording. Worth having where there was none; not comparable, figure for figure, with a run measured by async-profiler.") + '</div>'
+    : "";
+  if (!R.profileNote) return stacks + jfr;
+  return stacks + jfr + '<div class="reserve"><b>One caveat on the time percentages.</b> ' +
     esc(R.profileNote) + ' <br><br>' +
     'Everything was collected in <b>a single launch</b>: that is the default mode, because it gives the three pieces of information at once and execution time is not a criterion of this project. <b>If the times had to be exact</b>, it is enough to make <b>several launches</b>: a first one for coverage and the profile, a second one for value capture. The percentages then become exact, at the price of one extra run.</div>';
 }
@@ -3935,7 +3948,11 @@ function contextBlock(){
           + '</span>' : "") +
     row("Instrumented classes", c.classesInstrumentees
         ? '<code>'+esc(c.classesInstrumentees)+'</code>' : "") +
-    row("Sampling interval", c.intervalleMs && c.intervalleMs !== 1
+    row("Time measured by", c.sourceTemps === "jfr"
+        ? '<code>Flight Recorder</code> <span style="opacity:.7">'
+          + esc("— asked for with --time-source jfr; samples at safepoints, roughly ten times less often") + '</span>'
+        : "") +
+    row("Sampling interval", c.intervalleMs && c.intervalleMs !== 1 && c.sourceTemps !== "jfr"
         ? c.intervalleMs + ' ms' : "") +
     row("Start", esc(c.debut)) +
     row("End", esc(c.fin) + (c.dureeSecondes ? ' <span style="opacity:.7">— '+c.dureeSecondes+' s</span>' : "")) +
@@ -5660,6 +5677,11 @@ setOption("clean",    {icon: OPT.cible});
     "The tree exists to open a method and read it: with no source file there is nothing to open. The overview’s “Source analysis” says which roots were consulted, and proposes the SOURCE_DIRS line to add.": "L'arbre existe pour ouvrir une méthode et la lire : sans fichier source, il n'y a rien à ouvrir. « L'analyse des sources », dans la vue d'ensemble, dit quelles racines ont été consultées et propose la ligne SOURCE_DIRS à ajouter.",
     "No execution profile for this run.": "Aucun profil d'exécution pour cette exécution.",
     "Time is sampled by async-profiler, which publishes no binary for Windows, and this run was measured on Windows. Nothing else is affected: the coverage and the captured values are complete, in the Code tab.": "Le temps est échantillonné par async-profiler, qui ne publie aucun binaire pour Windows, et cette exécution a été mesurée sous Windows. Rien d'autre n'est touché : la couverture et les valeurs capturées sont complètes, dans l'onglet Code.",
+    "Time measured by": "Temps mesuré par",
+    "— asked for with --time-source jfr; samples at safepoints, roughly ten times less often": "— demandé avec --time-source jfr ; échantillonne aux points de sûreté, environ dix fois moins souvent",
+    "This run's times come from Flight Recorder.": "Les temps de cette exécution viennent de Flight Recorder.",
+    "Asked for with --time-source jfr, the option that measures a call tree where async-profiler has no binary — Windows. JFR reads a stack at a safepoint, and the compiler removes safepoints from hot loops: a sample can therefore land on the caller of the method that was really running. It samples about ten times less often, so the percentages rest on fewer readings, and --filter had no effect on the recording. Worth having where there was none; not comparable, figure for figure, with a run measured by async-profiler.": "Demandé avec --time-source jfr, l'option qui mesure un arbre d'appels là où async-profiler n'a pas de binaire — Windows. JFR lit une pile à un point de sûreté, et le compilateur retire les points de sûreté des boucles chaudes : un échantillon peut donc tomber sur l'appelant de la méthode réellement en cours. Il échantillonne environ dix fois moins souvent, donc les pourcentages reposent sur moins de relevés, et --filter n'a eu aucun effet sur l'enregistrement. À prendre là où il n'y avait rien ; pas comparable, chiffre pour chiffre, avec une exécution mesurée par async-profiler.",
+    "Or measure it here with --time-source jfr, which uses Flight Recorder: it is in the JDK and runs on Windows. That tree is coarser — it samples at safepoints and about ten times less often — so the page says, on every run measured that way, that it was.": "Ou le mesurer ici avec --time-source jfr, qui utilise Flight Recorder : il est dans le JDK et tourne sous Windows. Cet arbre est plus grossier — il échantillonne aux points de sûreté et environ dix fois moins souvent — aussi la page le dit, sur chaque exécution mesurée ainsi.",
     "To obtain the call tree, run the same command from a WSL shell, or on a Linux or macOS machine — the jar, the options and the report do not change. Under WSL, give --out a path on the Linux side rather than under /mnt/c: the report writes thousands of small files, and that crossing makes it slow.": "Pour obtenir l'arbre d'appels, relancer la même commande depuis un shell WSL, ou sur une machine Linux ou macOS — le jar, les options et le rapport ne changent pas. Sous WSL, donner à --out un chemin côté Linux plutôt que sous /mnt/c : le rapport écrit des milliers de petits fichiers, et cette traversée le rend lent.",
     "This run was asked for at the coverage level, so no sampling was started. Relaunch without --level to obtain the call tree.": "Cette exécution a été demandée au niveau couverture, donc aucun échantillonnage n'a été lancé. Relancer sans --level pour obtenir l'arbre d'appels.",
     "Not one stack sample was recorded. The run's own log, under its directory, says what the profiler did.": "Pas un seul échantillon de pile n'a été enregistré. Le journal de l'exécution, dans son répertoire, dit ce qu'a fait le profileur.",
