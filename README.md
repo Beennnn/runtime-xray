@@ -232,9 +232,63 @@ java -jar runtime-xray-cli-1.2.2.jar --java "java -jar target/my-app.jar"
 
 The sources and the javadoc come with the same download.
 
+**That jar is cut at a tag, so it holds what the tag held**, and `main` goes on ahead of it.
+Building from a clone is therefore a normal way to use this tool today, and the one that
+gives the current state — see [Building the tool yourself](#building-the-tool-yourself).
+
 For a machine where nothing can be prepared, **two other editions are built from source**:
 they carry their analysis components and therefore need no network, ever — see
 [below](#one-single-file-the-jar-that-carries-its-components).
+
+### Building the tool yourself
+
+```bash
+mvn -q clean package        # → orchestrator/target/runtime-xray.jar
+```
+
+The build declares no repository of its own. It resolves its dependencies through whatever
+Maven repository the machine is **already** configured for — so on a machine that reaches
+one only through an internal mirror, that mirror is a property of the machine, not of this
+project, and it is configured outside the repository.
+
+A `settings.xml` of your own, naming the mirror and **reading** its credentials from the
+environment rather than holding them:
+
+```xml
+<mirror>
+  <id>internal</id>
+  <mirrorOf>*</mirrorOf>
+  <url>${env.MIRROR_URL}</url>
+</mirror>
+
+<server>
+  <id>internal</id>
+  <username>${env.MIRROR_USER}</username>
+  <password>${env.MIRROR_TOKEN}</password>
+</server>
+```
+
+```sh
+set -a; . ./.env; set +a       # the credentials themselves — .env is ignored, and stays so
+mvn --settings path/to/settings.xml -q clean package
+```
+
+**If the mirror terminates TLS with its own certificate**, the build stops on
+`PKIX path building failed`. Trust it **for this build alone**, in a truststore of its own —
+never in the JDK's `cacerts`, which would make that certificate trusted by every Java
+program on the machine, and is hard to undo:
+
+```sh
+keytool -importcert -file mirror.pem -alias internal-mirror \
+        -keystore mirror-truststore.p12 -storetype PKCS12 -storepass changeit
+export MAVEN_OPTS="-Djavax.net.ssl.trustStore=$PWD/mirror-truststore.p12 \
+                   -Djavax.net.ssl.trustStorePassword=changeit"
+```
+
+All of that is about the **build**. The tool's own three analysis components follow a
+different rule, already in place: the network is their last resort, the editions below embed
+them, `bin/offline-kit.sh` carries them, and `~/.runtime-xray` keeps them after the first
+launch.
 
 ### Preparing a machine with no network
 
