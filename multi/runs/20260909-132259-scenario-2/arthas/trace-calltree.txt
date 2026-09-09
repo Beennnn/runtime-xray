@@ -1,0 +1,54 @@
+[INFO] JAVA_HOME: /usr/lib/jvm/java-21-openjdk-amd64
+[INFO] arthas-boot version: 4.3.4
+[INFO] arthas home: /root/.runtime-xray/arthas-4.3.4
+[INFO] Try to attach process 1226
+Picked up JAVA_TOOL_OPTIONS: 
+[ERROR] Start arthas failed, exception stack trace: 
+java.io.IOException: No such process
+	at jdk.attach/sun.tools.attach.VirtualMachineImpl.sendQuitTo(Native Method)
+	at jdk.attach/sun.tools.attach.VirtualMachineImpl.<init>(VirtualMachineImpl.java:77)
+	at jdk.attach/sun.tools.attach.AttachProviderImpl.attachVirtualMachine(AttachProviderImpl.java:58)
+	at jdk.attach/com.sun.tools.attach.VirtualMachine.attach(VirtualMachine.java:207)
+	at com.taobao.arthas.core.Arthas.attachAgent(Arthas.java:124)
+	at com.taobao.arthas.core.Arthas.<init>(Arthas.java:37)
+	at com.taobao.arthas.core.Arthas.main(Arthas.java:491)
+[INFO] Attach process 1226 success.
+[INFO] arthas-client connect 127.0.0.1 3658
+Connect to telnet server error: 127.0.0.1 3658
+java.net.ConnectException: Connection refused
+	at java.base/sun.nio.ch.Net.pollConnect(Native Method)
+	at java.base/sun.nio.ch.Net.pollConnectNow(Net.java:694)
+	at java.base/sun.nio.ch.NioSocketImpl.timedFinishConnect(NioSocketImpl.java:542)
+	at java.base/sun.nio.ch.NioSocketImpl.connect(NioSocketImpl.java:592)
+	at java.base/java.net.SocksSocketImpl.connect(SocksSocketImpl.java:327)
+	at java.base/java.net.Socket.connect(Socket.java:751)
+	at org.apache.commons.net.SocketClient.connect(SocketClient.java:188)
+	at org.apache.commons.net.SocketClient.connect(SocketClient.java:209)
+	at com.taobao.arthas.client.TelnetConsole.process(TelnetConsole.java:326)
+	at com.taobao.arthas.client.TelnetConsole.main(TelnetConsole.java:176)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at com.taobao.arthas.boot.Bootstrap.main(Bootstrap.java:628)
+Usage: arthas-client [--help] [-c <value>] [-f <value>] [-w <value>] [-t
+       <value>] [-h <value>] [--quiet] [target-ip] [port]
+
+Arthas Telnet Client
+
+EXAMPLES:
+  java -jar arthas-client.jar 127.0.0.1 3658
+  java -jar arthas-client.jar -c 'dashboard -n 1'
+  java -jar arthas-client.jar -f batch.as 127.0.0.1
+
+Options and Arguments:
+    --help                        Print usage
+ -c,--command <value>             Command to execute, multiple commands
+                                  separated by ;
+ -f,--batch-file <value>          The batch file to execute
+ -w,--width <value>               The terminal width
+ -t,--execution-timeout <value>   The timeout (ms) of execute commands or batch
+                                  file
+ -h,--height <value>              The terminal height
+    --quiet                       Suppress connection welcome output
+ <target-ip>                      Target ip
+ <port>                           The remote server port
+
