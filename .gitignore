@@ -30,3 +30,25 @@ runtime-xray-out/
 # Python bytecode from the diagram generators.
 __pycache__/
 *.pyc
+
+# A local .env holding the credentials of an internal Maven mirror, sourced by the shell or
+# the IDE before a build. The tool names such a mirror with --repo / MAVEN_REPO and stores
+# nothing itself; what this file holds is the reader's own account. The variants go too:
+# ".env.dev" leaks exactly what ".env" leaks.
+.env
+.env.*
+
+# A Maven repository local to the project — a place this tool knows how to look in
+# (MAVEN_REPO_LOCAL). The whole directory, not just repository/: settings.xml is the file
+# that carries a mirror's username and password, and this repository is public.
+.m2/
+
+# Windows leaves a real file named "nul" behind when a command redirects to it from a
+# POSIX-style shell: there the name is a relative path, not the null device. Nothing in
+# this repository produces it — it is a stray, never an input.
+nul
+
+# The tool writes wherever --out points, so ignoring its default is not enough. This is the
+# other conventional name, and it is ignored for the same reason as runtime-xray-out/
+# above: a report carries class names, line numbers and captured parameter values.
+tmp/
