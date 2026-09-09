@@ -3,7 +3,7 @@
 <g font-family="Segoe UI, system-ui, sans-serif">
 <text x="40" y="48" font-size="22" font-weight="700" fill="#14181e">What the campaign measured</text>
 <text x="40" y="72" font-size="13" font-weight="400" fill="#5a6472">java -jar sample-app.jar --iterations 8000000</text>
-<text x="40" y="92" font-size="12.5" font-weight="400" fill="#5a6472">vm · 2026-09-09 13:23:11 · 3 runs</text>
+<text x="40" y="92" font-size="12.5" font-weight="400" fill="#5a6472">vm · 2026-09-09 13:37:26 · 4 runs</text>
 <rect x="40" y="118" width="270" height="118" rx="8" fill="#f6f8fa"/>
 <rect x="40" y="118" width="4" height="118" rx="2" fill="#1a7f37"/>
 <text x="60" y="144" font-size="11" font-weight="700" fill="#5a6472">CUMULATIVE COVERAGE</text>
@@ -17,12 +17,12 @@
 <rect x="660" y="118" width="270" height="118" rx="8" fill="#f6f8fa"/>
 <rect x="660" y="118" width="4" height="118" rx="2" fill="#9a6700"/>
 <text x="680" y="144" font-size="11" font-weight="700" fill="#5a6472">RUNS GATHERED</text>
-<text x="680" y="188" font-size="32" font-weight="700" fill="#9a6700">3</text>
+<text x="680" y="188" font-size="32" font-weight="700" fill="#9a6700">4</text>
 <text x="680" y="214" font-size="12" font-weight="400" fill="#5a6472">each brings its share</text>
 <rect x="970" y="118" width="270" height="118" rx="8" fill="#f6f8fa"/>
 <rect x="970" y="118" width="4" height="118" rx="2" fill="#5a6472"/>
 <text x="990" y="144" font-size="11" font-weight="700" fill="#5a6472">TIME OBSERVED</text>
-<text x="990" y="188" font-size="32" font-weight="700" fill="#5a6472">50 s</text>
+<text x="990" y="188" font-size="32" font-weight="700" fill="#5a6472">2 min</text>
 <text x="990" y="214" font-size="12" font-weight="400" fill="#5a6472">wall-clock time of the scenarios</text>
 <text x="40" y="268" font-size="12" font-weight="700" fill="#5a6472">WHERE THE CODE IS COVERED, PACKAGE BY PACKAGE</text>
 <line x1="40" y1="278" x2="640" y2="278" stroke="#c9d1d9"/>
@@ -79,41 +79,41 @@
 <text x="700" y="330" font-size="12.5" font-weight="400" fill="#14181e">…b.sample.RoutePlanner.travelTimeMinutes</text>
 <rect x="1000" y="321" width="178" height="10" rx="5" fill="#e4e9ef"/>
 <rect x="1000" y="321" width="177" height="10" rx="5" fill="#1a7f37"/>
-<text x="1188" y="330" font-size="12" font-weight="600" fill="#1a7f37">99.3 %</text>
+<text x="1188" y="330" font-size="12" font-weight="600" fill="#1a7f37">99.4 %</text>
 <text x="700" y="360" font-size="12.5" font-weight="400" fill="#14181e">lab.sample.comfort.Breaks.totalMinutes</text>
 <rect x="1000" y="351" width="178" height="10" rx="5" fill="#e4e9ef"/>
-<rect x="1000" y="351" width="53" height="10" rx="5" fill="#cf222e"/>
-<text x="1188" y="360" font-size="12" font-weight="600" fill="#cf222e">30 %</text>
+<rect x="1000" y="351" width="50" height="10" rx="5" fill="#cf222e"/>
+<text x="1188" y="360" font-size="12" font-weight="600" fill="#cf222e">28.3 %</text>
 <text x="700" y="390" font-size="12.5" font-weight="400" fill="#14181e">lab.sample.comfort.Breaks.count</text>
 <rect x="1000" y="381" width="178" height="10" rx="5" fill="#e4e9ef"/>
-<rect x="1000" y="381" width="53" height="10" rx="5" fill="#cf222e"/>
-<text x="1188" y="390" font-size="12" font-weight="600" fill="#cf222e">29.9 %</text>
+<rect x="1000" y="381" width="50" height="10" rx="5" fill="#cf222e"/>
+<text x="1188" y="390" font-size="12" font-weight="600" fill="#cf222e">28.3 %</text>
 <text x="700" y="420" font-size="12.5" font-weight="400" fill="#14181e">lab.sample.RoutePlanner.legMinutes</text>
 <rect x="1000" y="411" width="178" height="10" rx="5" fill="#e4e9ef"/>
-<rect x="1000" y="411" width="30" height="10" rx="5" fill="#cf222e"/>
-<text x="1188" y="420" font-size="12" font-weight="600" fill="#cf222e">17 %</text>
+<rect x="1000" y="411" width="16" height="10" rx="5" fill="#cf222e"/>
+<text x="1188" y="420" font-size="12" font-weight="600" fill="#cf222e">8.8 %</text>
 <text x="700" y="450" font-size="12.5" font-weight="400" fill="#14181e">…b.sample.terrain.Terrain.slowdownFactor</text>
 <rect x="1000" y="441" width="178" height="10" rx="5" fill="#e4e9ef"/>
-<rect x="1000" y="441" width="28" height="10" rx="5" fill="#cf222e"/>
-<text x="1188" y="450" font-size="12" font-weight="600" fill="#cf222e">15.7 %</text>
+<rect x="1000" y="441" width="14" height="10" rx="5" fill="#cf222e"/>
+<text x="1188" y="450" font-size="12" font-weight="600" fill="#cf222e">8 %</text>
 <text x="700" y="482" font-size="12" font-weight="400" fill="#5a6472">Share of the measured time, calls included — relative to the costliest.</text>
 <text x="700" y="500" font-size="12" font-weight="700" fill="#5a6472">WHAT EACH RUN COVERED</text>
 <line x1="700" y1="510" x2="1240" y2="510" stroke="#c9d1d9"/>
-<text x="700" y="532" font-size="12.5" font-weight="400" fill="#14181e">Full scenario</text>
+<text x="700" y="532" font-size="12.5" font-weight="400" fill="#14181e">Full scenario (Flight Recorder)</text>
 <rect x="1000" y="523" width="178" height="10" rx="5" fill="#e4e9ef"/>
 <rect x="1000" y="523" width="145" height="10" rx="5" fill="#1a7f37"/>
 <text x="1188" y="532" font-size="12" font-weight="600" fill="#1a7f37">81.6 %</text>
-<text x="916" y="532" font-size="11.5" font-weight="400" fill="#5a6472">33 s</text>
-<text x="700" y="562" font-size="12.5" font-weight="400" fill="#14181e">Scenario 2</text>
+<text x="916" y="532" font-size="11.5" font-weight="400" fill="#5a6472">40 s</text>
+<text x="700" y="562" font-size="12.5" font-weight="400" fill="#14181e">Full scenario</text>
 <rect x="1000" y="553" width="178" height="10" rx="5" fill="#e4e9ef"/>
 <rect x="1000" y="553" width="145" height="10" rx="5" fill="#1a7f37"/>
 <text x="1188" y="562" font-size="12" font-weight="600" fill="#1a7f37">81.6 %</text>
-<text x="916" y="562" font-size="11.5" font-weight="400" fill="#5a6472">9 s</text>
-<text x="700" y="592" font-size="12.5" font-weight="400" fill="#14181e">Scenario 1</text>
+<text x="916" y="562" font-size="11.5" font-weight="400" fill="#5a6472">39 s</text>
+<text x="700" y="592" font-size="12.5" font-weight="400" fill="#14181e">Scenario 2</text>
 <rect x="1000" y="583" width="178" height="10" rx="5" fill="#e4e9ef"/>
 <rect x="1000" y="583" width="145" height="10" rx="5" fill="#1a7f37"/>
 <text x="1188" y="592" font-size="12" font-weight="600" fill="#1a7f37">81.6 %</text>
-<text x="916" y="592" font-size="11.5" font-weight="400" fill="#5a6472">8 s</text>
+<text x="916" y="592" font-size="11.5" font-weight="400" fill="#5a6472">24 s</text>
 <text x="700" y="622" font-size="11.5" font-weight="400" fill="#5a6472">Share of the same total as the cumulative figure — what each scenario alone would give.</text>
 <text x="40" y="620" font-size="12" font-weight="700" fill="#5a6472">WHAT NEVER RAN</text>
 <line x1="40" y1="630" x2="1240" y2="630" stroke="#c9d1d9"/>

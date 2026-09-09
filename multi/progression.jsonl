@@ -1,29 +1,68 @@
-{"event":"start","run":"20260909-132247-scenario-1","date":"2026-09-09T13:22:55.267005601Z","command":"java -jar sample-app.jar --iterations 4000000","output":"/tmp/claude-0/-home-user-runtime-xray/f9857db5-eb95-56f5-96af-931ab70092f8/scratchpad/pub/runtime-xray-demo/report"}
-{"event":"end","run":"20260909-132247-scenario-1","date":"2026-09-09T13:22:55.283417194Z","status":"ended, code 0","seconds":0}
-{"event":"start","run":"20260909-132259-scenario-2","date":"2026-09-09T13:23:07.464810911Z","command":"java -jar sample-app.jar --iterations 4000000","output":"/tmp/claude-0/-home-user-runtime-xray/f9857db5-eb95-56f5-96af-931ab70092f8/scratchpad/pub/runtime-xray-demo/report"}
-{"event":"end","run":"20260909-132259-scenario-2","date":"2026-09-09T13:23:07.480434743Z","status":"ended, code 0","seconds":0}
-{"event":"start","run":"20260909-132311-full-scenario","date":"2026-09-09T13:23:20.627849919Z","command":"java -jar sample-app.jar --iterations 8000000","output":"/tmp/claude-0/-home-user-runtime-xray/f9857db5-eb95-56f5-96af-931ab70092f8/scratchpad/pub/runtime-xray-demo/report"}
-{"event":"progress","run":"20260909-132311-full-scenario","date":"2026-09-09T13:23:21.661057737Z","seconds":1,"cores":0.0,"level":0,"cpuSeconds":23,"outputBytes":1863}
-{"event":"progress","run":"20260909-132311-full-scenario","date":"2026-09-09T13:23:22.664280995Z","seconds":2,"cores":1.0,"level":3,"cpuSeconds":24,"outputBytes":1863}
-{"event":"progress","run":"20260909-132311-full-scenario","date":"2026-09-09T13:23:23.666871552Z","seconds":3,"cores":1.04,"level":3,"cpuSeconds":25,"outputBytes":1863}
-{"event":"progress","run":"20260909-132311-full-scenario","date":"2026-09-09T13:23:24.669625838Z","seconds":4,"cores":1.01,"level":3,"cpuSeconds":26,"outputBytes":1863}
-{"event":"progress","run":"20260909-132311-full-scenario","date":"2026-09-09T13:23:25.672158706Z","seconds":5,"cores":1.01,"level":3,"cpuSeconds":27,"outputBytes":1863}
-{"event":"progress","run":"20260909-132311-full-scenario","date":"2026-09-09T13:23:26.674573756Z","seconds":6,"cores":1.01,"level":3,"cpuSeconds":28,"outputBytes":1863}
-{"event":"progress","run":"20260909-132311-full-scenario","date":"2026-09-09T13:23:27.676509906Z","seconds":7,"cores":1.0,"level":3,"cpuSeconds":29,"outputBytes":1863}
-{"event":"progress","run":"20260909-132311-full-scenario","date":"2026-09-09T13:23:28.678467985Z","seconds":8,"cores":1.01,"level":3,"cpuSeconds":30,"outputBytes":1863}
-{"event":"progress","run":"20260909-132311-full-scenario","date":"2026-09-09T13:23:29.680857594Z","seconds":9,"cores":1.01,"level":3,"cpuSeconds":31,"outputBytes":1863}
-{"event":"progress","run":"20260909-132311-full-scenario","date":"2026-09-09T13:23:30.682855282Z","seconds":10,"cores":1.01,"level":3,"cpuSeconds":32,"outputBytes":1863}
-{"event":"progress","run":"20260909-132311-full-scenario","date":"2026-09-09T13:23:31.684743012Z","seconds":11,"cores":1.0,"level":3,"cpuSeconds":33,"outputBytes":1863}
-{"event":"progress","run":"20260909-132311-full-scenario","date":"2026-09-09T13:23:32.686569763Z","seconds":12,"cores":1.01,"level":3,"cpuSeconds":34,"outputBytes":1863}
-{"event":"progress","run":"20260909-132311-full-scenario","date":"2026-09-09T13:23:33.688884155Z","seconds":13,"cores":1.01,"level":3,"cpuSeconds":35,"outputBytes":1863}
-{"event":"progress","run":"20260909-132311-full-scenario","date":"2026-09-09T13:23:34.690802926Z","seconds":14,"cores":1.01,"level":3,"cpuSeconds":36,"outputBytes":1863}
-{"event":"progress","run":"20260909-132311-full-scenario","date":"2026-09-09T13:23:35.692595686Z","seconds":15,"cores":1.0,"level":3,"cpuSeconds":37,"outputBytes":1863}
-{"event":"progress","run":"20260909-132311-full-scenario","date":"2026-09-09T13:23:36.694418434Z","seconds":16,"cores":1.02,"level":3,"cpuSeconds":38,"outputBytes":1863}
-{"event":"progress","run":"20260909-132311-full-scenario","date":"2026-09-09T13:23:37.696356970Z","seconds":17,"cores":1.01,"level":3,"cpuSeconds":39,"outputBytes":1863}
-{"event":"progress","run":"20260909-132311-full-scenario","date":"2026-09-09T13:23:38.698635970Z","seconds":18,"cores":1.0,"level":3,"cpuSeconds":40,"outputBytes":1863}
-{"event":"progress","run":"20260909-132311-full-scenario","date":"2026-09-09T13:23:39.700539918Z","seconds":19,"cores":1.01,"level":3,"cpuSeconds":41,"outputBytes":1863}
-{"event":"progress","run":"20260909-132311-full-scenario","date":"2026-09-09T13:23:40.702584238Z","seconds":20,"cores":1.01,"level":3,"cpuSeconds":42,"outputBytes":1863}
-{"event":"progress","run":"20260909-132311-full-scenario","date":"2026-09-09T13:23:41.704582871Z","seconds":21,"cores":1.01,"level":3,"cpuSeconds":43,"outputBytes":1863}
-{"event":"progress","run":"20260909-132311-full-scenario","date":"2026-09-09T13:23:42.706607016Z","seconds":22,"cores":1.01,"level":3,"cpuSeconds":44,"outputBytes":1863}
-{"event":"progress","run":"20260909-132311-full-scenario","date":"2026-09-09T13:23:43.708483988Z","seconds":23,"cores":1.08,"level":3,"cpuSeconds":45,"outputBytes":1863}
-{"event":"end","run":"20260909-132311-full-scenario","date":"2026-09-09T13:23:43.831192808Z","status":"ended, code 0","seconds":23}
+{"event":"start","run":"20260909-133606-scenario-1","date":"2026-09-09T13:36:13.997449518Z","command":"java -jar sample-app.jar --iterations 4000000","output":"/tmp/claude-0/-home-user-runtime-xray/f9857db5-eb95-56f5-96af-931ab70092f8/scratchpad/pub/runtime-xray-demo/report"}
+{"event":"end","run":"20260909-133606-scenario-1","date":"2026-09-09T13:36:14.012787431Z","status":"ended, code 0","seconds":0}
+{"event":"start","run":"20260909-133617-scenario-2","date":"2026-09-09T13:36:40.014167623Z","command":"java -jar sample-app.jar --iterations 4000000","output":"/tmp/claude-0/-home-user-runtime-xray/f9857db5-eb95-56f5-96af-931ab70092f8/scratchpad/pub/runtime-xray-demo/report"}
+{"event":"end","run":"20260909-133617-scenario-2","date":"2026-09-09T13:36:40.025292779Z","status":"ended, code 0","seconds":0}
+{"event":"start","run":"20260909-133644-full-scenario","date":"2026-09-09T13:36:52.414800092Z","command":"java -jar sample-app.jar --iterations 8000000","output":"/tmp/claude-0/-home-user-runtime-xray/f9857db5-eb95-56f5-96af-931ab70092f8/scratchpad/pub/runtime-xray-demo/report"}
+{"event":"progress","run":"20260909-133644-full-scenario","date":"2026-09-09T13:36:53.458201773Z","seconds":1,"cores":0.0,"level":0,"cpuSeconds":21,"outputBytes":1863}
+{"event":"progress","run":"20260909-133644-full-scenario","date":"2026-09-09T13:36:54.460293288Z","seconds":2,"cores":1.01,"level":3,"cpuSeconds":22,"outputBytes":1863}
+{"event":"progress","run":"20260909-133644-full-scenario","date":"2026-09-09T13:36:55.462195557Z","seconds":3,"cores":1.01,"level":3,"cpuSeconds":23,"outputBytes":1863}
+{"event":"progress","run":"20260909-133644-full-scenario","date":"2026-09-09T13:36:56.464623971Z","seconds":4,"cores":1.01,"level":3,"cpuSeconds":24,"outputBytes":1863}
+{"event":"progress","run":"20260909-133644-full-scenario","date":"2026-09-09T13:36:57.466781827Z","seconds":5,"cores":1.01,"level":3,"cpuSeconds":25,"outputBytes":1863}
+{"event":"progress","run":"20260909-133644-full-scenario","date":"2026-09-09T13:36:58.468726834Z","seconds":6,"cores":1.0,"level":3,"cpuSeconds":26,"outputBytes":1863}
+{"event":"progress","run":"20260909-133644-full-scenario","date":"2026-09-09T13:36:59.470600867Z","seconds":7,"cores":1.02,"level":3,"cpuSeconds":27,"outputBytes":1863}
+{"event":"progress","run":"20260909-133644-full-scenario","date":"2026-09-09T13:37:00.473270846Z","seconds":8,"cores":1.0,"level":3,"cpuSeconds":28,"outputBytes":1863}
+{"event":"progress","run":"20260909-133644-full-scenario","date":"2026-09-09T13:37:01.475209648Z","seconds":9,"cores":1.01,"level":3,"cpuSeconds":29,"outputBytes":1863}
+{"event":"progress","run":"20260909-133644-full-scenario","date":"2026-09-09T13:37:02.477222764Z","seconds":10,"cores":0.98,"level":3,"cpuSeconds":30,"outputBytes":1863}
+{"event":"progress","run":"20260909-133644-full-scenario","date":"2026-09-09T13:37:03.479190087Z","seconds":11,"cores":0.96,"level":3,"cpuSeconds":31,"outputBytes":1863}
+{"event":"progress","run":"20260909-133644-full-scenario","date":"2026-09-09T13:37:04.480973605Z","seconds":12,"cores":1.01,"level":3,"cpuSeconds":32,"outputBytes":1863}
+{"event":"progress","run":"20260909-133644-full-scenario","date":"2026-09-09T13:37:05.482799469Z","seconds":13,"cores":1.0,"level":3,"cpuSeconds":33,"outputBytes":1863}
+{"event":"progress","run":"20260909-133644-full-scenario","date":"2026-09-09T13:37:06.484752835Z","seconds":14,"cores":1.01,"level":3,"cpuSeconds":34,"outputBytes":1863}
+{"event":"progress","run":"20260909-133644-full-scenario","date":"2026-09-09T13:37:07.486511713Z","seconds":15,"cores":1.01,"level":3,"cpuSeconds":35,"outputBytes":1863}
+{"event":"progress","run":"20260909-133644-full-scenario","date":"2026-09-09T13:37:08.488241252Z","seconds":16,"cores":1.0,"level":3,"cpuSeconds":36,"outputBytes":1863}
+{"event":"progress","run":"20260909-133644-full-scenario","date":"2026-09-09T13:37:09.490126575Z","seconds":17,"cores":1.01,"level":3,"cpuSeconds":37,"outputBytes":1863}
+{"event":"progress","run":"20260909-133644-full-scenario","date":"2026-09-09T13:37:10.491926788Z","seconds":18,"cores":1.01,"level":3,"cpuSeconds":38,"outputBytes":1863}
+{"event":"progress","run":"20260909-133644-full-scenario","date":"2026-09-09T13:37:11.493800903Z","seconds":19,"cores":1.01,"level":3,"cpuSeconds":39,"outputBytes":1863}
+{"event":"progress","run":"20260909-133644-full-scenario","date":"2026-09-09T13:37:12.495876399Z","seconds":20,"cores":1.01,"level":3,"cpuSeconds":40,"outputBytes":1863}
+{"event":"progress","run":"20260909-133644-full-scenario","date":"2026-09-09T13:37:13.497794150Z","seconds":21,"cores":1.0,"level":3,"cpuSeconds":41,"outputBytes":1863}
+{"event":"progress","run":"20260909-133644-full-scenario","date":"2026-09-09T13:37:14.499533274Z","seconds":22,"cores":1.01,"level":3,"cpuSeconds":42,"outputBytes":1863}
+{"event":"progress","run":"20260909-133644-full-scenario","date":"2026-09-09T13:37:15.501409447Z","seconds":23,"cores":1.02,"level":3,"cpuSeconds":43,"outputBytes":1863}
+{"event":"progress","run":"20260909-133644-full-scenario","date":"2026-09-09T13:37:16.503343523Z","seconds":24,"cores":1.0,"level":3,"cpuSeconds":44,"outputBytes":1863}
+{"event":"progress","run":"20260909-133644-full-scenario","date":"2026-09-09T13:37:17.505211916Z","seconds":25,"cores":1.0,"level":3,"cpuSeconds":45,"outputBytes":1863}
+{"event":"progress","run":"20260909-133644-full-scenario","date":"2026-09-09T13:37:18.507218601Z","seconds":26,"cores":1.01,"level":3,"cpuSeconds":46,"outputBytes":1863}
+{"event":"progress","run":"20260909-133644-full-scenario","date":"2026-09-09T13:37:19.509214750Z","seconds":27,"cores":1.01,"level":3,"cpuSeconds":47,"outputBytes":1863}
+{"event":"progress","run":"20260909-133644-full-scenario","date":"2026-09-09T13:37:20.510954945Z","seconds":28,"cores":1.0,"level":3,"cpuSeconds":48,"outputBytes":1863}
+{"event":"progress","run":"20260909-133644-full-scenario","date":"2026-09-09T13:37:21.512878777Z","seconds":29,"cores":1.01,"level":3,"cpuSeconds":49,"outputBytes":1863}
+{"event":"progress","run":"20260909-133644-full-scenario","date":"2026-09-09T13:37:22.514778189Z","seconds":30,"cores":1.16,"level":3,"cpuSeconds":50,"outputBytes":2000}
+{"event":"end","run":"20260909-133644-full-scenario","date":"2026-09-09T13:37:22.528312586Z","status":"ended, code 0","seconds":30}
+{"event":"start","run":"20260909-133726-full-scenario-flight-recorder","date":"2026-09-09T13:37:35.572288959Z","command":"java -jar sample-app.jar --iterations 8000000","output":"/tmp/claude-0/-home-user-runtime-xray/f9857db5-eb95-56f5-96af-931ab70092f8/scratchpad/pub/runtime-xray-demo/report"}
+{"event":"progress","run":"20260909-133726-full-scenario-flight-recorder","date":"2026-09-09T13:37:36.594944822Z","seconds":1,"cores":0.0,"level":0,"cpuSeconds":23,"outputBytes":2011}
+{"event":"progress","run":"20260909-133726-full-scenario-flight-recorder","date":"2026-09-09T13:37:37.596959579Z","seconds":2,"cores":1.04,"level":3,"cpuSeconds":24,"outputBytes":2011}
+{"event":"progress","run":"20260909-133726-full-scenario-flight-recorder","date":"2026-09-09T13:37:38.598896125Z","seconds":3,"cores":1.02,"level":3,"cpuSeconds":25,"outputBytes":2011}
+{"event":"progress","run":"20260909-133726-full-scenario-flight-recorder","date":"2026-09-09T13:37:39.601888769Z","seconds":4,"cores":1.02,"level":3,"cpuSeconds":26,"outputBytes":2011}
+{"event":"progress","run":"20260909-133726-full-scenario-flight-recorder","date":"2026-09-09T13:37:40.604287396Z","seconds":5,"cores":1.02,"level":3,"cpuSeconds":27,"outputBytes":2011}
+{"event":"progress","run":"20260909-133726-full-scenario-flight-recorder","date":"2026-09-09T13:37:41.606138981Z","seconds":6,"cores":1.02,"level":3,"cpuSeconds":28,"outputBytes":2011}
+{"event":"progress","run":"20260909-133726-full-scenario-flight-recorder","date":"2026-09-09T13:37:42.608142228Z","seconds":7,"cores":1.02,"level":3,"cpuSeconds":29,"outputBytes":2011}
+{"event":"progress","run":"20260909-133726-full-scenario-flight-recorder","date":"2026-09-09T13:37:43.610003269Z","seconds":8,"cores":1.01,"level":3,"cpuSeconds":30,"outputBytes":2011}
+{"event":"progress","run":"20260909-133726-full-scenario-flight-recorder","date":"2026-09-09T13:37:44.611822890Z","seconds":9,"cores":1.02,"level":3,"cpuSeconds":31,"outputBytes":2011}
+{"event":"progress","run":"20260909-133726-full-scenario-flight-recorder","date":"2026-09-09T13:37:45.613693424Z","seconds":10,"cores":1.02,"level":3,"cpuSeconds":32,"outputBytes":2011}
+{"event":"progress","run":"20260909-133726-full-scenario-flight-recorder","date":"2026-09-09T13:37:46.615412228Z","seconds":11,"cores":1.01,"level":3,"cpuSeconds":33,"outputBytes":2011}
+{"event":"progress","run":"20260909-133726-full-scenario-flight-recorder","date":"2026-09-09T13:37:47.617231198Z","seconds":12,"cores":1.03,"level":3,"cpuSeconds":34,"outputBytes":2011}
+{"event":"progress","run":"20260909-133726-full-scenario-flight-recorder","date":"2026-09-09T13:37:48.619575821Z","seconds":13,"cores":1.01,"level":3,"cpuSeconds":35,"outputBytes":2011}
+{"event":"progress","run":"20260909-133726-full-scenario-flight-recorder","date":"2026-09-09T13:37:49.621674824Z","seconds":14,"cores":1.02,"level":3,"cpuSeconds":37,"outputBytes":2011}
+{"event":"progress","run":"20260909-133726-full-scenario-flight-recorder","date":"2026-09-09T13:37:50.623537063Z","seconds":15,"cores":1.02,"level":3,"cpuSeconds":38,"outputBytes":2011}
+{"event":"progress","run":"20260909-133726-full-scenario-flight-recorder","date":"2026-09-09T13:37:51.625341276Z","seconds":16,"cores":1.02,"level":3,"cpuSeconds":39,"outputBytes":2011}
+{"event":"progress","run":"20260909-133726-full-scenario-flight-recorder","date":"2026-09-09T13:37:52.627234342Z","seconds":17,"cores":1.02,"level":3,"cpuSeconds":40,"outputBytes":2011}
+{"event":"progress","run":"20260909-133726-full-scenario-flight-recorder","date":"2026-09-09T13:37:53.629178780Z","seconds":18,"cores":1.01,"level":3,"cpuSeconds":41,"outputBytes":2011}
+{"event":"progress","run":"20260909-133726-full-scenario-flight-recorder","date":"2026-09-09T13:37:54.631040063Z","seconds":19,"cores":1.02,"level":3,"cpuSeconds":42,"outputBytes":2011}
+{"event":"progress","run":"20260909-133726-full-scenario-flight-recorder","date":"2026-09-09T13:37:55.633038238Z","seconds":20,"cores":1.01,"level":3,"cpuSeconds":43,"outputBytes":2011}
+{"event":"progress","run":"20260909-133726-full-scenario-flight-recorder","date":"2026-09-09T13:37:56.634902783Z","seconds":21,"cores":1.02,"level":3,"cpuSeconds":44,"outputBytes":2011}
+{"event":"progress","run":"20260909-133726-full-scenario-flight-recorder","date":"2026-09-09T13:37:57.636914777Z","seconds":22,"cores":1.04,"level":3,"cpuSeconds":45,"outputBytes":2011}
+{"event":"progress","run":"20260909-133726-full-scenario-flight-recorder","date":"2026-09-09T13:37:58.638816161Z","seconds":23,"cores":1.01,"level":3,"cpuSeconds":46,"outputBytes":2011}
+{"event":"progress","run":"20260909-133726-full-scenario-flight-recorder","date":"2026-09-09T13:37:59.641051163Z","seconds":24,"cores":1.02,"level":3,"cpuSeconds":47,"outputBytes":2011}
+{"event":"progress","run":"20260909-133726-full-scenario-flight-recorder","date":"2026-09-09T13:38:00.642746148Z","seconds":25,"cores":1.02,"level":3,"cpuSeconds":48,"outputBytes":2011}
+{"event":"progress","run":"20260909-133726-full-scenario-flight-recorder","date":"2026-09-09T13:38:01.645245839Z","seconds":26,"cores":0.99,"level":3,"cpuSeconds":49,"outputBytes":2011}
+{"event":"progress","run":"20260909-133726-full-scenario-flight-recorder","date":"2026-09-09T13:38:02.674601035Z","seconds":27,"cores":1.0,"level":3,"cpuSeconds":50,"outputBytes":2011}
+{"event":"progress","run":"20260909-133726-full-scenario-flight-recorder","date":"2026-09-09T13:38:03.676487659Z","seconds":28,"cores":0.93,"level":3,"cpuSeconds":51,"outputBytes":2011}
+{"event":"progress","run":"20260909-133726-full-scenario-flight-recorder","date":"2026-09-09T13:38:04.678394308Z","seconds":29,"cores":1.0,"level":3,"cpuSeconds":52,"outputBytes":2011}
+{"event":"progress","run":"20260909-133726-full-scenario-flight-recorder","date":"2026-09-09T13:38:05.686116068Z","seconds":30,"cores":1.18,"level":3,"cpuSeconds":53,"outputBytes":2148}
+{"event":"end","run":"20260909-133726-full-scenario-flight-recorder","date":"2026-09-09T13:38:05.728382778Z","status":"ended, code 0","seconds":30}
