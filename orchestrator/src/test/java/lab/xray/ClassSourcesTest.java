@@ -209,4 +209,41 @@ class ClassSourcesTest {
         c.classesDir = "target/classes";
         assertEquals(List.of(Path.of("target/classes")), c.classesPaths());
     }
+    @Test
+    @DisplayName("A launch command that redirects its output still names its bytecode")
+    void aRedirectedCommandStillNamesItsJar(@TempDir Path dir) throws IOException {
+        // The most ordinary launch line there is sends the output to a file. That single
+        // character makes the command "need a shell", and the whole of it then arrives as
+        // ONE argument — "sh -c java -jar app.jar > run.log" — in which no -jar element
+        // exists any more. This source went silent there, and the run fell back on the
+        // conventions or on nothing: no bytecode, hence a report with nothing in it and
+        // nothing to explain why. Reading a command is not running it.
+        Path jar = jarWith(dir, "app.jar", "app/Engine.class");
+        Path elsewhere = dir.resolve("no-convention-here");
+        Files.createDirectories(elsewhere);
+
+        for (String command : List.of(
+                "java -jar " + jar,                        // direct, and it always worked
+                "java -jar " + jar + " > run.log",         // a redirection
+                "java -jar " + jar + " 2>&1",              // the other redirection
+                "java -Xmx2g -jar " + jar + " > /dev/null",
+                "java -jar " + jar + " | tee run.log")) {  // and a pipe
+            assertEquals(List.of(jar), ClassSources.discover(List.of(), command, elsewhere),
+                    "the archive is named right there in the command: " + command);
+        }
+    }
+
+    @Test
+    @DisplayName("Reading a shell command never invents an archive that is not there")
+    void readingAShellCommandInventsNothing(@TempDir Path dir) throws IOException {
+        // The other half, and the reason this is safe: what tokenizing finds is kept only
+        // if the file exists — the rule this class applies to all three of its sources. A
+        // guessed but wrong path would be worse than no guess at all.
+        Path elsewhere = dir.resolve("no-convention-here");
+        Files.createDirectories(elsewhere);
+        assertTrue(ClassSources.discover(
+                        List.of(), "java -jar " + dir.resolve("never-built.jar") + " > run.log",
+                        elsewhere).isEmpty(),
+                "a -jar naming a file that does not exist is not a source");
+    }
 }

@@ -24,7 +24,8 @@ import java.util.Set;
  *       authoritative source, and it holds even when the command given was a script or a
  *       launcher: we read the JVM, not what we thought we were launching;</li>
  *   <li>failing that, the <b>configured command</b>, if it carries a {@code -jar} or a
- *       {@code -cp};</li>
+ *       {@code -cp} -- read as it would be launched, and read again as it was written,
+ *       because a command handed to an interpreter arrives as one single argument;</li>
  *   <li>failing that, the <b>project convention</b>: {@code target/classes} for Maven,
  *       {@code build/classes/java/main} for Gradle, and their equivalents.</li>
  * </ol>
@@ -60,6 +61,19 @@ public final class ClassSources {
         if (!found.isEmpty()) return found;
 
         found = fromArguments(CommandLine.toProcessArgs(javaCommand));
+        if (!found.isEmpty()) return found;
+
+        // A command carrying a redirection, a pipe or a chain goes to the interpreter, and
+        // the whole of it then becomes ONE argument -- "sh -c java -jar app.jar > run.log".
+        // The -jar inside is no longer an element anybody can find, so this source used to
+        // go silent on the most ordinary launch line there is: one that sends its output
+        // to a file.
+        //
+        // Reading a command is not running it. The same tokenizing a direct launch uses
+        // gives the archive back, and the interpreter still receives the string untouched.
+        // A wrong guess costs nothing either: what comes out is kept only if the file
+        // exists, which is this class's rule for all three of its sources.
+        found = fromArguments(CommandLine.tokenize(javaCommand));
         if (!found.isEmpty()) return found;
 
         for (String convention : CONVENTIONS) {
