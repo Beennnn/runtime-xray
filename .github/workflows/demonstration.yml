@@ -79,12 +79,20 @@ jobs:
             # coverage and captured values arrive, the call tree does not, and the report
             # says why where the tree would be. The second is the way out.
             #
-            # The workload is small on purpose: the first of these two measures no profile
-            # at all, so a long run would buy nothing but runner minutes.
+            # SAME workload and same root as the Linux "Full scenario", which makes the
+            # three readings of one identical run comparable: measured by async-profiler,
+            # not measured at all, and measured by Flight Recorder.
+            #
+            # It was 2 000 000 at the first attempt, on the reasoning that a run with no
+            # profile has nothing to gain from being long. Wrong, and the log said so
+            # twice: the application lived four seconds, and "the application finished
+            # before attachment" — values are captured by attaching to a LIVE JVM, so a
+            # run too short to profile is also too short to inspect. A third of what the
+            # report shows was missing from both Windows runs.
             run "Full scenario (Windows)" \
-                "lab.sample.RoutePlanner::travelTimeMinutes" "lab/sample/*" 2000000
+                "lab.sample.RoutePlanner::travelTimeMinutes" "lab/sample/*" 8000000
             run "Full scenario (Windows, Flight Recorder)" \
-                "lab.sample.RoutePlanner::travelTimeMinutes" "lab/sample/*" 2000000 --time-source jfr
+                "lab.sample.RoutePlanner::travelTimeMinutes" "lab/sample/*" 8000000 --time-source jfr
           fi
 
       - name: What this system measured
