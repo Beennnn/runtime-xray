@@ -1,0 +1,177 @@
+# Measures the demonstration on BOTH systems, and assembles one report out of the two.
+#
+# The published demonstration was measured on Linux, and it could only ever say what a
+# Windows reader does not get — never show it. async-profiler publishes no binary for
+# Windows, so the call tree is simply not measured there; that absence is the single most
+# frequent question about this tool, and a sentence is a poor answer next to a report one
+# can open.
+#
+# So the campaign runs on the two systems and the runs are brought together afterwards.
+# That is not a trick: a run records everything it needs in its own directory, and
+# --report-only rebuilds the view from runs it did not launch. An acceptance campaign
+# spanning several machines is a real situation, and this exercises it.
+#
+# What is given on the command line at assembly wins over what each run recorded — which is
+# what makes the merge possible at all: the Windows runs carry Windows source paths that do
+# not exist on the assembling machine.
+name: Publish the demonstration
+
+on:
+  workflow_dispatch:
+  # So the workflow can be exercised on a branch by touching itself. It publishes only from
+  # main; anywhere else it hands the report back as an artefact.
+  push:
+    paths: ['.github/workflows/demonstration.yml']
+
+permissions:
+  contents: write   # to push onto gh-pages
+
+concurrency:
+  group: demonstration
+  cancel-in-progress: false
+
+jobs:
+  measure:
+    strategy:
+      # Same reason as in tests.yml: losing the other system's runs because this one failed
+      # would leave exactly half the demonstration, and it is the half nobody can reproduce.
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: maven
+
+      - run: mvn -B -q -DskipTests package
+
+      # One shell for both systems: Git Bash is there on the Windows runner, and writing the
+      # campaign twice would let the two drift.
+      - name: The campaign
+        shell: bash
+        run: |
+          set -euo pipefail
+          JAR=orchestrator/target/runtime-xray.jar
+          APP=sample-app/target/sample-app.jar
+          COMMON=(--sources sample-app/src/main/java --classes "$APP" --out out)
+          run(){ # name  root  filter  iterations  extra…
+            local name="$1" root="$2" filter="$3" iters="$4"; shift 4
+            echo "▶ $name"
+            java -jar "$JAR" --java "java -jar $APP --iterations $iters" \
+                 --name "$name" --root "$root" --filter "$filter" \
+                 --attach-after 2 "$@" "${COMMON[@]}"
+          }
+
+          if [ "${{ matrix.os }}" = "ubuntu-latest" ]; then
+            # The kit's own campaign, so what is published stays what ./demo.sh gives.
+            run "Scenario 1"    "lab.sample.RoutePlanner::travelTimeMinutes" "lab/sample/*"         4000000
+            run "Scenario 2"    "lab.sample.terrain.Terrain::slowdownFactor" "lab/sample/terrain/*" 4000000
+            run "Full scenario" "lab.sample.RoutePlanner::travelTimeMinutes" "lab/sample/*"         8000000
+            run "Full scenario (Flight Recorder)" \
+                "lab.sample.RoutePlanner::travelTimeMinutes" "lab/sample/*"  8000000 --time-source jfr
+          else
+            # Two runs, and the pair is the whole point. The first is the ordinary launch:
+            # coverage and captured values arrive, the call tree does not, and the report
+            # says why where the tree would be. The second is the way out.
+            #
+            # SAME workload and same root as the Linux "Full scenario", which makes the
+            # three readings of one identical run comparable: measured by async-profiler,
+            # not measured at all, and measured by Flight Recorder.
+            #
+            # These two runs are what found the attachment defect, and it took two
+            # attempts because the first reading of the log was wrong. The workload was
+            # 2 000 000, both runs said "the application finished before attachment", and
+            # raising it to 8 000 000 changed nothing — the warning came back at 7.15 s
+            # after the launch where --attach-after asked for 2. The delay was being added
+            # to the preparation instead of counted from the launch, and the preparation
+            # costs five seconds here and one turn on Linux. Fixed in RunSession; the
+            # workload stays at 8 000 000 for the reason above, not for that one.
+            run "Full scenario (Windows)" \
+                "lab.sample.RoutePlanner::travelTimeMinutes" "lab/sample/*" 8000000
+            run "Full scenario (Windows, Flight Recorder)" \
+                "lab.sample.RoutePlanner::travelTimeMinutes" "lab/sample/*" 8000000 --time-source jfr
+          fi
+
+      - name: What this system measured
+        uses: actions/upload-artifact@v4
+        with:
+          name: runs-${{ matrix.os }}
+          path: out/runs/
+          retention-days: 5
+
+  assemble:
+    needs: measure
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: maven
+
+      - run: mvn -B -q -DskipTests package
+
+      - name: Both systems' runs, side by side
+        uses: actions/download-artifact@v4
+        with:
+          path: incoming
+
+      # The two artefacts unpack as incoming/runs-<os>/<run>/ — the runs themselves go one
+      # level down, all into the same out/runs/, which is where --report-only looks.
+      - name: One output directory out of the two
+        run: |
+          set -euo pipefail
+          mkdir -p out/runs
+          find incoming -mindepth 2 -maxdepth 2 -type d -exec cp -r {} out/runs/ \;
+          echo "$(ls out/runs | wc -l) run(s) assembled:"
+          ls out/runs
+
+      # --sources and --classes are given here and not left to what each run recorded: the
+      # Windows runs carry Windows paths, which do not exist on this machine. The command
+      # line wins, and that is exactly the rule that makes a cross-machine campaign work.
+      - name: The report
+        run: |
+          java -jar orchestrator/target/runtime-xray.jar --report-only --out out \
+               --sources sample-app/src/main/java \
+               --classes sample-app/target/sample-app.jar
+
+      - name: The report, for whoever asked for it from a branch
+        if: github.ref != 'refs/heads/main'
+        uses: actions/upload-artifact@v4
+        with:
+          name: report
+          path: out/
+          retention-days: 5
+
+      # gh-pages also carries `demo/`, `jfr/` and the home page. Only `multi/` is replaced,
+      # for the same reason page.yml copies only index.html: those are generated reports
+      # that exist nowhere in main, and rebuilding the branch would wipe them out.
+      - name: Publish, from main only
+        if: github.ref == 'refs/heads/main'
+        run: |
+          set -euo pipefail
+          git clone --depth 1 --branch gh-pages \
+            "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" published
+          rm -rf published/multi
+          cp -r out published/multi
+          cd published
+          if git diff --quiet && [ -z "$(git status --porcelain)" ]; then
+            echo "The published demonstration is already this one — nothing to do."
+            exit 0
+          fi
+          git config user.name  'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A multi
+          git commit -m "Republish the demonstration, measured on both systems
+
+          Assembled from ${GITHUB_SHA:0:7} by the demonstration workflow: the Linux runs
+          are the ones ./demo.sh reproduces, the Windows ones are the two nobody can
+          produce on Linux."
+          git push
