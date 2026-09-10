@@ -591,6 +591,20 @@ deployment that does it properly: the proxy terminates TLS and the tool answers 
   a cancellation does. And the `timeout-minutes` bound the other form of the same problem: a
   job set to last six hours, GitHub's default. Do not wait on a silent CI more than once: see
   it, say it, and push.
+- **`--attach-after` names an instant in the run, and what comes before it is deducted.** The
+  values are captured by attaching to a **live** JVM, so the delay is the whole game — and
+  it was being added to the preparation instead of counted from the launch. Reading the
+  observed JVM's arguments costs one turn where the system publishes them and the full
+  twenty — five seconds — where it publishes none: the same command, with the same
+  `--attach-after 2`, attached at **2.01 s on one system and 7.15 s on the other**, past the
+  end of an application that lived six. The tool then said "the application finished before
+  attachment" — true, and useless: it sent one to raise a workload that was never the
+  problem, which is exactly what was done, twice, before the timestamps were read. Two
+  things were wrong and both are fixed: `observeJvmArguments` stops as soon as the JVM is
+  **found**, because a platform that publishes no argument list will not publish one on the
+  next turn either; and `inspectValues` waits the *remainder*, never a delay of its own.
+  Found on 10 September 2026 by the two-system CI, on a run where every check was green.
+
 - **The tilde is a shell character only at the start of a word**: Windows's 8.3 short names
   carry one — `C:\Users\RUNNER~1`, `C:\PROGRA~1` — and counting it everywhere sent the command
   to `cmd /c`. It ran, but `ClassSources` no longer read the `-jar` in it, hence no longer the

@@ -83,12 +83,14 @@ jobs:
             # three readings of one identical run comparable: measured by async-profiler,
             # not measured at all, and measured by Flight Recorder.
             #
-            # It was 2 000 000 at the first attempt, on the reasoning that a run with no
-            # profile has nothing to gain from being long. Wrong, and the log said so
-            # twice: the application lived four seconds, and "the application finished
-            # before attachment" — values are captured by attaching to a LIVE JVM, so a
-            # run too short to profile is also too short to inspect. A third of what the
-            # report shows was missing from both Windows runs.
+            # These two runs are what found the attachment defect, and it took two
+            # attempts because the first reading of the log was wrong. The workload was
+            # 2 000 000, both runs said "the application finished before attachment", and
+            # raising it to 8 000 000 changed nothing — the warning came back at 7.15 s
+            # after the launch where --attach-after asked for 2. The delay was being added
+            # to the preparation instead of counted from the launch, and the preparation
+            # costs five seconds here and one turn on Linux. Fixed in RunSession; the
+            # workload stays at 8 000 000 for the reason above, not for that one.
             run "Full scenario (Windows)" \
                 "lab.sample.RoutePlanner::travelTimeMinutes" "lab/sample/*" 8000000
             run "Full scenario (Windows, Flight Recorder)" \

@@ -73,13 +73,14 @@ public final class RunSession {
         System.out.println("▶ Running the application");
         System.out.println("   " + config.javaCommand);
         Process process = pb.start();
+        long launchedAt = System.nanoTime();
 
         try {
             // Read while the JVM is alive: afterwards its arguments are no longer
             // readable. That is what makes --classes unnecessary — see ClassSources.
             observeJvmArguments(process);
             if (config.valuesWanted() && !config.rootMethod.isBlank()) {
-                inspectValues(process);
+                inspectValues(process, launchedAt);
             }
             System.out.println("▶ Waiting for the run to finish");
             boolean finished = await(process);
@@ -188,14 +189,24 @@ public final class RunSession {
      * process carries it. The read is bounded in time — an application that has not started
      * within a few seconds will not start any better for waiting — and a missing reading is
      * not a breakdown: it simply falls back on the explicit setting.
+     *
+     * <p><b>What is waited for is the JVM, not its arguments.</b> Once the process is found,
+     * asking again changes nothing: the system either publishes an argument list for it or
+     * it does not, and that is a property of the platform, not of the moment. Retrying
+     * regardless spent the twenty turns in full — five seconds — on every run of a system
+     * that publishes none, and those five seconds were then taken off the attachment: with
+     * {@code --attach-after 2}, the tool attached at seven seconds to an application that
+     * lived six, and announced values not captured on a run that had gone perfectly well.
+     * Measured on the two systems' CI, same command and same workload: 2.01 s before
+     * attaching on one, 7.15 s on the other.
      */
     private void observeJvmArguments(Process process) throws InterruptedException {
-        for (int i = 0; i < 20 && jvmArguments.isEmpty(); i++) {
+        for (int i = 0; i < 20; i++) {
             Optional<ProcessHandle> jvm = findJvm(process);
             if (jvm.isPresent()) {
                 jvm.get().info().arguments()
                         .ifPresent(a -> jvmArguments.addAll(List.of(a)));
-                if (!jvmArguments.isEmpty()) return;
+                return;
             }
             if (!process.isAlive()) return;
             Thread.sleep(250);
@@ -276,8 +287,11 @@ public final class RunSession {
      * Attaches to the JVM while it works and records the values received by the methods of
      * the root class.
      */
-    private void inspectValues(Process process) throws IOException, InterruptedException {
-        Thread.sleep(config.attachAfterSeconds * 1000L);
+    private void inspectValues(Process process, long launchedAt)
+            throws IOException, InterruptedException {
+        long remaining = remainingBeforeAttach(config.attachAfterSeconds,
+                (System.nanoTime() - launchedAt) / 1_000_000L);
+        if (remaining > 0) Thread.sleep(remaining);
         Optional<ProcessHandle> jvm = findJvm(process);
         if (jvm.isEmpty()) {
             // Two very different causes behind the same absence, and the operator should
@@ -315,6 +329,22 @@ public final class RunSession {
 
         runAttached(pid, watch, runDir.resolve("arthas/watch-params.txt"), 20);
         runAttached(pid, trace, runDir.resolve("arthas/trace-calltree.txt"), 20);
+    }
+
+    /**
+     * How much longer to wait before attaching, given what the preparation already took.
+     *
+     * <p>{@code --attach-after} names an <b>instant in the observed application's life</b> —
+     * "attach two seconds in" — and not a pause to be added to whatever the tool did first.
+     * Reading it the other way makes the setting mean something different on every machine,
+     * since what comes before it costs nothing on one platform and seconds on another; and
+     * the operator who is told to lower it has no way of lowering it below zero.
+     *
+     * <p>An instant already gone gives no wait at all rather than a negative one: we are
+     * late, and being late is not a reason to be later still.
+     */
+    static long remainingBeforeAttach(long attachAfterSeconds, long sinceLaunchMs) {
+        return Math.max(0, attachAfterSeconds * 1000L - sinceLaunchMs);
     }
 
     private void runAttached(long pid, Path batch, Path output, int limitSeconds)
