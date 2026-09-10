@@ -1,0 +1,11 @@
+Picked up JAVA_TOOL_OPTIONS: -javaagent:C:\Users\runneradmin\.runtime-xray\org.jacoco.agent-0.8.13-runtime.jar=destfile=D:\a\runtime-xray\runtime-xray\out\runs\20260910-180807-full-scenario-windows\jacoco\jacoco.exec
+sample-app: 8000000 trips evaluated, final pause 0 s
+  [JVM started                 ] stage        0 ms | total        0 ms | memory ~1 MB / 4096 MB max
+  [trip set built              ] stage       82 ms | total       82 ms | memory ~1 MB / 4096 MB max
+WARNING: A Java agent has been loaded dynamically (C:\Users\runneradmin\.runtime-xray\arthas-4.3.4\arthas-agent.jar)
+WARNING: If a serviceability tool is in use, please run with -XX:+EnableDynamicAgentLoading to hide this warning
+WARNING: If a serviceability tool is not in use, please run with -Djdk.instrument.traceUsage for more information
+WARNING: Dynamic loading of agents will be disallowed by default in a future release
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+  [computation finished        ] stage     7040 ms | total     7123 ms | memory ~6 MB / 4096 MB max
+total duration = 4802403147 minutes

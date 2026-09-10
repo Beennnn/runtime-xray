@@ -1,0 +1,18 @@
+Picked up JAVA_TOOL_OPTIONS: -javaagent:/home/runner/.runtime-xray/org.jacoco.agent-0.8.13-runtime.jar=destfile=/home/runner/work/runtime-xray/runtime-xray/out/runs/20260910-180823-full-scenario-flight-recorder/jacoco/jacoco.exec -XX:StartFlightRecording:settings=profile,filename=/home/runner/work/runtime-xray/runtime-xray/out/runs/20260910-180823-full-scenario-flight-recorder/jfr/recording.jfr -XX:+UnlockDiagnosticVMOptions -XX:+DebugNonSafepoints
+[1.030s][info][jfr,startup] Started recording 1. No limit specified, using maxsize=250MB as default.
+[1.030s][info][jfr,startup] 
+[1.030s][info][jfr,startup] Use jcmd 3207 JFR.dump name=1 to copy recording data to file.
+sample-app: 8000000 trips evaluated, final pause 0 s
+  [JVM started                 ] stage        0 ms | total        0 ms | memory ~3 MB / 3998 MB max
+  [trip set built              ] stage       26 ms | total       26 ms | memory ~3 MB / 3998 MB max
+WARNING: A Java agent has been loaded dynamically (/home/runner/.runtime-xray/arthas-4.3.4/arthas-agent.jar)
+WARNING: If a serviceability tool is in use, please run with -XX:+EnableDynamicAgentLoading to hide this warning
+WARNING: If a serviceability tool is not in use, please run with -Djdk.instrument.traceUsage for more information
+WARNING: Dynamic loading of agents will be disallowed by default in a future release
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+WARNING: A Java agent has been loaded dynamically (/home/runner/.runtime-xray/arthas-4.3.4/arthas-agent.jar)
+WARNING: If a serviceability tool is in use, please run with -XX:+EnableDynamicAgentLoading to hide this warning
+WARNING: If a serviceability tool is not in use, please run with -Djdk.instrument.traceUsage for more information
+WARNING: Dynamic loading of agents will be disallowed by default in a future release
+  [computation finished        ] stage    26042 ms | total    26068 ms | memory ~16 MB / 3998 MB max
+total duration = 4802403147 minutes

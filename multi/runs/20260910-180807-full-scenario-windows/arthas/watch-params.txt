@@ -1,0 +1,5 @@
+[[32mINFO[0m] JAVA_HOME: C:\hostedtoolcache\windows\Java_Temurin-Hotspot_jdk\21.0.12-101.0\x64
+[[32mINFO[0m] arthas-boot version: 4.3.4
+[[32mINFO[0m] arthas home: C:\Users\runneradmin\.runtime-xray\arthas-4.3.4
+[[32mINFO[0m] Try to attach process 6696
+Picked up JAVA_TOOL_OPTIONS: 

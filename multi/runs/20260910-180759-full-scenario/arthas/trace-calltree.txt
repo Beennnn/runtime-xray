@@ -1,0 +1,234 @@
+[INFO] JAVA_HOME: /usr/lib/jvm/temurin-21-jdk-amd64
+[INFO] arthas-boot version: 4.3.4
+[INFO] arthas home: /home/runner/.runtime-xray/arthas-4.3.4
+[INFO] Try to attach process 2789
+Picked up JAVA_TOOL_OPTIONS: 
+[INFO] Attach process 2789 success.
+[INFO] arthas-client connect 127.0.0.1 3658
+[1;31m  ,---.  [1;33m,------. [1;36m,--------.[1;35m,--.  ,--.[1;32m  ,---.  [1;34m ,---.  [0m                         
+[1;31m /  O  \ [1;33m|  .--. '[1;36m'--.  .--'[1;35m|  '--'  |[1;32m /  O  \ [1;34m'   .-' [0m                         
+[1;31m|  .-.  |[1;33m|  '--'.'[1;36m   |  |   [1;35m|  .--.  |[1;32m|  .-.  |[1;34m`.  `-. [0m                         
+[1;31m|  | |  |[1;33m|  |\  \ [1;36m   |  |   [1;35m|  |  |  |[1;32m|  | |  |[1;34m.-'    |[0m                         
+[1;31m`--' `--'[1;33m`--' '--'[1;36m   `--'   [1;35m`--'  `--'[1;32m`--' `--'[1;34m`-----' [0m                         
+
+wiki         https://arthas.aliyun.com/doc                                      
+tutorials    https://arthas.aliyun.com/doc/arthas-tutorials.html                
+version      4.3.4                                                              
+main_class   sample-app/target/sample-app.jar                                   
+pid          2789                                                               
+start_time   2026-09-10 18:07:59.148                                            
+current_time 2026-09-10 18:08:07.657                                            
+
+[arthas@2789]$ trace lab.sample.RoutePlanner travelTimeMinutes -n 10 | plaintext 
+Press Q or Ctrl+C to abort.
+Affect(class count: 1 , method count: 1) cost in 190 ms, listenerId: 1
+`---ts=2026-09-10 18:08:08.660;thread_name=main;id=1;is_daemon=false;priority=5;TCCL=jdk.internal.loader.ClassLoaders$AppClassLoader@76ed5528
+    `---[0.582827ms] lab.sample.RoutePlanner:travelTimeMinutes()
+        +---[3.38% 0.019685ms ] lab.sample.model.Trip:id() #53
+        +---[2.92% 0.017007ms ] org.slf4j.Logger:debug() #53
+        +---[1.32% 0.007692ms ] lab.sample.model.Trip:mode() #54
+        +---[1.66% 0.009689ms ] lab.sample.speed.Speeds:forMode() #54
+        +---[2.57% min=0.003615ms,max=0.006972ms,total=0.014979ms,count=3] lab.sample.model.Trip:legs() #60
+        +---[1.35% min=0.0038ms,max=0.004076ms,total=0.007876ms,count=2] lab.sample.model.Trip:legs() #61
+        +---[2.01% min=0.005136ms,max=0.006607ms,total=0.011743ms,count=2] lab.sample.model.Trip:mode() #61
+        +---[3.91% min=0.006103ms,max=0.016699ms,total=0.022802ms,count=2] lab.sample.RoutePlanner:legMinutes() #61
+        +---[0.85% 0.004948ms ] lab.sample.model.Trip:mode() #64
+        +---[1.11% 0.006457ms ] lab.sample.model.Trip:timeOfDay() #64
+        +---[1.35% 0.007864ms ] lab.sample.traffic.Traffic:applies() #64
+        +---[0.84% 0.004873ms ] lab.sample.model.Trip:mode() #68
+        +---[1.11% 0.006482ms ] lab.sample.weather.WeatherPenalty:applies() #68
+        +---[0.87% 0.005067ms ] lab.sample.model.Trip:mode() #73
+        +---[0.95% 0.005557ms ] lab.sample.model.Trip:legs() #74
+        +---[1.58% 0.009237ms ] lab.sample.transfer.Connections:waitMinutes() #74
+        `---[1.17% 0.006793ms ] lab.sample.comfort.Breaks:totalMinutes() #78
+
+`---ts=2026-09-10 18:08:08.665;thread_name=main;id=1;is_daemon=false;priority=5;TCCL=jdk.internal.loader.ClassLoaders$AppClassLoader@76ed5528
+    `---[0.415503ms] lab.sample.RoutePlanner:travelTimeMinutes()
+        +---[2.15% 0.008941ms ] lab.sample.model.Trip:id() #53
+        +---[2.03% 0.008416ms ] org.slf4j.Logger:debug() #53
+        +---[1.14% 0.004716ms ] lab.sample.model.Trip:mode() #54
+        +---[1.08% 0.004508ms ] lab.sample.speed.Speeds:forMode() #54
+        +---[4.35% min=0.003561ms,max=0.005762ms,total=0.018086ms,count=4] lab.sample.model.Trip:legs() #60
+        +---[3.30% min=0.003791ms,max=0.00608ms,total=0.013715ms,count=3] lab.sample.model.Trip:legs() #61
+        +---[2.80% min=0.003504ms,max=0.004445ms,total=0.011616ms,count=3] lab.sample.model.Trip:mode() #61
+        +---[5.30% min=0.004887ms,max=0.012002ms,total=0.022016ms,count=3] lab.sample.RoutePlanner:legMinutes() #61
+        +---[1.25% 0.005187ms ] lab.sample.model.Trip:mode() #64
+        +---[1.14% 0.004744ms ] lab.sample.model.Trip:timeOfDay() #64
+        +---[1.17% 0.004843ms ] lab.sample.traffic.Traffic:applies() #64
+        +---[0.92% 0.003815ms ] lab.sample.model.Trip:mode() #68
+        +---[1.00% 0.004144ms ] lab.sample.weather.WeatherPenalty:applies() #68
+        +---[1.97% 0.008179ms ] lab.sample.model.Trip:weather() #69
+        +---[2.21% 0.009169ms ] lab.sample.weather.WeatherPenalty:slowdownFactor() #69
+        +---[1.56% 0.006476ms ] lab.sample.model.Trip:withLuggage() #70
+        +---[2.51% 0.010411ms ] lab.sample.weather.LuggagePenalty:slowdownFactor() #70
+        +---[1.01% 0.00418ms ] lab.sample.model.Trip:mode() #73
+        `---[1.06% 0.004387ms ] lab.sample.comfort.Breaks:totalMinutes() #78
+
+`---ts=2026-09-10 18:08:08.668;thread_name=main;id=1;is_daemon=false;priority=5;TCCL=jdk.internal.loader.ClassLoaders$AppClassLoader@76ed5528
+    `---[0.432739ms] lab.sample.RoutePlanner:travelTimeMinutes()
+        +---[1.94% 0.008384ms ] lab.sample.model.Trip:id() #53
+        +---[1.65% 0.00716ms ] org.slf4j.Logger:debug() #53
+        +---[1.48% 0.006397ms ] lab.sample.model.Trip:mode() #54
+        +---[1.30% 0.005645ms ] lab.sample.speed.Speeds:forMode() #54
+        +---[5.75% min=0.00345ms,max=0.007355ms,total=0.024903ms,count=5] lab.sample.model.Trip:legs() #60
+        +---[4.00% min=0.003376ms,max=0.005305ms,total=0.017317ms,count=4] lab.sample.model.Trip:legs() #61
+        +---[3.94% min=0.003463ms,max=0.005236ms,total=0.017062ms,count=4] lab.sample.model.Trip:mode() #61
+        +---[5.19% min=0.004467ms,max=0.008029ms,total=0.022445ms,count=4] lab.sample.RoutePlanner:legMinutes() #61
+        +---[1.31% 0.005673ms ] lab.sample.model.Trip:mode() #64
+        +---[1.04% 0.004483ms ] lab.sample.model.Trip:timeOfDay() #64
+        +---[1.05% 0.004525ms ] lab.sample.traffic.Traffic:applies() #64
+        +---[0.86% 0.003713ms ] lab.sample.model.Trip:mode() #68
+        +---[0.93% 0.004005ms ] lab.sample.weather.WeatherPenalty:applies() #68
+        +---[0.91% 0.003919ms ] lab.sample.model.Trip:weather() #69
+        +---[0.89% 0.003852ms ] lab.sample.weather.WeatherPenalty:slowdownFactor() #69
+        +---[0.89% 0.003847ms ] lab.sample.model.Trip:withLuggage() #70
+        +---[0.88% 0.003814ms ] lab.sample.weather.LuggagePenalty:slowdownFactor() #70
+        +---[0.79% 0.003404ms ] lab.sample.model.Trip:mode() #73
+        `---[1.00% 0.004344ms ] lab.sample.comfort.Breaks:totalMinutes() #78
+
+`---ts=2026-09-10 18:08:08.670;thread_name=main;id=1;is_daemon=false;priority=5;TCCL=jdk.internal.loader.ClassLoaders$AppClassLoader@76ed5528
+    `---[0.37193ms] lab.sample.RoutePlanner:travelTimeMinutes()
+        +---[2.27% 0.008427ms ] lab.sample.model.Trip:id() #53
+        +---[1.73% 0.006428ms ] org.slf4j.Logger:debug() #53
+        +---[1.42% 0.005278ms ] lab.sample.model.Trip:mode() #54
+        +---[4.17% 0.015493ms ] lab.sample.speed.Speeds:forMode() #54
+        +---[2.46% min=0.004028ms,max=0.005138ms,total=0.009166ms,count=2] lab.sample.model.Trip:legs() #60
+        +---[1.39% 0.005182ms ] lab.sample.model.Trip:legs() #61
+        +---[1.55% 0.005776ms ] lab.sample.model.Trip:mode() #61
+        +---[2.57% 0.009559ms ] lab.sample.RoutePlanner:legMinutes() #61
+        +---[1.29% 0.00478ms ] lab.sample.model.Trip:mode() #64
+        +---[1.05% 0.003891ms ] lab.sample.model.Trip:timeOfDay() #64
+        +---[1.20% 0.004465ms ] lab.sample.traffic.Traffic:applies() #64
+        +---[1.73% 0.006444ms ] lab.sample.model.Trip:legs() #65
+        +---[2.22% 0.008246ms ] lab.sample.traffic.Traffic:delayMinutes() #65
+        +---[0.92% 0.003421ms ] lab.sample.model.Trip:mode() #68
+        +---[1.24% 0.004613ms ] lab.sample.weather.WeatherPenalty:applies() #68
+        +---[1.03% 0.003838ms ] lab.sample.model.Trip:mode() #73
+        `---[0.98% 0.003634ms ] lab.sample.comfort.Breaks:totalMinutes() #78
+
+`---ts=2026-09-10 18:08:08.673;thread_name=main;id=1;is_daemon=false;priority=5;TCCL=jdk.internal.loader.ClassLoaders$AppClassLoader@76ed5528
+    `---[0.282434ms] lab.sample.RoutePlanner:travelTimeMinutes()
+        +---[2.94% 0.008298ms ] lab.sample.model.Trip:id() #53
+        +---[2.42% 0.006847ms ] org.slf4j.Logger:debug() #53
+        +---[1.82% 0.005143ms ] lab.sample.model.Trip:mode() #54
+        +---[1.52% 0.004285ms ] lab.sample.speed.Speeds:forMode() #54
+        +---[4.08% min=0.003429ms,max=0.004108ms,total=0.011512ms,count=3] lab.sample.model.Trip:legs() #60
+        +---[3.19% min=0.003612ms,max=0.0054ms,total=0.009012ms,count=2] lab.sample.model.Trip:legs() #61
+        +---[2.49% min=0.003507ms,max=0.003515ms,total=0.007022ms,count=2] lab.sample.model.Trip:mode() #61
+        +---[3.43% min=0.004122ms,max=0.00557ms,total=0.009692ms,count=2] lab.sample.RoutePlanner:legMinutes() #61
+        +---[1.27% 0.003592ms ] lab.sample.model.Trip:mode() #64
+        +---[3.93% 0.011108ms ] lab.sample.model.Trip:timeOfDay() #64
+        +---[1.35% 0.003819ms ] lab.sample.traffic.Traffic:applies() #64
+        +---[1.31% 0.003692ms ] lab.sample.model.Trip:mode() #68
+        +---[1.33% 0.003759ms ] lab.sample.weather.WeatherPenalty:applies() #68
+        +---[1.25% 0.003536ms ] lab.sample.model.Trip:mode() #73
+        +---[1.30% 0.003674ms ] lab.sample.model.Trip:legs() #74
+        +---[2.08% 0.005878ms ] lab.sample.transfer.Connections:waitMinutes() #74
+        `---[1.57% 0.004442ms ] lab.sample.comfort.Breaks:totalMinutes() #78
+
+`---ts=2026-09-10 18:08:08.675;thread_name=main;id=1;is_daemon=false;priority=5;TCCL=jdk.internal.loader.ClassLoaders$AppClassLoader@76ed5528
+    `---[0.310696ms] lab.sample.RoutePlanner:travelTimeMinutes()
+        +---[2.93% 0.009112ms ] lab.sample.model.Trip:id() #53
+        +---[2.07% 0.006439ms ] org.slf4j.Logger:debug() #53
+        +---[1.53% 0.004741ms ] lab.sample.model.Trip:mode() #54
+        +---[1.23% 0.003817ms ] lab.sample.speed.Speeds:forMode() #54
+        +---[4.52% min=0.003371ms,max=0.003637ms,total=0.014053ms,count=4] lab.sample.model.Trip:legs() #60
+        +---[4.02% min=0.00322ms,max=0.005916ms,total=0.01249ms,count=3] lab.sample.model.Trip:legs() #61
+        +---[3.45% min=0.003402ms,max=0.003833ms,total=0.010704ms,count=3] lab.sample.model.Trip:mode() #61
+        +---[5.16% min=0.004465ms,max=0.006975ms,total=0.016027ms,count=3] lab.sample.RoutePlanner:legMinutes() #61
+        +---[1.12% 0.003471ms ] lab.sample.model.Trip:mode() #64
+        +---[1.11% 0.00344ms ] lab.sample.model.Trip:timeOfDay() #64
+        +---[1.22% 0.003804ms ] lab.sample.traffic.Traffic:applies() #64
+        +---[1.10% 0.003432ms ] lab.sample.model.Trip:mode() #68
+        +---[1.18% 0.003671ms ] lab.sample.weather.WeatherPenalty:applies() #68
+        +---[1.17% 0.003629ms ] lab.sample.model.Trip:weather() #69
+        +---[1.25% 0.003899ms ] lab.sample.weather.WeatherPenalty:slowdownFactor() #69
+        +---[1.17% 0.003645ms ] lab.sample.model.Trip:withLuggage() #70
+        +---[1.19% 0.003699ms ] lab.sample.weather.LuggagePenalty:slowdownFactor() #70
+        +---[1.11% 0.003463ms ] lab.sample.model.Trip:mode() #73
+        `---[1.17% 0.003634ms ] lab.sample.comfort.Breaks:totalMinutes() #78
+
+`---ts=2026-09-10 18:08:08.677;thread_name=main;id=1;is_daemon=false;priority=5;TCCL=jdk.internal.loader.ClassLoaders$AppClassLoader@76ed5528
+    `---[0.4211ms] lab.sample.RoutePlanner:travelTimeMinutes()
+        +---[2.63% 0.011087ms ] lab.sample.model.Trip:id() #53
+        +---[1.62% 0.006808ms ] org.slf4j.Logger:debug() #53
+        +---[1.41% 0.005934ms ] lab.sample.model.Trip:mode() #54
+        +---[1.11% 0.004689ms ] lab.sample.speed.Speeds:forMode() #54
+        +---[4.98% min=0.00336ms,max=0.005745ms,total=0.020962ms,count=5] lab.sample.model.Trip:legs() #60
+        +---[4.29% min=0.003253ms,max=0.006583ms,total=0.018071ms,count=4] lab.sample.model.Trip:legs() #61
+        +---[3.36% min=0.003288ms,max=0.003716ms,total=0.014146ms,count=4] lab.sample.model.Trip:mode() #61
+        +---[5.34% min=0.004832ms,max=0.007119ms,total=0.0225ms,count=4] lab.sample.RoutePlanner:legMinutes() #61
+        +---[0.90% 0.003789ms ] lab.sample.model.Trip:mode() #64
+        +---[0.82% 0.003468ms ] lab.sample.model.Trip:timeOfDay() #64
+        +---[1.14% 0.00478ms ] lab.sample.traffic.Traffic:applies() #64
+        +---[0.81% 0.00342ms ] lab.sample.model.Trip:mode() #68
+        +---[0.98% 0.004147ms ] lab.sample.weather.WeatherPenalty:applies() #68
+        +---[0.90% 0.003797ms ] lab.sample.model.Trip:weather() #69
+        +---[0.91% 0.003847ms ] lab.sample.weather.WeatherPenalty:slowdownFactor() #69
+        +---[0.90% 0.003794ms ] lab.sample.model.Trip:withLuggage() #70
+        +---[0.90% 0.003782ms ] lab.sample.weather.LuggagePenalty:slowdownFactor() #70
+        +---[0.85% 0.003591ms ] lab.sample.model.Trip:mode() #73
+        `---[0.91% 0.003851ms ] lab.sample.comfort.Breaks:totalMinutes() #78
+
+`---ts=2026-09-10 18:08:08.680;thread_name=main;id=1;is_daemon=false;priority=5;TCCL=jdk.internal.loader.ClassLoaders$AppClassLoader@76ed5528
+    `---[0.21578ms] lab.sample.RoutePlanner:travelTimeMinutes()
+        +---[3.77% 0.008143ms ] lab.sample.model.Trip:id() #53
+        +---[3.78% 0.008152ms ] org.slf4j.Logger:debug() #53
+        +---[2.19% 0.004721ms ] lab.sample.model.Trip:mode() #54
+        +---[1.91% 0.004112ms ] lab.sample.speed.Speeds:forMode() #54
+        +---[3.59% min=0.003697ms,max=0.004049ms,total=0.007746ms,count=2] lab.sample.model.Trip:legs() #60
+        +---[1.62% 0.0035ms ] lab.sample.model.Trip:legs() #61
+        +---[1.45% 0.003136ms ] lab.sample.model.Trip:mode() #61
+        +---[3.26% 0.007044ms ] lab.sample.RoutePlanner:legMinutes() #61
+        +---[2.83% 0.006102ms ] lab.sample.model.Trip:mode() #64
+        +---[1.83% 0.003948ms ] lab.sample.model.Trip:timeOfDay() #64
+        +---[1.85% 0.003993ms ] lab.sample.traffic.Traffic:applies() #64
+        +---[2.98% 0.006428ms ] lab.sample.model.Trip:mode() #68
+        +---[2.30% 0.004955ms ] lab.sample.weather.WeatherPenalty:applies() #68
+        +---[1.90% 0.00411ms ] lab.sample.model.Trip:mode() #73
+        `---[1.91% 0.004125ms ] lab.sample.comfort.Breaks:totalMinutes() #78
+
+`---ts=2026-09-10 18:08:08.681;thread_name=main;id=1;is_daemon=false;priority=5;TCCL=jdk.internal.loader.ClassLoaders$AppClassLoader@76ed5528
+    `---[0.338008ms] lab.sample.RoutePlanner:travelTimeMinutes()
+        +---[2.36% 0.007993ms ] lab.sample.model.Trip:id() #53
+        +---[1.75% 0.005926ms ] org.slf4j.Logger:debug() #53
+        +---[1.29% 0.004363ms ] lab.sample.model.Trip:mode() #54
+        +---[1.21% 0.004075ms ] lab.sample.speed.Speeds:forMode() #54
+        +---[4.24% min=0.003346ms,max=0.0074ms,total=0.014319ms,count=3] lab.sample.model.Trip:legs() #60
+        +---[2.11% min=0.003534ms,max=0.003586ms,total=0.00712ms,count=2] lab.sample.model.Trip:legs() #61
+        +---[2.27% min=0.003821ms,max=0.003866ms,total=0.007687ms,count=2] lab.sample.model.Trip:mode() #61
+        +---[2.76% min=0.004339ms,max=0.004987ms,total=0.009326ms,count=2] lab.sample.RoutePlanner:legMinutes() #61
+        +---[3.81% 0.012892ms ] lab.sample.model.Trip:mode() #64
+        +---[4.04% 0.01367ms ] lab.sample.model.Trip:timeOfDay() #64
+        +---[1.31% 0.004441ms ] lab.sample.traffic.Traffic:applies() #64
+        +---[3.30% 0.011158ms ] lab.sample.model.Trip:mode() #68
+        +---[1.21% 0.004105ms ] lab.sample.weather.WeatherPenalty:applies() #68
+        +---[1.12% 0.003792ms ] lab.sample.model.Trip:mode() #73
+        +---[1.09% 0.003672ms ] lab.sample.model.Trip:legs() #74
+        +---[1.29% 0.004359ms ] lab.sample.transfer.Connections:waitMinutes() #74
+        `---[1.12% 0.003779ms ] lab.sample.comfort.Breaks:totalMinutes() #78
+
+`---ts=2026-09-10 18:08:08.683;thread_name=main;id=1;is_daemon=false;priority=5;TCCL=jdk.internal.loader.ClassLoaders$AppClassLoader@76ed5528
+    `---[0.399482ms] lab.sample.RoutePlanner:travelTimeMinutes()
+        +---[2.19% 0.008734ms ] lab.sample.model.Trip:id() #53
+        +---[1.82% 0.007285ms ] org.slf4j.Logger:debug() #53
+        +---[1.35% 0.005408ms ] lab.sample.model.Trip:mode() #54
+        +---[1.22% 0.004881ms ] lab.sample.speed.Speeds:forMode() #54
+        +---[3.76% min=0.003346ms,max=0.004214ms,total=0.015015ms,count=4] lab.sample.model.Trip:legs() #60
+        +---[2.70% min=0.002938ms,max=0.004424ms,total=0.01079ms,count=3] lab.sample.model.Trip:legs() #61
+        +---[3.11% min=0.003169ms,max=0.005424ms,total=0.012442ms,count=3] lab.sample.model.Trip:mode() #61
+        +---[10.48% min=0.004749ms,max=0.030193ms,total=0.04186ms,count=3] lab.sample.RoutePlanner:legMinutes() #61
+        +---[0.97% 0.00387ms ] lab.sample.model.Trip:mode() #64
+        +---[0.90% 0.003608ms ] lab.sample.model.Trip:timeOfDay() #64
+        +---[1.00% 0.003987ms ] lab.sample.traffic.Traffic:applies() #64
+        +---[0.90% 0.003614ms ] lab.sample.model.Trip:mode() #68
+        +---[3.05% 0.012182ms ] lab.sample.weather.WeatherPenalty:applies() #68
+        +---[1.05% 0.004197ms ] lab.sample.model.Trip:weather() #69
+        +---[1.03% 0.004111ms ] lab.sample.weather.WeatherPenalty:slowdownFactor() #69
+        +---[1.04% 0.004145ms ] lab.sample.model.Trip:withLuggage() #70
+        +---[2.33% 0.009302ms ] lab.sample.weather.LuggagePenalty:slowdownFactor() #70
+        +---[1.44% 0.005744ms ] lab.sample.model.Trip:mode() #73
+        `---[1.15% 0.004595ms ] lab.sample.comfort.Breaks:totalMinutes() #78
+
+Command execution times exceed limit: 10, so command will exit. You can set it with -n option.
+[arthas@2789]$ 

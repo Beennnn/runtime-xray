@@ -1,0 +1,14 @@
+[[32mINFO[0m] JAVA_HOME: C:\hostedtoolcache\windows\Java_Temurin-Hotspot_jdk\21.0.12-101.0\x64
+[[32mINFO[0m] arthas-boot version: 4.3.4
+[[32mINFO[0m] arthas home: C:\Users\runneradmin\.runtime-xray\arthas-4.3.4
+[[32mINFO[0m] Try to attach process 6696
+Picked up JAVA_TOOL_OPTIONS: 
+[[31mERROR[0m] Start arthas failed, exception stack trace: 
+com.sun.tools.attach.AttachNotSupportedException: Access is denied
+	at jdk.attach/sun.tools.attach.VirtualMachineImpl.<init>(VirtualMachineImpl.java:59)
+	at jdk.attach/sun.tools.attach.AttachProviderImpl.attachVirtualMachine(AttachProviderImpl.java:59)
+	at jdk.attach/com.sun.tools.attach.VirtualMachine.attach(VirtualMachine.java:207)
+	at com.taobao.arthas.core.Arthas.attachAgent(Arthas.java:124)
+	at com.taobao.arthas.core.Arthas.<init>(Arthas.java:37)
+	at com.taobao.arthas.core.Arthas.main(Arthas.java:491)
+[[31mERROR[0m] attach fail, targetPid: 6696
